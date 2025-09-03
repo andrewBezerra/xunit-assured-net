@@ -1,2 +1,2 @@
 # XUnitAssured.Net
-XUnitAssured.Net é uma ferramenta que ajuda os desenvolvedores a criar e manter coleções de testes com o objetivo de promover o desenvolvimento de produtos de software com qualidade.
+XUnitAssured.Net is a tool that helps developers create and maintain test collections with the goal of promoting the development of quality software products.
