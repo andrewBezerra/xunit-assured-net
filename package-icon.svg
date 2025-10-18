@@ -1,0 +1,10 @@
+<svg width="128" height="128" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="128" height="128" rx="32" fill="#23272F"/>
+  <!-- Código fonte estilizado (blocos) -->
+  <rect x="28" y="36" width="72" height="8" rx="2" fill="#343A40"/>
+  <rect x="28" y="52" width="48" height="8" rx="2" fill="#343A40"/>
+  <rect x="28" y="68" width="60" height="8" rx="2" fill="#343A40"/>
+  <rect x="28" y="84" width="36" height="8" rx="2" fill="#343A40"/>
+  <!-- Checkmark em destaque -->
+  <path d="M46 80L62 96L90 56" stroke="#43D9AD" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
