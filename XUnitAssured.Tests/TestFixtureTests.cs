@@ -19,21 +19,22 @@ public class TestFixtureTests
 
 		public TestFixtureWrapper()
 		{
-			// Usa reflexão para criar instância sem chamar o construtor da classe base
-			_fixture = (TestFixture)System.Runtime.Serialization.FormatterServices.GetUninitializedObject(typeof(TestFixture));
+			// Usa RuntimeHelpers.GetUninitializedObject em vez de FormatterServices (obsoleto)
+			// Isso cria uma instância sem chamar o construtor, evitando dependências
+			_fixture = (TestFixture)System.Runtime.CompilerServices.RuntimeHelpers.GetUninitializedObject(typeof(TestFixture));
 		}
 
 		public void CallAddServices(IServiceCollection services, IConfiguration? configuration)
 		{
 			var method = typeof(TestFixture).GetMethod("AddServices", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-			method!.Invoke(_fixture, new object?[] { services, configuration });
+			method!.Invoke(_fixture, [services, configuration]);
 		}
 
 		public IEnumerable<(string Filename, bool IsOptional)> CallGetTestAppSettings()
 		{
 			var method = typeof(TestFixture).GetMethod("GetTestAppSettings", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
 			var result = method!.Invoke(_fixture, null);
-			
+
 			// Iterar sobre o IEnumerable<TestAppSettings> usando reflexão
 			var enumerable = result as System.Collections.IEnumerable;
 			foreach (var item in enumerable!)
@@ -64,7 +65,7 @@ public class TestFixtureTests
 	private class ThrowingConfiguration : IConfiguration
 	{
 		public string? this[string key] { get => null; set { } }
-		public IEnumerable<IConfigurationSection> GetChildren() => Enumerable.Empty<IConfigurationSection>();
+		public IEnumerable<IConfigurationSection> GetChildren() => [];
 		public IChangeToken GetReloadToken() => NoopChangeToken.Instance;
 		public IConfigurationSection GetSection(string key) => throw new Exception("boom");
 	}
@@ -76,8 +77,8 @@ public class TestFixtureTests
 		var services = new ServiceCollection();
 		var inMemory = new Dictionary<string, string?>
 		{
-			{"TestSettings:BaseUrl", "https://api.example.com"},
-			{"TestSettings:OpenApiDocument", "openapi.json"}
+			["TestSettings:BaseUrl"] = "https://api.example.com",
+			["TestSettings:OpenApiDocument"] = "openapi.json"
 		};
 		IConfiguration config = new ConfigurationBuilder().AddInMemoryCollection(inMemory).Build();
 		var wrapper = new TestFixtureWrapper();
@@ -103,9 +104,9 @@ public class TestFixtureTests
 
 		// Act / Assert
 		// Como usamos reflexão, a exceção vem encapsulada em TargetInvocationException
-		var ex = Assert.Throws<System.Reflection.TargetInvocationException>(() => 
+		var ex = Assert.Throws<System.Reflection.TargetInvocationException>(() =>
 			wrapper.CallAddServices(services, config));
-		
+
 		// Verificar que a exceção interna é InvalidTestSettingsException
 		Assert.NotNull(ex.InnerException);
 		Assert.IsType<InvalidTestSettingsException>(ex.InnerException);
@@ -123,9 +124,9 @@ public class TestFixtureTests
 
 		// Assert
 		Assert.Single(list);
-		var item = list[0];
-		Assert.Equal("testsettings.json", item.Filename);
-		Assert.False(item.IsOptional);
+
+		Assert.Equal("testsettings.json", list[0].Filename);
+		Assert.False(list[0].IsOptional);
 	}
 
 	[Fact(DisplayName = "DisposeAsyncCore deve completar sem erro")]
