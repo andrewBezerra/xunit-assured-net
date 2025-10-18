@@ -17,6 +17,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Src", "Src", "{E7A62A17-C00
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "XUnitAssured.Tests", "XUnitAssured.Tests\XUnitAssured.Tests.csproj", "{C4E81D1A-E22D-42CC-BADB-7770D6F53884}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SampleWebApi", "SampleWebApi\SampleWebApi.csproj", "{F6EBA73C-F6F6-821A-C09E-7F8DFF0DAA84}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -35,6 +37,10 @@ Global
 		{C4E81D1A-E22D-42CC-BADB-7770D6F53884}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{C4E81D1A-E22D-42CC-BADB-7770D6F53884}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{C4E81D1A-E22D-42CC-BADB-7770D6F53884}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F6EBA73C-F6F6-821A-C09E-7F8DFF0DAA84}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F6EBA73C-F6F6-821A-C09E-7F8DFF0DAA84}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F6EBA73C-F6F6-821A-C09E-7F8DFF0DAA84}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F6EBA73C-F6F6-821A-C09E-7F8DFF0DAA84}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -43,6 +49,7 @@ Global
 		{13669ACD-5C19-49B8-82AD-250883D6B22D} = {E7A62A17-C00F-4821-A0EE-56403CF8D6B4}
 		{CD1F00B7-A93A-40C5-8D98-4E5B6C6A60E6} = {E7A62A17-C00F-4821-A0EE-56403CF8D6B4}
 		{C4E81D1A-E22D-42CC-BADB-7770D6F53884} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
+		{F6EBA73C-F6F6-821A-C09E-7F8DFF0DAA84} = {719336CE-8DB8-4C9F-AED5-1BFB84A806F3}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {B757C820-A762-4102-A668-E0C8119FAA4C}
