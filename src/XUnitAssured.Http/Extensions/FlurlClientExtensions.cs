@@ -1,6 +1,5 @@
 using System;
 using System.Net.Http;
-using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
 using System.Threading;
@@ -8,12 +7,13 @@ using System.Threading.Tasks;
 
 using Flurl.Http;
 
-namespace XUnitAssured.Remote.Helpers;
+namespace XUnitAssured.Http.Extensions;
 
 /// <summary>
-/// Helper class for common HTTP operations with retry logic and authentication support.
+/// Extension methods for FlurlClient providing retry logic and convenience methods.
+/// Migrated from XUnitAssured.Remote to provide retry capabilities in HTTP testing.
 /// </summary>
-public static class HttpClientHelper
+public static class FlurlClientExtensions
 {
 	private static readonly JsonSerializerOptions DefaultJsonOptions = new()
 	{
@@ -67,7 +67,7 @@ public static class HttpClientHelper
 		int retryDelay = 1000,
 		CancellationToken cancellationToken = default)
 	{
-	return await ExecuteWithRetryAsync(
+		return await ExecuteWithRetryAsync(
 			async () =>
 			{
 				var flurlResponse = await client.Request(path).PostJsonAsync(body, cancellationToken: cancellationToken);
@@ -97,7 +97,7 @@ public static class HttpClientHelper
 		int retryDelay = 1000,
 		CancellationToken cancellationToken = default)
 	{
-	return await ExecuteWithRetryAsync(
+		return await ExecuteWithRetryAsync(
 			async () =>
 			{
 				var flurlResponse = await client.Request(path).PutJsonAsync(body, cancellationToken: cancellationToken);
@@ -124,7 +124,7 @@ public static class HttpClientHelper
 		int retryDelay = 1000,
 		CancellationToken cancellationToken = default)
 	{
-	return await ExecuteWithRetryAsync(
+		return await ExecuteWithRetryAsync(
 			async () =>
 			{
 				var flurlResponse = await client.Request(path).DeleteAsync(cancellationToken: cancellationToken);
@@ -154,7 +154,7 @@ public static class HttpClientHelper
 		int retryDelay = 1000,
 		CancellationToken cancellationToken = default)
 	{
-	return await ExecuteWithRetryAsync(
+		return await ExecuteWithRetryAsync(
 			async () =>
 			{
 				var flurlResponse = await client.Request(path).PatchJsonAsync(body, cancellationToken: cancellationToken);

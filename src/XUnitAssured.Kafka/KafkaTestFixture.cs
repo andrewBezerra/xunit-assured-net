@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 
 using Confluent.Kafka;
@@ -7,15 +8,17 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 
-using XUnitAssured.Base;
+using Xunit.Microsoft.DependencyInjection;
+using Xunit.Microsoft.DependencyInjection.Abstracts;
 
 namespace XUnitAssured.Kafka;
 
 /// <summary>
 /// Base test fixture for Kafka integration tests.
 /// Provides KafkaSettings configuration and helper methods for Producer/Consumer operations.
+/// Does not depend on XUnitAssured.Base.TestFixture, making it independent and reusable.
 /// </summary>
-public abstract class KafkaTestFixture : TestFixture
+public abstract class KafkaTestFixture : TestBedFixture
 {
 	protected KafkaSettings? KafkaSettings { get; private set; }
 
@@ -153,9 +156,14 @@ public abstract class KafkaTestFixture : TestFixture
 		}
 	}
 
-	protected override async ValueTask DisposeAsyncCore()
+	protected override ValueTask DisposeAsyncCore()
 	{
 		// Clean up any Kafka resources
-		await base.DisposeAsyncCore();
+		return ValueTask.CompletedTask;
+	}
+
+	protected override IEnumerable<TestAppSettings> GetTestAppSettings()
+	{
+		yield return new() { Filename = "kafkasettings.json", IsOptional = false };
 	}
 }
