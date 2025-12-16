@@ -1,36 +1,24 @@
-﻿using System;
-
-using FluentValidation;
-
-using XUnitAssured.Base.Auth;
-using XUnitAssured.Base.Kafka;
+using System;
 
 namespace XUnitAssured.Base;
 
-public class TestSettingsValidator : AbstractValidator<BaseSettings>
+/// <summary>
+/// [OBSOLETE] This class is deprecated in favor of BaseSettingsValidator which uses IValidateOptions.
+/// Will be removed in v3.0.
+/// </summary>
+[Obsolete("Use BaseSettingsValidator with IValidateOptions<BaseSettings> pattern instead. This class will be removed in v3.0.", error: false)]
+public class TestSettingsValidator
 {
-	public TestSettingsValidator()
+	/// <summary>
+	/// [OBSOLETE] Validation is now handled by BaseSettingsValidator using the Options pattern.
+	/// </summary>
+	[Obsolete("Configure validation using services.AddOptions<BaseSettings>().ValidateOnStart() with BaseSettingsValidator instead.", error: false)]
+	public void Validate(BaseSettings settings)
 	{
-		When(x => !string.IsNullOrEmpty(x.BaseUrl), () =>
-		{
-			RuleFor(x => x.BaseUrl)
-				.Must(url => Uri.TryCreate(url, UriKind.Absolute, out Uri? uri) &&
-							 (uri.Scheme == Uri.UriSchemeHttp ||
-							 uri.Scheme == Uri.UriSchemeHttps))
-				.WithMessage("A URL deve ser válida e usar HTTP ou HTTPS.");
-		});
-
-		When(x => x.Authentication != null, () =>
-		{
-			RuleFor(x => x.Authentication!)
-				.SetValidator(new AuthenticationSettings.AuthenticationSettingsValidator());
-		});
-
-		When(x => x.Kafka != null, () =>
-		{
-			RuleFor(x => x.Kafka!)
-				.SetValidator(new KafkaSecurity.KafkaSecuritySettingsValidator());
-		});
+		throw new NotSupportedException(
+			"TestSettingsValidator.Validate() is obsolete. " +
+			"Use the Options pattern with IValidateOptions<BaseSettings> instead. " +
+			"See BREAKING_CHANGES_V2.md for migration guide.");
 	}
 }
 

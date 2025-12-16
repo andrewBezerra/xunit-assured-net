@@ -1,0 +1,81 @@
+{
+  "kafka": {
+    "bootstrapServers": "localhost:9092",
+    "groupId": "test-consumer-group",
+    "authentication": {
+      "type": "None"
+    }
+  },
+  "environments": {
+    "confluent": {
+      "bootstrapServers": "pkc-xxxxx.us-east-1.aws.confluent.cloud:9092",
+      "groupId": "confluent-test-group",
+      "authentication": {
+        "type": "SaslSsl",
+        "saslPlain": {
+          "username": "${ENV:CONFLUENT_KAFKA_KEY}",
+          "password": "${ENV:CONFLUENT_KAFKA_SECRET}",
+          "useSsl": true
+        }
+      }
+    },
+    "aws-msk-scram256": {
+      "bootstrapServers": "b-1.mycluster.kafka.us-east-1.amazonaws.com:9096",
+      "groupId": "msk-test-group",
+      "authentication": {
+        "type": "SaslScram256",
+        "saslScram": {
+          "username": "${ENV:MSK_USERNAME}",
+          "password": "${ENV:MSK_PASSWORD}",
+          "mechanism": "SCRAM-SHA-256",
+          "useSsl": true
+        }
+      }
+    },
+    "self-hosted-scram512": {
+      "bootstrapServers": "kafka.example.com:9093",
+      "groupId": "scram512-group",
+      "authentication": {
+        "type": "SaslScram512",
+        "saslScram": {
+          "username": "${ENV:KAFKA_USERNAME}",
+          "password": "${ENV:KAFKA_PASSWORD}",
+          "mechanism": "SCRAM-SHA-512",
+          "useSsl": true
+        }
+      }
+    },
+    "enterprise-ssl": {
+      "bootstrapServers": "kafka-ssl.example.com:9093",
+      "groupId": "ssl-group",
+      "authentication": {
+        "type": "Ssl",
+        "ssl": {
+          "sslCaLocation": "${ENV:KAFKA_CA_CERT_PATH}",
+          "enableSslCertificateVerification": true
+        }
+      }
+    },
+    "enterprise-mtls": {
+      "bootstrapServers": "kafka-mtls.example.com:9093",
+      "groupId": "mtls-group",
+      "authentication": {
+        "type": "MutualTls",
+        "ssl": {
+          "sslCertificateLocation": "${ENV:KAFKA_CLIENT_CERT_PATH}",
+          "sslKeyLocation": "${ENV:KAFKA_CLIENT_KEY_PATH}",
+          "sslCaLocation": "${ENV:KAFKA_CA_CERT_PATH}",
+          "sslKeyPassword": "${ENV:KAFKA_KEY_PASSWORD}",
+          "enableSslCertificateVerification": true
+        }
+      }
+    },
+    "development": {
+      "bootstrapServers": "localhost:9092",
+      "groupId": "dev-consumer-group",
+      "authentication": {
+        "type": "None"
+      }
+    }
+  }
+}

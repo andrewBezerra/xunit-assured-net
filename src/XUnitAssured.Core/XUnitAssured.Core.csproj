@@ -1,0 +1,38 @@
+<Project Sdk="Microsoft.NET.Sdk">
+	<PropertyGroup>
+		<TargetFrameworks>net7.0;net8.0;net9.0</TargetFrameworks>
+		<LangVersion>12</LangVersion>
+		<ImplicitUsings>disable</ImplicitUsings>
+		<Nullable>enable</Nullable>
+		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+		<Version>2.0.0</Version>
+		<Authors>Carlos Andrew Costa Bezerra</Authors>
+		<Company>R2A Sistemas</Company>
+		<Description>Core abstractions and DSL infrastructure for XUnitAssured testing framework. Provides technology-agnostic interfaces and result types for building fluent test scenarios.</Description>
+		<PackageProjectUrl>https://github.com/andrewBezerra/xunit-assured-net</PackageProjectUrl>
+		<PackageReadmeFile>README.md</PackageReadmeFile>
+		<RepositoryUrl>https://github.com/andrewBezerra/xunit-assured-net</RepositoryUrl>
+		<PackageId>XUnitAssured.Core</PackageId>
+		<PackageTags>xunit;quality-assurance;testing;dsl;fluent-api</PackageTags>
+		<RootNamespace>XUnitAssured.Core</RootNamespace>
+		<IsPackable>true</IsPackable>
+		<PackageIcon>package-icon.png</PackageIcon>
+		<PackageLicenseFile>LICENSE.md</PackageLicenseFile>
+	</PropertyGroup>
+
+	<!-- Package Files -->
+	<ItemGroup>
+		<None Include="..\..\package-icon.png">
+			<Pack>True</Pack>
+			<PackagePath>\</PackagePath>
+		</None>
+		<None Include="..\..\README.md">
+			<Pack>True</Pack>
+			<PackagePath>\</PackagePath>
+		</None>
+		<None Include="..\..\LICENSE.md">
+			<Pack>True</Pack>
+			<PackagePath>\</PackagePath>
+		</None>
+	</ItemGroup>
+</Project>
