@@ -1,0 +1,56 @@
+{
+  "$schema": "./httpsettings.schema.json",
+  "http": {
+    "baseUrl": "https://jsonplaceholder.typicode.com",
+    "timeout": 30,
+    "defaultHeaders": {
+      "User-Agent": "XUnitAssured/2.0",
+      "Accept": "application/json"
+    },
+    "authentication": {
+      "type": "None"
+    }
+  },
+  "environments": {
+    "dev": {
+      "baseUrl": "https://dev-api.example.com",
+      "authentication": {
+        "type": "Basic",
+        "basic": {
+          "username": "dev-user",
+          "password": "${ENV:DEV_PASSWORD}"
+        }
+      }
+    },
+    "staging": {
+      "baseUrl": "https://staging-api.example.com",
+      "authentication": {
+        "type": "Bearer",
+        "bearer": {
+          "token": "${ENV:STAGING_TOKEN}",
+          "prefix": "Bearer"
+        }
+      }
+    },
+    "prod": {
+      "baseUrl": "https://api.example.com",
+      "authentication": {
+        "type": "Bearer",
+        "bearer": {
+          "token": "${ENV:PROD_API_TOKEN}",
+          "prefix": "Bearer"
+        }
+      }
+    },
+    "mtls": {
+      "baseUrl": "https://mtls-api.example.com",
+      "authentication": {
+        "type": "Certificate",
+        "certificate": {
+          "certificatePath": "${ENV:CLIENT_CERT_PATH}",
+          "certificatePassword": "${ENV:CLIENT_CERT_PASSWORD}"
+        }
+      }
+    }
+  }
+}

@@ -1,4 +1,4 @@
-﻿using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Primitives;
@@ -90,8 +90,8 @@ public class TestFixtureTests
 
 		// Assert
 		Assert.NotNull(options);
-		Assert.Equal("https://api.example.com", options!.Value.BaseUrl);
-		Assert.Equal("openapi.json", options.Value.OpenApiDocument);
+		Assert.Equal("https://api.example.com/", options!.Value.BaseUrl.AbsoluteUri);
+		Assert.Equal("openapi.json", options.Value.OpenApiDocument!.ToString());
 	}
 
 	[Fact(DisplayName = "AddServices deve lançar InvalidTestSettingsException quando configuração inválida")]

@@ -16,9 +16,11 @@
 		<PackageReference Include="Microsoft.TestPlatform.TestHost" Version="17.13.0" />
 		<PackageReference Include="xunit" Version="2.9.2" />
 		<PackageReference Include="xunit.runner.visualstudio" Version="2.8.2" />
-		<PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="8.0.0" />
+		<PackageReference Include="Shouldly" Version="4.2.1" />
+		<PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="8.0.0" Condition="'$(TargetFramework)' == 'net7.0'" />
 		<PackageReference Include="Microsoft.Extensions.Configuration" Version="8.0.0" Condition="'$(TargetFramework)' == 'net7.0'" />
 		<PackageReference Include="Microsoft.Extensions.Configuration.FileExtensions" Version="8.0.0" Condition="'$(TargetFramework)' == 'net7.0'" />
+		<PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="9.0.8" Condition="'$(TargetFramework)' != 'net7.0'" />
 		<PackageReference Include="Microsoft.Extensions.Configuration" Version="9.0.9" Condition="'$(TargetFramework)' != 'net7.0'" />
 		<PackageReference Include="Microsoft.Extensions.Configuration.FileExtensions" Version="9.0.9" Condition="'$(TargetFramework)' != 'net7.0'" />
 
@@ -26,6 +28,9 @@
 
 	<ItemGroup>
 		<ProjectReference Include="..\XUnitAssured\XUnitAssured.csproj" />
+		<ProjectReference Include="..\XUnitAssured.Core\XUnitAssured.Core.csproj" />
+		<ProjectReference Include="..\XUnitAssured.Http\XUnitAssured.Http.csproj" />
+		<ProjectReference Include="..\XUnitAssured.Kafka\XUnitAssured.Kafka.csproj" />
 	</ItemGroup>
 	
 

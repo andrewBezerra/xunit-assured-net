@@ -1,42 +1,42 @@
-﻿using System;
-
-using FluentValidation;
+using System;
 
 namespace XUnitAssured.Base.Auth;
 
+/// <summary>
+/// Authentication settings for API testing.
+/// Supports multiple authentication types (Basic, Bearer, NTLM).
+/// </summary>
 public class AuthenticationSettings
 {
-	public AuthenticationSettings() { }
-	public AuthenticationSettings(string? baseUrl, string? clientId, string? clientSecret, AuthenticationType authenticationType = AuthenticationType.None)
-	{
-		BaseUrl = baseUrl;
-		ClientId = clientId;
-		ClientSecret = clientSecret;
-		AuthenticationType = authenticationType;
-	}
+	/// <summary>
+	/// Base URL of the authentication server. Must be an absolute HTTP(S) URI.
+	/// Required when AuthenticationType is not None.
+	/// </summary>
+	public Uri? BaseUrl { get; set; }
 
-	public string? BaseUrl { get; set; }
+	/// <summary>
+	/// Client ID for authentication.
+	/// Required when AuthenticationType is not None.
+	/// </summary>
 	public string? ClientId { get; set; }
-	public string? ClientSecret { get; set; }
-	public AuthenticationType AuthenticationType { get; set; }
 
-	public class AuthenticationSettingsValidator : AbstractValidator<AuthenticationSettings>
+	/// <summary>
+	/// Client secret for authentication.
+	/// Required when AuthenticationType is not None.
+	/// </summary>
+	public string? ClientSecret { get; set; }
+
+	/// <summary>
+	/// Type of authentication to use.
+	/// Default is None (no authentication).
+	/// </summary>
+	public AuthenticationType AuthenticationType { get; set; } = AuthenticationType.None;
+
+	/// <summary>
+	/// Default constructor for Options pattern binding.
+	/// </summary>
+	public AuthenticationSettings()
 	{
-		public AuthenticationSettingsValidator()
-		{
-			When(x => x.AuthenticationType != AuthenticationType.None,
-			  () =>
-			  {
-				  RuleFor(x => x.BaseUrl)
-					.NotNull().WithMessage("BaseUrl não pode ser vazio.")
-					.NotEmpty().WithMessage("BaseUrl não pode ser vazio.")
-					.Must(url => Uri.TryCreate(url, UriKind.Absolute, out Uri? uri) && (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps))
-					.WithMessage("A URL deve ser válida e usar HTTP ou HTTPS.");
-				  RuleFor(x => x.ClientId)
-					.NotEmpty().WithMessage("ClientId não pode ser vazio.");
-				  RuleFor(x => x.ClientSecret)
-					.NotEmpty().WithMessage("ClientSecret não pode ser vazio.");
-			  });
-		}
+		// Properties will be set by configuration binding
 	}
 }

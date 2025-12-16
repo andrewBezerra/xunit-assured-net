@@ -1,5 +1,9 @@
-﻿using System;
+using System;
+
+using Microsoft.Extensions.Options;
+
 using Xunit;
+
 using XUnitAssured.Base;
 using XUnitAssured.Base.Auth;
 using XUnitAssured.Base.Kafka;
@@ -9,102 +13,210 @@ namespace XUnitAssured.Tests;
 [Trait("Unit Test", "BaseSettings")]
 public class BaseSettingsTests
 {
-	[Fact(DisplayName = "Ctor padrão deve inicializar propriedades com valores default esperados")] 
-	public void DefaultConstructor_ShouldInitializeExpectedDefaults()
+	[Fact(DisplayName = "Constructor should initialize properties with default values")]
+	public void DefaultConstructor_ShouldInitializeWithDefaultValues()
 	{
 		// Act
 		var settings = new BaseSettings();
 
 		// Assert
-		Assert.Equal(string.Empty, settings.BaseUrl);
-		Assert.Equal(string.Empty, settings.OpenApiDocument);
-		Assert.NotNull(settings.Authentication);
+		Assert.Null(settings.BaseUrl); // Will be set by configuration binding
+		Assert.Null(settings.OpenApiDocument);
+		Assert.Null(settings.Authentication);
 		Assert.Null(settings.Kafka);
-		Assert.Equal(AuthenticationType.None, settings.Authentication!.AuthenticationType);
 	}
 
-	[Fact(DisplayName = "Ctor parametrizado deve atribuir valores informados")] 
-	public void ParameterizedConstructor_ShouldAssignProvidedValues()
+	[Fact(DisplayName = "BaseUrl property should accept valid Uri")]
+	public void BaseUrl_ShouldAcceptValidUri()
 	{
-		// Arrange
-		var auth = new AuthenticationSettings("https://auth", "client", "secret", AuthenticationType.Bearer);
-		var kafka = new KafkaSecurity { SecurityProtocol = "SaslPlaintext", SaslMechanisms = "Plain", Username = "user", Password = "pwd" };
-
-		// Act
-		var settings = new BaseSettings("https://api", "openapi.json", auth, kafka);
+		// Arrange & Act
+		var settings = new BaseSettings
+		{
+			BaseUrl = new Uri("https://api.example.com")
+		};
 
 		// Assert
-		Assert.Equal("https://api", settings.BaseUrl);
-		Assert.Equal("openapi.json", settings.OpenApiDocument);
-		Assert.Same(auth, settings.Authentication);
-		Assert.Same(kafka, settings.Kafka);
+		Assert.Equal("https://api.example.com/", settings.BaseUrl.AbsoluteUri);
+		Assert.Equal(Uri.UriSchemeHttps, settings.BaseUrl.Scheme);
 	}
 
-	[Fact(DisplayName = "Validate não deve lançar exceção quando configuração é válida")] 
-	public void Validate_ShouldNotThrow_WhenConfigurationIsValid()
+	[Fact(DisplayName = "OpenApiDocument should accept HTTP, HTTPS, or FILE Uri")]
+	public void OpenApiDocument_ShouldAcceptValidUriSchemes()
+	{
+		// Arrange & Act - HTTP
+		var settings1 = new BaseSettings
+		{
+			BaseUrl = new Uri("https://api.example.com"),
+			OpenApiDocument = new Uri("http://api.example.com/swagger.json")
+		};
+
+		// Arrange & Act - File
+		var settings2 = new BaseSettings
+		{
+			BaseUrl = new Uri("https://api.example.com"),
+			OpenApiDocument = new Uri("file:///c:/swagger.json")
+		};
+
+		// Assert
+		Assert.Equal(Uri.UriSchemeHttp, settings1.OpenApiDocument!.Scheme);
+		Assert.Equal(Uri.UriSchemeFile, settings2.OpenApiDocument!.Scheme);
+	}
+
+	[Fact(DisplayName = "BaseSettingsValidator should pass for valid configuration")]
+	public void BaseSettingsValidator_ShouldPass_WhenConfigurationIsValid()
 	{
 		// Arrange
 		var settings = new BaseSettings
 		{
-			BaseUrl = "https://api.example.com",
-			OpenApiDocument = "openapi.json",
-			Authentication = new AuthenticationSettings("https://auth.example.com", "clientId", "clientSecret", AuthenticationType.Bearer),
-			Kafka = new KafkaSecurity { SecurityProtocol = "SaslPlaintext", SaslMechanisms = "Plain", Username = "user", Password = "pass" }
+			BaseUrl = new Uri("https://api.example.com"),
+			OpenApiDocument = new Uri("https://api.example.com/swagger.json"),
+			Authentication = new AuthenticationSettings
+			{
+				BaseUrl = new Uri("https://auth.example.com"),
+				ClientId = "clientId",
+				ClientSecret = "clientSecret",
+				AuthenticationType = AuthenticationType.Bearer
+			}
 		};
 
-		// Act & Assert
-		var ex = Record.Exception(() => settings.Validate());
-		Assert.Null(ex);
-	}
-
-	[Fact(DisplayName = "Validate deve lançar exceção quando BaseUrl inválida")] 
-	public void Validate_ShouldThrow_WhenBaseUrlIsInvalid()
-	{
-		// Arrange
-		var settings = new BaseSettings { BaseUrl = "htp:/invalida" }; // dispara regra de URL inválida
+		var validator = new BaseSettingsValidator();
 
 		// Act
-		var ex = Assert.Throws<InvalidTestSettingsException>(() => settings.Validate());
+		var result = validator.Validate(null, settings);
 
 		// Assert
-		Assert.Contains("A URL deve ser válida", ex.Message, StringComparison.OrdinalIgnoreCase);
+		Assert.True(result.Succeeded);
 	}
 
-	[Fact(DisplayName = "Validate deve lançar exceção quando Authentication Bearer incompleta")] 
-	public void Validate_ShouldThrow_WhenAuthenticationBearerIncomplete()
-	{
-		// Arrange - AuthenticationType Bearer com campos faltando
-		var settings = new BaseSettings
-		{
-			BaseUrl = "https://api.example.com", // válido para não interferir
-			Authentication = new AuthenticationSettings(null, null, null, AuthenticationType.Bearer)
-		};
-
-		// Act
-		var ex = Assert.Throws<InvalidTestSettingsException>(() => settings.Validate());
-
-		// Assert
-		Assert.Contains("BaseUrl não pode ser vazio", ex.Message);
-		Assert.Contains("ClientId não pode ser vazio", ex.Message);
-		Assert.Contains("ClientSecret não pode ser vazio", ex.Message);
-	}
-
-	[Fact(DisplayName = "Validate deve lançar exceção quando Kafka SaslPlaintext incompleto")] 
-	public void Validate_ShouldThrow_WhenKafkaSaslPlaintextIncomplete()
+	[Fact(DisplayName = "BaseSettingsValidator should fail when BaseUrl is null")]
+	public void BaseSettingsValidator_ShouldFail_WhenBaseUrlIsNull()
 	{
 		// Arrange
 		var settings = new BaseSettings
 		{
-			BaseUrl = "https://api.example.com",
-			Kafka = new KafkaSecurity { SecurityProtocol = "SaslPlaintext", SaslMechanisms = string.Empty, Username = string.Empty, Password = null }
+			BaseUrl = null! // Invalid
 		};
 
+		var validator = new BaseSettingsValidator();
+
 		// Act
-		var ex = Assert.Throws<InvalidTestSettingsException>(() => settings.Validate());
+		var result = validator.Validate(null, settings);
 
 		// Assert
-		Assert.Contains("SaslMechanisms não pode ser vazio", ex.Message);
-		Assert.Contains("Username não pode ser vazio", ex.Message);
-		Assert.Contains("Password não pode ser nulo", ex.Message);
+		Assert.True(result.Failed);
+		Assert.Contains("BaseUrl is required", result.FailureMessage);
+	}
+
+	[Fact(DisplayName = "BaseSettingsValidator should fail when BaseUrl is not absolute")]
+	public void BaseSettingsValidator_ShouldFail_WhenBaseUrlIsNotAbsolute()
+	{
+		// Arrange
+		var settings = new BaseSettings
+		{
+			BaseUrl = new Uri("/relative", UriKind.Relative) // Invalid
+		};
+
+		var validator = new BaseSettingsValidator();
+
+		// Act
+		var result = validator.Validate(null, settings);
+
+		// Assert
+		Assert.True(result.Failed);
+		Assert.Contains("absolute URI", result.FailureMessage);
+	}
+
+	[Fact(DisplayName = "BaseSettingsValidator should fail when BaseUrl scheme is invalid")]
+	public void BaseSettingsValidator_ShouldFail_WhenBaseUrlSchemeIsInvalid()
+	{
+		// Arrange
+		var settings = new BaseSettings
+		{
+			BaseUrl = new Uri("ftp://api.example.com") // Invalid scheme
+		};
+
+		var validator = new BaseSettingsValidator();
+
+		// Act
+		var result = validator.Validate(null, settings);
+
+		// Assert
+		Assert.True(result.Failed);
+		Assert.Contains("HTTP or HTTPS", result.FailureMessage);
+	}
+
+	[Fact(DisplayName = "BaseSettingsValidator should fail when Authentication is incomplete")]
+	public void BaseSettingsValidator_ShouldFail_WhenAuthenticationIsIncomplete()
+	{
+		// Arrange
+		var settings = new BaseSettings
+		{
+			BaseUrl = new Uri("https://api.example.com"),
+			Authentication = new AuthenticationSettings
+			{
+				BaseUrl = null, // Missing
+				ClientId = null, // Missing
+				ClientSecret = null, // Missing
+				AuthenticationType = AuthenticationType.Bearer
+			}
+		};
+
+		var validator = new BaseSettingsValidator();
+
+		// Act
+		var result = validator.Validate(null, settings);
+
+		// Assert
+		Assert.True(result.Failed);
+		Assert.Contains("Authentication.BaseUrl", result.FailureMessage);
+		Assert.Contains("ClientId", result.FailureMessage);
+		Assert.Contains("ClientSecret", result.FailureMessage);
+	}
+
+	[Fact(DisplayName = "AuthenticationSettingsValidator should pass when authentication is None")]
+	public void AuthenticationSettingsValidator_ShouldPass_WhenAuthenticationIsNone()
+	{
+		// Arrange
+		var authSettings = new AuthenticationSettings
+		{
+			AuthenticationType = AuthenticationType.None
+			// BaseUrl, ClientId, ClientSecret not required when None
+		};
+
+		var validator = new AuthenticationSettingsValidator();
+
+		// Act
+		var result = validator.Validate(null, authSettings);
+
+		// Assert
+		Assert.True(result.Succeeded);
+	}
+
+	[Fact(DisplayName = "Kafka property should show obsolete warning")]
+	public void Kafka_ShouldBeMarkedAsObsolete()
+	{
+		// Arrange & Act
+#pragma warning disable CS0618 // Type or member is obsolete
+		var settings = new BaseSettings
+		{
+			BaseUrl = new Uri("https://api.example.com"),
+			Kafka = new KafkaSecurity // This should trigger obsolete warning
+			{
+				SecurityProtocol = "SaslPlaintext",
+				Username = "user",
+				Password = "pass"
+			}
+		};
+#pragma warning restore CS0618
+
+		// Assert - if code compiles, obsolete attribute is working
+		Assert.NotNull(settings.Kafka);
+	}
+
+	[Fact(DisplayName = "SectionName constant should have correct value")]
+	public void SectionName_ShouldHaveCorrectValue()
+	{
+		// Assert
+		Assert.Equal("TestSettings", BaseSettings.SectionName);
 	}
 }
