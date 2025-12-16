@@ -89,7 +89,8 @@ public static class HttpSettingsLoader
 			{
 				PropertyNameCaseInsensitive = true,
 				ReadCommentHandling = JsonCommentHandling.Skip,
-				AllowTrailingCommas = true
+				AllowTrailingCommas = true,
+				Converters = { new System.Text.Json.Serialization.JsonStringEnumConverter() }
 			};
 
 			var root = JsonSerializer.Deserialize<HttpSettingsRoot>(json, options);
