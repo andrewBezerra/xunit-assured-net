@@ -5,10 +5,10 @@
 		<ImplicitUsings>disable</ImplicitUsings>
 		<Nullable>enable</Nullable>
 		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
-		<Version>2.0.0</Version>
+		<Version>3.0.0</Version>
 		<Authors>Carlos Andrew Costa Bezerra</Authors>
 		<Company>R2A Sistemas</Company>
-		<Description>Core abstractions and DSL infrastructure for XUnitAssured testing framework. Provides technology-agnostic interfaces and result types for building fluent test scenarios.</Description>
+		<Description>Core abstractions and DSL infrastructure for XUnitAssured testing framework. Provides technology-agnostic interfaces, result types, and exceptions for building fluent test scenarios. v3.0: Added InvalidTestSettingsException, removed dependency on base package.</Description>
 		<PackageProjectUrl>https://github.com/andrewBezerra/xunit-assured-net</PackageProjectUrl>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
 		<RepositoryUrl>https://github.com/andrewBezerra/xunit-assured-net</RepositoryUrl>

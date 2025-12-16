@@ -5,10 +5,10 @@
 		<ImplicitUsings>disable</ImplicitUsings>
 		<Nullable>enable</Nullable>
 		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
-		<Version>2.0.0</Version>
+		<Version>3.0.0</Version>
 		<Authors>Carlos Andrew Costa Bezerra</Authors>
 		<Company>R2A Sistemas</Company>
-		<Description>HTTP/REST testing extensions for XUnitAssured. Provides fluent DSL for testing REST APIs with support for HTTP methods, headers, and response validation.</Description>
+		<Description>HTTP/REST testing extensions for XUnitAssured. Provides fluent DSL for testing REST APIs with support for HTTP methods, headers, authentication (OAuth2, Bearer, Basic, Certificate), and response validation. v3.0: Fixed JSON enum deserialization for AuthenticationType.</Description>
 		<PackageProjectUrl>https://github.com/andrewBezerra/xunit-assured-net</PackageProjectUrl>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
 		<RepositoryUrl>https://github.com/andrewBezerra/xunit-assured-net</RepositoryUrl>
