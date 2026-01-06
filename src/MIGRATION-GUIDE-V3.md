@@ -502,7 +502,7 @@ The package was split. Use specialized packages:
 
 ## Timeline
 
-- **v2.x**: Current stable version (deprecated)
+- **v2.x**: Previous stable version (now deprecated)
 - **v3.0**: New architecture (current)
 - **v4.0**: Future enhancements (TBD)
 
