@@ -1,7 +1,3 @@
-using System.Collections.Generic;
-using XUnitAssured.Http.Configuration;
-using XUnitAssured.Http.Extensions;
-
 namespace XUnitAssured.Tests.HttpTests;
 
 /// <summary>
@@ -27,7 +23,7 @@ public class CustomHeaderAuthTests
 	public void Should_Add_Multiple_Custom_Headers()
 	{
 		// Arrange
-		var headers = new Dictionary<string, string>
+		var headers = new System.Collections.Generic.Dictionary<string, string>
 		{
 			["X-Auth-Token"] = "token123",
 			["X-Session-ID"] = "session456",
@@ -64,7 +60,7 @@ public class CustomHeaderAuthTests
 	public void CustomHeaderAuthConfig_Should_Add_Headers()
 	{
 		// Arrange
-		var config = new CustomHeaderAuthConfig();
+		var config = new Http.Configuration.CustomHeaderAuthConfig();
 
 		// Act
 		config.AddHeader("X-Test", "value1");
@@ -83,8 +79,8 @@ public class CustomHeaderAuthTests
 		var scenario = Given().ApiResource("https://api.example.com/resource");
 
 		// Act & Assert
-		Should.Throw<ArgumentException>(() => 
-			scenario.WithCustomHeaders(new Dictionary<string, string>()));
+		Should.Throw<System.ArgumentException>(() => 
+			scenario.WithCustomHeaders(new System.Collections.Generic.Dictionary<string, string>()));
 	}
 
 	[Fact]
@@ -94,14 +90,14 @@ public class CustomHeaderAuthTests
 		var scenario = Given();
 
 		// Act & Assert
-		Should.Throw<InvalidOperationException>(() =>
+		Should.Throw<System.InvalidOperationException>(() =>
 			scenario.WithCustomHeader("X-Auth", "value"));
 	}
 
 	[Fact(Skip = "Integration test - requires real API")]
 	public void Integration_Should_Authenticate_With_Custom_Header()
 	{
-		var authToken = Environment.GetEnvironmentVariable("TEST_AUTH_TOKEN");
+		var authToken = System.Environment.GetEnvironmentVariable("TEST_AUTH_TOKEN");
 
 		if (!string.IsNullOrEmpty(authToken))
 		{

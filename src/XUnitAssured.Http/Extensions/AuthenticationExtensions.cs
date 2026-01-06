@@ -42,6 +42,7 @@ public static class AuthenticationExtensions
 			Headers = httpStep.Headers,
 			QueryParams = httpStep.QueryParams,
 			TimeoutSeconds = httpStep.TimeoutSeconds,
+			CustomHttpClient = httpStep.CustomHttpClient,  // Preserve CustomHttpClient
 			AuthConfig = authConfig
 		};
 
@@ -81,6 +82,7 @@ public static class AuthenticationExtensions
 			Headers = httpStep.Headers,
 			QueryParams = httpStep.QueryParams,
 			TimeoutSeconds = httpStep.TimeoutSeconds,
+			CustomHttpClient = httpStep.CustomHttpClient,  // Preserve CustomHttpClient
 			AuthConfig = authConfig
 		};
 
@@ -119,6 +121,7 @@ public static class AuthenticationExtensions
 			Headers = httpStep.Headers,
 			QueryParams = httpStep.QueryParams,
 			TimeoutSeconds = httpStep.TimeoutSeconds,
+			CustomHttpClient = httpStep.CustomHttpClient,  // Preserve CustomHttpClient
 			AuthConfig = authConfig
 		};
 
@@ -167,6 +170,7 @@ public static class AuthenticationExtensions
 			Headers = httpStep.Headers,
 			QueryParams = httpStep.QueryParams,
 			TimeoutSeconds = httpStep.TimeoutSeconds,
+			CustomHttpClient = httpStep.CustomHttpClient,  // Preserve CustomHttpClient
 			AuthConfig = authConfig
 		};
 
@@ -207,6 +211,7 @@ public static class AuthenticationExtensions
 			Headers = httpStep.Headers,
 			QueryParams = httpStep.QueryParams,
 			TimeoutSeconds = httpStep.TimeoutSeconds,
+			CustomHttpClient = httpStep.CustomHttpClient,  // Preserve CustomHttpClient
 			AuthConfig = authConfig
 		};
 
@@ -249,6 +254,7 @@ public static class AuthenticationExtensions
 			Headers = httpStep.Headers,
 			QueryParams = httpStep.QueryParams,
 			TimeoutSeconds = httpStep.TimeoutSeconds,
+			CustomHttpClient = httpStep.CustomHttpClient,  // Preserve CustomHttpClient
 			AuthConfig = authConfig
 		};
 
@@ -283,6 +289,7 @@ public static class AuthenticationExtensions
 			Headers = httpStep.Headers,
 			QueryParams = httpStep.QueryParams,
 			TimeoutSeconds = httpStep.TimeoutSeconds,
+			CustomHttpClient = httpStep.CustomHttpClient,  // Preserve CustomHttpClient
 			AuthConfig = authConfig
 		};
 
@@ -325,6 +332,7 @@ public static class AuthenticationExtensions
 			Headers = httpStep.Headers,
 			QueryParams = httpStep.QueryParams,
 			TimeoutSeconds = httpStep.TimeoutSeconds,
+			CustomHttpClient = httpStep.CustomHttpClient,  // Preserve CustomHttpClient
 			AuthConfig = authConfig
 		};
 
@@ -383,6 +391,7 @@ public static class AuthenticationExtensions
 			Headers = httpStep.Headers,
 			QueryParams = httpStep.QueryParams,
 			TimeoutSeconds = httpStep.TimeoutSeconds,
+			CustomHttpClient = httpStep.CustomHttpClient,  // Preserve CustomHttpClient
 			AuthConfig = authConfig
 		};
 
@@ -417,6 +426,7 @@ public static class AuthenticationExtensions
 			Headers = httpStep.Headers,
 			QueryParams = httpStep.QueryParams,
 			TimeoutSeconds = httpStep.TimeoutSeconds,
+			CustomHttpClient = httpStep.CustomHttpClient,  // Preserve CustomHttpClient
 			AuthConfig = authConfig
 		};
 
@@ -452,6 +462,7 @@ public static class AuthenticationExtensions
 			Headers = httpStep.Headers,
 			QueryParams = httpStep.QueryParams,
 			TimeoutSeconds = httpStep.TimeoutSeconds,
+			CustomHttpClient = httpStep.CustomHttpClient,  // Preserve CustomHttpClient
 			AuthConfig = authConfig
 		};
 
@@ -494,6 +505,7 @@ public static class AuthenticationExtensions
 			Headers = httpStep.Headers,
 			QueryParams = httpStep.QueryParams,
 			TimeoutSeconds = httpStep.TimeoutSeconds,
+			CustomHttpClient = httpStep.CustomHttpClient,  // Preserve CustomHttpClient
 			AuthConfig = authConfig
 		};
 
@@ -530,6 +542,7 @@ public static class AuthenticationExtensions
 			Headers = httpStep.Headers,
 			QueryParams = httpStep.QueryParams,
 			TimeoutSeconds = httpStep.TimeoutSeconds,
+			CustomHttpClient = httpStep.CustomHttpClient,  // Preserve CustomHttpClient
 			AuthConfig = authConfig
 		};
 

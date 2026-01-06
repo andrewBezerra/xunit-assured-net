@@ -5,16 +5,16 @@
 		<ImplicitUsings>disable</ImplicitUsings>
 		<Nullable>enable</Nullable>
 		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
-		<Version>3.0.0</Version>
+		<Version>1.0.0</Version>
 		<Authors>Carlos Andrew Costa Bezerra</Authors>
 		<Company>R2A Sistemas</Company>
-		<Description>HTTP/REST testing extensions for XUnitAssured. Provides fluent DSL for testing REST APIs with support for HTTP methods, headers, authentication (OAuth2, Bearer, Basic, Certificate), and response validation. v3.0: Fixed JSON enum deserialization for AuthenticationType.</Description>
+		<Description>Extension library for XUnitAssured that provides BDD-style fluent APIs and validation builders. Reduces boilerplate code and improves developer/QA experience with convenient helper methods for testing. Includes generic ValidationBuilder pattern and specialized HTTP validations.</Description>
 		<PackageProjectUrl>https://github.com/andrewBezerra/xunit-assured-net</PackageProjectUrl>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
 		<RepositoryUrl>https://github.com/andrewBezerra/xunit-assured-net</RepositoryUrl>
-		<PackageId>XUnitAssured.Http</PackageId>
-		<PackageTags>xunit;http;rest;api-testing;integration-testing</PackageTags>
-		<RootNamespace>XUnitAssured.Http</RootNamespace>
+		<PackageId>XUnitAssured.Extensions</PackageId>
+		<PackageTags>xunit;bdd;testing;fluent-api;validation;extensions</PackageTags>
+		<RootNamespace>XUnitAssured.Extensions</RootNamespace>
 		<IsPackable>true</IsPackable>
 		<PackageIcon>package-icon.png</PackageIcon>
 		<PackageLicenseFile>LICENSE.md</PackageLicenseFile>
@@ -22,8 +22,6 @@
 
 	<!-- Common Dependencies (all frameworks) -->
 	<ItemGroup>
-		<PackageReference Include="Flurl.Http" Version="4.0.2" />
-		<PackageReference Include="NJsonSchema" Version="11.5.2" />
 		<PackageReference Include="Shouldly" Version="4.3.0" />
 	</ItemGroup>
 
@@ -33,7 +31,7 @@
 			<Pack>True</Pack>
 			<PackagePath>\</PackagePath>
 		</None>
-		<None Include="..\..\README.md">
+		<None Include="README.md">
 			<Pack>True</Pack>
 			<PackagePath>\</PackagePath>
 		</None>
@@ -46,6 +44,6 @@
 	<!-- Project References -->
 	<ItemGroup>
 		<ProjectReference Include="..\XUnitAssured.Core\XUnitAssured.Core.csproj" />
-		<ProjectReference Include="..\XUnitAssured.DependencyInjection\XUnitAssured.DependencyInjection.csproj" />
+		<ProjectReference Include="..\XUnitAssured.Http\XUnitAssured.Http.csproj" />
 	</ItemGroup>
 </Project>
