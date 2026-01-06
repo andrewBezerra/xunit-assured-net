@@ -74,6 +74,13 @@ public class HttpRequestStep : ITestStep
 	/// </summary>
 	public HttpAuthConfig? AuthConfig { get; init; }
 
+	/// <summary>
+	/// Custom HttpClient to use for this request.
+	/// If provided, this will be used instead of creating a new Flurl client.
+	/// Useful for integration tests with WebApplicationFactory.
+	/// </summary>
+	public HttpClient? CustomHttpClient { get; init; }
+
 	/// <inheritdoc />
 	public async Task<ITestStepResult> ExecuteAsync(ITestContext context)
 	{
@@ -81,27 +88,57 @@ public class HttpRequestStep : ITestStep
 
 		try
 		{
-			// Check if certificate authentication is configured
-			var certificate = GetCertificateIfConfigured();
-			
+			// If custom HttpClient is provided, use it directly (bypass Flurl for better compatibility)
+			if (CustomHttpClient != null)
+			{
+				return await ExecuteWithCustomHttpClient();
+			}
+
 			IFlurlRequest request;
 			
-			if (certificate != null)
+		// If custom HttpClient is provided, use it (for integration tests with WebApplicationFactory)
+		if (CustomHttpClient != null)
+		{
+			// Combine BaseAddress with relative URL if needed
+			var requestUrl = Url;
+			if (CustomHttpClient.BaseAddress != null && !Uri.IsWellFormedUriString(Url, UriKind.Absolute))
 			{
-				// Certificate authentication: create request with custom FlurlClient
-				var flurlClient = FlurlClientFactory.GetOrCreateClient(certificate);
-				request = flurlClient
-					.Request(Url)
-					.WithTimeout(TimeSpan.FromSeconds(TimeoutSeconds));
+				// Url is relative, combine with BaseAddress
+				var baseUri = CustomHttpClient.BaseAddress;
+				var combinedUri = new Uri(baseUri, Url);
+				requestUrl = combinedUri.ToString();
 			}
+
+			var flurlClient = new FlurlClient(CustomHttpClient);
+			request = flurlClient
+				.Request(requestUrl)
+				.WithTimeout(TimeSpan.FromSeconds(TimeoutSeconds));
+			
+			// Apply authentication for custom HttpClient scenarios (integration tests)
+			ApplyAuthentication(request);
+		}
 			else
 			{
-				// Normal request without certificate
-				request = Url
-					.WithTimeout(TimeSpan.FromSeconds(TimeoutSeconds));
+				// Check if certificate authentication is configured
+				var certificate = GetCertificateIfConfigured();
 				
-				// Apply other authentication types (Basic, Bearer, ApiKey, etc.)
-				ApplyAuthentication(request);
+				if (certificate != null)
+				{
+					// Certificate authentication: create request with custom FlurlClient
+					var flurlClient = FlurlClientFactory.GetOrCreateClient(certificate);
+					request = flurlClient
+						.Request(Url)
+						.WithTimeout(TimeSpan.FromSeconds(TimeoutSeconds));
+				}
+				else
+				{
+					// Normal request without certificate
+					request = Url
+						.WithTimeout(TimeSpan.FromSeconds(TimeoutSeconds));
+					
+					// Apply other authentication types (Basic, Bearer, ApiKey, etc.)
+					ApplyAuthentication(request);
+				}
 			}
 
 			// Add headers
@@ -125,11 +162,27 @@ public class HttpRequestStep : ITestStep
 			}
 			else if (Method == HttpMethod.Post)
 			{
-				response = await request.PostJsonAsync(Body);
+				// Check if Body is HttpContent (e.g., FormUrlEncodedContent)
+				if (Body is HttpContent httpContent)
+				{
+					response = await request.SendAsync(HttpMethod.Post, httpContent);
+				}
+				else
+				{
+					response = await request.PostJsonAsync(Body);
+				}
 			}
 			else if (Method == HttpMethod.Put)
 			{
-				response = await request.PutJsonAsync(Body);
+				// Check if Body is HttpContent
+				if (Body is HttpContent httpContentPut)
+				{
+					response = await request.SendAsync(HttpMethod.Put, httpContentPut);
+				}
+				else
+				{
+					response = await request.PutJsonAsync(Body);
+				}
 			}
 			else if (Method == HttpMethod.Delete)
 			{
@@ -137,7 +190,15 @@ public class HttpRequestStep : ITestStep
 			}
 			else if (Method == HttpMethod.Patch)
 			{
-				response = await request.PatchJsonAsync(Body);
+				// Check if Body is HttpContent
+				if (Body is HttpContent httpContentPatch)
+				{
+					response = await request.SendAsync(HttpMethod.Patch, httpContentPatch);
+				}
+				else
+				{
+					response = await request.PatchJsonAsync(Body);
+				}
 			}
 			else if (Method == HttpMethod.Head)
 			{
@@ -251,6 +312,172 @@ public class HttpRequestStep : ITestStep
 		}
 
 		return null;
+	}
+
+	/// <summary>
+	/// Executes HTTP request using CustomHttpClient directly (bypasses Flurl).
+	/// This ensures proper header propagation for integration tests with WebApplicationFactory.
+	/// </summary>
+	private async Task<ITestStepResult> ExecuteWithCustomHttpClient()
+	{
+		Console.WriteLine("DEBUG: ExecuteWithCustomHttpClient CALLED");
+		
+		if (CustomHttpClient == null)
+			throw new InvalidOperationException("CustomHttpClient is null");
+			
+		Console.WriteLine($"DEBUG: AuthConfig is null? {AuthConfig == null}");
+
+		// Combine BaseAddress with relative URL if needed
+		var requestUrl = Url;
+		if (CustomHttpClient.BaseAddress != null && !Uri.IsWellFormedUriString(Url, UriKind.Absolute))
+		{
+			requestUrl = new Uri(CustomHttpClient.BaseAddress, Url).ToString();
+		}
+
+		// Build query string
+		var allQueryParams = new Dictionary<string, object?>(QueryParams);
+		
+		// Add authentication query parameters if needed
+		var authConfig = AuthConfig;
+		if (authConfig?.Type == AuthenticationType.ApiKey && 
+		    authConfig.ApiKey?.Location == ApiKeyLocation.Query)
+		{
+			allQueryParams[authConfig.ApiKey.KeyName] = authConfig.ApiKey.KeyValue;
+		}
+		
+		if (allQueryParams.Any())
+		{
+			var queryString = string.Join("&", allQueryParams.Select(p => $"{Uri.EscapeDataString(p.Key)}={Uri.EscapeDataString(p.Value?.ToString() ?? "")}"));
+			requestUrl = requestUrl.Contains("?") ? $"{requestUrl}&{queryString}" : $"{requestUrl}?{queryString}";
+		}
+
+		// Create HttpRequestMessage
+		var httpRequest = new HttpRequestMessage(Method, requestUrl);
+
+		// Add authentication headers
+		var authHeaders = GetAuthenticationHeaders();
+		foreach (var header in authHeaders)
+		{
+			httpRequest.Headers.TryAddWithoutValidation(header.Key, header.Value);
+		}
+
+		// Add regular headers
+		foreach (var header in Headers)
+		{
+			httpRequest.Headers.TryAddWithoutValidation(header.Key, header.Value);
+		}
+
+		// Add body if present
+		if (Body != null && (Method == HttpMethod.Post || Method == HttpMethod.Put || Method == HttpMethod.Patch))
+		{
+			// Check if Body is already HttpContent (e.g., FormUrlEncodedContent)
+			if (Body is HttpContent httpContent)
+			{
+				httpRequest.Content = httpContent;
+			}
+			else
+			{
+				// Serialize as JSON
+				var json = System.Text.Json.JsonSerializer.Serialize(Body);
+				httpRequest.Content = new StringContent(json, System.Text.Encoding.UTF8, "application/json");
+			}
+		}
+
+		try
+		{
+			// Execute request
+			var httpResponse = await CustomHttpClient.SendAsync(httpRequest);
+			var responseBody = await httpResponse.Content.ReadAsStringAsync();
+
+			// Parse headers
+			var headers = httpResponse.Headers
+				.Concat(httpResponse.Content.Headers)
+				.GroupBy(h => h.Key)
+				.ToDictionary(
+					g => g.Key,
+					g => g.SelectMany(h => h.Value).AsEnumerable()
+				);
+
+			Result = HttpStepResult.CreateHttpSuccess(
+				statusCode: (int)httpResponse.StatusCode,
+				responseBody: responseBody,
+				headers: headers,
+				contentType: httpResponse.Content.Headers.ContentType?.ToString(),
+				reasonPhrase: httpResponse.ReasonPhrase
+			);
+
+			return Result;
+		}
+		catch (HttpRequestException ex)
+		{
+			Result = HttpStepResult.CreateFailure(ex);
+			return Result;
+		}
+	}
+
+	/// <summary>
+	/// Gets authentication headers as a dictionary.
+	/// Used when CustomHttpClient is present to collect headers before creating FlurlRequest.
+	/// </summary>
+	private Dictionary<string, string> GetAuthenticationHeaders()
+	{
+		var headers = new Dictionary<string, string>();
+		
+		// Get authentication config
+		var authConfig = AuthConfig;
+
+		// If no config provided, try to load from settings
+		if (authConfig == null)
+		{
+			var settings = HttpSettings.Load();
+			authConfig = settings.Authentication;
+		}
+
+		// Skip if no authentication configured
+		if (authConfig == null || authConfig.Type == AuthenticationType.None)
+			return headers;
+
+		// Generate authentication headers based on type
+		switch (authConfig.Type)
+		{
+			case AuthenticationType.Basic when authConfig.Basic != null:
+			{
+				var credentials = $"{authConfig.Basic.Username}:{authConfig.Basic.Password}";
+				var base64Credentials = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(credentials));
+				headers["Authorization"] = $"Basic {base64Credentials}";
+				break;
+			}
+			
+			case AuthenticationType.Bearer when authConfig.Bearer != null:
+			{
+				var prefix = authConfig.Bearer.Prefix ?? "Bearer";
+				headers["Authorization"] = $"{prefix} {authConfig.Bearer.Token}";
+				break;
+			}
+			
+			case AuthenticationType.ApiKey when authConfig.ApiKey != null:
+			{
+				if (authConfig.ApiKey.Location == ApiKeyLocation.Header)
+				{
+					headers[authConfig.ApiKey.KeyName] = authConfig.ApiKey.KeyValue;
+				}
+				break;
+			}
+			
+			case AuthenticationType.CustomHeader when authConfig.CustomHeader != null:
+			{
+				if (authConfig.CustomHeader.Headers != null)
+				{
+					foreach (var header in authConfig.CustomHeader.Headers)
+					{
+						headers[header.Key] = header.Value;
+					}
+				}
+				break;
+			}
+		}
+
+		return headers;
 	}
 
 	/// <summary>

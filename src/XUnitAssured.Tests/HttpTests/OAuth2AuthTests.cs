@@ -1,6 +1,3 @@
-using XUnitAssured.Http.Configuration;
-using XUnitAssured.Http.Extensions;
-
 namespace XUnitAssured.Tests.HttpTests;
 
 /// <summary>
@@ -46,7 +43,7 @@ public class OAuth2AuthTests
 				config.TokenUrl = "https://auth.example.com/token";
 				config.ClientId = "client-id";
 				config.ClientSecret = "secret";
-				config.GrantType = OAuth2GrantType.Password;
+				config.GrantType = Http.Configuration.OAuth2GrantType.Password;
 				config.Username = "user";
 				config.Password = "pass";
 			})
@@ -76,10 +73,10 @@ public class OAuth2AuthTests
 	public void OAuth2Config_Should_Have_Defaults()
 	{
 		// Arrange & Act
-		var config = new OAuth2Config();
+		var config = new Http.Configuration.OAuth2Config();
 
 		// Assert
-		config.GrantType.ShouldBe(OAuth2GrantType.ClientCredentials);
+		config.GrantType.ShouldBe(Http.Configuration.OAuth2GrantType.ClientCredentials);
 	}
 
 	[Fact]
@@ -89,16 +86,16 @@ public class OAuth2AuthTests
 		var scenario = Given();
 
 		// Act & Assert
-		Should.Throw<InvalidOperationException>(() =>
+		Should.Throw<System.InvalidOperationException>(() =>
 			scenario.WithOAuth2("url", "id", "secret"));
 	}
 
 	[Fact(Skip = "Integration test - requires real OAuth2 server")]
 	public void Integration_Should_Authenticate_With_OAuth2()
 	{
-		var tokenUrl = Environment.GetEnvironmentVariable("OAUTH_TOKEN_URL");
-		var clientId = Environment.GetEnvironmentVariable("OAUTH_CLIENT_ID");
-		var clientSecret = Environment.GetEnvironmentVariable("OAUTH_CLIENT_SECRET");
+		var tokenUrl = System.Environment.GetEnvironmentVariable("OAUTH_TOKEN_URL");
+		var clientId = System.Environment.GetEnvironmentVariable("OAUTH_CLIENT_ID");
+		var clientSecret = System.Environment.GetEnvironmentVariable("OAUTH_CLIENT_SECRET");
 
 		if (!string.IsNullOrEmpty(tokenUrl) && !string.IsNullOrEmpty(clientId))
 		{

@@ -50,6 +50,20 @@ public class TestScenario : ITestScenario
 	}
 
 	/// <inheritdoc />
+	public ITestScenario When()
+	{
+		// This is a pass-through for readability in BDD-style tests
+		return this;
+	}
+
+	/// <inheritdoc />
+	public ITestScenario Then()
+	{
+		// This is a pass-through for readability in BDD-style tests
+		return this;
+	}
+
+	/// <inheritdoc />
 	public void SetCurrentStep(ITestStep step)
 	{
 		CurrentStep = step ?? throw new ArgumentNullException(nameof(step));

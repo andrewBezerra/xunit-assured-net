@@ -31,6 +31,18 @@ public interface ITestScenario
 	ITestScenario On();
 
 	/// <summary>
+	/// Marks the transition from "Given" (setup) to "When" (action) in BDD-style tests.
+	/// This is a pass-through method for readability in the fluent DSL.
+	/// </summary>
+	ITestScenario When();
+
+	/// <summary>
+	/// Marks the transition from "When" (action) to "Then" (assertions) in BDD-style tests.
+	/// This is a pass-through method for readability in the fluent DSL.
+	/// </summary>
+	ITestScenario Then();
+
+	/// <summary>
 	/// Sets the current step for the scenario.
 	/// </summary>
 	void SetCurrentStep(ITestStep step);
