@@ -510,9 +510,9 @@ The package was split. Use specialized packages:
 
 ## Need Help?
 
-- 📖 **Documentation**: [GitHub Wiki](https://github.com/andrewBezerra/XUnitAssured.Net/wiki)
-- 🐛 **Issues**: [GitHub Issues](https://github.com/andrewBezerra/XUnitAssured.Net/issues)
-- 💬 **Discussions**: [GitHub Discussions](https://github.com/andrewBezerra/XUnitAssured.Net/discussions)
+- 📖 **Documentation**: [GitHub Wiki](https://github.com/andrewBezerra/xunit-assured-net/wiki)
+- 🐛 **Issues**: [GitHub Issues](https://github.com/andrewBezerra/xunit-assured-net/issues)
+- 💬 **Discussions**: [GitHub Discussions](https://github.com/andrewBezerra/xunit-assured-net/discussions)
 
 ---
 
