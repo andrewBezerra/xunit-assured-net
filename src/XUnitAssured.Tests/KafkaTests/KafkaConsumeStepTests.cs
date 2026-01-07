@@ -3,6 +3,8 @@ using XUnitAssured.Kafka.Steps;
 
 namespace XUnitAssured.Tests.KafkaTests;
 
+[Trait("Category", "Kafka")]
+[Trait("Component", "ConsumeStep")]
 /// <summary>
 /// Unit tests for KafkaConsumeStep and Kafka DSL.
 /// Note: These are unit tests for the step structure, not integration tests.
@@ -10,7 +12,7 @@ namespace XUnitAssured.Tests.KafkaTests;
 /// </summary>
 public class KafkaConsumeStepTests
 {
-	[Fact]
+	[Fact(DisplayName = "KafkaConsumeStep should have correct StepType value")]
 	public void KafkaConsumeStep_Should_Have_Correct_StepType()
 	{
 		// Arrange & Act
@@ -23,7 +25,7 @@ public class KafkaConsumeStepTests
 		step.StepType.ShouldBe("Kafka");
 	}
 
-	[Fact]
+	[Fact(DisplayName = "KafkaConsumeStep should store topic name correctly")]
 	public void KafkaConsumeStep_Should_Store_Topic()
 	{
 		// Arrange & Act
@@ -36,7 +38,7 @@ public class KafkaConsumeStepTests
 		step.Topic.ShouldBe("my-topic");
 	}
 
-	[Fact]
+	[Fact(DisplayName = "KafkaConsumeStep should store schema type correctly")]
 	public void KafkaConsumeStep_Should_Store_SchemaType()
 	{
 		// Arrange & Act
@@ -50,7 +52,7 @@ public class KafkaConsumeStepTests
 		step.SchemaType.ShouldBe(typeof(string));
 	}
 
-	[Fact]
+	[Fact(DisplayName = "KafkaConsumeStep should have default timeout of 30 seconds")]
 	public void KafkaConsumeStep_Should_Have_Default_Timeout()
 	{
 		// Arrange & Act
@@ -63,7 +65,7 @@ public class KafkaConsumeStepTests
 		step.Timeout.ShouldBe(TimeSpan.FromSeconds(30));
 	}
 
-	[Fact]
+	[Fact(DisplayName = "KafkaConsumeStep should allow custom timeout configuration")]
 	public void KafkaConsumeStep_Should_Allow_Custom_Timeout()
 	{
 		// Arrange & Act
@@ -77,7 +79,7 @@ public class KafkaConsumeStepTests
 		step.Timeout.ShouldBe(TimeSpan.FromSeconds(60));
 	}
 
-	[Fact]
+	[Fact(DisplayName = "KafkaConsumeStep should have default bootstrap servers")]
 	public void KafkaConsumeStep_Should_Have_Default_BootstrapServers()
 	{
 		// Arrange & Act
@@ -90,7 +92,7 @@ public class KafkaConsumeStepTests
 		step.BootstrapServers.ShouldBe("localhost:9092");
 	}
 
-	[Fact]
+	[Fact(DisplayName = "KafkaConsumeStep should have default consumer group ID")]
 	public void KafkaConsumeStep_Should_Have_Default_GroupId()
 	{
 		// Arrange & Act
@@ -103,7 +105,7 @@ public class KafkaConsumeStepTests
 		step.GroupId.ShouldBe("xunitassured-consumer");
 	}
 
-	[Fact]
+	[Fact(DisplayName = "Topic extension should create KafkaConsumeStep")]
 	public void Topic_Extension_Should_Create_KafkaStep()
 	{
 		// Arrange
@@ -118,7 +120,7 @@ public class KafkaConsumeStepTests
 		((KafkaConsumeStep)scenario.CurrentStep).Topic.ShouldBe("my-topic");
 	}
 
-	[Fact]
+	[Fact(DisplayName = "Topic extension should throw ArgumentException when topic is null")]
 	public void Topic_Extension_Should_Throw_When_Topic_Is_Null()
 	{
 		// Arrange
@@ -128,7 +130,7 @@ public class KafkaConsumeStepTests
 		Should.Throw<ArgumentException>(() => scenario.Topic(null!));
 	}
 
-	[Fact]
+	[Fact(DisplayName = "Topic extension should throw ArgumentException when topic is empty")]
 	public void Topic_Extension_Should_Throw_When_Topic_Is_Empty()
 	{
 		// Arrange
@@ -138,7 +140,7 @@ public class KafkaConsumeStepTests
 		Should.Throw<ArgumentException>(() => scenario.Topic("   "));
 	}
 
-	[Fact]
+	[Fact(DisplayName = "WithSchema should update schema type in KafkaConsumeStep")]
 	public void WithSchema_Should_Update_SchemaType()
 	{
 		// Arrange
@@ -152,7 +154,7 @@ public class KafkaConsumeStepTests
 		kafkaStep.SchemaType.ShouldBe(typeof(string));
 	}
 
-	[Fact]
+	[Fact(DisplayName = "WithTimeout should update timeout in KafkaConsumeStep")]
 	public void WithTimeout_Should_Update_Timeout()
 	{
 		// Arrange
@@ -166,7 +168,7 @@ public class KafkaConsumeStepTests
 		kafkaStep.Timeout.ShouldBe(TimeSpan.FromSeconds(60));
 	}
 
-	[Fact]
+	[Fact(DisplayName = "WithBootstrapServers should update bootstrap servers in KafkaConsumeStep")]
 	public void WithBootstrapServers_Should_Update_BootstrapServers()
 	{
 		// Arrange
@@ -180,7 +182,7 @@ public class KafkaConsumeStepTests
 		kafkaStep.BootstrapServers.ShouldBe("kafka:9092");
 	}
 
-	[Fact]
+	[Fact(DisplayName = "WithGroupId should update consumer group ID in KafkaConsumeStep")]
 	public void WithGroupId_Should_Update_GroupId()
 	{
 		// Arrange
@@ -194,7 +196,7 @@ public class KafkaConsumeStepTests
 		kafkaStep.GroupId.ShouldBe("my-consumer-group");
 	}
 
-	[Fact]
+	[Fact(DisplayName = "Kafka DSL should chain fluently with all configuration methods")]
 	public void Kafka_DSL_Should_Chain_Fluently()
 	{
 		// Act

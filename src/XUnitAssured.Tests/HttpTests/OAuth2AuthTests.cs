@@ -1,11 +1,13 @@
 namespace XUnitAssured.Tests.HttpTests;
 
+[Trait("Category", "Http")]
+[Trait("Authentication", "OAuth2")]
 /// <summary>
 /// Tests for OAuth 2.0 authentication.
 /// </summary>
 public class OAuth2AuthTests
 {
-	[Fact]
+	[Fact(DisplayName = "Should configure OAuth2 with client credentials grant type")]
 	public void Should_Configure_OAuth2_Client_Credentials()
 	{
 		// Arrange & Act
@@ -19,7 +21,7 @@ public class OAuth2AuthTests
 		scenario.CurrentStep.ShouldNotBeNull();
 	}
 
-	[Fact]
+	[Fact(DisplayName = "Should configure OAuth2 with scopes successfully")]
 	public void Should_Configure_OAuth2_With_Scopes()
 	{
 		// Arrange & Act
@@ -32,7 +34,7 @@ public class OAuth2AuthTests
 		scenario.ShouldNotBeNull();
 	}
 
-	[Fact]
+	[Fact(DisplayName = "Should configure OAuth2 with password grant type")]
 	public void Should_Configure_OAuth2_Password_Grant()
 	{
 		// Arrange & Act
@@ -53,7 +55,7 @@ public class OAuth2AuthTests
 		scenario.ShouldNotBeNull();
 	}
 
-	[Fact]
+	[Fact(DisplayName = "Should support OAuth2 configuration via auth config")]
 	public void Should_Support_OAuth2_Via_AuthConfig()
 	{
 		// Arrange & Act
@@ -69,7 +71,7 @@ public class OAuth2AuthTests
 		scenario.ShouldNotBeNull();
 	}
 
-	[Fact]
+	[Fact(DisplayName = "OAuth2Config should have default values")]
 	public void OAuth2Config_Should_Have_Defaults()
 	{
 		// Arrange & Act
@@ -79,7 +81,7 @@ public class OAuth2AuthTests
 		config.GrantType.ShouldBe(Http.Configuration.OAuth2GrantType.ClientCredentials);
 	}
 
-	[Fact]
+	[Fact(DisplayName = "Should throw InvalidOperationException when not HTTP step")]
 	public void Should_Throw_When_Not_Http_Step()
 	{
 		// Arrange
@@ -90,7 +92,7 @@ public class OAuth2AuthTests
 			scenario.WithOAuth2("url", "id", "secret"));
 	}
 
-	[Fact(Skip = "Integration test - requires real OAuth2 server")]
+	[Fact(Skip = "Integration test - requires real OAuth2 server", DisplayName = "Integration test should authenticate with OAuth2 successfully")]
 	public void Integration_Should_Authenticate_With_OAuth2()
 	{
 		var tokenUrl = System.Environment.GetEnvironmentVariable("OAUTH_TOKEN_URL");

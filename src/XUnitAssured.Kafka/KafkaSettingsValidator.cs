@@ -104,7 +104,8 @@ public class KafkaSettingsValidator : IValidateOptions<KafkaSettings>
 				}
 			}
 
-		// Validate authentication if provided
+			// Validate authentication if provided
+			// Only validate BasicAuthUserInfo when explicitly set to UserInfo (value 1)
 			if (options.SchemaRegistry.BasicAuthCredentialsSource == AuthCredentialsSource.UserInfo)
 			{
 				if (string.IsNullOrWhiteSpace(options.SchemaRegistry.BasicAuthUserInfo))

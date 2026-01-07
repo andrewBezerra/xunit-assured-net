@@ -1,10 +1,10 @@
 using XUnitAssured.Extensions.Http;
 using XUnitAssured.Http.Extensions;
-
-using static XUnitAssured.Core.DSL.ScenarioDsl;
+using XUnitAssured.Http.Testing;
 
 namespace XUnitAssured.Http.Samples.Test;
 
+[Trait("Authentication", "Certificate")]
 /// <summary>
 /// Sample tests demonstrating Certificate Authentication (mTLS) using XUnitAssured.Http.
 /// Certificate authentication is used for mutual TLS where both client and server verify each other's identity.
@@ -12,16 +12,13 @@ namespace XUnitAssured.Http.Samples.Test;
 /// NOTE: These tests demonstrate the API usage but may require actual certificate setup to run successfully.
 /// For demonstration purposes, some tests are marked as Skip with instructions.
 /// </summary>
-public class CertificateAuthTests : IClassFixture<HttpSamplesFixture>
+public class CertificateAuthTests : HttpTestBase<HttpSamplesFixture>, IClassFixture<HttpSamplesFixture>
 {
-	private readonly HttpSamplesFixture _fixture;
-
-	public CertificateAuthTests(HttpSamplesFixture fixture)
+	public CertificateAuthTests(HttpSamplesFixture fixture) : base(fixture)
 	{
-		_fixture = fixture;
 	}
 
-	[Fact(Skip = "Requires actual certificate setup. This test demonstrates API usage.")]
+	[Fact(Skip = "Requires actual certificate setup. This test demonstrates API usage.", DisplayName = "Certificate Authentication from file should authenticate successfully")]
 	public void Example01_Certificate_FromFile_ShouldAuthenticate()
 	{
 		// Arrange
@@ -30,7 +27,7 @@ public class CertificateAuthTests : IClassFixture<HttpSamplesFixture>
 
 		// Act & Assert
 		Given()
-			.ApiResource($"{_fixture.BaseUrl}/api/auth/certificate")
+			.ApiResource($"{Fixture.BaseUrl}/api/auth/certificate")
 			.WithCertificate(certificatePath, certificatePassword)
 			.Get()
 		.When()
@@ -42,7 +39,7 @@ public class CertificateAuthTests : IClassFixture<HttpSamplesFixture>
 			.AssertJsonPath<string>("$.customData.Subject", value => !string.IsNullOrEmpty(value), "Should return certificate subject");
 	}
 
-	[Fact(Skip = "Requires actual certificate in Windows Certificate Store.")]
+	[Fact(Skip = "Requires actual certificate in Windows Certificate Store.", DisplayName = "Certificate Authentication from Windows Store should authenticate successfully")]
 	public void Example02_Certificate_FromStore_ShouldAuthenticate()
 	{
 		// Arrange
@@ -52,7 +49,7 @@ public class CertificateAuthTests : IClassFixture<HttpSamplesFixture>
 
 		// Act & Assert
 		Given()
-			.ApiResource($"{_fixture.BaseUrl}/api/auth/certificate")
+			.ApiResource($"{Fixture.BaseUrl}/api/auth/certificate")
 			.WithCertificateFromStore(thumbprint, storeLocation, storeName)
 			.Get()
 		.When()
@@ -62,7 +59,7 @@ public class CertificateAuthTests : IClassFixture<HttpSamplesFixture>
 			.AssertJsonPath<bool>("$.authenticated", value => value, "Should be authenticated with certificate from store");
 	}
 
-	[Fact(Skip = "Requires actual certificate instance.")]
+	[Fact(Skip = "Requires actual certificate instance.", DisplayName = "Certificate Authentication from instance should authenticate successfully")]
 	public void Example03_Certificate_FromInstance_ShouldAuthenticate()
 	{
 		// Arrange
@@ -73,7 +70,7 @@ public class CertificateAuthTests : IClassFixture<HttpSamplesFixture>
 
 		// Act & Assert
 		Given()
-			.ApiResource($"{_fixture.BaseUrl}/api/auth/certificate")
+			.ApiResource($"{Fixture.BaseUrl}/api/auth/certificate")
 			.WithCertificateInstance(certificate)
 			.Get()
 		.When()
@@ -83,13 +80,11 @@ public class CertificateAuthTests : IClassFixture<HttpSamplesFixture>
 			.AssertJsonPath<bool>("$.authenticated", value => value, "Should be authenticated with certificate instance");
 	}
 
-	[Fact]
+	[Fact(DisplayName = "Certificate Authentication without certificate should return 401 Unauthorized")]
 	public void Example04_Certificate_WithoutCertificate_ShouldReturn401()
 	{
 		// Act & Assert - No certificate provided (using fixture's client to ensure proper test server communication)
-		Given()
-			.WithHttpClient(_fixture.CreateClient())
-			.ApiResource($"/api/auth/certificate")
+		Given().ApiResource($"/api/auth/certificate")
 			.Get()
 		.When()
 			.Execute()
@@ -98,7 +93,7 @@ public class CertificateAuthTests : IClassFixture<HttpSamplesFixture>
 			.AssertJsonPath<string>("$.message", value => value?.Contains("certificate") == true, "Should indicate certificate is required");
 	}
 
-	[Fact(Skip = "Requires actual certificate setup to test validation.")]
+	[Fact(Skip = "Requires actual certificate setup to test validation.", DisplayName = "Certificate Authentication should return complete response structure")]
 	public void Example05_Certificate_ValidateResponseStructure()
 	{
 		// Arrange
@@ -107,7 +102,7 @@ public class CertificateAuthTests : IClassFixture<HttpSamplesFixture>
 
 		// Act & Assert - Validate certificate authentication response structure
 		Given()
-			.ApiResource($"{_fixture.BaseUrl}/api/auth/certificate")
+			.ApiResource($"{Fixture.BaseUrl}/api/auth/certificate")
 			.WithCertificate(certificatePath, certificatePassword)
 			.Get()
 		.When()
@@ -124,7 +119,7 @@ public class CertificateAuthTests : IClassFixture<HttpSamplesFixture>
 			.AssertJsonPath<object>("$.customData.ValidTo", value => value != null, "Certificate ValidTo should exist");
 	}
 
-	[Fact(Skip = "Requires httpsettings.json configuration and actual certificate.")]
+	[Fact(Skip = "Requires httpsettings.json configuration and actual certificate.", DisplayName = "Certificate Authentication from configuration should authenticate successfully")]
 	public void Example06_Certificate_FromConfiguration_ShouldAuthenticate()
 	{
 		// This example demonstrates using certificate configuration from httpsettings.json
@@ -140,7 +135,7 @@ public class CertificateAuthTests : IClassFixture<HttpSamplesFixture>
 
 		// Act & Assert
 		Given()
-			.ApiResource($"{_fixture.BaseUrl}/api/auth/certificate")
+			.ApiResource($"{Fixture.BaseUrl}/api/auth/certificate")
 			.WithCertificate() // Loads from httpsettings.json
 			.Get()
 		.When()
@@ -154,7 +149,7 @@ public class CertificateAuthTests : IClassFixture<HttpSamplesFixture>
 	/// Documentation test - demonstrates how to set up certificate authentication.
 	/// This is not a runnable test but serves as inline documentation.
 	/// </summary>
-	[Fact(Skip = "Documentation example - not a runnable test.")]
+	[Fact(Skip = "Documentation example - not a runnable test.", DisplayName = "Certificate Authentication setup guide and documentation")]
 	public void Example07_Certificate_Documentation_SetupGuide()
 	{
 		/*
@@ -230,7 +225,7 @@ public class CertificateAuthTests : IClassFixture<HttpSamplesFixture>
 		Assert.True(true, "This is a documentation test");
 	}
 
-	[Fact(Skip = "Requires expired certificate for testing.")]
+	[Fact(Skip = "Requires expired certificate for testing.", DisplayName = "Certificate Authentication with expired certificate should handle gracefully")]
 	public void Example08_Certificate_WithExpiredCertificate_ShouldHandleGracefully()
 	{
 		// Arrange
@@ -239,7 +234,7 @@ public class CertificateAuthTests : IClassFixture<HttpSamplesFixture>
 
 		// Act & Assert - Depending on configuration, this might return 401 or specific error
 		Given()
-			.ApiResource($"{_fixture.BaseUrl}/api/auth/certificate")
+			.ApiResource($"{Fixture.BaseUrl}/api/auth/certificate")
 			.WithCertificate(expiredCertPath, password)
 			.Get()
 		.When()
@@ -248,7 +243,7 @@ public class CertificateAuthTests : IClassFixture<HttpSamplesFixture>
 			.AssertStatusCode(401); // Or specific error code for expired certificate
 	}
 
-	[Fact(Skip = "Requires untrusted certificate for testing.")]
+	[Fact(Skip = "Requires untrusted certificate for testing.", DisplayName = "Certificate Authentication with untrusted certificate should return 401 Unauthorized")]
 	public void Example09_Certificate_WithUntrustedCertificate_ShouldReturn401()
 	{
 		// Arrange
@@ -257,7 +252,7 @@ public class CertificateAuthTests : IClassFixture<HttpSamplesFixture>
 
 		// Act & Assert
 		Given()
-			.ApiResource($"{_fixture.BaseUrl}/api/auth/certificate")
+			.ApiResource($"{Fixture.BaseUrl}/api/auth/certificate")
 			.WithCertificate(untrustedCertPath, password)
 			.Get()
 		.When()

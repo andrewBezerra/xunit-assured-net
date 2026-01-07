@@ -5,14 +5,17 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
+using XUnitAssured.Core.Abstractions;
+
 namespace XUnitAssured.Http.Samples.Test;
 
 /// <summary>
 /// Test fixture for HTTP samples using XUnitAssured.Http.
 /// Hosts the SampleWebApi application for integration testing.
 /// Does not depend on external configuration files.
+/// Implements IHttpClientProvider to work seamlessly with Given(fixture) syntax.
 /// </summary>
-public class HttpSamplesFixture : IDisposable
+public class HttpSamplesFixture : IHttpClientProvider, IDisposable
 {
 	private readonly WebApplicationFactory<Program> _factory;
 	private bool _disposed;

@@ -1,34 +1,29 @@
 using XUnitAssured.Extensions.Http;
 using XUnitAssured.Http.Extensions;
-
-using static XUnitAssured.Core.DSL.ScenarioDsl;
+using XUnitAssured.Http.Testing;
 
 namespace XUnitAssured.Http.Samples.Test;
 
+[Trait("Authentication", "Bearer")]
 /// <summary>
 /// Sample tests demonstrating Bearer Token Authentication using XUnitAssured.Http.
 /// Bearer tokens are sent in the Authorization header as "Bearer {token}".
 /// Commonly used for JWT (JSON Web Tokens) and OAuth2 access tokens.
 /// </summary>
-public class BearerAuthTests : IClassFixture<HttpSamplesFixture>
+public class BearerAuthTests : HttpTestBase<HttpSamplesFixture>, IClassFixture<HttpSamplesFixture>
 {
-	private readonly HttpSamplesFixture _fixture;
-
-	public BearerAuthTests(HttpSamplesFixture fixture)
+	public BearerAuthTests(HttpSamplesFixture fixture) : base(fixture)
 	{
-		_fixture = fixture;
 	}
 
-	[Fact]
+	[Fact(DisplayName = "Bearer Token Authentication with valid token should return success")]
 	public void Example01_BearerAuth_WithValidToken_ShouldReturnSuccess()
 	{
 		// Arrange
 		var validToken = "my-super-secret-token-12345";
 
 		// Act & Assert
-		Given()
-			.WithHttpClient(_fixture.CreateClient())
-			.ApiResource("/api/auth/bearer")
+		Given().ApiResource("/api/auth/bearer")
 			.WithBearerToken(validToken)
 			.Get()
 		.When()
@@ -40,16 +35,14 @@ public class BearerAuthTests : IClassFixture<HttpSamplesFixture>
 			.AssertJsonPath<string>("$.message", value => value?.Contains("successful") == true, "Should return success message");
 	}
 
-	[Fact]
+	[Fact(DisplayName = "Bearer Token Authentication with invalid token should return 401 Unauthorized")]
 	public void Example02_BearerAuth_WithInvalidToken_ShouldReturn401()
 	{
 		// Arrange
 		var invalidToken = "invalid-token-xyz";
 
 		// Act & Assert
-		Given()
-			.WithHttpClient(_fixture.CreateClient())
-			.ApiResource("/api/auth/bearer")
+		Given().ApiResource("/api/auth/bearer")
 			.WithBearerToken(invalidToken)
 			.Get()
 		.When()
@@ -59,13 +52,11 @@ public class BearerAuthTests : IClassFixture<HttpSamplesFixture>
 		// Note: Server returns 401 without JSON body
 	}
 
-	[Fact]
+	[Fact(DisplayName = "Bearer Token Authentication without token should return 401 Unauthorized")]
 	public void Example03_BearerAuth_WithoutToken_ShouldReturn401()
 	{
 		// Act & Assert - No authentication provided
-		Given()
-			.WithHttpClient(_fixture.CreateClient())
-			.ApiResource("/api/auth/bearer")
+		Given().ApiResource("/api/auth/bearer")
 			.Get()
 		.When()
 			.Execute()
@@ -74,16 +65,14 @@ public class BearerAuthTests : IClassFixture<HttpSamplesFixture>
 		// Note: Server returns 401 without JSON body
 	}
 
-	[Fact]
+	[Fact(DisplayName = "Bearer Token Authentication with empty token should return 401 Unauthorized")]
 	public void Example04_BearerAuth_WithEmptyToken_ShouldReturn401()
 	{
 		// Arrange
 		var emptyToken = "";
 
 		// Act & Assert
-		Given()
-			.WithHttpClient(_fixture.CreateClient())
-			.ApiResource("/api/auth/bearer")
+		Given().ApiResource("/api/auth/bearer")
 			.WithBearerToken(emptyToken)
 			.Get()
 		.When()
@@ -92,7 +81,7 @@ public class BearerAuthTests : IClassFixture<HttpSamplesFixture>
 			.AssertStatusCode(401);
 	}
 
-	[Fact]
+	[Fact(DisplayName = "Bearer Token Authentication with custom prefix should work correctly")]
 	public void Example05_BearerAuth_WithCustomPrefix_ShouldWork()
 	{
 		// Arrange
@@ -100,9 +89,7 @@ public class BearerAuthTests : IClassFixture<HttpSamplesFixture>
 		var customPrefix = "Bearer"; // Default prefix
 
 		// Act & Assert
-		Given()
-			.WithHttpClient(_fixture.CreateClient())
-			.ApiResource("/api/auth/bearer")
+		Given().ApiResource("/api/auth/bearer")
 			.WithBearerToken(validToken, customPrefix)
 			.Get()
 		.When()
@@ -112,16 +99,14 @@ public class BearerAuthTests : IClassFixture<HttpSamplesFixture>
 			.AssertJsonPath<bool>("$.authenticated", value => value, "Should be authenticated with custom prefix");
 	}
 
-	[Fact]
+	[Fact(DisplayName = "Bearer Token is case-sensitive and wrong case should return 401 Unauthorized")]
 	public void Example06_BearerAuth_TokenIsCaseSensitive_ShouldReturn401()
 	{
 		// Arrange - Token is case-sensitive
 		var wrongCaseToken = "MY-SUPER-SECRET-TOKEN-12345"; // Wrong case
 
 		// Act & Assert
-		Given()
-			.WithHttpClient(_fixture.CreateClient())
-			.ApiResource("/api/auth/bearer")
+		Given().ApiResource("/api/auth/bearer")
 			.WithBearerToken(wrongCaseToken)
 			.Get()
 		.When()
@@ -131,7 +116,7 @@ public class BearerAuthTests : IClassFixture<HttpSamplesFixture>
 		// Note: Server returns 401 without JSON body
 	}
 
-	[Fact]
+	[Fact(DisplayName = "Bearer Token with whitespace should be trimmed and authentication succeeds")]
 	public void Example07_BearerAuth_WithWhitespaceInToken_ShouldReturn401()
 	{
 		// Arrange - Token with extra whitespace
@@ -140,9 +125,7 @@ public class BearerAuthTests : IClassFixture<HttpSamplesFixture>
 		var tokenWithWhitespace = "my-super-secret-token-12345 ";
 
 		// Act & Assert
-		Given()
-			.WithHttpClient(_fixture.CreateClient())
-			.ApiResource("/api/auth/bearer")
+		Given().ApiResource("/api/auth/bearer")
 			.WithBearerToken(tokenWithWhitespace)
 			.Get()
 		.When()
@@ -152,16 +135,14 @@ public class BearerAuthTests : IClassFixture<HttpSamplesFixture>
 			.AssertJsonPath<bool>("$.authenticated", value => value, "Server trims token, so authentication succeeds");
 	}
 
-	[Fact]
+	[Fact(DisplayName = "Bearer Token Authentication with valid token should return complete response structure")]
 	public void Example08_BearerAuth_ValidToken_CheckResponseStructure()
 	{
 		// Arrange
 		var validToken = "my-super-secret-token-12345";
 
 		// Act & Assert - Validate complete response structure
-		Given()
-			.WithHttpClient(_fixture.CreateClient())
-			.ApiResource("/api/auth/bearer")
+		Given().ApiResource("/api/auth/bearer")
 			.WithBearerToken(validToken)
 			.Get()
 		.When()
@@ -173,16 +154,14 @@ public class BearerAuthTests : IClassFixture<HttpSamplesFixture>
 			.AssertJsonPath<object>("$.message", value => value != null, "message field should exist");
 	}
 
-	[Fact]
+	[Fact(DisplayName = "Bearer Token Authentication should maintain authentication across multiple requests")]
 	public void Example09_BearerAuth_MultipleRequests_ShouldMaintainAuthentication()
 	{
 		// Arrange
 		var validToken = "my-super-secret-token-12345";
 
 		// Act & Assert - First request
-		Given()
-			.WithHttpClient(_fixture.CreateClient())
-			.ApiResource("/api/auth/bearer")
+		Given().ApiResource("/api/auth/bearer")
 			.WithBearerToken(validToken)
 			.Get()
 		.When()
@@ -192,9 +171,7 @@ public class BearerAuthTests : IClassFixture<HttpSamplesFixture>
 			.AssertJsonPath<bool>("$.authenticated", value => value, "First request should be authenticated");
 
 		// Act & Assert - Second request with same token
-		Given()
-			.WithHttpClient(_fixture.CreateClient())
-			.ApiResource("/api/auth/bearer")
+		Given().ApiResource("/api/auth/bearer")
 			.WithBearerToken(validToken)
 			.Get()
 		.When()
@@ -204,7 +181,7 @@ public class BearerAuthTests : IClassFixture<HttpSamplesFixture>
 			.AssertJsonPath<bool>("$.authenticated", value => value, "Second request should be authenticated");
 	}
 
-	[Fact]
+	[Fact(DisplayName = "Bearer Token Authentication with different tokens should behave differently")]
 	public void Example10_BearerAuth_DifferentTokens_ShouldBehaveDifferently()
 	{
 		// Arrange
@@ -212,9 +189,7 @@ public class BearerAuthTests : IClassFixture<HttpSamplesFixture>
 		var invalidToken = "different-invalid-token";
 
 		// Act & Assert - Valid token
-		Given()
-			.WithHttpClient(_fixture.CreateClient())
-			.ApiResource("/api/auth/bearer")
+		Given().ApiResource("/api/auth/bearer")
 			.WithBearerToken(validToken)
 			.Get()
 		.When()
@@ -224,9 +199,7 @@ public class BearerAuthTests : IClassFixture<HttpSamplesFixture>
 			.AssertJsonPath<bool>("$.authenticated", value => value, "Valid token should authenticate");
 
 		// Act & Assert - Invalid token
-		Given()
-			.WithHttpClient(_fixture.CreateClient())
-			.ApiResource("/api/auth/bearer")
+		Given().ApiResource("/api/auth/bearer")
 			.WithBearerToken(invalidToken)
 			.Get()
 		.When()

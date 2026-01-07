@@ -5,6 +5,8 @@ using XUnitAssured.Http.Extensions;
 
 namespace XUnitAssured.Tests.HttpTests;
 
+[Trait("Category", "Http")]
+[Trait("Authentication", "Certificate")]
 /// <summary>
 /// Tests for Certificate (mTLS) authentication.
 /// Note: Most tests are skipped as they require valid X509 certificates.
@@ -12,7 +14,7 @@ namespace XUnitAssured.Tests.HttpTests;
 /// </summary>
 public class CertificateAuthTests
 {
-	[Fact]
+	[Fact(DisplayName = "Should configure certificate authentication from file")]
 	public void Should_Configure_Certificate_From_File()
 	{
 		// Arrange & Act
@@ -26,7 +28,7 @@ public class CertificateAuthTests
 		scenario.CurrentStep.ShouldNotBeNull();
 	}
 
-	[Fact]
+	[Fact(DisplayName = "Should configure certificate authentication from Windows certificate store")]
 	public void Should_Configure_Certificate_From_Store()
 	{
 		// Arrange & Act
@@ -39,7 +41,7 @@ public class CertificateAuthTests
 		scenario.ShouldNotBeNull();
 	}
 
-	[Fact]
+	[Fact(DisplayName = "Should support certificate authentication via auth config")]
 	public void Should_Support_Certificate_Via_Config()
 	{
 		// Arrange & Act
@@ -55,7 +57,7 @@ public class CertificateAuthTests
 		scenario.ShouldNotBeNull();
 	}
 
-	[Fact]
+	[Fact(DisplayName = "CertificateAuthConfig should have default values")]
 	public void CertificateAuthConfig_Should_Have_Defaults()
 	{
 		// Arrange & Act
@@ -66,7 +68,7 @@ public class CertificateAuthTests
 		config.StoreName.ShouldBe(StoreName.My);
 	}
 
-	[Fact]
+	[Fact(DisplayName = "Should throw ArgumentNullException when certificate instance is null")]
 	public void Should_Throw_When_Certificate_Is_Null()
 	{
 		// Arrange
@@ -77,7 +79,7 @@ public class CertificateAuthTests
 			scenario.WithCertificateInstance(null!));
 	}
 
-	[Fact]
+	[Fact(DisplayName = "Should throw InvalidOperationException when not HTTP step")]
 	public void Should_Throw_When_Not_Http_Step()
 	{
 		// Arrange
@@ -88,7 +90,7 @@ public class CertificateAuthTests
 			scenario.WithCertificate("path/to/cert.pfx"));
 	}
 
-	[Fact]
+	[Fact(DisplayName = "FlurlClientFactory should clear cache successfully")]
 	public void FlurlClientFactory_Should_Clear_Cache_Successfully()
 	{
 		// Act
@@ -98,7 +100,7 @@ public class CertificateAuthTests
 		FlurlClientFactory.CachedClientCount.ShouldBe(0);
 	}
 
-	[Fact(Skip = "Integration test - requires real certificate and mTLS server")]
+	[Fact(Skip = "Integration test - requires real certificate and mTLS server", DisplayName = "Integration test should authenticate with client certificate successfully")]
 	public void Integration_Should_Authenticate_With_Certificate()
 	{
 		var certPath = Environment.GetEnvironmentVariable("TEST_CLIENT_CERT_PATH");

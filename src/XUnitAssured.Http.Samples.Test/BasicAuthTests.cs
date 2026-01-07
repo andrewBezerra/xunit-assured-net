@@ -1,24 +1,21 @@
 using XUnitAssured.Extensions.Http;
 using XUnitAssured.Http.Extensions;
-
-using static XUnitAssured.Core.DSL.ScenarioDsl;
+using XUnitAssured.Http.Testing;
 
 namespace XUnitAssured.Http.Samples.Test;
 
+[Trait("Authentication", "Basic")]
 /// <summary>
 /// Sample tests demonstrating Basic Authentication using XUnitAssured.Http.
 /// Basic Auth sends credentials as base64-encoded "username:password" in the Authorization header.
 /// </summary>
-public class BasicAuthTests : IClassFixture<HttpSamplesFixture>
+public class BasicAuthTests : HttpTestBase<HttpSamplesFixture>, IClassFixture<HttpSamplesFixture>
 {
-	private readonly HttpSamplesFixture _fixture;
-
-	public BasicAuthTests(HttpSamplesFixture fixture)
+	public BasicAuthTests(HttpSamplesFixture fixture) : base(fixture)
 	{
-		_fixture = fixture;
 	}
 
-	[Fact]
+	[Fact(DisplayName = "Basic Authentication with valid credentials should return success")]
 	public void Example01_BasicAuth_WithValidCredentials_ShouldReturnSuccess()
 	{
 		// Arrange
@@ -27,7 +24,6 @@ public class BasicAuthTests : IClassFixture<HttpSamplesFixture>
 
 		// Act & Assert
 		Given()
-			.WithHttpClient(_fixture.CreateClient())
 			.ApiResource("/api/auth/basic")
 			.WithBasicAuth(username, password)
 			.Get()
@@ -41,7 +37,7 @@ public class BasicAuthTests : IClassFixture<HttpSamplesFixture>
 			.AssertJsonPath<string>("$.message", value => value?.Contains("successful") == true, "Should return success message");
 	}
 
-	[Fact]
+	[Fact(DisplayName = "Basic Authentication with invalid credentials should return 401 Unauthorized")]
 	public void Example02_BasicAuth_WithInvalidCredentials_ShouldReturn401()
 	{
 		// Arrange
@@ -49,9 +45,7 @@ public class BasicAuthTests : IClassFixture<HttpSamplesFixture>
 		var wrongPassword = "wrongpassword";
 
 		// Act & Assert
-		Given()
-			.WithHttpClient(_fixture.CreateClient())
-			.ApiResource("/api/auth/basic")
+		Given().ApiResource("/api/auth/basic")
 			.WithBasicAuth(username, wrongPassword)
 			.Get()
 		.When()
@@ -60,7 +54,7 @@ public class BasicAuthTests : IClassFixture<HttpSamplesFixture>
 			.AssertStatusCode(401);
 	}
 
-	[Fact]
+	[Fact(DisplayName = "Basic Authentication with invalid username should return 401 Unauthorized")]
 	public void Example03_BasicAuth_WithInvalidUsername_ShouldReturn401()
 	{
 		// Arrange
@@ -68,9 +62,7 @@ public class BasicAuthTests : IClassFixture<HttpSamplesFixture>
 		var password = "secret123";
 
 		// Act & Assert
-		Given()
-			.WithHttpClient(_fixture.CreateClient())
-			.ApiResource("/api/auth/basic")
+		Given().ApiResource("/api/auth/basic")
 			.WithBasicAuth(wrongUsername, password)
 			.Get()
 		.When()
@@ -79,13 +71,11 @@ public class BasicAuthTests : IClassFixture<HttpSamplesFixture>
 			.AssertStatusCode(401);
 	}
 
-	[Fact]
+	[Fact(DisplayName = "Basic Authentication without credentials should return 401 Unauthorized")]
 	public void Example04_BasicAuth_WithoutCredentials_ShouldReturn401()
 	{
 		// Act & Assert - No authentication provided
-		Given()
-			.WithHttpClient(_fixture.CreateClient())
-			.ApiResource("/api/auth/basic")
+		Given().ApiResource("/api/auth/basic")
 			.Get()
 		.When()
 			.Execute()
@@ -93,7 +83,7 @@ public class BasicAuthTests : IClassFixture<HttpSamplesFixture>
 			.AssertStatusCode(401);
 	}
 
-	[Fact]
+	[Fact(DisplayName = "Basic Authentication with empty username should return 401 Unauthorized")]
 	public void Example05_BasicAuth_WithEmptyUsername_ShouldReturn401()
 	{
 		// Arrange
@@ -101,9 +91,7 @@ public class BasicAuthTests : IClassFixture<HttpSamplesFixture>
 		var password = "secret123";
 
 		// Act & Assert
-		Given()
-			.WithHttpClient(_fixture.CreateClient())
-			.ApiResource("/api/auth/basic")
+		Given().ApiResource("/api/auth/basic")
 			.WithBasicAuth(emptyUsername, password)
 			.Get()
 		.When()
@@ -112,7 +100,7 @@ public class BasicAuthTests : IClassFixture<HttpSamplesFixture>
 			.AssertStatusCode(401);
 	}
 
-	[Fact]
+	[Fact(DisplayName = "Basic Authentication with empty password should return 401 Unauthorized")]
 	public void Example06_BasicAuth_WithEmptyPassword_ShouldReturn401()
 	{
 		// Arrange
@@ -120,9 +108,7 @@ public class BasicAuthTests : IClassFixture<HttpSamplesFixture>
 		var emptyPassword = "";
 
 		// Act & Assert
-		Given()
-			.WithHttpClient(_fixture.CreateClient())
-			.ApiResource("/api/auth/basic")
+		Given().ApiResource("/api/auth/basic")
 			.WithBasicAuth(username, emptyPassword)
 			.Get()
 		.When()
@@ -131,7 +117,7 @@ public class BasicAuthTests : IClassFixture<HttpSamplesFixture>
 			.AssertStatusCode(401);
 	}
 
-	[Fact]
+	[Fact(DisplayName = "Basic Authentication with case-sensitive username should return 401 Unauthorized")]
 	public void Example07_BasicAuth_CaseSensitiveUsername_ShouldReturn401()
 	{
 		// Arrange - Username is case-sensitive
@@ -139,9 +125,7 @@ public class BasicAuthTests : IClassFixture<HttpSamplesFixture>
 		var password = "secret123";
 
 		// Act & Assert
-		Given()
-			.WithHttpClient(_fixture.CreateClient())
-			.ApiResource("/api/auth/basic")
+		Given().ApiResource("/api/auth/basic")
 			.WithBasicAuth(username, password)
 			.Get()
 		.When()
@@ -150,7 +134,7 @@ public class BasicAuthTests : IClassFixture<HttpSamplesFixture>
 			.AssertStatusCode(401);
 	}
 
-	[Fact]
+	[Fact(DisplayName = "Basic Authentication with case-sensitive password should return 401 Unauthorized")]
 	public void Example08_BasicAuth_CaseSensitivePassword_ShouldReturn401()
 	{
 		// Arrange - Password is case-sensitive
@@ -158,9 +142,7 @@ public class BasicAuthTests : IClassFixture<HttpSamplesFixture>
 		var password = "Secret123"; // Wrong case
 
 		// Act & Assert
-		Given()
-			.WithHttpClient(_fixture.CreateClient())
-			.ApiResource("/api/auth/basic")
+		Given().ApiResource("/api/auth/basic")
 			.WithBasicAuth(username, password)
 			.Get()
 		.When()
@@ -169,7 +151,7 @@ public class BasicAuthTests : IClassFixture<HttpSamplesFixture>
 			.AssertStatusCode(401);
 	}
 
-	[Fact]
+	[Fact(DisplayName = "Basic Authentication with valid credentials should return complete response structure")]
 	public void Example09_BasicAuth_ValidCredentials_CheckResponseStructure()
 	{
 		// Arrange
@@ -177,9 +159,7 @@ public class BasicAuthTests : IClassFixture<HttpSamplesFixture>
 		var password = "secret123";
 
 		// Act & Assert - Validate complete response structure
-		Given()
-			.WithHttpClient(_fixture.CreateClient())
-			.ApiResource("/api/auth/basic")
+		Given().ApiResource("/api/auth/basic")
 			.WithBasicAuth(username, password)
 			.Get()
 		.When()
@@ -192,7 +172,7 @@ public class BasicAuthTests : IClassFixture<HttpSamplesFixture>
 			.AssertJsonPath<object>("$.message", value => value != null, "message field should exist");
 	}
 
-	[Fact]
+	[Fact(DisplayName = "Basic Authentication should maintain authentication across multiple requests")]
 	public void Example10_BasicAuth_MultipleRequests_ShouldMaintainAuthentication()
 	{
 		// Arrange
@@ -200,9 +180,7 @@ public class BasicAuthTests : IClassFixture<HttpSamplesFixture>
 		var password = "secret123";
 
 		// Act & Assert - First request
-		Given()
-			.WithHttpClient(_fixture.CreateClient())
-			.ApiResource("/api/auth/basic")
+		Given().ApiResource("/api/auth/basic")
 			.WithBasicAuth(username, password)
 			.Get()
 		.When()
@@ -212,9 +190,7 @@ public class BasicAuthTests : IClassFixture<HttpSamplesFixture>
 			.AssertJsonPath<bool>("$.authenticated", value => value, "First request should be authenticated");
 
 		// Act & Assert - Second request with same credentials
-		Given()
-			.WithHttpClient(_fixture.CreateClient())
-			.ApiResource("/api/auth/basic")
+		Given().ApiResource("/api/auth/basic")
 			.WithBasicAuth(username, password)
 			.Get()
 		.When()

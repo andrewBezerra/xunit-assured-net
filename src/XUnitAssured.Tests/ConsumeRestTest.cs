@@ -1,12 +1,13 @@
 namespace XUnitAssured.Tests;
 
+[Trait("Category", "Integration Rest + Kafka")]
 /// <summary>
 /// Integration tests demonstrating the complete XUnitAssured DSL.
 /// These tests show HTTP + Kafka integration scenarios.
 /// </summary>
 public class ConsumeRestTest
 {
-	[Fact(Skip = "Integration test - requires real API")]
+	[Fact(Skip = "Integration test - requires real API", DisplayName = "HTTP POST should work with fluent DSL syntax")]
 	public void HttpPost_Should_Work_With_Fluent_DSL()
 	{
 		// Simple HTTP test using jsonplaceholder (public API)
@@ -26,7 +27,7 @@ public class ConsumeRestTest
 			});
 	}
 
-	[Fact(Skip = "Integration test - requires real API and Kafka")]
+	[Fact(Skip = "Integration test - requires real API and Kafka", DisplayName = "Complete workflow should validate API response and Kafka topic message successfully")]
 	public void GetApiRetornaValidaTopicoECSTSucesso()
 	{
 		// Complete test: HTTP POST + Kafka message validation
@@ -65,7 +66,7 @@ public class ConsumeRestTest
 			});
 	}
 
-	[Fact]
+	[Fact(DisplayName = "Complete DSL syntax reference and documentation for HTTP and Kafka operations")]
 	public void Complete_DSL_Syntax_Documentation()
 	{
 		// ============================================

@@ -6,13 +6,15 @@ using XUnitAssured.Kafka.Results;
 
 namespace XUnitAssured.Tests.KafkaTests;
 
+[Trait("Category", "Kafka")]
+[Trait("Component", "Result")]
 /// <summary>
 /// Unit tests for KafkaStepResult class.
 /// Validates Kafka-specific result functionality and helpers.
 /// </summary>
 public class KafkaStepResultTests
 {
-	[Fact]
+	[Fact(DisplayName = "KafkaStepResult should expose message data correctly")]
 	public void KafkaStepResult_Should_Expose_Message()
 	{
 		// Arrange
@@ -31,10 +33,14 @@ public class KafkaStepResultTests
 
 		// Assert
 		result.Message.ShouldBe(message);
-		result.GetMessage<dynamic>().ShouldBe(message);
+		result.Message.ShouldNotBeNull();
+		
+		// Verify GetMessage returns the same object reference
+		var messageObject = result.GetMessage<object>();
+		messageObject.ShouldBe(message);
 	}
 
-	[Fact]
+	[Fact(DisplayName = "KafkaStepResult should expose Kafka metadata correctly")]
 	public void KafkaStepResult_Should_Expose_Kafka_Metadata()
 	{
 		// Arrange
@@ -62,7 +68,7 @@ public class KafkaStepResultTests
 		result.Key.ShouldBe("message-key");
 	}
 
-	[Fact]
+	[Fact(DisplayName = "KafkaStepResult should handle null partition and offset gracefully")]
 	public void KafkaStepResult_Should_Handle_Null_Partition_And_Offset()
 	{
 		// Act
@@ -80,7 +86,7 @@ public class KafkaStepResultTests
 		result.Offset.ShouldBeNull();
 	}
 
-	[Fact]
+	[Fact(DisplayName = "CreateKafkaConsumeSuccess should create complete result with all properties")]
 	public void CreateKafkaConsumeSuccess_Should_Create_Complete_Result()
 	{
 		// Arrange
@@ -116,7 +122,7 @@ public class KafkaStepResultTests
 		result.Metadata.Status.ShouldBe(StepStatus.Succeeded);
 	}
 
-	[Fact]
+	[Fact(DisplayName = "CreateKafkaProduceSuccess should create complete result with all properties")]
 	public void CreateKafkaProduceSuccess_Should_Create_Complete_Result()
 	{
 		// Arrange
@@ -150,7 +156,7 @@ public class KafkaStepResultTests
 		result.GetProperty<string>("Status").ShouldBe("Persisted");
 	}
 
-	[Fact]
+	[Fact(DisplayName = "CreateKafkaProduceSuccess should set Success to false for NotPersisted status")]
 	public void CreateKafkaProduceSuccess_Should_Set_Success_False_For_NotPersisted()
 	{
 		// Arrange
@@ -174,7 +180,7 @@ public class KafkaStepResultTests
 		result.Success.ShouldBeFalse();
 	}
 
-	[Fact]
+	[Fact(DisplayName = "CreateFailure should create failed result with exception message")]
 	public void CreateFailure_Should_Create_Failed_Result()
 	{
 		// Arrange
@@ -192,7 +198,7 @@ public class KafkaStepResultTests
 		result.Errors[0].ShouldContain("Timed out");
 	}
 
-	[Fact]
+	[Fact(DisplayName = "CreateTimeout should create timeout result with error message")]
 	public void CreateTimeout_Should_Create_Timeout_Result()
 	{
 		// Act
@@ -207,7 +213,7 @@ public class KafkaStepResultTests
 		result.Errors[0].ShouldContain("30");
 	}
 
-	[Fact]
+	[Fact(DisplayName = "GetHeaderValue should return header value as bytes")]
 	public void GetHeaderValue_Should_Return_Header_Bytes()
 	{
 		// Arrange
@@ -232,7 +238,7 @@ public class KafkaStepResultTests
 		System.Text.Encoding.UTF8.GetString(retrievedValue!).ShouldBe("correlation-123");
 	}
 
-	[Fact]
+	[Fact(DisplayName = "GetHeaderValue should return null for missing header")]
 	public void GetHeaderValue_Should_Return_Null_For_Missing_Header()
 	{
 		// Arrange
@@ -253,7 +259,7 @@ public class KafkaStepResultTests
 		retrievedValue.ShouldBeNull();
 	}
 
-	[Fact]
+	[Fact(DisplayName = "GetHeaderValue should return null when headers collection is missing")]
 	public void GetHeaderValue_Should_Return_Null_When_Headers_Missing()
 	{
 		// Arrange

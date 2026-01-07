@@ -5,12 +5,14 @@ using Shouldly;
 
 namespace XUnitAssured.Tests.KafkaTests;
 
+[Trait("Category", "Kafka")]
+[Trait("Authentication", "SSL")]
 /// <summary>
 /// Tests for SSL/TLS authentication in Kafka.
 /// </summary>
 public class SslAuthTests
 {
-	[Fact]
+	[Fact(DisplayName = "Should configure SSL authentication with CA certificate location")]
 	public void Should_Configure_Ssl_With_CaLocation()
 	{
 		// Arrange & Act
@@ -24,7 +26,7 @@ public class SslAuthTests
 		scenario.CurrentStep.ShouldNotBeNull();
 	}
 
-	[Fact]
+	[Fact(DisplayName = "Should configure SSL authentication without certificate verification")]
 	public void Should_Configure_Ssl_Without_CertificateVerification()
 	{
 		// Arrange & Act
@@ -37,7 +39,7 @@ public class SslAuthTests
 		scenario.ShouldNotBeNull();
 	}
 
-	[Fact]
+	[Fact(DisplayName = "Should configure Mutual TLS authentication with client certificate and key")]
 	public void Should_Configure_MutualTls()
 	{
 		// Arrange & Act
@@ -53,7 +55,7 @@ public class SslAuthTests
 		scenario.ShouldNotBeNull();
 	}
 
-	[Fact]
+	[Fact(DisplayName = "Should configure Mutual TLS authentication with CA certificate and key password")]
 	public void Should_Configure_MutualTls_With_CaAndPassword()
 	{
 		// Arrange & Act
@@ -71,7 +73,7 @@ public class SslAuthTests
 		scenario.ShouldNotBeNull();
 	}
 
-	[Fact]
+	[Fact(DisplayName = "Should configure SSL authentication via Kafka auth config")]
 	public void Should_Configure_Ssl_Via_Config()
 	{
 		// Arrange & Act
@@ -87,7 +89,7 @@ public class SslAuthTests
 		scenario.ShouldNotBeNull();
 	}
 
-	[Fact]
+	[Fact(DisplayName = "SslConfig should default to enable certificate verification")]
 	public void SslConfig_Should_Default_To_EnableVerification()
 	{
 		// Arrange & Act
@@ -97,7 +99,7 @@ public class SslAuthTests
 		config.EnableSslCertificateVerification.ShouldBeTrue();
 	}
 
-	[Fact]
+	[Fact(DisplayName = "KafkaAuthConfig UseSsl should set correct authentication type")]
 	public void KafkaAuthConfig_UseSsl_Should_Set_Correct_Type()
 	{
 		// Arrange
@@ -113,7 +115,7 @@ public class SslAuthTests
 		config.Ssl.EnableSslCertificateVerification.ShouldBeTrue();
 	}
 
-	[Fact]
+	[Fact(DisplayName = "KafkaAuthConfig UseMutualTls should set correct authentication type")]
 	public void KafkaAuthConfig_UseMutualTls_Should_Set_Correct_Type()
 	{
 		// Arrange
@@ -132,7 +134,7 @@ public class SslAuthTests
 		config.Ssl.SslKeyLocation.ShouldBe("/key.pem");
 	}
 
-	[Fact]
+	[Fact(DisplayName = "Should throw InvalidOperationException when not Kafka step")]
 	public void Should_Throw_When_Not_Kafka_Step()
 	{
 		// Arrange
@@ -143,7 +145,7 @@ public class SslAuthTests
 			scenario.WithSsl("/path/to/ca-cert.pem"));
 	}
 
-	[Fact(Skip = "Integration test - requires Kafka broker with SSL")]
+	[Fact(Skip = "Integration test - requires Kafka broker with SSL", DisplayName = "Integration test should connect to Kafka with SSL authentication")]
 	public void Integration_Should_Connect_With_Ssl()
 	{
 		var caLocation = Environment.GetEnvironmentVariable("KAFKA_CA_CERT_PATH");
@@ -163,7 +165,7 @@ public class SslAuthTests
 		}
 	}
 
-	[Fact(Skip = "Integration test - requires Kafka broker with mutual TLS")]
+	[Fact(Skip = "Integration test - requires Kafka broker with mutual TLS", DisplayName = "Integration test should connect to Kafka with Mutual TLS authentication")]
 	public void Integration_Should_Connect_With_MutualTls()
 	{
 		var clientCert = Environment.GetEnvironmentVariable("KAFKA_CLIENT_CERT_PATH");

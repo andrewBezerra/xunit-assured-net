@@ -6,12 +6,14 @@ using Shouldly;
 
 namespace XUnitAssured.Tests.KafkaTests;
 
+[Trait("Category", "Kafka")]
+[Trait("Authentication", "SASL-SCRAM")]
 /// <summary>
 /// Tests for SASL/SCRAM authentication in Kafka.
 /// </summary>
 public class SaslScramAuthTests
 {
-	[Fact]
+	[Fact(DisplayName = "Should configure SASL/SCRAM-SHA-256 authentication with explicit credentials")]
 	public void Should_Configure_SaslScram256_With_Explicit_Credentials()
 	{
 		// Arrange & Act
@@ -25,7 +27,7 @@ public class SaslScramAuthTests
 		scenario.CurrentStep.ShouldNotBeNull();
 	}
 
-	[Fact]
+	[Fact(DisplayName = "Should configure SASL/SCRAM-SHA-512 authentication with explicit credentials")]
 	public void Should_Configure_SaslScram512_With_Explicit_Credentials()
 	{
 		// Arrange & Act
@@ -38,7 +40,7 @@ public class SaslScramAuthTests
 		scenario.ShouldNotBeNull();
 	}
 
-	[Fact]
+	[Fact(DisplayName = "Should configure SASL/SCRAM authentication without SSL")]
 	public void Should_Configure_SaslScram_Without_Ssl()
 	{
 		// Arrange & Act
@@ -51,7 +53,7 @@ public class SaslScramAuthTests
 		scenario.ShouldNotBeNull();
 	}
 
-	[Fact]
+	[Fact(DisplayName = "Should configure SASL/SCRAM authentication via Kafka auth config")]
 	public void Should_Configure_SaslScram_Via_Config()
 	{
 		// Arrange & Act
@@ -67,7 +69,7 @@ public class SaslScramAuthTests
 		scenario.ShouldNotBeNull();
 	}
 
-	[Fact]
+	[Fact(DisplayName = "SaslScramConfig should default to SCRAM-SHA-256 mechanism")]
 	public void SaslScramConfig_Should_Default_To_ScramSha256()
 	{
 		// Arrange & Act
@@ -82,7 +84,7 @@ public class SaslScramAuthTests
 		config.UseSsl.ShouldBeTrue();
 	}
 
-	[Fact]
+	[Fact(DisplayName = "KafkaAuthConfig UseSaslScram256 should set correct authentication type")]
 	public void KafkaAuthConfig_UseSaslScram256_Should_Set_Correct_Type()
 	{
 		// Arrange
@@ -99,7 +101,7 @@ public class SaslScramAuthTests
 		config.SaslScram.Mechanism.ShouldBe(SaslMechanism.ScramSha256);
 	}
 
-	[Fact]
+	[Fact(DisplayName = "KafkaAuthConfig UseSaslScram512 should set correct authentication type")]
 	public void KafkaAuthConfig_UseSaslScram512_Should_Set_Correct_Type()
 	{
 		// Arrange
@@ -114,7 +116,7 @@ public class SaslScramAuthTests
 		config.SaslScram!.Mechanism.ShouldBe(SaslMechanism.ScramSha512);
 	}
 
-	[Fact]
+	[Fact(DisplayName = "Should throw InvalidOperationException when not Kafka step")]
 	public void Should_Throw_When_Not_Kafka_Step()
 	{
 		// Arrange
@@ -125,7 +127,7 @@ public class SaslScramAuthTests
 			scenario.WithSaslScram256("user", "pass"));
 	}
 
-	[Fact(Skip = "Integration test - requires Kafka broker with SASL/SCRAM-SHA-256")]
+	[Fact(Skip = "Integration test - requires Kafka broker with SASL/SCRAM-SHA-256", DisplayName = "Integration test should connect to Kafka with SASL/SCRAM-SHA-256 authentication")]
 	public void Integration_Should_Connect_With_SaslScram256()
 	{
 		var username = Environment.GetEnvironmentVariable("MSK_USERNAME");
@@ -146,7 +148,7 @@ public class SaslScramAuthTests
 		}
 	}
 
-	[Fact(Skip = "Integration test - requires Kafka broker with SASL/SCRAM-SHA-512")]
+	[Fact(Skip = "Integration test - requires Kafka broker with SASL/SCRAM-SHA-512", DisplayName = "Integration test should connect to Kafka with SASL/SCRAM-SHA-512 authentication")]
 	public void Integration_Should_Connect_With_SaslScram512()
 	{
 		var username = Environment.GetEnvironmentVariable("KAFKA_SCRAM512_USERNAME");

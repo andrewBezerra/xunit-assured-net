@@ -3,12 +3,14 @@ using XUnitAssured.Http.Extensions;
 
 namespace XUnitAssured.Tests.HttpTests;
 
+[Trait("Category", "Http")]
+[Trait("Authentication", "ApiKey")]
 /// <summary>
 /// Tests for API Key authentication.
 /// </summary>
 public class ApiKeyAuthTests
 {
-	[Fact]
+	[Fact(DisplayName = "Should add API key in HTTP header successfully")]
 	public void Should_Add_ApiKey_In_Header()
 	{
 		// Arrange & Act
@@ -22,7 +24,7 @@ public class ApiKeyAuthTests
 		scenario.CurrentStep.ShouldNotBeNull();
 	}
 
-	[Fact]
+	[Fact(DisplayName = "Should add API key in query parameter successfully")]
 	public void Should_Add_ApiKey_In_Query()
 	{
 		// Arrange & Act
@@ -35,7 +37,7 @@ public class ApiKeyAuthTests
 		scenario.ShouldNotBeNull();
 	}
 
-	[Fact]
+	[Fact(DisplayName = "Should support custom API key name")]
 	public void Should_Support_Custom_Key_Name()
 	{
 		// Arrange & Act
@@ -48,7 +50,7 @@ public class ApiKeyAuthTests
 		scenario.ShouldNotBeNull();
 	}
 
-	[Fact]
+	[Fact(DisplayName = "Should support API key configuration via auth config")]
 	public void Should_Support_ApiKey_Via_Config()
 	{
 		// Arrange & Act
@@ -64,7 +66,7 @@ public class ApiKeyAuthTests
 		scenario.ShouldNotBeNull();
 	}
 
-	[Fact]
+	[Fact(DisplayName = "ApiKeyAuthConfig should have default values")]
 	public void ApiKeyAuthConfig_Should_Have_Defaults()
 	{
 		// Arrange & Act
@@ -75,7 +77,7 @@ public class ApiKeyAuthTests
 		config.Location.ShouldBe(ApiKeyLocation.Header);
 	}
 
-	[Fact(Skip = "Integration test - requires real API with API key")]
+	[Fact(Skip = "Integration test - requires real API with API key", DisplayName = "Integration test should authenticate with API key successfully")]
 	public void Integration_Should_Authenticate_With_ApiKey()
 	{
 		var apiKey = Environment.GetEnvironmentVariable("TEST_API_KEY");

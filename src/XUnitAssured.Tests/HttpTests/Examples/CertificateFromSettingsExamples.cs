@@ -4,6 +4,8 @@ using XUnitAssured.Http.Extensions;
 
 namespace XUnitAssured.Tests.HttpTests.Examples;
 
+[Trait("Category", "Examples")]
+[Trait("Authentication", "Certificate")]
 /// <summary>
 /// Examples demonstrating the .WithCertificate() extension method
 /// that automatically loads certificate configuration from httpsettings.json
@@ -31,7 +33,7 @@ public class CertificateFromSettingsExamples
 	/// CLIENT_CERT_PATH=C:\Certs\client-cert.pfx
 	/// CLIENT_CERT_PASSWORD=MySecurePassword123
 	/// </summary>
-	[Fact(Skip = "Example - requires certificate in httpsettings.json")]
+	[Fact(Skip = "Example - requires certificate in httpsettings.json", DisplayName = "Example: Using WithCertificate without parameters loads from httpsettings.json")]
 	public void Example_WithCertificate_From_Settings()
 	{
 		Given()
@@ -65,7 +67,7 @@ public class CertificateFromSettingsExamples
 	/// 
 	/// Load environment: HttpSettings.Load(environment: "mtls")
 	/// </summary>
-	[Fact(Skip = "Example - requires mtls environment in httpsettings.json")]
+	[Fact(Skip = "Example - requires mtls environment in httpsettings.json", DisplayName = "Example: Using environment-specific certificate configuration")]
 	public void Example_WithCertificate_From_Environment()
 	{
 		// Load mtls environment settings
@@ -96,7 +98,7 @@ public class CertificateFromSettingsExamples
 	///   }
 	/// }
 	/// </summary>
-	[Fact(Skip = "Example - requires certificate in store")]
+	[Fact(Skip = "Example - requires certificate in store", DisplayName = "Example: Using certificate from Windows Certificate Store via settings")]
 	public void Example_WithCertificate_From_Store_Via_Settings()
 	{
 		Given()
@@ -109,7 +111,7 @@ public class CertificateFromSettingsExamples
 	/// Example 4: Override settings with explicit certificate
 	/// Useful when you need different certificate for specific test
 	/// </summary>
-	[Fact(Skip = "Example - requires certificates")]
+	[Fact(Skip = "Example - requires certificates", DisplayName = "Example: Override settings certificate with explicit certificate for specific test")]
 	public void Example_Override_Settings_Certificate()
 	{
 		// Most tests use settings certificate
@@ -129,7 +131,7 @@ public class CertificateFromSettingsExamples
 	/// Example 5: Multiple requests with same certificate (cached)
 	/// The certificate and FlurlClient are cached automatically by thumbprint
 	/// </summary>
-	[Fact(Skip = "Example - demonstrates caching")]
+	[Fact(Skip = "Example - demonstrates caching", DisplayName = "Example: Multiple requests with same certificate use cached FlurlClient for performance")]
 	public void Example_Certificate_Caching_Performance()
 	{
 		// First request: loads certificate and creates FlurlClient (~50ms)
@@ -154,7 +156,7 @@ public class CertificateFromSettingsExamples
 	/// <summary>
 	/// Example 6: Error handling when certificate not configured
 	/// </summary>
-	[Fact]
+	[Fact(DisplayName = "Example: Error handling when certificate is not configured in settings")]
 	public void Example_Error_When_Certificate_Not_In_Settings()
 	{
 		// If httpsettings.json doesn't have certificate config,
@@ -170,7 +172,7 @@ public class CertificateFromSettingsExamples
 	/// Example 7: Complete real-world scenario
 	/// Production-ready pattern with error handling
 	/// </summary>
-	[Fact(Skip = "Example - production pattern")]
+	[Fact(Skip = "Example - production pattern", DisplayName = "Example: Complete real-world scenario with production-ready error handling")]
 	public void Example_Production_Pattern()
 	{
 		try

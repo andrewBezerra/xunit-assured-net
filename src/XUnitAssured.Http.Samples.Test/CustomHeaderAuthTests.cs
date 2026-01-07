@@ -1,24 +1,21 @@
 using XUnitAssured.Extensions.Http;
 using XUnitAssured.Http.Extensions;
-
-using static XUnitAssured.Core.DSL.ScenarioDsl;
+using XUnitAssured.Http.Testing;
 
 namespace XUnitAssured.Http.Samples.Test;
 
+[Trait("Authentication", "CustomHeader")]
 /// <summary>
 /// Sample tests demonstrating Custom Header Authentication using XUnitAssured.Http.
 /// Custom headers allow for flexible authentication schemes beyond standard patterns.
 /// </summary>
-public class CustomHeaderAuthTests : IClassFixture<HttpSamplesFixture>
+public class CustomHeaderAuthTests : HttpTestBase<HttpSamplesFixture>, IClassFixture<HttpSamplesFixture>
 {
-	private readonly HttpSamplesFixture _fixture;
-
-	public CustomHeaderAuthTests(HttpSamplesFixture fixture)
+	public CustomHeaderAuthTests(HttpSamplesFixture fixture) : base(fixture)
 	{
-		_fixture = fixture;
 	}
 
-	[Fact]
+	[Fact(DisplayName = "Custom Header Authentication with valid headers should return success")]
 	public void Example01_CustomHeader_WithValidHeaders_ShouldReturnSuccess()
 	{
 		// Arrange
@@ -26,9 +23,7 @@ public class CustomHeaderAuthTests : IClassFixture<HttpSamplesFixture>
 		var sessionId = "session-abc-xyz";
 
 		// Act & Assert - Using WithCustomHeaders for multiple headers
-		Given()
-			.WithHttpClient(_fixture.CreateClient())
-			.ApiResource($"/api/auth/custom-header")
+		Given().ApiResource($"/api/auth/custom-header")
 			.WithCustomHeaders(new Dictionary<string, string>
 			{
 				["X-Custom-Auth-Token"] = authToken,
@@ -45,7 +40,7 @@ public class CustomHeaderAuthTests : IClassFixture<HttpSamplesFixture>
 			.AssertJsonPath<string>("$.customData.SessionId", value => value == sessionId, $"Should return session ID: {sessionId}");
 	}
 
-	[Fact]
+	[Fact(DisplayName = "Custom Header Authentication with single header using WithCustomHeader should fail when two headers required")]
 	public void Example02_CustomHeader_WithSingleHeader_UsingWithCustomHeader()
 	{
 		// Arrange
@@ -53,9 +48,7 @@ public class CustomHeaderAuthTests : IClassFixture<HttpSamplesFixture>
 
 		// Act & Assert - Using WithCustomHeader for single header
 		// Note: This endpoint requires TWO headers, so this should fail
-		Given()
-			.WithHttpClient(_fixture.CreateClient())
-			.ApiResource($"/api/auth/custom-header")
+		Given().ApiResource($"/api/auth/custom-header")
 			.WithCustomHeader("X-Custom-Auth-Token", authToken)
 			.Get()
 		.When()
@@ -64,7 +57,7 @@ public class CustomHeaderAuthTests : IClassFixture<HttpSamplesFixture>
 			.AssertStatusCode(401);
 	}
 
-	[Fact]
+	[Fact(DisplayName = "Custom Header Authentication with invalid auth token should return 401 Unauthorized")]
 	public void Example03_CustomHeader_WithInvalidAuthToken_ShouldReturn401()
 	{
 		// Arrange
@@ -72,9 +65,7 @@ public class CustomHeaderAuthTests : IClassFixture<HttpSamplesFixture>
 		var validSessionId = "session-abc-xyz";
 
 		// Act & Assert
-		Given()
-			.WithHttpClient(_fixture.CreateClient())
-			.ApiResource($"/api/auth/custom-header")
+		Given().ApiResource($"/api/auth/custom-header")
 			.WithCustomHeaders(new Dictionary<string, string>
 			{
 				["X-Custom-Auth-Token"] = invalidAuthToken,
@@ -87,7 +78,7 @@ public class CustomHeaderAuthTests : IClassFixture<HttpSamplesFixture>
 			.AssertStatusCode(401);
 	}
 
-	[Fact]
+	[Fact(DisplayName = "Custom Header Authentication with invalid session ID should return 401 Unauthorized")]
 	public void Example04_CustomHeader_WithInvalidSessionId_ShouldReturn401()
 	{
 		// Arrange
@@ -95,9 +86,7 @@ public class CustomHeaderAuthTests : IClassFixture<HttpSamplesFixture>
 		var invalidSessionId = "invalid-session";
 
 		// Act & Assert
-		Given()
-			.WithHttpClient(_fixture.CreateClient())
-			.ApiResource($"/api/auth/custom-header")
+		Given().ApiResource($"/api/auth/custom-header")
 			.WithCustomHeaders(new Dictionary<string, string>
 			{
 				["X-Custom-Auth-Token"] = validAuthToken,
@@ -110,16 +99,14 @@ public class CustomHeaderAuthTests : IClassFixture<HttpSamplesFixture>
 			.AssertStatusCode(401);
 	}
 
-	[Fact]
+	[Fact(DisplayName = "Custom Header Authentication with missing auth token should return 401 Unauthorized")]
 	public void Example05_CustomHeader_MissingAuthToken_ShouldReturn401()
 	{
 		// Arrange
 		var validSessionId = "session-abc-xyz";
 
 		// Act & Assert - Missing X-Custom-Auth-Token header
-		Given()
-			.WithHttpClient(_fixture.CreateClient())
-			.ApiResource($"/api/auth/custom-header")
+		Given().ApiResource($"/api/auth/custom-header")
 			.WithHeader("X-Custom-Session-Id", validSessionId) // Using WithHeader instead
 			.Get()
 		.When()
@@ -128,16 +115,14 @@ public class CustomHeaderAuthTests : IClassFixture<HttpSamplesFixture>
 			.AssertStatusCode(401);
 	}
 
-	[Fact]
+	[Fact(DisplayName = "Custom Header Authentication with missing session ID should return 401 Unauthorized")]
 	public void Example06_CustomHeader_MissingSessionId_ShouldReturn401()
 	{
 		// Arrange
 		var validAuthToken = "custom-token-12345";
 
 		// Act & Assert - Missing X-Custom-Session-Id header
-		Given()
-			.WithHttpClient(_fixture.CreateClient())
-			.ApiResource($"/api/auth/custom-header")
+		Given().ApiResource($"/api/auth/custom-header")
 			.WithHeader("X-Custom-Auth-Token", validAuthToken) // Using WithHeader instead
 			.Get()
 		.When()
@@ -146,13 +131,11 @@ public class CustomHeaderAuthTests : IClassFixture<HttpSamplesFixture>
 			.AssertStatusCode(401);
 	}
 
-	[Fact]
+	[Fact(DisplayName = "Custom Header Authentication without any headers should return 401 Unauthorized")]
 	public void Example07_CustomHeader_WithoutAnyHeaders_ShouldReturn401()
 	{
 		// Act & Assert - No custom headers provided
-		Given()
-			.WithHttpClient(_fixture.CreateClient())
-			.ApiResource($"/api/auth/custom-header")
+		Given().ApiResource($"/api/auth/custom-header")
 			.Get()
 		.When()
 			.Execute()
@@ -160,7 +143,7 @@ public class CustomHeaderAuthTests : IClassFixture<HttpSamplesFixture>
 			.AssertStatusCode(401);
 	}
 
-	[Fact]
+	[Fact(DisplayName = "Custom Header Authentication with empty auth token should return 401 Unauthorized")]
 	public void Example08_CustomHeader_WithEmptyAuthToken_ShouldReturn401()
 	{
 		// Arrange
@@ -168,9 +151,7 @@ public class CustomHeaderAuthTests : IClassFixture<HttpSamplesFixture>
 		var validSessionId = "session-abc-xyz";
 
 		// Act & Assert
-		Given()
-			.WithHttpClient(_fixture.CreateClient())
-			.ApiResource($"/api/auth/custom-header")
+		Given().ApiResource($"/api/auth/custom-header")
 			.WithCustomHeaders(new Dictionary<string, string>
 			{
 				["X-Custom-Auth-Token"] = emptyAuthToken,
@@ -183,7 +164,7 @@ public class CustomHeaderAuthTests : IClassFixture<HttpSamplesFixture>
 			.AssertStatusCode(401);
 	}
 
-	[Fact]
+	[Fact(DisplayName = "Custom Header Authentication with empty session ID should return 401 Unauthorized")]
 	public void Example09_CustomHeader_WithEmptySessionId_ShouldReturn401()
 	{
 		// Arrange
@@ -191,9 +172,7 @@ public class CustomHeaderAuthTests : IClassFixture<HttpSamplesFixture>
 		var emptySessionId = "";
 
 		// Act & Assert
-		Given()
-			.WithHttpClient(_fixture.CreateClient())
-			.ApiResource($"/api/auth/custom-header")
+		Given().ApiResource($"/api/auth/custom-header")
 			.WithCustomHeaders(new Dictionary<string, string>
 			{
 				["X-Custom-Auth-Token"] = validAuthToken,
@@ -206,7 +185,7 @@ public class CustomHeaderAuthTests : IClassFixture<HttpSamplesFixture>
 			.AssertStatusCode(401);
 	}
 
-	[Fact]
+	[Fact(DisplayName = "Custom Header Authentication values are case-sensitive and wrong case should return 401 Unauthorized")]
 	public void Example10_CustomHeader_CaseSensitiveValues_ShouldReturn401()
 	{
 		// Arrange - Header values are case-sensitive
@@ -214,9 +193,7 @@ public class CustomHeaderAuthTests : IClassFixture<HttpSamplesFixture>
 		var wrongCaseSessionId = "SESSION-ABC-XYZ"; // Wrong case
 
 		// Act & Assert
-		Given()
-			.WithHttpClient(_fixture.CreateClient())
-			.ApiResource($"/api/auth/custom-header")
+		Given().ApiResource($"/api/auth/custom-header")
 			.WithCustomHeaders(new Dictionary<string, string>
 			{
 				["X-Custom-Auth-Token"] = wrongCaseAuthToken,
@@ -229,7 +206,7 @@ public class CustomHeaderAuthTests : IClassFixture<HttpSamplesFixture>
 			.AssertStatusCode(401);
 	}
 
-	[Fact]
+	[Fact(DisplayName = "Custom Header Authentication with valid headers should return complete response structure")]
 	public void Example11_CustomHeader_ValidHeaders_CheckResponseStructure()
 	{
 		// Arrange
@@ -237,9 +214,7 @@ public class CustomHeaderAuthTests : IClassFixture<HttpSamplesFixture>
 		var sessionId = "session-abc-xyz";
 
 		// Act & Assert - Validate complete response structure
-		Given()
-			.WithHttpClient(_fixture.CreateClient())
-			.ApiResource($"/api/auth/custom-header")
+		Given().ApiResource($"/api/auth/custom-header")
 			.WithCustomHeaders(new Dictionary<string, string>
 			{
 				["X-Custom-Auth-Token"] = authToken,
@@ -257,7 +232,7 @@ public class CustomHeaderAuthTests : IClassFixture<HttpSamplesFixture>
 			.AssertJsonPath<object>("$.customData.SessionId", value => value != null, "customData.SessionId should exist");
 	}
 
-	[Fact]
+	[Fact(DisplayName = "Custom Header Authentication should maintain authentication across multiple requests")]
 	public void Example12_CustomHeader_MultipleRequests_ShouldMaintainAuthentication()
 	{
 		// Arrange
@@ -271,9 +246,7 @@ public class CustomHeaderAuthTests : IClassFixture<HttpSamplesFixture>
 		};
 
 		// Act & Assert - First request
-		Given()
-			.WithHttpClient(_fixture.CreateClient())
-			.ApiResource($"/api/auth/custom-header")
+		Given().ApiResource($"/api/auth/custom-header")
 			.WithCustomHeaders(headers)
 			.Get()
 		.When()
@@ -283,9 +256,7 @@ public class CustomHeaderAuthTests : IClassFixture<HttpSamplesFixture>
 			.AssertJsonPath<bool>("$.authenticated", value => value, "First request should be authenticated");
 
 		// Act & Assert - Second request with same headers
-		Given()
-			.WithHttpClient(_fixture.CreateClient())
-			.ApiResource($"/api/auth/custom-header")
+		Given().ApiResource($"/api/auth/custom-header")
 			.WithCustomHeaders(headers)
 			.Get()
 		.When()

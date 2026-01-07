@@ -6,13 +6,15 @@ using XUnitAssured.Core.Storage;
 
 namespace XUnitAssured.Tests.CoreTests;
 
+[Trait("Category", "Core")]
+[Trait("Component", "Storage")]
 /// <summary>
 /// Unit tests for StepStorage class.
 /// Validates step storage and retrieval functionality.
 /// </summary>
 public class StepStorageTests
 {
-	[Fact]
+	[Fact(DisplayName = "Step storage should store and retrieve step by name successfully")]
 	public void StepStorage_Should_Store_And_Retrieve_Step()
 	{
 		// Arrange
@@ -28,7 +30,7 @@ public class StepStorageTests
 		retrieved.Name.ShouldBe("TestStep");
 	}
 
-	[Fact]
+	[Fact(DisplayName = "Indexer should throw KeyNotFoundException when step is not found")]
 	public void Indexer_Should_Throw_When_Step_Not_Found()
 	{
 		// Arrange
@@ -38,7 +40,7 @@ public class StepStorageTests
 		Should.Throw<KeyNotFoundException>(() => storage["NonExistent"]);
 	}
 
-	[Fact]
+	[Fact(DisplayName = "Indexer should throw ArgumentException when step name is null")]
 	public void Indexer_Should_Throw_When_Name_Is_Null()
 	{
 		// Arrange
@@ -48,7 +50,7 @@ public class StepStorageTests
 		Should.Throw<ArgumentException>(() => storage[null!]);
 	}
 
-	[Fact]
+	[Fact(DisplayName = "Indexer should throw ArgumentException when step name is whitespace")]
 	public void Indexer_Should_Throw_When_Name_Is_Whitespace()
 	{
 		// Arrange
@@ -58,7 +60,7 @@ public class StepStorageTests
 		Should.Throw<ArgumentException>(() => storage["   "]);
 	}
 
-	[Fact]
+	[Fact(DisplayName = "Save should replace existing step with same name")]
 	public void Save_Should_Replace_Existing_Step()
 	{
 		// Arrange
@@ -76,7 +78,7 @@ public class StepStorageTests
 		retrieved.Name.ShouldBe("Step2");
 	}
 
-	[Fact]
+	[Fact(DisplayName = "Save should throw ArgumentException when step name is null")]
 	public void Save_Should_Throw_When_Name_Is_Null()
 	{
 		// Arrange
@@ -87,7 +89,7 @@ public class StepStorageTests
 		Should.Throw<ArgumentException>(() => storage.Save(null!, step));
 	}
 
-	[Fact]
+	[Fact(DisplayName = "Save should throw ArgumentNullException when step is null")]
 	public void Save_Should_Throw_When_Step_Is_Null()
 	{
 		// Arrange
@@ -97,7 +99,7 @@ public class StepStorageTests
 		Should.Throw<ArgumentNullException>(() => storage.Save("Test", null!));
 	}
 
-	[Fact]
+	[Fact(DisplayName = "TryGet should return step when it exists in storage")]
 	public void TryGet_Should_Return_Step_When_Exists()
 	{
 		// Arrange
@@ -113,7 +115,7 @@ public class StepStorageTests
 		retrieved.ShouldBe(step);
 	}
 
-	[Fact]
+	[Fact(DisplayName = "TryGet should return null when step is not found")]
 	public void TryGet_Should_Return_Null_When_Not_Found()
 	{
 		// Arrange
@@ -126,7 +128,7 @@ public class StepStorageTests
 		retrieved.ShouldBeNull();
 	}
 
-	[Fact]
+	[Fact(DisplayName = "TryGet should return null when step name is null")]
 	public void TryGet_Should_Return_Null_When_Name_Is_Null()
 	{
 		// Arrange
@@ -139,7 +141,7 @@ public class StepStorageTests
 		retrieved.ShouldBeNull();
 	}
 
-	[Fact]
+	[Fact(DisplayName = "Contains should return true when step exists in storage")]
 	public void Contains_Should_Return_True_When_Step_Exists()
 	{
 		// Arrange
@@ -151,7 +153,7 @@ public class StepStorageTests
 		storage.Contains("First").ShouldBeTrue();
 	}
 
-	[Fact]
+	[Fact(DisplayName = "Contains should return false when step is not found")]
 	public void Contains_Should_Return_False_When_Step_Not_Found()
 	{
 		// Arrange
@@ -161,7 +163,7 @@ public class StepStorageTests
 		storage.Contains("NonExistent").ShouldBeFalse();
 	}
 
-	[Fact]
+	[Fact(DisplayName = "Contains should be case-insensitive when checking step names")]
 	public void Contains_Should_Be_Case_Insensitive()
 	{
 		// Arrange
@@ -175,7 +177,7 @@ public class StepStorageTests
 		storage.Contains("FiRsT").ShouldBeTrue();
 	}
 
-	[Fact]
+	[Fact(DisplayName = "GetStepNames should return all stored step names")]
 	public void GetStepNames_Should_Return_All_Stored_Names()
 	{
 		// Arrange
@@ -194,7 +196,7 @@ public class StepStorageTests
 		names.ShouldContain("Third");
 	}
 
-	[Fact]
+	[Fact(DisplayName = "GetStepNames should return empty collection when no steps are stored")]
 	public void GetStepNames_Should_Return_Empty_When_No_Steps()
 	{
 		// Arrange
@@ -207,7 +209,7 @@ public class StepStorageTests
 		names.ShouldBeEmpty();
 	}
 
-	[Fact]
+	[Fact(DisplayName = "Clear should remove all steps from storage")]
 	public void Clear_Should_Remove_All_Steps()
 	{
 		// Arrange

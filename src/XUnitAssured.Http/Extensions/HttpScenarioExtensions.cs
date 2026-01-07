@@ -28,6 +28,16 @@ public static class HttpScenarioExtensions
 		{
 			existingHttpClient = existingStep.CustomHttpClient;
 		}
+		
+		// Check if HttpClientProvider was set via Given(IHttpClientProvider)
+		if (existingHttpClient == null)
+		{
+			var provider = scenario.Context.GetProperty<Core.Abstractions.IHttpClientProvider>("HttpClientProvider");
+			if (provider != null)
+			{
+				existingHttpClient = provider.CreateClient();
+			}
+		}
 
 		var step = new HttpRequestStep
 		{

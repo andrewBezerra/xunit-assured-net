@@ -1,25 +1,22 @@
 using XUnitAssured.Extensions.Http;
 using XUnitAssured.Http.Configuration;
 using XUnitAssured.Http.Extensions;
-
-using static XUnitAssured.Core.DSL.ScenarioDsl;
+using XUnitAssured.Http.Testing;
 
 namespace XUnitAssured.Http.Samples.Test;
 
+[Trait("Authentication", "OAuth2")]
 /// <summary>
 /// Sample tests demonstrating OAuth2 Authentication using XUnitAssured.Http.
 /// Showcases the Client Credentials flow with automatic token management.
 /// </summary>
-public class OAuth2AuthTests : IClassFixture<HttpSamplesFixture>
+public class OAuth2AuthTests : HttpTestBase<HttpSamplesFixture>, IClassFixture<HttpSamplesFixture>
 {
-	private readonly HttpSamplesFixture _fixture;
-
-	public OAuth2AuthTests(HttpSamplesFixture fixture)
+	public OAuth2AuthTests(HttpSamplesFixture fixture) : base(fixture)
 	{
-		_fixture = fixture;
 	}
 
-	[Fact]
+	[Fact(DisplayName = "OAuth2 Token Endpoint with valid credentials should return access token")]
 	public void Example01_OAuth2_TokenEndpoint_WithValidCredentials_ShouldReturnToken()
 	{
 		// Arrange
@@ -35,9 +32,7 @@ public class OAuth2AuthTests : IClassFixture<HttpSamplesFixture>
 		};
 
 		// Act & Assert - Request OAuth2 token using form data
-		Given()
-			.WithHttpClient(_fixture.CreateClient())
-			.ApiResource($"/api/auth/oauth2/token")
+		Given().ApiResource($"/api/auth/oauth2/token")
 			.PostFormData(formData)
 		.When()
 			.Execute()
@@ -49,7 +44,7 @@ public class OAuth2AuthTests : IClassFixture<HttpSamplesFixture>
 			.AssertJsonPath<string>("$.access_token", value => value?.StartsWith("oauth2-access-token-") == true, "Access token should have correct prefix");
 	}
 
-	[Fact]
+	[Fact(DisplayName = "OAuth2 Token Endpoint with invalid client ID should return 401 Unauthorized")]
 	public void Example02_OAuth2_TokenEndpoint_WithInvalidClientId_ShouldReturn401()
 	{
 		// Arrange
@@ -65,9 +60,7 @@ public class OAuth2AuthTests : IClassFixture<HttpSamplesFixture>
 		};
 
 		// Act & Assert
-		Given()
-			.WithHttpClient(_fixture.CreateClient())
-			.ApiResource("/api/auth/oauth2/token")
+		Given().ApiResource("/api/auth/oauth2/token")
 			.PostFormData(formData)
 		.When()
 			.Execute()
@@ -75,7 +68,7 @@ public class OAuth2AuthTests : IClassFixture<HttpSamplesFixture>
 			.AssertStatusCode(401);
 	}
 
-	[Fact]
+	[Fact(DisplayName = "OAuth2 Token Endpoint with invalid client secret should return 401 Unauthorized")]
 	public void Example03_OAuth2_TokenEndpoint_WithInvalidClientSecret_ShouldReturn401()
 	{
 		// Arrange
@@ -91,9 +84,7 @@ public class OAuth2AuthTests : IClassFixture<HttpSamplesFixture>
 		};
 
 		// Act & Assert
-		Given()
-			.WithHttpClient(_fixture.CreateClient())
-			.ApiResource("/api/auth/oauth2/token")
+		Given().ApiResource("/api/auth/oauth2/token")
 			.PostFormData(formData)
 		.When()
 			.Execute()
@@ -101,7 +92,7 @@ public class OAuth2AuthTests : IClassFixture<HttpSamplesFixture>
 			.AssertStatusCode(401);
 	}
 
-	[Fact]
+	[Fact(DisplayName = "OAuth2 Token Endpoint with unsupported grant type should return 400 Bad Request")]
 	public void Example04_OAuth2_TokenEndpoint_WithUnsupportedGrantType_ShouldReturn400()
 	{
 		// Arrange
@@ -117,9 +108,7 @@ public class OAuth2AuthTests : IClassFixture<HttpSamplesFixture>
 		};
 
 		// Act & Assert
-		Given()
-			.WithHttpClient(_fixture.CreateClient())
-			.ApiResource("/api/auth/oauth2/token")
+		Given().ApiResource("/api/auth/oauth2/token")
 			.PostFormData(formData)
 		.When()
 			.Execute()
@@ -128,7 +117,7 @@ public class OAuth2AuthTests : IClassFixture<HttpSamplesFixture>
 			.AssertJsonPath<string>("$.error", value => value == "unsupported_grant_type", "Error should be unsupported_grant_type");
 	}
 
-	[Fact]
+	[Fact(DisplayName = "OAuth2 Complete Flow should get token and access protected endpoint successfully")]
 	public void Example05_OAuth2_CompleteFlow_GetTokenAndAccessProtectedEndpoint()
 	{
 		// Step 1: Request OAuth2 token
@@ -143,9 +132,7 @@ public class OAuth2AuthTests : IClassFixture<HttpSamplesFixture>
 			["client_secret"] = clientSecret
 		};
 
-		var tokenResponse = Given()
-			.WithHttpClient(_fixture.CreateClient())
-			.ApiResource("/api/auth/oauth2/token")
+		var tokenResponse = Given().ApiResource("/api/auth/oauth2/token")
 			.PostFormData(formData)
 		.When()
 			.Execute()
@@ -157,9 +144,7 @@ public class OAuth2AuthTests : IClassFixture<HttpSamplesFixture>
 		var accessToken = tokenResponse.JsonPath<string>("$.access_token");
 
 		// Step 2: Use the token to access protected endpoint
-		Given()
-			.WithHttpClient(_fixture.CreateClient())
-			.ApiResource($"/api/auth/oauth2/protected")
+		Given().ApiResource($"/api/auth/oauth2/protected")
 			.WithBearerToken(accessToken)
 			.Get()
 		.When()
@@ -171,13 +156,11 @@ public class OAuth2AuthTests : IClassFixture<HttpSamplesFixture>
 			.AssertJsonPath<string>("$.message", value => value?.Contains("successful") == true, "Should return success message");
 	}
 
-	[Fact]
+	[Fact(DisplayName = "OAuth2 Protected Endpoint without token should return 401 Unauthorized")]
 	public void Example06_OAuth2_ProtectedEndpoint_WithoutToken_ShouldReturn401()
 	{
 		// Act & Assert - No token provided
-		Given()
-			.WithHttpClient(_fixture.CreateClient())
-			.ApiResource($"/api/auth/oauth2/protected")
+		Given().ApiResource($"/api/auth/oauth2/protected")
 			.Get()
 		.When()
 			.Execute()
@@ -185,16 +168,14 @@ public class OAuth2AuthTests : IClassFixture<HttpSamplesFixture>
 			.AssertStatusCode(401);
 	}
 
-	[Fact]
+	[Fact(DisplayName = "OAuth2 Protected Endpoint with invalid token should return 401 Unauthorized")]
 	public void Example07_OAuth2_ProtectedEndpoint_WithInvalidToken_ShouldReturn401()
 	{
 		// Arrange
 		var invalidToken = "invalid-oauth2-token";
 
 		// Act & Assert
-		Given()
-			.WithHttpClient(_fixture.CreateClient())
-			.ApiResource($"/api/auth/oauth2/protected")
+		Given().ApiResource($"/api/auth/oauth2/protected")
 			.WithBearerToken(invalidToken)
 			.Get()
 		.When()
@@ -203,19 +184,17 @@ public class OAuth2AuthTests : IClassFixture<HttpSamplesFixture>
 			.AssertStatusCode(401);
 	}
 
-	[Fact(Skip = "WithOAuth2 extension requires OAuth2Handler implementation fix for form-urlencoded")]
+	[Fact(Skip = "WithOAuth2 extension requires OAuth2Handler implementation fix for form-urlencoded", DisplayName = "OAuth2 using XUnitAssured OAuth2 extension should authenticate automatically")]
 	public void Example08_OAuth2_UsingXUnitAssuredOAuth2Extension()
 	{
 		// Arrange
-		var tokenUrl = $"{_fixture.BaseUrl}/api/auth/oauth2/token";
+		var tokenUrl = $"{Fixture.BaseUrl}/api/auth/oauth2/token";
 		var clientId = "test-client-id";
 		var clientSecret = "test-client-secret";
 
 		// Act & Assert - Using XUnitAssured's OAuth2 extension
 		// Note: This demonstrates the WithOAuth2 extension which handles token retrieval automatically
-		Given()
-			.WithHttpClient(_fixture.CreateClient())
-			.ApiResource($"/api/auth/oauth2/protected")
+		Given().ApiResource($"/api/auth/oauth2/protected")
 			.WithOAuth2(tokenUrl, clientId, clientSecret)
 			.Get()
 		.When()
@@ -226,7 +205,7 @@ public class OAuth2AuthTests : IClassFixture<HttpSamplesFixture>
 			.AssertJsonPath<bool>("$.authenticated", value => value, "Should be authenticated with OAuth2 extension");
 	}
 
-	[Fact]
+	[Fact(DisplayName = "OAuth2 with scopes should include requested scopes in token response")]
 	public void Example09_OAuth2_WithScopes_ShouldIncludeScopeInToken()
 	{
 		// Arrange
@@ -244,9 +223,7 @@ public class OAuth2AuthTests : IClassFixture<HttpSamplesFixture>
 		};
 
 		// Act & Assert
-		Given()
-			.WithHttpClient(_fixture.CreateClient())
-			.ApiResource($"/api/auth/oauth2/token")
+		Given().ApiResource($"/api/auth/oauth2/token")
 			.PostFormData(formData)
 		.When()
 			.Execute()
@@ -256,16 +233,14 @@ public class OAuth2AuthTests : IClassFixture<HttpSamplesFixture>
 			.AssertJsonPath<string>("$.scope", value => value == scopes, $"Should return requested scopes: {scopes}");
 	}
 
-	[Fact(Skip = "WithOAuth2Config extension requires OAuth2Handler implementation fix for form-urlencoded")]
+	[Fact(Skip = "WithOAuth2Config extension requires OAuth2Handler implementation fix for form-urlencoded", DisplayName = "OAuth2 using custom configuration should authenticate successfully")]
 	public void Example10_OAuth2_UsingCustomConfiguration()
 	{
 		// Arrange
-		var tokenUrl = $"{_fixture.BaseUrl}/api/auth/oauth2/token";
+		var tokenUrl = $"{Fixture.BaseUrl}/api/auth/oauth2/token";
 
 		// Act & Assert - Using WithOAuth2Config for advanced configuration
-		Given()
-			.WithHttpClient(_fixture.CreateClient())
-			.ApiResource($"/api/auth/oauth2/protected")
+		Given().ApiResource($"/api/auth/oauth2/protected")
 			.WithOAuth2Config(config =>
 			{
 				config.TokenUrl = tokenUrl;
@@ -282,18 +257,16 @@ public class OAuth2AuthTests : IClassFixture<HttpSamplesFixture>
 			.AssertJsonPath<bool>("$.authenticated", value => value, "Should be authenticated with custom OAuth2 config");
 	}
 
-	[Fact(Skip = "WithOAuth2 extension requires OAuth2Handler implementation fix for form-urlencoded")]
+	[Fact(Skip = "WithOAuth2 extension requires OAuth2Handler implementation fix for form-urlencoded", DisplayName = "OAuth2 multiple requests should reuse cached token")]
 	public void Example11_OAuth2_MultipleRequests_ShouldReuseToken()
 	{
 		// Arrange
-		var tokenUrl = $"{_fixture.BaseUrl}/api/auth/oauth2/token";
+		var tokenUrl = $"{Fixture.BaseUrl}/api/auth/oauth2/token";
 		var clientId = "test-client-id";
 		var clientSecret = "test-client-secret";
 
 		// Act & Assert - First request (will get token)
-		Given()
-			.WithHttpClient(_fixture.CreateClient())
-			.ApiResource($"/api/auth/oauth2/protected")
+		Given().ApiResource($"/api/auth/oauth2/protected")
 			.WithOAuth2(tokenUrl, clientId, clientSecret)
 			.Get()
 		.When()
@@ -303,9 +276,7 @@ public class OAuth2AuthTests : IClassFixture<HttpSamplesFixture>
 			.AssertJsonPath<bool>("$.authenticated", value => value, "First request should be authenticated");
 
 		// Act & Assert - Second request (should reuse cached token)
-		Given()
-			.WithHttpClient(_fixture.CreateClient())
-			.ApiResource($"/api/auth/oauth2/protected")
+		Given().ApiResource($"/api/auth/oauth2/protected")
 			.WithOAuth2(tokenUrl, clientId, clientSecret)
 			.Get()
 		.When()
@@ -315,7 +286,7 @@ public class OAuth2AuthTests : IClassFixture<HttpSamplesFixture>
 			.AssertJsonPath<bool>("$.authenticated", value => value, "Second request should be authenticated with cached token");
 	}
 
-	[Fact]
+	[Fact(DisplayName = "OAuth2 Token Response should return complete and valid structure")]
 	public void Example12_OAuth2_TokenResponse_ValidateStructure()
 	{
 		// Arrange
@@ -331,9 +302,7 @@ public class OAuth2AuthTests : IClassFixture<HttpSamplesFixture>
 		};
 
 		// Act & Assert - Validate complete OAuth2 token response structure
-		Given()
-			.WithHttpClient(_fixture.CreateClient())
-			.ApiResource($"/api/auth/oauth2/token")
+		Given().ApiResource($"/api/auth/oauth2/token")
 			.PostFormData(formData)
 		.When()
 			.Execute()

@@ -2,12 +2,14 @@ using XUnitAssured.Http.Configuration;
 
 namespace XUnitAssured.Tests.HttpTests;
 
+[Trait("Category", "Http")]
+[Trait("Component", "Configuration")]
 /// <summary>
 /// Tests for HttpSettings and HttpSettingsLoader.
 /// </summary>
 public class HttpSettingsTests
 {
-	[Fact]
+	[Fact(DisplayName = "Should create HttpSettings with default values")]
 	public void Should_Create_Default_Settings()
 	{
 		// Act
@@ -20,7 +22,7 @@ public class HttpSettingsTests
 		settings.Authentication.Type.ShouldBe(AuthenticationType.None);
 	}
 
-	[Fact]
+	[Fact(DisplayName = "Should merge HttpSettings correctly")]
 	public void Should_Merge_Settings()
 	{
 		// Arrange
@@ -53,7 +55,7 @@ public class HttpSettingsTests
 		merged.DefaultHeaders.Count.ShouldBe(2); // Merged
 	}
 
-	[Fact]
+	[Fact(DisplayName = "Should load HttpSettings from configuration file")]
 	public void Should_Load_Settings_From_File()
 	{
 		// Act
@@ -64,7 +66,7 @@ public class HttpSettingsTests
 		// Will use default settings if httpsettings.json doesn't exist
 	}
 
-	[Fact]
+	[Fact(DisplayName = "Should clear HttpSettings cache successfully")]
 	public void Should_Clear_Settings_Cache()
 	{
 		// Arrange
@@ -78,7 +80,7 @@ public class HttpSettingsTests
 		settings.ShouldNotBeNull();
 	}
 
-	[Fact]
+	[Fact(DisplayName = "Should support Basic Authentication configuration")]
 	public void Should_Support_Basic_Auth_Config()
 	{
 		// Arrange
@@ -94,7 +96,7 @@ public class HttpSettingsTests
 		config.Basic.Password.ShouldBe("testpass");
 	}
 
-	[Fact]
+	[Fact(DisplayName = "Should support Bearer token configuration")]
 	public void Should_Support_Bearer_Token_Config()
 	{
 		// Arrange
