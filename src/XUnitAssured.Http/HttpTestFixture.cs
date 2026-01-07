@@ -38,8 +38,8 @@ public abstract class HttpTestFixture : TestBedFixture
 		// Configure HttpSettings
 		var httpSection = configuration.GetSection("Http");
 		services.AddOptions<HttpSettings>()
-			.Bind(httpSection)
-			.ValidateOnStart();
+			.Bind(httpSection);
+			// .ValidateOnStart(); // Commented: Ambiguous with ASP.NET Core dependencies
 
 		// Build a temporary provider to get HttpSettings
 		using var tempProvider = services.BuildServiceProvider();

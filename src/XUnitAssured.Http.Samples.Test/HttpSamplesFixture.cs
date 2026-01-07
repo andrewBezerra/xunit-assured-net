@@ -2,9 +2,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-
 using XUnitAssured.Core.Abstractions;
 
 namespace XUnitAssured.Http.Samples.Test;
@@ -12,7 +10,6 @@ namespace XUnitAssured.Http.Samples.Test;
 /// <summary>
 /// Test fixture for HTTP samples using XUnitAssured.Http.
 /// Hosts the SampleWebApi application for integration testing.
-/// Does not depend on external configuration files.
 /// Implements IHttpClientProvider to work seamlessly with Given(fixture) syntax.
 /// </summary>
 public class HttpSamplesFixture : IHttpClientProvider, IDisposable
@@ -54,7 +51,6 @@ public class HttpSamplesFixture : IHttpClientProvider, IDisposable
 						logging.SetMinimumLevel(LogLevel.Warning);
 					});
 				});
-
 			});
 
 		// Create a client to ensure the server is started
@@ -96,3 +92,7 @@ public class HttpSamplesFixture : IHttpClientProvider, IDisposable
 		_disposed = true;
 	}
 }
+
+
+
+
