@@ -3,33 +3,28 @@ using SampleWebApi.Models;
 using XUnitAssured.Core.DSL;
 using XUnitAssured.Extensions.Http;
 using XUnitAssured.Http.Extensions;
-using static XUnitAssured.Core.DSL.ScenarioDsl;
-
+using XUnitAssured.Http.Testing;
 namespace XUnitAssured.Http.Samples.Test;
 
+[Trait("Category", "Validation")]
 /// <summary>
 /// Sample tests demonstrating the HYBRID APPROACH:
 /// 1. Field validation for structure checking (detects breaking changes)
 /// 2. AssertJsonPath with Shouldly (field-specific assertions)
 /// </summary>
-public class HybridValidationTests : IClassFixture<HttpSamplesFixture>
+public class HybridValidationTests : HttpTestBase<HttpSamplesFixture>, IClassFixture<HttpSamplesFixture>
 {
-	private readonly HttpSamplesFixture _fixture;
-
-	public HybridValidationTests(HttpSamplesFixture fixture)
+	public HybridValidationTests(HttpSamplesFixture fixture) : base(fixture)
 	{
-		_fixture = fixture;
 	}
 
-	[Fact]
+	[Fact(DisplayName = "Validate contract should detect JSON structure automatically")]
 	public void Example01_ValidateContract_DetectsStructureAutomatically()
 	{
 		// This test validates key fields in the JSON structure
 		// Note: Full contract validation with NJsonSchema requires exact casing match
 
-		Given()
-			.WithHttpClient(_fixture.CreateClient())
-			.ApiResource($"/api/products/1")
+		Given().ApiResource($"/api/products/1")
 			.Get()
 		.When()
 			.Execute()
@@ -42,15 +37,13 @@ public class HybridValidationTests : IClassFixture<HttpSamplesFixture>
 			.AssertStatusCode(200);
 	}
 
-	[Fact]
+	[Fact(DisplayName = "Corrected AssertJsonPath with Shouldly should provide clean syntax")]
 	public void Example02_CorrectedAssertJsonPath_WithShouldly()
 	{
 		// This test demonstrates the CORRECTED AssertJsonPath
 		// No more ugly type conversions! Clean Shouldly syntax!
 
-		Given()
-			.WithHttpClient(_fixture.CreateClient())
-			.ApiResource($"/api/products/1")
+		Given().ApiResource($"/api/products/1")
 			.Get()
 		.When()
 			.Execute()
@@ -75,16 +68,14 @@ public class HybridValidationTests : IClassFixture<HttpSamplesFixture>
 			.AssertStatusCode(200);
 	}
 
-	[Fact]
+	[Fact(DisplayName = "Hybrid approach should validate both structure and business rules")]
 	public void Example03_HybridApproach_StructureAndBusinessRules()
 	{
 		// BEST PRACTICE: Validate structure and business rules
 		// 1. Validate key fields exist with correct types
 		// 2. Validate business rules on those fields
 
-		Given()
-			.WithHttpClient(_fixture.CreateClient())
-			.ApiResource($"/api/products/1")
+		Given().ApiResource($"/api/products/1")
 			.Get()
 		.When()
 			.Execute()
@@ -102,14 +93,12 @@ public class HybridValidationTests : IClassFixture<HttpSamplesFixture>
 			.AssertStatusCode(200);
 	}
 
-	[Fact]
+	[Fact(DisplayName = "Array handling should work correctly with individual element validation")]
 	public void Example04_ArrayHandling_StillWorks()
 	{
 		// Validate array responses by checking individual elements
 
-		var result = Given()
-			.WithHttpClient(_fixture.CreateClient())
-			.ApiResource($"/api/products")
+		var result = Given().ApiResource($"/api/products")
 			.Get()
 		.When()
 			.Execute()
@@ -132,14 +121,12 @@ public class HybridValidationTests : IClassFixture<HttpSamplesFixture>
 		firstElement.GetProperty("name").GetString().ShouldNotBeNullOrEmpty();
 	}
 
-	[Fact]
+	[Fact(DisplayName = "Backward compatibility with legacy Func syntax should still work")]
 	public void Example05_BackwardCompatibility_LegacyFuncStillWorks()
 	{
 		// The old Func<T, bool> syntax still works for backward compatibility
 
-		Given()
-			.WithHttpClient(_fixture.CreateClient())
-			.ApiResource($"/api/products/1")
+		Given().ApiResource($"/api/products/1")
 			.Get()
 		.When()
 			.Execute()
@@ -151,7 +138,7 @@ public class HybridValidationTests : IClassFixture<HttpSamplesFixture>
 			.AssertStatusCode(200);
 	}
 
-	[Fact]
+	[Fact(DisplayName = "Complete workflow should showcase all validation features")]
 	public void Example06_CompleteWorkflow_ShowcaseAllFeatures()
 	{
 		// Create a product
@@ -162,9 +149,7 @@ public class HybridValidationTests : IClassFixture<HttpSamplesFixture>
 			price = 299.99m
 		};
 
-		var createResult = Given()
-			.WithHttpClient(_fixture.CreateClient())
-			.ApiResource($"/api/products")
+		var createResult = Given().ApiResource($"/api/products")
 			.Post(newProduct)
 		.When()
 			.Execute()
@@ -183,9 +168,7 @@ public class HybridValidationTests : IClassFixture<HttpSamplesFixture>
 		var productId = createResult.JsonPath<int>("$.id");
 
 		// Verify with GET
-		Given()
-			.WithHttpClient(_fixture.CreateClient())
-			.ApiResource($"/api/products/{productId}")
+		Given().ApiResource($"/api/products/{productId}")
 			.Get()
 		.When()
 			.Execute()
@@ -198,9 +181,7 @@ public class HybridValidationTests : IClassFixture<HttpSamplesFixture>
 			.AssertStatusCode(200);
 
 		// Cleanup
-		Given()
-			.WithHttpClient(_fixture.CreateClient())
-			.ApiResource($"/api/products/{productId}")
+		Given().ApiResource($"/api/products/{productId}")
 			.Delete()
 		.When()
 			.Execute()
@@ -208,7 +189,7 @@ public class HybridValidationTests : IClassFixture<HttpSamplesFixture>
 			.AssertStatusCode(204);
 	}
 
-	[Fact]
+	[Fact(DisplayName = "Detect breaking changes by validating all expected fields")]
 	public void Example07_DetectBreakingChanges_ValidateAllFields()
 	{
 		// This test will FAIL if:
@@ -216,9 +197,7 @@ public class HybridValidationTests : IClassFixture<HttpSamplesFixture>
 		// - Field types change (e.g., Price becomes string)
 		// - Field names change (e.g., "name" -> "productName")
 
-		Given()
-			.WithHttpClient(_fixture.CreateClient())
-			.ApiResource($"/api/products/1")
+		Given().ApiResource($"/api/products/1")
 			.Get()
 		.When()
 			.Execute()

@@ -253,6 +253,8 @@ public class HttpRequestStep : ITestStep
 					g => g.SelectMany(h => h.Value.Split(',').Select(v => v.Trim())).AsEnumerable()
 				);
 
+			// HTTP errors (4xx, 5xx) should still create an HttpStepResult with the status code
+			// but Success should be false since these are error responses
 			Result = HttpStepResult.CreateHttpSuccess(
 				statusCode: statusCode,
 				responseBody: responseBody,

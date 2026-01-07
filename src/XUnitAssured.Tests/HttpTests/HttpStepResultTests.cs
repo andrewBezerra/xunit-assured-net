@@ -6,13 +6,15 @@ using XUnitAssured.Http.Results;
 
 namespace XUnitAssured.Tests.HttpTests;
 
+[Trait("Category", "Http")]
+[Trait("Component", "Result")]
 /// <summary>
 /// Unit tests for HttpStepResult class.
 /// Validates HTTP-specific result functionality and helpers.
 /// </summary>
 public class HttpStepResultTests
 {
-	[Fact]
+	[Fact(DisplayName = "HttpStepResult should expose status code correctly")]
 	public void HttpStepResult_Should_Expose_StatusCode()
 	{
 		// Arrange & Act
@@ -31,7 +33,7 @@ public class HttpStepResultTests
 		result.StatusCodeEnum.ShouldBe(HttpStatusCode.OK);
 	}
 
-	[Fact]
+	[Fact(DisplayName = "HttpStepResult should expose response body correctly")]
 	public void HttpStepResult_Should_Expose_ResponseBody()
 	{
 		// Arrange
@@ -50,10 +52,14 @@ public class HttpStepResultTests
 
 		// Assert
 		result.ResponseBody.ShouldBe(responseData);
-		result.GetResponseBody<dynamic>().ShouldBe(responseData);
+		result.ResponseBody.ShouldNotBeNull();
+		
+		// Verify GetResponseBody returns the same object reference
+		var dynamicResponse = result.GetResponseBody<object>();
+		dynamicResponse.ShouldBe(responseData);
 	}
 
-	[Fact]
+	[Fact(DisplayName = "HttpStepResult should expose response headers correctly")]
 	public void HttpStepResult_Should_Expose_Headers()
 	{
 		// Arrange
@@ -81,7 +87,7 @@ public class HttpStepResultTests
 		result.Headers["X-Custom-Header"].ShouldContain("custom-value");
 	}
 
-	[Fact]
+	[Fact(DisplayName = "HttpStepResult should expose ContentType and ReasonPhrase correctly")]
 	public void HttpStepResult_Should_Expose_ContentType_And_ReasonPhrase()
 	{
 		// Arrange & Act
@@ -101,7 +107,7 @@ public class HttpStepResultTests
 		result.ReasonPhrase.ShouldBe("OK");
 	}
 
-	[Fact]
+	[Fact(DisplayName = "IsSuccessStatusCode should return true for 2xx status codes")]
 	public void IsSuccessStatusCode_Should_Return_True_For_2xx()
 	{
 		// Arrange & Act
@@ -115,7 +121,7 @@ public class HttpStepResultTests
 		result204.IsSuccessStatusCode.ShouldBeTrue();
 	}
 
-	[Fact]
+	[Fact(DisplayName = "IsSuccessStatusCode should return false for non-2xx status codes")]
 	public void IsSuccessStatusCode_Should_Return_False_For_Non_2xx()
 	{
 		// Arrange & Act
@@ -127,7 +133,7 @@ public class HttpStepResultTests
 		result500.IsSuccessStatusCode.ShouldBeFalse();
 	}
 
-	[Fact]
+	[Fact(DisplayName = "IsRedirect should return true for 3xx status codes")]
 	public void IsRedirect_Should_Return_True_For_3xx()
 	{
 		// Arrange & Act
@@ -141,7 +147,7 @@ public class HttpStepResultTests
 		result304.IsRedirect.ShouldBeTrue();
 	}
 
-	[Fact]
+	[Fact(DisplayName = "IsClientError should return true for 4xx status codes")]
 	public void IsClientError_Should_Return_True_For_4xx()
 	{
 		// Arrange & Act
@@ -155,7 +161,7 @@ public class HttpStepResultTests
 		result403.IsClientError.ShouldBeTrue();
 	}
 
-	[Fact]
+	[Fact(DisplayName = "IsServerError should return true for 5xx status codes")]
 	public void IsServerError_Should_Return_True_For_5xx()
 	{
 		// Arrange & Act
@@ -169,7 +175,7 @@ public class HttpStepResultTests
 		result503.IsServerError.ShouldBeTrue();
 	}
 
-	[Fact]
+	[Fact(DisplayName = "CreateHttpSuccess should create complete HTTP result with all properties")]
 	public void CreateHttpSuccess_Should_Create_Complete_Result()
 	{
 		// Arrange
@@ -198,7 +204,7 @@ public class HttpStepResultTests
 		result.Metadata.Status.ShouldBe(StepStatus.Succeeded);
 	}
 
-	[Fact]
+	[Fact(DisplayName = "CreateHttpSuccess should set Success to false for non-2xx status codes")]
 	public void CreateHttpSuccess_Should_Set_Success_False_For_Non_2xx()
 	{
 		// Act
@@ -213,7 +219,7 @@ public class HttpStepResultTests
 		result.IsClientError.ShouldBeTrue();
 	}
 
-	[Fact]
+	[Fact(DisplayName = "CreateFailure should create failed result with exception message")]
 	public void CreateFailure_Should_Create_Failed_Result()
 	{
 		// Arrange

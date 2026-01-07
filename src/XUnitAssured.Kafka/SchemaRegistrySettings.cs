@@ -31,10 +31,11 @@ public class SchemaRegistrySettings
 
 	/// <summary>
 	/// Authentication credentials source.
-	/// Use 0 for None, 1 for UserInfo, 2 for SaslInherit.
-	/// Default is 0 (None - no authentication).
+	/// Use AuthCredentialsSource.UserInfo for basic authentication.
+	/// Use AuthCredentialsSource.SaslInherit to inherit from Kafka SASL settings.
+	/// Default is SaslInherit (2 - no authentication required).
 	/// </summary>
-	public AuthCredentialsSource BasicAuthCredentialsSource { get; set; } = (AuthCredentialsSource)0;
+	public AuthCredentialsSource BasicAuthCredentialsSource { get; set; } = AuthCredentialsSource.SaslInherit;
 
 	/// <summary>
 	/// Basic authentication credentials in format "username:password".

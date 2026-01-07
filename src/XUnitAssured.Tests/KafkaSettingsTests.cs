@@ -1,12 +1,4 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
-
 using Confluent.Kafka;
-
-using Microsoft.Extensions.Options;
-
-using Xunit;
 
 using XUnitAssured.Kafka;
 

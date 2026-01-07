@@ -4,13 +4,15 @@ using XUnitAssured.Core.Results;
 
 namespace XUnitAssured.Tests.CoreTests;
 
+[Trait("Category", "Core")]
+[Trait("Component", "Result")]
 /// <summary>
 /// Unit tests for TestStepResult class.
 /// Validates the core result functionality independent of technology.
 /// </summary>
 public class TestStepResultTests
 {
-	[Fact]
+	[Fact(DisplayName = "TestStepResult should store success status and data correctly")]
 	public void TestStepResult_Should_Store_Success_And_Data()
 	{
 		// Arrange
@@ -31,7 +33,7 @@ public class TestStepResultTests
 		result.DataType!.Name.ShouldContain("AnonymousType");
 	}
 
-	[Fact]
+	[Fact(DisplayName = "TestStepResult should store custom properties correctly")]
 	public void TestStepResult_Should_Store_Properties()
 	{
 		// Arrange & Act
@@ -52,7 +54,7 @@ public class TestStepResultTests
 		result.GetProperty<bool>("BoolProp").ShouldBeTrue();
 	}
 
-	[Fact]
+	[Fact(DisplayName = "GetProperty should return default value for missing key")]
 	public void GetProperty_Should_Return_Default_For_Missing_Key()
 	{
 		// Arrange
@@ -68,7 +70,7 @@ public class TestStepResultTests
 		result.GetProperty<bool>("NonExistent").ShouldBe(false);
 	}
 
-	[Fact]
+	[Fact(DisplayName = "GetData should convert data to compatible types")]
 	public void GetData_Should_Convert_Compatible_Types()
 	{
 		// Arrange
@@ -84,7 +86,7 @@ public class TestStepResultTests
 		result.GetData<object>().ShouldBe("test string");
 	}
 
-	[Fact]
+	[Fact(DisplayName = "CreateSuccess should create a successful result with data and properties")]
 	public void CreateSuccess_Should_Create_Successful_Result()
 	{
 		// Arrange
@@ -105,7 +107,7 @@ public class TestStepResultTests
 		result.Errors.ShouldBeEmpty();
 	}
 
-	[Fact]
+	[Fact(DisplayName = "CreateFailure should create a failed result with error messages")]
 	public void CreateFailure_Should_Create_Failed_Result_With_Errors()
 	{
 		// Arrange
@@ -122,7 +124,7 @@ public class TestStepResultTests
 		result.Errors.ShouldContain("Error 2");
 	}
 
-	[Fact]
+	[Fact(DisplayName = "CreateFailure from exception should capture exception message")]
 	public void CreateFailure_From_Exception_Should_Capture_Message()
 	{
 		// Arrange
@@ -138,7 +140,7 @@ public class TestStepResultTests
 		result.Errors[0].ShouldBe("Something went wrong");
 	}
 
-	[Fact]
+	[Fact(DisplayName = "Metadata should calculate duration between start and completion time")]
 	public void Metadata_Should_Calculate_Duration()
 	{
 		// Arrange
@@ -161,7 +163,7 @@ public class TestStepResultTests
 		result.Metadata.Duration.TotalSeconds.ShouldBeLessThanOrEqualTo(2.1);
 	}
 
-	[Fact]
+	[Fact(DisplayName = "Metadata should support tags for categorization")]
 	public void Metadata_Should_Support_Tags()
 	{
 		// Arrange & Act
@@ -180,7 +182,7 @@ public class TestStepResultTests
 		result.Metadata.Tags.ShouldContain("http");
 	}
 
-	[Fact]
+	[Fact(DisplayName = "Metadata WithStatus should create new instance with updated status")]
 	public void Metadata_WithStatus_Should_Create_New_Instance()
 	{
 		// Arrange
@@ -200,7 +202,7 @@ public class TestStepResultTests
 		original.Status.ShouldBe(StepStatus.Running); // Original unchanged
 	}
 
-	[Fact]
+	[Fact(DisplayName = "Metadata WithIncrementedAttempt should increment attempt count")]
 	public void Metadata_WithIncrementedAttempt_Should_Increment_Count()
 	{
 		// Arrange

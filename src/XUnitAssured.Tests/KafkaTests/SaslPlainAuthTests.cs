@@ -5,12 +5,14 @@ using Shouldly;
 
 namespace XUnitAssured.Tests.KafkaTests;
 
+[Trait("Category", "Kafka")]
+[Trait("Authentication", "SASL-PLAIN")]
 /// <summary>
 /// Tests for SASL/PLAIN authentication in Kafka.
 /// </summary>
 public class SaslPlainAuthTests
 {
-	[Fact]
+	[Fact(DisplayName = "Should configure SASL/PLAIN authentication with explicit credentials")]
 	public void Should_Configure_SaslPlain_With_Explicit_Credentials()
 	{
 		// Arrange & Act
@@ -24,7 +26,7 @@ public class SaslPlainAuthTests
 		scenario.CurrentStep.ShouldNotBeNull();
 	}
 
-	[Fact]
+	[Fact(DisplayName = "Should configure SASL/PLAIN authentication without SSL")]
 	public void Should_Configure_SaslPlain_Without_Ssl()
 	{
 		// Arrange & Act
@@ -37,7 +39,7 @@ public class SaslPlainAuthTests
 		scenario.ShouldNotBeNull();
 	}
 
-	[Fact]
+	[Fact(DisplayName = "Should configure SASL/PLAIN authentication via Kafka auth config")]
 	public void Should_Configure_SaslPlain_Via_Config()
 	{
 		// Arrange & Act
@@ -53,7 +55,7 @@ public class SaslPlainAuthTests
 		scenario.ShouldNotBeNull();
 	}
 
-	[Fact]
+	[Fact(DisplayName = "Should disable Kafka authentication when requested")]
 	public void Should_Disable_Authentication()
 	{
 		// Arrange & Act
@@ -66,7 +68,7 @@ public class SaslPlainAuthTests
 		scenario.ShouldNotBeNull();
 	}
 
-	[Fact]
+	[Fact(DisplayName = "SaslPlainConfig should default to use SSL")]
 	public void SaslPlainConfig_Should_Default_To_UseSsl()
 	{
 		// Arrange & Act
@@ -80,7 +82,7 @@ public class SaslPlainAuthTests
 		config.UseSsl.ShouldBeTrue();
 	}
 
-	[Fact]
+	[Fact(DisplayName = "KafkaAuthConfig UseSaslPlain should set correct authentication type")]
 	public void KafkaAuthConfig_UseSaslPlain_Should_Set_Correct_Type()
 	{
 		// Arrange
@@ -96,7 +98,7 @@ public class SaslPlainAuthTests
 		config.SaslPlain.Password.ShouldBe("pass");
 	}
 
-	[Fact]
+	[Fact(DisplayName = "Should throw InvalidOperationException when not Kafka step")]
 	public void Should_Throw_When_Not_Kafka_Step()
 	{
 		// Arrange
@@ -107,7 +109,7 @@ public class SaslPlainAuthTests
 			scenario.WithSaslPlain("user", "pass"));
 	}
 
-	[Fact(Skip = "Integration test - requires Kafka broker with SASL/PLAIN")]
+	[Fact(Skip = "Integration test - requires Kafka broker with SASL/PLAIN", DisplayName = "Integration test should connect to Kafka with SASL/PLAIN authentication")]
 	public void Integration_Should_Connect_With_SaslPlain()
 	{
 		var username = Environment.GetEnvironmentVariable("KAFKA_USERNAME");

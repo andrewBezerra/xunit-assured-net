@@ -7,13 +7,15 @@ using XUnitAssured.Http.Steps;
 
 namespace XUnitAssured.Tests.HttpTests;
 
+[Trait("Category", "Http")]
+[Trait("Component", "RequestStep")]
 /// <summary>
 /// Integration tests for HttpRequestStep.
 /// Uses real HTTP requests to public APIs for testing.
 /// </summary>
 public class HttpRequestStepTests
 {
-	[Fact]
+	[Fact(DisplayName = "HttpRequestStep should execute GET request successfully")]
 	public async Task HttpRequestStep_Should_Execute_Get_Request()
 	{
 		// Arrange
@@ -39,7 +41,7 @@ public class HttpRequestStepTests
 		httpResult.ResponseBody.ShouldNotBeNull();
 	}
 
-	[Fact]
+	[Fact(DisplayName = "HttpRequestStep should execute POST request successfully")]
 	public async Task HttpRequestStep_Should_Execute_Post_Request()
 	{
 		// Arrange
@@ -65,7 +67,7 @@ public class HttpRequestStepTests
 		httpResult.IsSuccessStatusCode.ShouldBeTrue();
 	}
 
-	[Fact]
+	[Fact(DisplayName = "HttpRequestStep should handle 404 Not Found error correctly")]
 	public async Task HttpRequestStep_Should_Handle_404_Error()
 	{
 		// Arrange
@@ -89,7 +91,7 @@ public class HttpRequestStepTests
 		httpResult.IsClientError.ShouldBeTrue();
 	}
 
-	[Fact]
+	[Fact(DisplayName = "HttpRequestStep should add custom headers to request")]
 	public async Task HttpRequestStep_Should_Add_Custom_Headers()
 	{
 		// Arrange
@@ -116,7 +118,7 @@ public class HttpRequestStepTests
 		httpResult.StatusCode.ShouldBe(200);
 	}
 
-	[Fact]
+	[Fact(DisplayName = "HttpRequestStep should add query parameters to request")]
 	public async Task HttpRequestStep_Should_Add_Query_Parameters()
 	{
 		// Arrange
@@ -144,7 +146,7 @@ public class HttpRequestStepTests
 		httpResult.ResponseBody.ShouldNotBeNull();
 	}
 
-	[Fact]
+	[Fact(DisplayName = "HttpRequestStep should set IsExecuted flag after execution")]
 	public async Task HttpRequestStep_Should_Set_IsExecuted_After_Execution()
 	{
 		// Arrange
@@ -165,7 +167,7 @@ public class HttpRequestStepTests
 		step.Result.ShouldNotBeNull();
 	}
 
-	[Fact]
+	[Fact(DisplayName = "HttpRequestStep should validate result successfully")]
 	public async Task HttpRequestStep_Should_Validate_Successfully()
 	{
 		// Arrange
@@ -190,7 +192,7 @@ public class HttpRequestStepTests
 		step.IsValid.ShouldBeTrue();
 	}
 
-	[Fact]
+	[Fact(DisplayName = "HttpRequestStep should throw InvalidOperationException when validating before execution")]
 	public async Task HttpRequestStep_Should_Throw_When_Validating_Before_Execution()
 	{
 		// Arrange
@@ -204,7 +206,7 @@ public class HttpRequestStepTests
 		Should.Throw<InvalidOperationException>(() => step.Validate(result => { }));
 	}
 
-	[Fact]
+	[Fact(DisplayName = "HttpRequestStep should have correct StepType value")]
 	public void HttpRequestStep_Should_Have_Correct_StepType()
 	{
 		// Arrange & Act
@@ -217,7 +219,7 @@ public class HttpRequestStepTests
 		step.StepType.ShouldBe("Http");
 	}
 
-	[Fact]
+	[Fact(DisplayName = "HttpRequestStep should handle timeout errors correctly", Skip = "Timeout behavior is unreliable with external public APIs")]
 	public async Task HttpRequestStep_Should_Handle_Timeout()
 	{
 		// Arrange

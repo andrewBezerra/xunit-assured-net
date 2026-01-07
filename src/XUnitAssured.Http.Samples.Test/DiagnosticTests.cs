@@ -1,24 +1,23 @@
 using Xunit;
+using XUnitAssured.Http.Testing;
 
 namespace XUnitAssured.Http.Samples.Test;
 
+[Trait("Category", "Diagnostics")]
 /// <summary>
 /// Simple diagnostic test to verify the test server is working
 /// </summary>
-public class DiagnosticTests : IClassFixture<HttpSamplesFixture>
+public class DiagnosticTests : HttpTestBase<HttpSamplesFixture>, IClassFixture<HttpSamplesFixture>
 {
-	private readonly HttpSamplesFixture _fixture;
-
-	public DiagnosticTests(HttpSamplesFixture fixture)
+	public DiagnosticTests(HttpSamplesFixture fixture) : base(fixture)
 	{
-		_fixture = fixture;
 	}
 
-	[Fact]
+	[Fact(DisplayName = "Test server should start and respond to HTTP requests successfully")]
 	public async Task TestServerShouldStart()
 	{
 		// Arrange
-		var client = _fixture.CreateClient();
+		var client = Fixture.CreateClient();
 
 		// Act
 		var response = await client.GetAsync("/api/products");
@@ -30,7 +29,7 @@ public class DiagnosticTests : IClassFixture<HttpSamplesFixture>
 		// Log for debugging
 		System.Console.WriteLine($"Status: {response.StatusCode}");
 		System.Console.WriteLine($"Content: {content}");
-		System.Console.WriteLine($"BaseUrl: {_fixture.BaseUrl}");
+		System.Console.WriteLine($"BaseUrl: {Fixture.BaseUrl}");
 		
 		Assert.True(response.IsSuccessStatusCode, 
 			$"Expected success but got {response.StatusCode}. Content: {content}");

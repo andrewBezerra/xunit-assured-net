@@ -8,12 +8,14 @@ using static XUnitAssured.Core.DSL.ScenarioDsl;
 
 namespace XUnitAssured.Tests.CoreTests;
 
+[Trait("Category", "Core")]
+[Trait("Component", "Scenario")]
 /// <summary>
 /// Unit tests for TestScenario and DSL infrastructure.
 /// </summary>
 public class TestScenarioTests
 {
-	[Fact]
+	[Fact(DisplayName = "Given should create a new test scenario with context")]
 	public void Given_Should_Create_New_Scenario()
 	{
 		// Act
@@ -25,7 +27,7 @@ public class TestScenarioTests
 		scenario.Context.Steps.ShouldNotBeNull();
 	}
 
-	[Fact]
+	[Fact(DisplayName = "Given should create scenario with empty steps collection")]
 	public void Given_Should_Create_Scenario_With_Empty_Steps()
 	{
 		// Act
@@ -35,7 +37,7 @@ public class TestScenarioTests
 		scenario.Context.Steps.GetStepNames().ShouldBeEmpty();
 	}
 
-	[Fact]
+	[Fact(DisplayName = "SetCurrentStep should set the current step in scenario")]
 	public void SetCurrentStep_Should_Set_Step()
 	{
 		// Arrange
@@ -49,7 +51,7 @@ public class TestScenarioTests
 		scenario.CurrentStep.ShouldBe(mockStep);
 	}
 
-	[Fact]
+	[Fact(DisplayName = "And should return the same scenario instance for chaining")]
 	public void And_Should_Return_Same_Scenario()
 	{
 		// Arrange
@@ -63,7 +65,7 @@ public class TestScenarioTests
 		result.ShouldBe(scenario);
 	}
 
-	[Fact]
+	[Fact(DisplayName = "On should return the same scenario instance for chaining")]
 	public void On_Should_Return_Same_Scenario()
 	{
 		// Arrange
@@ -77,7 +79,7 @@ public class TestScenarioTests
 		result.ShouldBe(scenario);
 	}
 
-	[Fact]
+	[Fact(DisplayName = "ExecuteCurrentStepAsync should execute the current step")]
 	public async Task ExecuteCurrentStepAsync_Should_Execute_Step()
 	{
 		// Arrange
@@ -92,7 +94,7 @@ public class TestScenarioTests
 		mockStep.IsExecuted.ShouldBeTrue();
 	}
 
-	[Fact]
+	[Fact(DisplayName = "ExecuteCurrentStepAsync should not execute the same step twice")]
 	public async Task ExecuteCurrentStepAsync_Should_Not_Execute_Twice()
 	{
 		// Arrange
@@ -110,7 +112,7 @@ public class TestScenarioTests
 		mockStep.ExecutionCount.ShouldBe(1); // Still 1, not 2
 	}
 
-	[Fact]
+	[Fact(DisplayName = "TestContext should store and retrieve properties correctly")]
 	public void TestContext_Should_Store_And_Retrieve_Properties()
 	{
 		// Arrange
@@ -126,7 +128,7 @@ public class TestScenarioTests
 		context.GetProperty<int>("key2").ShouldBe(123);
 	}
 
-	[Fact]
+	[Fact(DisplayName = "TestContext should return default value for missing property")]
 	public void TestContext_Should_Return_Default_For_Missing_Property()
 	{
 		// Arrange

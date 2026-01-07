@@ -1,29 +1,26 @@
 using XUnitAssured.Extensions.Http;
 using XUnitAssured.Http.Extensions;
-
-using static XUnitAssured.Core.DSL.ScenarioDsl;
+using XUnitAssured.Http.Testing;
 
 namespace XUnitAssured.Http.Samples.Test;
 
+[Trait("Category", "CRUD Operations")]
 /// <summary>
 /// Sample tests demonstrating CRUD operations (GET, POST, PUT, DELETE) using XUnitAssured.Http.
 /// These tests showcase the fluent DSL for testing REST API endpoints.
+/// Inherits from HttpTestBase to provide clean Given() syntax without passing fixture explicitly.
 /// </summary>
-public class CrudOperationsTests : IClassFixture<HttpSamplesFixture>
+public class CrudOperationsTests : HttpTestBase<HttpSamplesFixture>, IClassFixture<HttpSamplesFixture>
 {
-	private readonly HttpSamplesFixture _fixture;
-
-	public CrudOperationsTests(HttpSamplesFixture fixture)
+	public CrudOperationsTests(HttpSamplesFixture fixture) : base(fixture)
 	{
-		_fixture = fixture;
 	}
 
-	[Fact]
+	[Fact(DisplayName = "GET all products should return list of products with 200 OK status")]
 	public void Example01_GetAllProducts_ShouldReturnListOfProducts()
 	{
 		// Arrange & Act & Assert
 		Given()
-			.WithHttpClient(_fixture.CreateClient())
 			.ApiResource("/api/products")
 			.Get()
 			.When()
@@ -33,7 +30,7 @@ public class CrudOperationsTests : IClassFixture<HttpSamplesFixture>
 			.AssertStatusCode(200);
 		// Note: Cannot validate array in root with current JsonPath implementation
 	}
-	[Fact]
+	[Fact(DisplayName = "GET product by ID should return product details with 200 OK status")]
 	public void Example02_GetProductById_ShouldReturnProduct()
 	{
 		// Arrange
@@ -41,7 +38,6 @@ public class CrudOperationsTests : IClassFixture<HttpSamplesFixture>
 
 		// Act & Assert
 		Given()
-			.WithHttpClient(_fixture.CreateClient())
 			.ApiResource($"/api/products/{productId}")
 			.Get()
 			.When()
@@ -53,7 +49,7 @@ public class CrudOperationsTests : IClassFixture<HttpSamplesFixture>
 				.AssertJsonPath<decimal>("$.price", value => value > 0, "Product price should be positive");
 	}
 
-	[Fact]
+	[Fact(DisplayName = "GET product by non-existent ID should return 404 Not Found")]
 	public void Example03_GetProductById_NotFound_ShouldReturn404()
 	{
 		// Arrange
@@ -61,7 +57,6 @@ public class CrudOperationsTests : IClassFixture<HttpSamplesFixture>
 
 		// Act & Assert
 		Given()
-			.WithHttpClient(_fixture.CreateClient())
 			.ApiResource($"/api/products/{nonExistentId}")
 			.Get()
 			.When()
@@ -71,7 +66,7 @@ public class CrudOperationsTests : IClassFixture<HttpSamplesFixture>
 				.AssertJsonPath<string>("$.message", value => value?.Contains("not found") == true, "Should return 'not found' message");
 	}
 
-	[Fact]
+	[Fact(DisplayName = "POST create product with valid data should return 201 Created with product details")]
 	public void Example04_CreateProduct_ShouldReturnCreatedProduct()
 	{
 		// Arrange
@@ -84,7 +79,6 @@ public class CrudOperationsTests : IClassFixture<HttpSamplesFixture>
 
 		// Act & Assert
 		Given()
-			.WithHttpClient(_fixture.CreateClient())
 			.ApiResource("/api/products")
 			.Post(newProduct)
 			.When()
@@ -98,7 +92,7 @@ public class CrudOperationsTests : IClassFixture<HttpSamplesFixture>
 				.AssertJsonPath<string>("$.createdAt", value => !string.IsNullOrEmpty(value), "Created product should have createdAt timestamp");
 	}
 
-	[Fact]
+	[Fact(DisplayName = "POST create product with invalid data should return 400 Bad Request")]
 	public void Example05_CreateProduct_WithInvalidData_ShouldReturn400()
 	{
 		// Arrange - Product with empty name (invalid)
@@ -111,17 +105,16 @@ public class CrudOperationsTests : IClassFixture<HttpSamplesFixture>
 
 		// Act & Assert
 		Given()
-			.WithHttpClient(_fixture.CreateClient())
 			.ApiResource("/api/products")
 			.Post(invalidProduct)
 		.When()
-				.Execute()
+			.Execute()
 			.Then()
 				.AssertStatusCode(400)
 				.AssertJsonPath<string>("$.message", value => value?.Contains("required") == true, "Should return validation error message");
 	}
 
-	[Fact]
+	[Fact(DisplayName = "POST create product with negative price should return 400 Bad Request")]
 	public void Example06_CreateProduct_WithNegativePrice_ShouldReturn400()
 	{
 		// Arrange - Product with negative price (invalid)
@@ -134,17 +127,16 @@ public class CrudOperationsTests : IClassFixture<HttpSamplesFixture>
 
 		// Act & Assert
 		Given()
-			.WithHttpClient(_fixture.CreateClient())
 			.ApiResource("/api/products")
 			.Post(invalidProduct)
 		.When()
-				.Execute()
+			.Execute()
 			.Then()
 				.AssertStatusCode(400)
 				.AssertJsonPath<string>("$.message", value => value?.Contains("non-negative") == true, "Should return price validation error");
 	}
 
-	[Fact]
+	[Fact(DisplayName = "PUT update product should return 200 OK with updated product details")]
 	public void Example07_UpdateProduct_ShouldReturnUpdatedProduct()
 	{
 		// Arrange
@@ -158,11 +150,10 @@ public class CrudOperationsTests : IClassFixture<HttpSamplesFixture>
 
 		// Act & Assert
 		Given()
-			.WithHttpClient(_fixture.CreateClient())
 			.ApiResource($"/api/products/{productId}")
 			.Put(updatedProduct)
-			.When()
-				.Execute()
+		.When()
+			.Execute()
 			.Then()
 				.AssertStatusCode(200)
 				.AssertJsonPath<int>("$.id", value => value == productId, $"Product ID should remain {productId}")
@@ -172,7 +163,7 @@ public class CrudOperationsTests : IClassFixture<HttpSamplesFixture>
 				.AssertJsonPath<string>("$.updatedAt", value => !string.IsNullOrEmpty(value), "Updated product should have updatedAt timestamp");
 	}
 
-	[Fact]
+	[Fact(DisplayName = "PUT update non-existent product should return 404 Not Found")]
 	public void Example08_UpdateProduct_NotFound_ShouldReturn404()
 	{
 		// Arrange
@@ -186,7 +177,6 @@ public class CrudOperationsTests : IClassFixture<HttpSamplesFixture>
 
 		// Act & Assert
 		Given()
-			.WithHttpClient(_fixture.CreateClient())
 			.ApiResource($"/api/products/{nonExistentId}")
 			.Put(updatedProduct)
 			.When()
@@ -196,7 +186,7 @@ public class CrudOperationsTests : IClassFixture<HttpSamplesFixture>
 				.AssertJsonPath<string>("$.message", value => value?.Contains("not found") == true, "Should return 'not found' message");
 	}
 
-	[Fact]
+	[Fact(DisplayName = "PUT update product with invalid data should return 400 Bad Request")]
 	public void Example09_UpdateProduct_WithInvalidData_ShouldReturn400()
 	{
 		// Arrange
@@ -210,7 +200,6 @@ public class CrudOperationsTests : IClassFixture<HttpSamplesFixture>
 
 		// Act & Assert
 		Given()
-			.WithHttpClient(_fixture.CreateClient())
 			.ApiResource($"/api/products/{productId}")
 			.Put(invalidProduct)
 			.When()
@@ -220,7 +209,7 @@ public class CrudOperationsTests : IClassFixture<HttpSamplesFixture>
 				.AssertJsonPath<string>("$.message", value => value?.Contains("required") == true, "Should return validation error");
 	}
 
-	[Fact]
+	[Fact(DisplayName = "DELETE product should return 204 No Content and product should not be found")]
 	public void Example10_DeleteProduct_ShouldReturn204()
 	{
 		// Arrange - First create a product to delete
@@ -232,7 +221,6 @@ public class CrudOperationsTests : IClassFixture<HttpSamplesFixture>
 		};
 
 		var createResponse = Given()
-			.WithHttpClient(_fixture.CreateClient())
 			.ApiResource("/api/products")
 			.Post(productToDelete)
 			.When()
@@ -245,9 +233,7 @@ public class CrudOperationsTests : IClassFixture<HttpSamplesFixture>
 		var createdProductId = createResponse.JsonPath<int>("$.id");
 
 		// Act & Assert - Delete the product
-		Given()
-			.WithHttpClient(_fixture.CreateClient())
-			.ApiResource($"/api/products/{createdProductId}")
+		Given().ApiResource($"/api/products/{createdProductId}")
 			.Delete()
 		.When()
 			.Execute()
@@ -256,7 +242,6 @@ public class CrudOperationsTests : IClassFixture<HttpSamplesFixture>
 
 		// Verify product was deleted
 		Given()
-			.WithHttpClient(_fixture.CreateClient())
 			.ApiResource($"/api/products/{createdProductId}")
 			.Get()
 			.When()
@@ -265,16 +250,14 @@ public class CrudOperationsTests : IClassFixture<HttpSamplesFixture>
 				.AssertStatusCode(404);
 	}
 
-	[Fact]
+	[Fact(DisplayName = "DELETE non-existent product should return 404 Not Found")]
 	public void Example11_DeleteProduct_NotFound_ShouldReturn404()
 	{
 		// Arrange
 		var nonExistentId = 9999;
 
 		// Act & Assert
-		Given()
-			.WithHttpClient(_fixture.CreateClient())
-			.ApiResource($"/api/products/{nonExistentId}")
+		Given().ApiResource($"/api/products/{nonExistentId}")
 			.Delete()
 		.When()
 			.Execute()
@@ -283,7 +266,7 @@ public class CrudOperationsTests : IClassFixture<HttpSamplesFixture>
 			.AssertJsonPath<string>("$.message", value => value?.Contains("not found") == true, "Should return 'not found' message");
 	}
 
-	[Fact]
+	[Fact(DisplayName = "Complete CRUD workflow should create, read, update, and delete product successfully")]
 	public void Example12_CompleteWorkflow_CreateReadUpdateDelete()
 	{
 		// Step 1: Create a new product
@@ -295,7 +278,6 @@ public class CrudOperationsTests : IClassFixture<HttpSamplesFixture>
 		};
 
 		var createResult = Given()
-			.WithHttpClient(_fixture.CreateClient())
 			.ApiResource("/api/products")
 			.Post(newProduct)
 		.When()
@@ -308,7 +290,6 @@ public class CrudOperationsTests : IClassFixture<HttpSamplesFixture>
 
 		// Step 2: Read the created product
 		Given()
-			.WithHttpClient(_fixture.CreateClient())
 			.ApiResource($"/api/products/{productId}")
 			.Get()
 		.When()
@@ -326,7 +307,6 @@ public class CrudOperationsTests : IClassFixture<HttpSamplesFixture>
 		};
 
 		Given()
-			.WithHttpClient(_fixture.CreateClient())
 			.ApiResource($"/api/products/{productId}")
 			.Put(updatedProduct)
 		.When()
@@ -336,9 +316,7 @@ public class CrudOperationsTests : IClassFixture<HttpSamplesFixture>
 				.AssertJsonPath<string>("$.name", value => value == updatedProduct.name, "Product name should be updated");
 
 		// Step 4: Delete the product
-		Given()
-			.WithHttpClient(_fixture.CreateClient())
-			.ApiResource($"/api/products/{productId}")
+		Given().ApiResource($"/api/products/{productId}")
 			.Delete()
 		.When()
 			.Execute()
@@ -347,7 +325,6 @@ public class CrudOperationsTests : IClassFixture<HttpSamplesFixture>
 
 		// Step 5: Verify deletion
 		Given()
-			.WithHttpClient(_fixture.CreateClient())
 			.ApiResource($"/api/products/{productId}")
 			.Get()
 		.When()
@@ -356,12 +333,11 @@ public class CrudOperationsTests : IClassFixture<HttpSamplesFixture>
 				.AssertStatusCode(404);
 	}
 
-	[Fact]
+	[Fact(DisplayName = "POST reset products should restore initial state with 3 products")]
 	public void Example13_ResetProducts_ShouldRestoreInitialState()
 	{
 		// Act & Assert
 		Given()
-			.WithHttpClient(_fixture.CreateClient())
 			.ApiResource("/api/products/reset")
 			.Post(new { })
 			.When()
