@@ -19,8 +19,8 @@ public class SaslScramAuthTests
 		// Arrange & Act
 		var scenario = Given()
 			.Topic("test-topic")
-			.WithSaslScram256("username", "password")
-			.Consume();
+			.Consume()
+			.WithSaslScram256("username", "password");
 
 		// Assert
 		scenario.ShouldNotBeNull();
@@ -33,8 +33,8 @@ public class SaslScramAuthTests
 		// Arrange & Act
 		var scenario = Given()
 			.Topic("test-topic")
-			.WithSaslScram512("username", "password")
-			.Consume();
+			.Consume()
+			.WithSaslScram512("username", "password");
 
 		// Assert
 		scenario.ShouldNotBeNull();
@@ -46,8 +46,8 @@ public class SaslScramAuthTests
 		// Arrange & Act
 		var scenario = Given()
 			.Topic("test-topic")
-			.WithSaslScram256("username", "password", useSsl: false)
-			.Consume();
+			.Consume()
+			.WithSaslScram256("username", "password", useSsl: false);
 
 		// Assert
 		scenario.ShouldNotBeNull();
@@ -59,11 +59,11 @@ public class SaslScramAuthTests
 		// Arrange & Act
 		var scenario = Given()
 			.Topic("test-topic")
+			.Consume()
 			.WithKafkaAuth(config =>
 			{
 				config.UseSaslScram256("username", "password");
-			})
-			.Consume();
+			});
 
 		// Assert
 		scenario.ShouldNotBeNull();
@@ -138,9 +138,9 @@ public class SaslScramAuthTests
 		{
 			Given()
 				.Topic("test-topic")
+				.Consume()
 				.WithBootstrapServers(bootstrapServers)
 				.WithSaslScram256(username, password)
-				.Consume()
 				.Validate(result =>
 				{
 					result.Success.ShouldBeTrue();
@@ -158,8 +158,8 @@ public class SaslScramAuthTests
 		{
 			Given()
 				.Topic("test-topic")
-				.WithSaslScram512(username, password)
 				.Consume()
+				.WithSaslScram512(username, password)
 				.Validate(result =>
 				{
 					result.Success.ShouldBeTrue();
@@ -167,3 +167,4 @@ public class SaslScramAuthTests
 		}
 	}
 }
+
