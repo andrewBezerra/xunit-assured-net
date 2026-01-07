@@ -11,6 +11,51 @@ namespace XUnitAssured.Kafka.Extensions;
 public static class KafkaAuthenticationExtensions
 {
 	/// <summary>
+	/// Helper method to apply authentication config to current Kafka step.
+	/// </summary>
+	private static ITestScenario ApplyAuthConfig(ITestScenario scenario, KafkaAuthConfig authConfig)
+	{
+		if (scenario.CurrentStep is KafkaConsumeStep consumeStep)
+		{
+			var newStep = new KafkaConsumeStep
+			{
+				Topic = consumeStep.Topic,
+				SchemaType = consumeStep.SchemaType,
+				Timeout = consumeStep.Timeout,
+				ConsumerConfig = consumeStep.ConsumerConfig,
+				GroupId = consumeStep.GroupId,
+				BootstrapServers = consumeStep.BootstrapServers,
+				AuthConfig = authConfig
+			};
+			scenario.SetCurrentStep(newStep);
+		}
+		else if (scenario.CurrentStep is KafkaProduceStep produceStep)
+		{
+			var newStep = new KafkaProduceStep
+			{
+				Topic = produceStep.Topic,
+				Key = produceStep.Key,
+				Value = produceStep.Value,
+				Headers = produceStep.Headers,
+				Partition = produceStep.Partition,
+				Timestamp = produceStep.Timestamp,
+				Timeout = produceStep.Timeout,
+				ProducerConfig = produceStep.ProducerConfig,
+				BootstrapServers = produceStep.BootstrapServers,
+				AuthConfig = authConfig,
+				JsonOptions = produceStep.JsonOptions
+			};
+			scenario.SetCurrentStep(newStep);
+		}
+		else
+		{
+			throw new InvalidOperationException("Current step is not a Kafka step. Call Topic().Consume() or Topic().Produce() first.");
+		}
+
+		return scenario;
+	}
+
+	/// <summary>
 	/// Configures SASL/PLAIN authentication from kafkasettings.json.
 	/// Automatically loads username and password from settings.
 	/// Usage: .WithSaslPlain()
@@ -23,8 +68,8 @@ public static class KafkaAuthenticationExtensions
 		if (scenario == null)
 			throw new ArgumentNullException(nameof(scenario));
 
-		if (scenario.CurrentStep is not KafkaConsumeStep currentStep)
-			throw new InvalidOperationException("Current step is not a Kafka consume step. Call Topic() first.");
+		if (scenario.CurrentStep is not KafkaConsumeStep && scenario.CurrentStep is not KafkaProduceStep)
+			throw new InvalidOperationException("Current step is not a Kafka step. Call Topic().Consume() or Topic().Produce() first.");
 
 		// Load settings
 		var settings = KafkaSettings.Load();
@@ -42,20 +87,7 @@ public static class KafkaAuthenticationExtensions
 			SaslPlain = settings.Authentication.SaslPlain
 		};
 
-		// Create new step with auth config
-		var newStep = new KafkaConsumeStep
-		{
-			Topic = currentStep.Topic,
-			SchemaType = currentStep.SchemaType,
-			Timeout = currentStep.Timeout,
-			ConsumerConfig = currentStep.ConsumerConfig,
-			GroupId = currentStep.GroupId,
-			BootstrapServers = currentStep.BootstrapServers,
-			AuthConfig = authConfig
-		};
-
-		scenario.SetCurrentStep(newStep);
-		return scenario;
+		return ApplyAuthConfig(scenario, authConfig);
 	}
 
 	/// <summary>
@@ -72,27 +104,11 @@ public static class KafkaAuthenticationExtensions
 		if (scenario == null)
 			throw new ArgumentNullException(nameof(scenario));
 
-		if (scenario.CurrentStep is not KafkaConsumeStep currentStep)
-			throw new InvalidOperationException("Current step is not a Kafka consume step. Call Topic() first.");
-
 		// Create auth config
 		var authConfig = new KafkaAuthConfig();
 		authConfig.UseSaslPlain(username, password, useSsl);
 
-		// Create new step with auth config
-		var newStep = new KafkaConsumeStep
-		{
-			Topic = currentStep.Topic,
-			SchemaType = currentStep.SchemaType,
-			Timeout = currentStep.Timeout,
-			ConsumerConfig = currentStep.ConsumerConfig,
-			GroupId = currentStep.GroupId,
-			BootstrapServers = currentStep.BootstrapServers,
-			AuthConfig = authConfig
-		};
-
-		scenario.SetCurrentStep(newStep);
-		return scenario;
+		return ApplyAuthConfig(scenario, authConfig);
 	}
 
 	/// <summary>
@@ -110,27 +126,11 @@ public static class KafkaAuthenticationExtensions
 		if (configure == null)
 			throw new ArgumentNullException(nameof(configure));
 
-		if (scenario.CurrentStep is not KafkaConsumeStep currentStep)
-			throw new InvalidOperationException("Current step is not a Kafka consume step. Call Topic() first.");
-
 		// Create and configure auth config
 		var authConfig = new KafkaAuthConfig();
 		configure(authConfig);
 
-		// Create new step with auth config
-		var newStep = new KafkaConsumeStep
-		{
-			Topic = currentStep.Topic,
-			SchemaType = currentStep.SchemaType,
-			Timeout = currentStep.Timeout,
-			ConsumerConfig = currentStep.ConsumerConfig,
-			GroupId = currentStep.GroupId,
-			BootstrapServers = currentStep.BootstrapServers,
-			AuthConfig = authConfig
-		};
-
-		scenario.SetCurrentStep(newStep);
-		return scenario;
+		return ApplyAuthConfig(scenario, authConfig);
 	}
 
 	/// <summary>
@@ -146,8 +146,8 @@ public static class KafkaAuthenticationExtensions
 		if (scenario == null)
 			throw new ArgumentNullException(nameof(scenario));
 
-		if (scenario.CurrentStep is not KafkaConsumeStep currentStep)
-			throw new InvalidOperationException("Current step is not a Kafka consume step. Call Topic() first.");
+		if (scenario.CurrentStep is not KafkaConsumeStep && scenario.CurrentStep is not KafkaProduceStep)
+			throw new InvalidOperationException("Current step is not a Kafka step. Call Topic().Consume() or Topic().Produce() first.");
 
 		// Load settings
 		var settings = KafkaSettings.Load();
@@ -165,20 +165,7 @@ public static class KafkaAuthenticationExtensions
 			SaslScram = settings.Authentication.SaslScram
 		};
 
-		// Create new step with auth config
-		var newStep = new KafkaConsumeStep
-		{
-			Topic = currentStep.Topic,
-			SchemaType = currentStep.SchemaType,
-			Timeout = currentStep.Timeout,
-			ConsumerConfig = currentStep.ConsumerConfig,
-			GroupId = currentStep.GroupId,
-			BootstrapServers = currentStep.BootstrapServers,
-			AuthConfig = authConfig
-		};
-
-		scenario.SetCurrentStep(newStep);
-		return scenario;
+		return ApplyAuthConfig(scenario, authConfig);
 	}
 
 	/// <summary>
@@ -195,27 +182,11 @@ public static class KafkaAuthenticationExtensions
 		if (scenario == null)
 			throw new ArgumentNullException(nameof(scenario));
 
-		if (scenario.CurrentStep is not KafkaConsumeStep currentStep)
-			throw new InvalidOperationException("Current step is not a Kafka consume step. Call Topic() first.");
-
 		// Create auth config
 		var authConfig = new KafkaAuthConfig();
 		authConfig.UseSaslScram256(username, password, useSsl);
 
-		// Create new step with auth config
-		var newStep = new KafkaConsumeStep
-		{
-			Topic = currentStep.Topic,
-			SchemaType = currentStep.SchemaType,
-			Timeout = currentStep.Timeout,
-			ConsumerConfig = currentStep.ConsumerConfig,
-			GroupId = currentStep.GroupId,
-			BootstrapServers = currentStep.BootstrapServers,
-			AuthConfig = authConfig
-		};
-
-		scenario.SetCurrentStep(newStep);
-		return scenario;
+		return ApplyAuthConfig(scenario, authConfig);
 	}
 
 	/// <summary>
@@ -232,27 +203,11 @@ public static class KafkaAuthenticationExtensions
 		if (scenario == null)
 			throw new ArgumentNullException(nameof(scenario));
 
-		if (scenario.CurrentStep is not KafkaConsumeStep currentStep)
-			throw new InvalidOperationException("Current step is not a Kafka consume step. Call Topic() first.");
-
 		// Create auth config
 		var authConfig = new KafkaAuthConfig();
 		authConfig.UseSaslScram512(username, password, useSsl);
 
-		// Create new step with auth config
-		var newStep = new KafkaConsumeStep
-		{
-			Topic = currentStep.Topic,
-			SchemaType = currentStep.SchemaType,
-			Timeout = currentStep.Timeout,
-			ConsumerConfig = currentStep.ConsumerConfig,
-			GroupId = currentStep.GroupId,
-			BootstrapServers = currentStep.BootstrapServers,
-			AuthConfig = authConfig
-		};
-
-		scenario.SetCurrentStep(newStep);
-		return scenario;
+		return ApplyAuthConfig(scenario, authConfig);
 	}
 
 	/// <summary>
@@ -268,8 +223,8 @@ public static class KafkaAuthenticationExtensions
 		if (scenario == null)
 			throw new ArgumentNullException(nameof(scenario));
 
-		if (scenario.CurrentStep is not KafkaConsumeStep currentStep)
-			throw new InvalidOperationException("Current step is not a Kafka consume step. Call Topic() first.");
+		if (scenario.CurrentStep is not KafkaConsumeStep && scenario.CurrentStep is not KafkaProduceStep)
+			throw new InvalidOperationException("Current step is not a Kafka step. Call Topic().Consume() or Topic().Produce() first.");
 
 		// Load settings
 		var settings = KafkaSettings.Load();
@@ -287,20 +242,7 @@ public static class KafkaAuthenticationExtensions
 			Ssl = settings.Authentication.Ssl
 		};
 
-		// Create new step with auth config
-		var newStep = new KafkaConsumeStep
-		{
-			Topic = currentStep.Topic,
-			SchemaType = currentStep.SchemaType,
-			Timeout = currentStep.Timeout,
-			ConsumerConfig = currentStep.ConsumerConfig,
-			GroupId = currentStep.GroupId,
-			BootstrapServers = currentStep.BootstrapServers,
-			AuthConfig = authConfig
-		};
-
-		scenario.SetCurrentStep(newStep);
-		return scenario;
+		return ApplyAuthConfig(scenario, authConfig);
 	}
 
 	/// <summary>
@@ -316,27 +258,11 @@ public static class KafkaAuthenticationExtensions
 		if (scenario == null)
 			throw new ArgumentNullException(nameof(scenario));
 
-		if (scenario.CurrentStep is not KafkaConsumeStep currentStep)
-			throw new InvalidOperationException("Current step is not a Kafka consume step. Call Topic() first.");
-
 		// Create auth config
 		var authConfig = new KafkaAuthConfig();
 		authConfig.UseSsl(caLocation, enableCertificateVerification);
 
-		// Create new step with auth config
-		var newStep = new KafkaConsumeStep
-		{
-			Topic = currentStep.Topic,
-			SchemaType = currentStep.SchemaType,
-			Timeout = currentStep.Timeout,
-			ConsumerConfig = currentStep.ConsumerConfig,
-			GroupId = currentStep.GroupId,
-			BootstrapServers = currentStep.BootstrapServers,
-			AuthConfig = authConfig
-		};
-
-		scenario.SetCurrentStep(newStep);
-		return scenario;
+		return ApplyAuthConfig(scenario, authConfig);
 	}
 
 	/// <summary>
@@ -354,27 +280,11 @@ public static class KafkaAuthenticationExtensions
 		if (scenario == null)
 			throw new ArgumentNullException(nameof(scenario));
 
-		if (scenario.CurrentStep is not KafkaConsumeStep currentStep)
-			throw new InvalidOperationException("Current step is not a Kafka consume step. Call Topic() first.");
-
 		// Create auth config
 		var authConfig = new KafkaAuthConfig();
 		authConfig.UseMutualTls(certificateLocation, keyLocation, caLocation, keyPassword);
 
-		// Create new step with auth config
-		var newStep = new KafkaConsumeStep
-		{
-			Topic = currentStep.Topic,
-			SchemaType = currentStep.SchemaType,
-			Timeout = currentStep.Timeout,
-			ConsumerConfig = currentStep.ConsumerConfig,
-			GroupId = currentStep.GroupId,
-			BootstrapServers = currentStep.BootstrapServers,
-			AuthConfig = authConfig
-		};
-
-		scenario.SetCurrentStep(newStep);
-		return scenario;
+		return ApplyAuthConfig(scenario, authConfig);
 	}
 
 	/// <summary>
@@ -389,26 +299,12 @@ public static class KafkaAuthenticationExtensions
 		if (scenario == null)
 			throw new ArgumentNullException(nameof(scenario));
 
-		if (scenario.CurrentStep is not KafkaConsumeStep currentStep)
-			throw new InvalidOperationException("Current step is not a Kafka consume step. Call Topic() first.");
-
 		// Create auth config with no authentication
 		var authConfig = new KafkaAuthConfig();
 		authConfig.UseNoAuth();
 
-		// Create new step with auth config
-		var newStep = new KafkaConsumeStep
-		{
-			Topic = currentStep.Topic,
-			SchemaType = currentStep.SchemaType,
-			Timeout = currentStep.Timeout,
-			ConsumerConfig = currentStep.ConsumerConfig,
-			GroupId = currentStep.GroupId,
-			BootstrapServers = currentStep.BootstrapServers,
-			AuthConfig = authConfig
-		};
-
-		scenario.SetCurrentStep(newStep);
-		return scenario;
+		return ApplyAuthConfig(scenario, authConfig);
 	}
 }
+
+

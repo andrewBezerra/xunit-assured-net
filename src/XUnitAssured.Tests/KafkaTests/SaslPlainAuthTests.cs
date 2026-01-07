@@ -1,5 +1,6 @@
 using XUnitAssured.Kafka.Configuration;
 using XUnitAssured.Kafka.Extensions;
+using XUnitAssured.Kafka.Steps;
 using Xunit;
 using Shouldly;
 
@@ -18,8 +19,8 @@ public class SaslPlainAuthTests
 		// Arrange & Act
 		var scenario = Given()
 			.Topic("test-topic")
-			.WithSaslPlain("username", "password")
-			.Consume();
+			.Consume()
+			.WithSaslPlain("username", "password");
 
 		// Assert
 		scenario.ShouldNotBeNull();
@@ -32,8 +33,8 @@ public class SaslPlainAuthTests
 		// Arrange & Act
 		var scenario = Given()
 			.Topic("test-topic")
-			.WithSaslPlain("username", "password", useSsl: false)
-			.Consume();
+			.Consume()
+			.WithSaslPlain("username", "password", useSsl: false);
 
 		// Assert
 		scenario.ShouldNotBeNull();
@@ -45,11 +46,11 @@ public class SaslPlainAuthTests
 		// Arrange & Act
 		var scenario = Given()
 			.Topic("test-topic")
+			.Consume()
 			.WithKafkaAuth(config =>
 			{
 				config.UseSaslPlain("username", "password");
-			})
-			.Consume();
+			});
 
 		// Assert
 		scenario.ShouldNotBeNull();
@@ -61,8 +62,8 @@ public class SaslPlainAuthTests
 		// Arrange & Act
 		var scenario = Given()
 			.Topic("test-topic")
-			.WithNoKafkaAuth()
-			.Consume();
+			.Consume()
+			.WithNoKafkaAuth();
 
 		// Assert
 		scenario.ShouldNotBeNull();
@@ -109,6 +110,21 @@ public class SaslPlainAuthTests
 			scenario.WithSaslPlain("user", "pass"));
 	}
 
+	[Fact(DisplayName = "Should configure SASL/PLAIN authentication after Topic is set")]
+	public void Should_Configure_SaslPlain_After_Topic()
+	{
+		// Arrange & Act
+		var scenario = Given()
+			.Topic("test-topic")
+			.Consume()
+			.WithSaslPlain("username", "password");
+
+		// Assert
+		scenario.ShouldNotBeNull();
+		scenario.CurrentStep.ShouldNotBeNull();
+		scenario.CurrentStep.ShouldBeOfType<KafkaConsumeStep>();
+	}
+
 	[Fact(Skip = "Integration test - requires Kafka broker with SASL/PLAIN", DisplayName = "Integration test should connect to Kafka with SASL/PLAIN authentication")]
 	public void Integration_Should_Connect_With_SaslPlain()
 	{
@@ -119,9 +135,9 @@ public class SaslPlainAuthTests
 		{
 			Given()
 				.Topic("test-topic")
+				.Consume()
 				.WithBootstrapServers("pkc-xxxxx.us-east-1.aws.confluent.cloud:9092")
 				.WithSaslPlain(username, password)
-				.Consume()
 				.Validate(result =>
 				{
 					result.Success.ShouldBeTrue();
@@ -129,3 +145,4 @@ public class SaslPlainAuthTests
 		}
 	}
 }
+

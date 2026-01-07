@@ -48,6 +48,17 @@ public class KafkaStepResult : TestStepResult
 	public Headers? Headers => GetProperty<Headers>("Headers");
 
 	/// <summary>
+	/// The delivery/persistence status for produce operations.
+	/// </summary>
+	public PersistenceStatus? Status => GetProperty<string>("Status") switch
+	{
+		"Persisted" => PersistenceStatus.Persisted,
+		"PossiblyPersisted" => PersistenceStatus.PossiblyPersisted,
+		"NotPersisted" => PersistenceStatus.NotPersisted,
+		_ => null
+	};
+
+	/// <summary>
 	/// Gets the message converted to the specified type.
 	/// </summary>
 	/// <typeparam name="T">Target type for deserialization</typeparam>
@@ -172,4 +183,27 @@ public class KafkaStepResult : TestStepResult
 			}
 		};
 	}
+
+	/// <summary>
+	/// Creates a timeout result for produce operation.
+	/// </summary>
+	public static KafkaStepResult CreateProduceTimeout(string topic, TimeSpan timeout)
+	{
+		return new KafkaStepResult
+		{
+			Metadata = new StepMetadata
+			{
+				StartedAt = DateTimeOffset.UtcNow,
+				CompletedAt = DateTimeOffset.UtcNow,
+				Status = StepStatus.Failed
+			},
+			Success = false,
+			Errors = new List<string> { $"Failed to produce message to topic '{topic}' within timeout of {timeout.TotalSeconds}s" },
+			Properties = new Dictionary<string, object?>
+			{
+				["Topic"] = topic
+			}
+		};
+	}
 }
+

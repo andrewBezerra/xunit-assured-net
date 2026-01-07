@@ -105,14 +105,27 @@ public class KafkaConsumeStepTests
 		step.GroupId.ShouldBe("xunitassured-consumer");
 	}
 
-	[Fact(DisplayName = "Topic extension should create KafkaConsumeStep")]
-	public void Topic_Extension_Should_Create_KafkaStep()
+	[Fact(DisplayName = "Topic extension should store topic in context")]
+	public void Topic_Extension_Should_Store_Topic_In_Context()
 	{
 		// Arrange
 		var scenario = Given();
 
 		// Act
 		scenario.Topic("my-topic");
+
+		// Assert
+		var topic = scenario.Context.GetProperty<string>("_KafkaTopic");
+		topic.ShouldBe("my-topic");
+	}
+
+	[Fact(DisplayName = "Consume should create KafkaConsumeStep from stored topic")]
+	public void Consume_Should_Create_KafkaStep_From_Stored_Topic()
+	{
+		// Arrange & Act
+		var scenario = Given()
+			.Topic("my-topic")
+			.Consume();
 
 		// Assert
 		scenario.CurrentStep.ShouldNotBeNull();
@@ -144,7 +157,7 @@ public class KafkaConsumeStepTests
 	public void WithSchema_Should_Update_SchemaType()
 	{
 		// Arrange
-		var scenario = Given().Topic("test-topic");
+		var scenario = Given().Topic("test-topic").Consume();
 
 		// Act
 		scenario.WithSchema(typeof(string));
@@ -158,7 +171,7 @@ public class KafkaConsumeStepTests
 	public void WithTimeout_Should_Update_Timeout()
 	{
 		// Arrange
-		var scenario = Given().Topic("test-topic");
+		var scenario = Given().Topic("test-topic").Consume();
 
 		// Act
 		scenario.WithTimeout(TimeSpan.FromSeconds(60));
@@ -172,7 +185,7 @@ public class KafkaConsumeStepTests
 	public void WithBootstrapServers_Should_Update_BootstrapServers()
 	{
 		// Arrange
-		var scenario = Given().Topic("test-topic");
+		var scenario = Given().Topic("test-topic").Consume();
 
 		// Act
 		scenario.WithBootstrapServers("kafka:9092");
@@ -186,7 +199,7 @@ public class KafkaConsumeStepTests
 	public void WithGroupId_Should_Update_GroupId()
 	{
 		// Arrange
-		var scenario = Given().Topic("test-topic");
+		var scenario = Given().Topic("test-topic").Consume();
 
 		// Act
 		scenario.WithGroupId("my-consumer-group");
@@ -202,6 +215,7 @@ public class KafkaConsumeStepTests
 		// Act
 		var scenario = Given()
 			.Topic("test-topic")
+			.Consume()
 			.WithSchema(typeof(string))
 			.WithTimeout(TimeSpan.FromSeconds(45))
 			.WithBootstrapServers("kafka:9092")

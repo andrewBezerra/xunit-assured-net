@@ -18,8 +18,8 @@ public class SslAuthTests
 		// Arrange & Act
 		var scenario = Given()
 			.Topic("test-topic")
-			.WithSsl("/path/to/ca-cert.pem")
-			.Consume();
+			.Consume()
+			.WithSsl("/path/to/ca-cert.pem");
 
 		// Assert
 		scenario.ShouldNotBeNull();
@@ -32,8 +32,8 @@ public class SslAuthTests
 		// Arrange & Act
 		var scenario = Given()
 			.Topic("test-topic")
-			.WithSsl("/path/to/ca-cert.pem", enableCertificateVerification: false)
-			.Consume();
+			.Consume()
+			.WithSsl("/path/to/ca-cert.pem", enableCertificateVerification: false);
 
 		// Assert
 		scenario.ShouldNotBeNull();
@@ -45,11 +45,11 @@ public class SslAuthTests
 		// Arrange & Act
 		var scenario = Given()
 			.Topic("test-topic")
+			.Consume()
 			.WithMutualTls(
 				certificateLocation: "/path/to/client-cert.pem",
 				keyLocation: "/path/to/client-key.pem"
-			)
-			.Consume();
+			);
 
 		// Assert
 		scenario.ShouldNotBeNull();
@@ -61,13 +61,13 @@ public class SslAuthTests
 		// Arrange & Act
 		var scenario = Given()
 			.Topic("test-topic")
+			.Consume()
 			.WithMutualTls(
 				certificateLocation: "/path/to/client-cert.pem",
 				keyLocation: "/path/to/client-key.pem",
 				caLocation: "/path/to/ca-cert.pem",
 				keyPassword: "password123"
-			)
-			.Consume();
+			);
 
 		// Assert
 		scenario.ShouldNotBeNull();
@@ -79,11 +79,11 @@ public class SslAuthTests
 		// Arrange & Act
 		var scenario = Given()
 			.Topic("test-topic")
+			.Consume()
 			.WithKafkaAuth(config =>
 			{
 				config.UseSsl("/path/to/ca-cert.pem");
-			})
-			.Consume();
+			});
 
 		// Assert
 		scenario.ShouldNotBeNull();
@@ -155,9 +155,9 @@ public class SslAuthTests
 		{
 			Given()
 				.Topic("test-topic")
+				.Consume()
 				.WithBootstrapServers(bootstrapServers)
 				.WithSsl(caLocation)
-				.Consume()
 				.Validate(result =>
 				{
 					result.Success.ShouldBeTrue();
@@ -176,8 +176,8 @@ public class SslAuthTests
 		{
 			Given()
 				.Topic("test-topic")
-				.WithMutualTls(clientCert, clientKey, caCert)
 				.Consume()
+				.WithMutualTls(clientCert, clientKey, caCert)
 				.Validate(result =>
 				{
 					result.Success.ShouldBeTrue();
@@ -185,3 +185,4 @@ public class SslAuthTests
 		}
 	}
 }
+
