@@ -5,6 +5,8 @@ using XUnitAssured.Http.Testing;
 namespace XUnitAssured.Http.Samples.Test;
 
 [Trait("Authentication", "Certificate")]
+[Trait("Environment", "Local")]
+
 /// <summary>
 /// Sample tests demonstrating Certificate Authentication (mTLS) using XUnitAssured.Http.
 /// Certificate authentication is used for mutual TLS where both client and server verify each other's identity.

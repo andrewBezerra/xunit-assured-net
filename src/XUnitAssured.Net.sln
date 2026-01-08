@@ -21,9 +21,11 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "XUnitAssured.Http", "XUnitA
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "XUnitAssured.DependencyInjection", "XUnitAssured.DependencyInjection\XUnitAssured.DependencyInjection.csproj", "{1E00D195-C544-430D-A65E-8446A5377727}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "XUnitAssured.Http.Samples.Test", "XUnitAssured.Http.Samples.Test\XUnitAssured.Http.Samples.Test.csproj", "{45DF764C-2ADF-38DF-E032-D360C6BF0829}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "XUnitAssured.Http.Samples.Local.Test", "XUnitAssured.Http.Samples.Local.Test\XUnitAssured.Http.Samples.Local.Test.csproj", "{45DF764C-2ADF-38DF-E032-D360C6BF0829}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "XUnitAssured.Extensions", "XUnitAssured.Extensions\XUnitAssured.Extensions.csproj", "{37AE8F03-D2FA-4F90-B417-DF696C1170B0}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "XUnitAssured.Http.Samples.Remote.Test", "XUnitAssured.Http.Samples.Remote.Test\XUnitAssured.Http.Samples.Remote.Test.csproj", "{329B2ADB-2689-4211-BBF6-F84FE81AF72A}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -131,6 +133,18 @@ Global
 		{37AE8F03-D2FA-4F90-B417-DF696C1170B0}.Release|x64.Build.0 = Release|Any CPU
 		{37AE8F03-D2FA-4F90-B417-DF696C1170B0}.Release|x86.ActiveCfg = Release|Any CPU
 		{37AE8F03-D2FA-4F90-B417-DF696C1170B0}.Release|x86.Build.0 = Release|Any CPU
+		{329B2ADB-2689-4211-BBF6-F84FE81AF72A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{329B2ADB-2689-4211-BBF6-F84FE81AF72A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{329B2ADB-2689-4211-BBF6-F84FE81AF72A}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{329B2ADB-2689-4211-BBF6-F84FE81AF72A}.Debug|x64.Build.0 = Debug|Any CPU
+		{329B2ADB-2689-4211-BBF6-F84FE81AF72A}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{329B2ADB-2689-4211-BBF6-F84FE81AF72A}.Debug|x86.Build.0 = Debug|Any CPU
+		{329B2ADB-2689-4211-BBF6-F84FE81AF72A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{329B2ADB-2689-4211-BBF6-F84FE81AF72A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{329B2ADB-2689-4211-BBF6-F84FE81AF72A}.Release|x64.ActiveCfg = Release|Any CPU
+		{329B2ADB-2689-4211-BBF6-F84FE81AF72A}.Release|x64.Build.0 = Release|Any CPU
+		{329B2ADB-2689-4211-BBF6-F84FE81AF72A}.Release|x86.ActiveCfg = Release|Any CPU
+		{329B2ADB-2689-4211-BBF6-F84FE81AF72A}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -144,6 +158,7 @@ Global
 		{1E00D195-C544-430D-A65E-8446A5377727} = {E7A62A17-C00F-4821-A0EE-56403CF8D6B4}
 		{45DF764C-2ADF-38DF-E032-D360C6BF0829} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
 		{37AE8F03-D2FA-4F90-B417-DF696C1170B0} = {E7A62A17-C00F-4821-A0EE-56403CF8D6B4}
+		{329B2ADB-2689-4211-BBF6-F84FE81AF72A} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {B757C820-A762-4102-A668-E0C8119FAA4C}

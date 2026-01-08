@@ -6,6 +6,7 @@ using XUnitAssured.Http.Testing;
 namespace XUnitAssured.Http.Samples.Test;
 
 [Trait("Authentication", "ApiKey")]
+[Trait("Environment", "Local")]
 /// <summary>
 /// Sample tests demonstrating API Key Authentication using XUnitAssured.Http.
 /// API Keys can be sent in HTTP headers or query parameters.

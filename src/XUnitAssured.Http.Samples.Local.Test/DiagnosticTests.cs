@@ -4,6 +4,8 @@ using XUnitAssured.Http.Testing;
 namespace XUnitAssured.Http.Samples.Test;
 
 [Trait("Category", "Diagnostics")]
+[Trait("Environment", "Local")]
+
 /// <summary>
 /// Simple diagnostic test to verify the test server is working
 /// </summary>

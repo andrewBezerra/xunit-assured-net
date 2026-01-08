@@ -1,21 +1,21 @@
 using XUnitAssured.Extensions.Http;
 using XUnitAssured.Http.Extensions;
-using XUnitAssured.Http.Testing;
 
-namespace XUnitAssured.Http.Samples.Test;
+namespace XUnitAssured.Http.Samples.Remote.Test;
 
 [Trait("Authentication", "CustomHeader")]
+[Trait("Environment", "Remote")]
 /// <summary>
-/// Sample tests demonstrating Custom Header Authentication using XUnitAssured.Http.
+/// Remote tests demonstrating Custom Header Authentication against a deployed API.
 /// Custom headers allow for flexible authentication schemes beyond standard patterns.
 /// </summary>
-public class CustomHeaderAuthTests : HttpTestBase<HttpSamplesFixture>, IClassFixture<HttpSamplesFixture>
+public class CustomHeaderAuthTests : HttpSamplesRemoteTestBase, IClassFixture<HttpSamplesRemoteFixture>
 {
-	public CustomHeaderAuthTests(HttpSamplesFixture fixture) : base(fixture)
+	public CustomHeaderAuthTests(HttpSamplesRemoteFixture fixture) : base(fixture)
 	{
 	}
 
-	[Fact(DisplayName = "Custom Header Authentication with valid headers should return success")]
+	[Fact(Skip = "Remote test - requires deployed API environment", DisplayName = "Custom Header Authentication with valid headers should return success")]
 	public void Example01_CustomHeader_WithValidHeaders_ShouldReturnSuccess()
 	{
 		// Arrange
@@ -40,7 +40,7 @@ public class CustomHeaderAuthTests : HttpTestBase<HttpSamplesFixture>, IClassFix
 			.AssertJsonPath<string>("$.customData.SessionId", value => value == sessionId, $"Should return session ID: {sessionId}");
 	}
 
-	[Fact(DisplayName = "Custom Header Authentication with single header using WithCustomHeader should fail when two headers required")]
+	[Fact(Skip = "Remote test - requires deployed API environment", DisplayName = "Custom Header Authentication with single header using WithCustomHeader should fail when two headers required")]
 	public void Example02_CustomHeader_WithSingleHeader_UsingWithCustomHeader()
 	{
 		// Arrange
@@ -57,7 +57,7 @@ public class CustomHeaderAuthTests : HttpTestBase<HttpSamplesFixture>, IClassFix
 			.AssertStatusCode(401);
 	}
 
-	[Fact(DisplayName = "Custom Header Authentication with invalid auth token should return 401 Unauthorized")]
+	[Fact(Skip = "Remote test - requires deployed API environment", DisplayName = "Custom Header Authentication with invalid auth token should return 401 Unauthorized")]
 	public void Example03_CustomHeader_WithInvalidAuthToken_ShouldReturn401()
 	{
 		// Arrange
@@ -78,7 +78,7 @@ public class CustomHeaderAuthTests : HttpTestBase<HttpSamplesFixture>, IClassFix
 			.AssertStatusCode(401);
 	}
 
-	[Fact(DisplayName = "Custom Header Authentication with invalid session ID should return 401 Unauthorized")]
+	[Fact(Skip = "Remote test - requires deployed API environment", DisplayName = "Custom Header Authentication with invalid session ID should return 401 Unauthorized")]
 	public void Example04_CustomHeader_WithInvalidSessionId_ShouldReturn401()
 	{
 		// Arrange
@@ -99,7 +99,7 @@ public class CustomHeaderAuthTests : HttpTestBase<HttpSamplesFixture>, IClassFix
 			.AssertStatusCode(401);
 	}
 
-	[Fact(DisplayName = "Custom Header Authentication with missing auth token should return 401 Unauthorized")]
+	[Fact(Skip = "Remote test - requires deployed API environment", DisplayName = "Custom Header Authentication with missing auth token should return 401 Unauthorized")]
 	public void Example05_CustomHeader_MissingAuthToken_ShouldReturn401()
 	{
 		// Arrange
@@ -115,7 +115,7 @@ public class CustomHeaderAuthTests : HttpTestBase<HttpSamplesFixture>, IClassFix
 			.AssertStatusCode(401);
 	}
 
-	[Fact(DisplayName = "Custom Header Authentication with missing session ID should return 401 Unauthorized")]
+	[Fact(Skip = "Remote test - requires deployed API environment", DisplayName = "Custom Header Authentication with missing session ID should return 401 Unauthorized")]
 	public void Example06_CustomHeader_MissingSessionId_ShouldReturn401()
 	{
 		// Arrange
@@ -131,7 +131,7 @@ public class CustomHeaderAuthTests : HttpTestBase<HttpSamplesFixture>, IClassFix
 			.AssertStatusCode(401);
 	}
 
-	[Fact(DisplayName = "Custom Header Authentication without any headers should return 401 Unauthorized")]
+	[Fact(Skip = "Remote test - requires deployed API environment", DisplayName = "Custom Header Authentication without any headers should return 401 Unauthorized")]
 	public void Example07_CustomHeader_WithoutAnyHeaders_ShouldReturn401()
 	{
 		// Act & Assert - No custom headers provided
@@ -143,7 +143,7 @@ public class CustomHeaderAuthTests : HttpTestBase<HttpSamplesFixture>, IClassFix
 			.AssertStatusCode(401);
 	}
 
-	[Fact(DisplayName = "Custom Header Authentication with empty auth token should return 401 Unauthorized")]
+	[Fact(Skip = "Remote test - requires deployed API environment", DisplayName = "Custom Header Authentication with empty auth token should return 401 Unauthorized")]
 	public void Example08_CustomHeader_WithEmptyAuthToken_ShouldReturn401()
 	{
 		// Arrange
@@ -164,7 +164,7 @@ public class CustomHeaderAuthTests : HttpTestBase<HttpSamplesFixture>, IClassFix
 			.AssertStatusCode(401);
 	}
 
-	[Fact(DisplayName = "Custom Header Authentication with empty session ID should return 401 Unauthorized")]
+	[Fact(Skip = "Remote test - requires deployed API environment", DisplayName = "Custom Header Authentication with empty session ID should return 401 Unauthorized")]
 	public void Example09_CustomHeader_WithEmptySessionId_ShouldReturn401()
 	{
 		// Arrange
@@ -185,7 +185,7 @@ public class CustomHeaderAuthTests : HttpTestBase<HttpSamplesFixture>, IClassFix
 			.AssertStatusCode(401);
 	}
 
-	[Fact(DisplayName = "Custom Header Authentication values are case-sensitive and wrong case should return 401 Unauthorized")]
+	[Fact(Skip = "Remote test - requires deployed API environment", DisplayName = "Custom Header Authentication values are case-sensitive and wrong case should return 401 Unauthorized")]
 	public void Example10_CustomHeader_CaseSensitiveValues_ShouldReturn401()
 	{
 		// Arrange - Header values are case-sensitive
@@ -206,7 +206,7 @@ public class CustomHeaderAuthTests : HttpTestBase<HttpSamplesFixture>, IClassFix
 			.AssertStatusCode(401);
 	}
 
-	[Fact(DisplayName = "Custom Header Authentication with valid headers should return complete response structure")]
+	[Fact(Skip = "Remote test - requires deployed API environment", DisplayName = "Custom Header Authentication with valid headers should return complete response structure")]
 	public void Example11_CustomHeader_ValidHeaders_CheckResponseStructure()
 	{
 		// Arrange
@@ -232,7 +232,7 @@ public class CustomHeaderAuthTests : HttpTestBase<HttpSamplesFixture>, IClassFix
 			.AssertJsonPath<object>("$.customData.SessionId", value => value != null, "customData.SessionId should exist");
 	}
 
-	[Fact(DisplayName = "Custom Header Authentication should maintain authentication across multiple requests")]
+	[Fact(Skip = "Remote test - requires deployed API environment", DisplayName = "Custom Header Authentication should maintain authentication across multiple requests")]
 	public void Example12_CustomHeader_MultipleRequests_ShouldMaintainAuthentication()
 	{
 		// Arrange

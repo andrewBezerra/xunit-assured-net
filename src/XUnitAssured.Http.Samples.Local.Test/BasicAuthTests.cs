@@ -1,10 +1,12 @@
 using XUnitAssured.Extensions.Http;
 using XUnitAssured.Http.Extensions;
+using XUnitAssured.Http.Samples.Test;
 using XUnitAssured.Http.Testing;
 
-namespace XUnitAssured.Http.Samples.Test;
+namespace XUnitAssured.Http.Samples.Local.Test;
 
 [Trait("Authentication", "Basic")]
+[Trait("Environment", "Local")]
 /// <summary>
 /// Sample tests demonstrating Basic Authentication using XUnitAssured.Http.
 /// Basic Auth sends credentials as base64-encoded "username:password" in the Authorization header.

@@ -5,6 +5,8 @@ using XUnitAssured.Http.Testing;
 namespace XUnitAssured.Http.Samples.Test;
 
 [Trait("Category", "CRUD Operations")]
+[Trait("Environment", "Local")]
+
 /// <summary>
 /// Sample tests demonstrating CRUD operations (GET, POST, PUT, DELETE) using XUnitAssured.Http.
 /// These tests showcase the fluent DSL for testing REST API endpoints.

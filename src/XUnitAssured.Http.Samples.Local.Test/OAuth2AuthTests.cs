@@ -6,6 +6,7 @@ using XUnitAssured.Http.Testing;
 namespace XUnitAssured.Http.Samples.Test;
 
 [Trait("Authentication", "OAuth2")]
+[Trait("Environment", "Local")]
 /// <summary>
 /// Sample tests demonstrating OAuth2 Authentication using XUnitAssured.Http.
 /// Showcases the Client Credentials flow with automatic token management.

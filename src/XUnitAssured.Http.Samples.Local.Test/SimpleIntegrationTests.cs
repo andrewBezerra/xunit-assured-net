@@ -1,11 +1,13 @@
 using Shouldly;
 
 using XUnitAssured.Http.Extensions;
+using XUnitAssured.Http.Samples.Test;
 using XUnitAssured.Http.Testing;
 
-namespace XUnitAssured.Http.Samples.Test;
+namespace XUnitAssured.Http.Samples.Local.Test;
 
 [Trait("Category", "Integration")]
+[Trait("Environment", "Local")]
 /// <summary>
 /// Diagnostic tests to debug XUnitAssured integration.
 /// Demonstrates usage of XUnitAssured.Extensions for improved test readability.
@@ -41,7 +43,7 @@ public class SimpleIntegrationTests : HttpTestBase<HttpSamplesFixture>, IClassFi
 		scenario.ExecuteCurrentStepAsync().GetAwaiter().GetResult();
 
 		var step = scenario.CurrentStep;
-		var result = step?.Result as XUnitAssured.Http.Results.HttpStepResult;
+		var result = step?.Result as Results.HttpStepResult;
 
 		result.ShouldNotBeNull();
 		result.StatusCode.ShouldBe(200);

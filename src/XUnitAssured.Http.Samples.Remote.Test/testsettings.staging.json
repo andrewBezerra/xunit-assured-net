@@ -1,0 +1,35 @@
+{
+  // STAGING ENVIRONMENT CONFIGURATION
+  // This file demonstrates environment-specific configuration
+  // Usage: Set TEST_ENV=staging before running tests
+  //   PowerShell: $env:TEST_ENV="staging"
+  //   CMD: set TEST_ENV=staging
+  //   Linux/Mac: export TEST_ENV=staging
+  
+  "testMode": "Remote",
+  "environment": "staging",
+  
+  "http": {
+    // Staging API URL - use environment variable for flexibility
+    "baseUrl": "${ENV:STAGING_API_URL}",
+    
+    // Increase timeout for staging (slower than production)
+    "timeout": 90,
+    
+    // Staging-specific headers
+    "defaultHeaders": {
+      "X-Test-Source": "XUnitAssured.Remote.Test",
+      "X-Environment": "Staging",
+      "Accept": "application/json"
+    },
+    
+    // Authentication for staging
+    "authentication": {
+      "type": "Bearer",
+      "bearer": {
+        "token": "${ENV:STAGING_API_TOKEN}",
+        "prefix": "Bearer"
+      }
+    }
+  }
+}

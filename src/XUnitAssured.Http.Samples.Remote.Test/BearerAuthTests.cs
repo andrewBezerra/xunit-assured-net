@@ -1,22 +1,34 @@
 using XUnitAssured.Extensions.Http;
 using XUnitAssured.Http.Extensions;
-using XUnitAssured.Http.Testing;
 
-namespace XUnitAssured.Http.Samples.Test;
+namespace XUnitAssured.Http.Samples.Remote.Test;
 
 [Trait("Authentication", "Bearer")]
+[Trait("Environment", "Remote")]
 /// <summary>
-/// Sample tests demonstrating Bearer Token Authentication using XUnitAssured.Http.
+/// Remote tests demonstrating Bearer Token Authentication against a deployed API.
 /// Bearer tokens are sent in the Authorization header as "Bearer {token}".
 /// Commonly used for JWT (JSON Web Tokens) and OAuth2 access tokens.
 /// </summary>
-public class BearerAuthTests : HttpTestBase<HttpSamplesFixture>, IClassFixture<HttpSamplesFixture>
+/// <remarks>
+/// Tests the same authentication endpoints as local tests but against a remote server.
+/// Requires remote API to be configured in testsettings.json:
+/// <code>
+/// {
+///   "testMode": "Remote",
+///   "http": {
+///     "baseUrl": "https://your-api.com"
+///   }
+/// }
+/// </code>
+/// </remarks>
+public class BearerAuthTests : HttpSamplesRemoteTestBase, IClassFixture<HttpSamplesRemoteFixture>
 {
-	public BearerAuthTests(HttpSamplesFixture fixture) : base(fixture)
+	public BearerAuthTests(HttpSamplesRemoteFixture fixture) : base(fixture)
 	{
 	}
 
-	[Fact(DisplayName = "Bearer Token Authentication with valid token should return success")]
+	[Fact(Skip = "Remote test - requires deployed API environment", DisplayName = "Bearer Token Authentication with valid token should return success")]
 	public void Example01_BearerAuth_WithValidToken_ShouldReturnSuccess()
 	{
 		// Arrange
@@ -35,7 +47,7 @@ public class BearerAuthTests : HttpTestBase<HttpSamplesFixture>, IClassFixture<H
 			.AssertJsonPath<string>("$.message", value => value?.Contains("successful") == true, "Should return success message");
 	}
 
-	[Fact(DisplayName = "Bearer Token Authentication with invalid token should return 401 Unauthorized")]
+	[Fact(Skip = "Remote test - requires deployed API environment", DisplayName = "Bearer Token Authentication with invalid token should return 401 Unauthorized")]
 	public void Example02_BearerAuth_WithInvalidToken_ShouldReturn401()
 	{
 		// Arrange
@@ -52,7 +64,7 @@ public class BearerAuthTests : HttpTestBase<HttpSamplesFixture>, IClassFixture<H
 		// Note: Server returns 401 without JSON body
 	}
 
-	[Fact(DisplayName = "Bearer Token Authentication without token should return 401 Unauthorized")]
+	[Fact(Skip = "Remote test - requires deployed API environment", DisplayName = "Bearer Token Authentication without token should return 401 Unauthorized")]
 	public void Example03_BearerAuth_WithoutToken_ShouldReturn401()
 	{
 		// Act & Assert - No authentication provided
@@ -65,7 +77,7 @@ public class BearerAuthTests : HttpTestBase<HttpSamplesFixture>, IClassFixture<H
 		// Note: Server returns 401 without JSON body
 	}
 
-	[Fact(DisplayName = "Bearer Token Authentication with empty token should return 401 Unauthorized")]
+	[Fact(Skip = "Remote test - requires deployed API environment", DisplayName = "Bearer Token Authentication with empty token should return 401 Unauthorized")]
 	public void Example04_BearerAuth_WithEmptyToken_ShouldReturn401()
 	{
 		// Arrange
@@ -81,7 +93,7 @@ public class BearerAuthTests : HttpTestBase<HttpSamplesFixture>, IClassFixture<H
 			.AssertStatusCode(401);
 	}
 
-	[Fact(DisplayName = "Bearer Token Authentication with custom prefix should work correctly")]
+	[Fact(Skip = "Remote test - requires deployed API environment", DisplayName = "Bearer Token Authentication with custom prefix should work correctly")]
 	public void Example05_BearerAuth_WithCustomPrefix_ShouldWork()
 	{
 		// Arrange
@@ -99,7 +111,7 @@ public class BearerAuthTests : HttpTestBase<HttpSamplesFixture>, IClassFixture<H
 			.AssertJsonPath<bool>("$.authenticated", value => value, "Should be authenticated with custom prefix");
 	}
 
-	[Fact(DisplayName = "Bearer Token is case-sensitive and wrong case should return 401 Unauthorized")]
+	[Fact(Skip = "Remote test - requires deployed API environment", DisplayName = "Bearer Token is case-sensitive and wrong case should return 401 Unauthorized")]
 	public void Example06_BearerAuth_TokenIsCaseSensitive_ShouldReturn401()
 	{
 		// Arrange - Token is case-sensitive
@@ -116,7 +128,7 @@ public class BearerAuthTests : HttpTestBase<HttpSamplesFixture>, IClassFixture<H
 		// Note: Server returns 401 without JSON body
 	}
 
-	[Fact(DisplayName = "Bearer Token with whitespace should be trimmed and authentication succeeds")]
+	[Fact(Skip = "Remote test - requires deployed API environment", DisplayName = "Bearer Token with whitespace should be trimmed and authentication succeeds")]
 	public void Example07_BearerAuth_WithWhitespaceInToken_ShouldReturn401()
 	{
 		// Arrange - Token with extra whitespace
@@ -135,7 +147,7 @@ public class BearerAuthTests : HttpTestBase<HttpSamplesFixture>, IClassFixture<H
 			.AssertJsonPath<bool>("$.authenticated", value => value, "Server trims token, so authentication succeeds");
 	}
 
-	[Fact(DisplayName = "Bearer Token Authentication with valid token should return complete response structure")]
+	[Fact(Skip = "Remote test - requires deployed API environment", DisplayName = "Bearer Token Authentication with valid token should return complete response structure")]
 	public void Example08_BearerAuth_ValidToken_CheckResponseStructure()
 	{
 		// Arrange
@@ -154,7 +166,7 @@ public class BearerAuthTests : HttpTestBase<HttpSamplesFixture>, IClassFixture<H
 			.AssertJsonPath<object>("$.message", value => value != null, "message field should exist");
 	}
 
-	[Fact(DisplayName = "Bearer Token Authentication should maintain authentication across multiple requests")]
+	[Fact(Skip = "Remote test - requires deployed API environment", DisplayName = "Bearer Token Authentication should maintain authentication across multiple requests")]
 	public void Example09_BearerAuth_MultipleRequests_ShouldMaintainAuthentication()
 	{
 		// Arrange
@@ -181,7 +193,7 @@ public class BearerAuthTests : HttpTestBase<HttpSamplesFixture>, IClassFixture<H
 			.AssertJsonPath<bool>("$.authenticated", value => value, "Second request should be authenticated");
 	}
 
-	[Fact(DisplayName = "Bearer Token Authentication with different tokens should behave differently")]
+	[Fact(Skip = "Remote test - requires deployed API environment", DisplayName = "Bearer Token Authentication with different tokens should behave differently")]
 	public void Example10_BearerAuth_DifferentTokens_ShouldBehaveDifferently()
 	{
 		// Arrange

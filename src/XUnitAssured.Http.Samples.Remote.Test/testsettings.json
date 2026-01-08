@@ -1,0 +1,67 @@
+{
+  // Test configuration for XUnitAssured Remote Tests
+  // This file configures remote API testing settings
+  
+  // Test execution mode: "Local" for in-memory tests, "Remote" for deployed API tests
+  "testMode": "Remote",
+  
+  // Environment name (optional): "dev", "staging", "prod", etc.
+  // Can be overridden by TEST_ENV environment variable
+  "environment": "staging",
+  
+  // HTTP configuration for remote API testing
+  "http": {
+    // Base URL of the remote API
+    // Can use environment variable: "${ENV:REMOTE_API_URL}"
+    // Example: "https://api.staging.example.com"
+    "baseUrl": "https://localhost:7005",
+    
+    // Request timeout in seconds
+    "timeout": 60,
+    
+    // Default headers to include in all requests (optional)
+    "defaultHeaders": {
+      "X-Test-Source": "XUnitAssured.Remote.Test",
+      "Accept": "application/json"
+    },
+    
+    // Authentication configuration (optional)
+    // Uncomment and configure as needed
+    "authentication": {
+      // Authentication type: "None", "Basic", "Bearer", "ApiKey", "OAuth2"
+      "type": "None"
+      
+      // Basic Auth example:
+      // "type": "Basic",
+      // "basic": {
+      //   "username": "admin",
+      //   "password": "${ENV:API_PASSWORD}"
+      // }
+      
+      // Bearer Token example:
+      // "type": "Bearer",
+      // "bearer": {
+      //   "token": "${ENV:API_TOKEN}",
+      //   "prefix": "Bearer"
+      // }
+      
+      // API Key example:
+      // "type": "ApiKey",
+      // "apiKey": {
+      //   "name": "X-API-Key",
+      //   "value": "${ENV:API_KEY}",
+      //   "location": "Header"  // or "Query"
+      // }
+      
+      // OAuth2 example:
+      // "type": "OAuth2",
+      // "oauth2": {
+      //   "tokenUrl": "${ENV:OAUTH_TOKEN_URL}",
+      //   "clientId": "${ENV:OAUTH_CLIENT_ID}",
+      //   "clientSecret": "${ENV:OAUTH_CLIENT_SECRET}",
+      //   "grantType": "ClientCredentials",
+      //   "scopes": ["read", "write"]
+      // }
+    }
+  }
+}

@@ -7,6 +7,7 @@ using XUnitAssured.Http.Testing;
 namespace XUnitAssured.Http.Samples.Test;
 
 [Trait("Category", "Validation")]
+[Trait("Environment", "Local")]
 /// <summary>
 /// Sample tests demonstrating the HYBRID APPROACH:
 /// 1. Field validation for structure checking (detects breaking changes)
