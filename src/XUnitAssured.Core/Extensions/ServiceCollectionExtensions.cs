@@ -1,9 +1,6 @@
 using System;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Options;
 
-namespace XUnitAssured.DependencyInjection.Extensions;
+namespace XUnitAssured.Core.Extensions;
 
 /// <summary>
 /// Extension methods for IServiceCollection to simplify common DI operations in tests.
@@ -19,6 +16,11 @@ public static class ServiceCollectionExtensions
 	/// <param name="sectionName">Configuration section name</param>
 	/// <param name="validateOnStart">Whether to validate options on application start (default: true)</param>
 	/// <returns>Service collection for chaining</returns>
+	/// <example>
+	/// <code>
+	/// services.AddSettings&lt;MySettings&gt;(configuration, "MySettings");
+	/// </code>
+	/// </example>
 	public static IServiceCollection AddSettings<TSettings>(
 		this IServiceCollection services,
 		IConfiguration configuration,
@@ -44,6 +46,11 @@ public static class ServiceCollectionExtensions
 	/// <typeparam name="TSettings">The settings type</typeparam>
 	/// <param name="services">Service collection</param>
 	/// <returns>Configured settings instance</returns>
+	/// <example>
+	/// <code>
+	/// var settings = services.GetSettings&lt;MySettings&gt;();
+	/// </code>
+	/// </example>
 	public static TSettings GetSettings<TSettings>(this IServiceCollection services)
 		where TSettings : class
 	{
@@ -58,6 +65,11 @@ public static class ServiceCollectionExtensions
 	/// <typeparam name="TImplementation">Implementation type</typeparam>
 	/// <param name="services">Service collection</param>
 	/// <returns>Service collection for chaining</returns>
+	/// <example>
+	/// <code>
+	/// services.AddSingletonWithDisposal&lt;IMyService, MyService&gt;();
+	/// </code>
+	/// </example>
 	public static IServiceCollection AddSingletonWithDisposal<TService, TImplementation>(
 		this IServiceCollection services)
 		where TService : class
@@ -73,6 +85,12 @@ public static class ServiceCollectionExtensions
 	/// <param name="services">Service collection</param>
 	/// <param name="instance">Service instance</param>
 	/// <returns>Service collection for chaining</returns>
+	/// <example>
+	/// <code>
+	/// var myService = new MyService();
+	/// services.AddSingletonWithDisposal(myService);
+	/// </code>
+	/// </example>
 	public static IServiceCollection AddSingletonWithDisposal<TService>(
 		this IServiceCollection services,
 		TService instance)

@@ -3,9 +3,10 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+
 using XUnitAssured.Core.Abstractions;
 
-namespace XUnitAssured.Http.Samples.Test;
+namespace XUnitAssured.Http.Samples.Local.Test;
 
 /// <summary>
 /// Test fixture for HTTP samples using XUnitAssured.Http.

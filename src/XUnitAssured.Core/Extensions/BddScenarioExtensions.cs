@@ -2,7 +2,7 @@ using System;
 using XUnitAssured.Core.Abstractions;
 using XUnitAssured.Core.Results;
 
-namespace XUnitAssured.Extensions.Core;
+namespace XUnitAssured.Core.Extensions;
 
 /// <summary>
 /// BDD-style extension methods for ITestScenario.

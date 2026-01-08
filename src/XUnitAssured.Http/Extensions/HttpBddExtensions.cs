@@ -1,7 +1,7 @@
 using XUnitAssured.Core.Abstractions;
 using XUnitAssured.Http.Results;
 
-namespace XUnitAssured.Extensions.Http;
+namespace XUnitAssured.Http.Extensions;
 
 /// <summary>
 /// HTTP-specific BDD extension methods for ITestScenario.

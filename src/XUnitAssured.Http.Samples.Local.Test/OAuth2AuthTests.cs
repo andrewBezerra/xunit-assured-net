@@ -1,9 +1,8 @@
-using XUnitAssured.Extensions.Http;
-using XUnitAssured.Http.Configuration;
 using XUnitAssured.Http.Extensions;
+using XUnitAssured.Http.Configuration;
 using XUnitAssured.Http.Testing;
 
-namespace XUnitAssured.Http.Samples.Test;
+namespace XUnitAssured.Http.Samples.Local.Test;
 
 [Trait("Authentication", "OAuth2")]
 [Trait("Environment", "Local")]

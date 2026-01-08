@@ -1,10 +1,9 @@
 using Shouldly;
-using SampleWebApi.Models;
-using XUnitAssured.Core.DSL;
-using XUnitAssured.Extensions.Http;
+
 using XUnitAssured.Http.Extensions;
 using XUnitAssured.Http.Testing;
-namespace XUnitAssured.Http.Samples.Test;
+
+namespace XUnitAssured.Http.Samples.Local.Test;
 
 [Trait("Category", "Validation")]
 [Trait("Environment", "Local")]
@@ -110,12 +109,12 @@ public class HybridValidationTests : HttpTestBase<HttpSamplesFixture>, IClassFix
 		// Parse response and validate array
 		var responseBody = result.ResponseBody?.ToString() ?? "";
 		responseBody.ShouldNotBeNullOrEmpty();
-		
+
 		// Verify it's an array with elements
 		var jsonDoc = System.Text.Json.JsonDocument.Parse(responseBody);
 		jsonDoc.RootElement.ValueKind.ShouldBe(System.Text.Json.JsonValueKind.Array);
 		jsonDoc.RootElement.GetArrayLength().ShouldBeGreaterThan(0);
-		
+
 		// Validate first element has expected structure
 		var firstElement = jsonDoc.RootElement[0];
 		firstElement.GetProperty("id").GetInt32().ShouldBeGreaterThan(0);

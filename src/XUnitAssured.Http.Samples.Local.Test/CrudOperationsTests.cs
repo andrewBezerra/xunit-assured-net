@@ -1,8 +1,7 @@
-using XUnitAssured.Extensions.Http;
 using XUnitAssured.Http.Extensions;
 using XUnitAssured.Http.Testing;
 
-namespace XUnitAssured.Http.Samples.Test;
+namespace XUnitAssured.Http.Samples.Local.Test;
 
 [Trait("Category", "CRUD Operations")]
 [Trait("Environment", "Local")]

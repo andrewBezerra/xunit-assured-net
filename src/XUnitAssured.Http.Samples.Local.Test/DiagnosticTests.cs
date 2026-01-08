@@ -1,7 +1,6 @@
-using Xunit;
 using XUnitAssured.Http.Testing;
 
-namespace XUnitAssured.Http.Samples.Test;
+namespace XUnitAssured.Http.Samples.Local.Test;
 
 [Trait("Category", "Diagnostics")]
 [Trait("Environment", "Local")]
@@ -27,13 +26,13 @@ public class DiagnosticTests : HttpTestBase<HttpSamplesFixture>, IClassFixture<H
 		// Assert
 		Assert.NotNull(response);
 		var content = await response.Content.ReadAsStringAsync();
-		
+
 		// Log for debugging
-		System.Console.WriteLine($"Status: {response.StatusCode}");
-		System.Console.WriteLine($"Content: {content}");
-		System.Console.WriteLine($"BaseUrl: {Fixture.BaseUrl}");
-		
-		Assert.True(response.IsSuccessStatusCode, 
+		Console.WriteLine($"Status: {response.StatusCode}");
+		Console.WriteLine($"Content: {content}");
+		Console.WriteLine($"BaseUrl: {Fixture.BaseUrl}");
+
+		Assert.True(response.IsSuccessStatusCode,
 			$"Expected success but got {response.StatusCode}. Content: {content}");
 	}
 }

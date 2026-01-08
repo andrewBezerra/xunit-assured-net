@@ -3,7 +3,7 @@ using Shouldly;
 using XUnitAssured.Core.Abstractions;
 using XUnitAssured.Core.Results;
 
-namespace XUnitAssured.Extensions.Core;
+namespace XUnitAssured.Core.Extensions;
 
 /// <summary>
 /// Generic validation builder for fluent test assertions.

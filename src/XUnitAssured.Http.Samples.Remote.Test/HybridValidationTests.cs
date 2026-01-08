@@ -1,6 +1,6 @@
 using Shouldly;
 using XUnitAssured.Core.DSL;
-using XUnitAssured.Extensions.Http;
+using XUnitAssured.Http.Extensions;
 using XUnitAssured.Http.Extensions;
 
 namespace XUnitAssured.Http.Samples.Remote.Test;

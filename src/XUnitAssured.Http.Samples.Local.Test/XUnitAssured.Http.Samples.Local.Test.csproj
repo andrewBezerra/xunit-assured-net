@@ -26,7 +26,6 @@
 
 	<ItemGroup>
 		<ProjectReference Include="..\XUnitAssured.Http\XUnitAssured.Http.csproj" />
-		<ProjectReference Include="..\XUnitAssured.Extensions\XUnitAssured.Extensions.csproj" />
 		<ProjectReference Include="..\SampleWebApi\SampleWebApi.csproj" />
 	</ItemGroup>
 

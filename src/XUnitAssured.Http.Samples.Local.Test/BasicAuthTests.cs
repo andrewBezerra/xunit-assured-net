@@ -1,6 +1,4 @@
-using XUnitAssured.Extensions.Http;
 using XUnitAssured.Http.Extensions;
-using XUnitAssured.Http.Samples.Test;
 using XUnitAssured.Http.Testing;
 
 namespace XUnitAssured.Http.Samples.Local.Test;

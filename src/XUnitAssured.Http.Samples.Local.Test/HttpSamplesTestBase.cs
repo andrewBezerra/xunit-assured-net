@@ -1,6 +1,6 @@
 using XUnitAssured.Http.Testing;
 
-namespace XUnitAssured.Http.Samples.Test;
+namespace XUnitAssured.Http.Samples.Local.Test;
 
 /// <summary>
 /// Base class for all sample tests using HttpSamplesFixture.

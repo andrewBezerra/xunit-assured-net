@@ -1,11 +1,10 @@
 using System;
 using Shouldly;
 using XUnitAssured.Core.Abstractions;
-using XUnitAssured.Extensions.Core;
-using XUnitAssured.Http.Extensions;
+using XUnitAssured.Core.Extensions;
 using XUnitAssured.Http.Results;
 
-namespace XUnitAssured.Extensions.Http;
+namespace XUnitAssured.Http.Extensions;
 
 /// <summary>
 /// HTTP-specific validation builder that extends the generic ValidationBuilder.

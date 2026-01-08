@@ -1,4 +1,4 @@
-using XUnitAssured.Extensions.Http;
+using XUnitAssured.Http.Extensions;
 using XUnitAssured.Http.Configuration;
 using XUnitAssured.Http.Extensions;
 
