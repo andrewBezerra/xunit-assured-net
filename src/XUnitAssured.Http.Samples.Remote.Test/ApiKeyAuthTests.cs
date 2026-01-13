@@ -1,6 +1,5 @@
 using XUnitAssured.Http.Extensions;
 using XUnitAssured.Http.Configuration;
-using XUnitAssured.Http.Extensions;
 
 namespace XUnitAssured.Http.Samples.Remote.Test;
 
@@ -268,6 +267,84 @@ public class ApiKeyAuthTests : HttpSamplesRemoteTestBase, IClassFixture<HttpSamp
 		.Then()
 			.AssertStatusCode(200)
 			.AssertJsonPath<bool>("$.authenticated", value => value, "Second request should be authenticated");
+	}
+
+	#endregion
+
+	#region Automatic Authentication Tests
+
+	// ============================================================================
+	// AUTOMATIC AUTHENTICATION TESTS
+	// ============================================================================
+	// These tests demonstrate the automatic authentication feature where
+	// API Key configured in testsettings.json is automatically applied
+	// without needing to call .WithApiKey() explicitly.
+	//
+	// To use these tests:
+	// 1. Configure ApiKey in testsettings.json:
+	//    "authentication": {
+	//      "type": "ApiKey",
+	//      "apiKey": {
+	//        "keyName": "X-API-Key",
+	//        "keyValue": "api-key-header-abc123xyz",
+	//        "location": "Header"
+	//      }
+	//    }
+	// 2. Remove the Skip attribute to run the tests
+	// ============================================================================
+
+	[Fact(Skip = "Demo test - requires ApiKey configured in testsettings.json",
+		  DisplayName = "DEMO: API Key (Header) applied automatically from testsettings.json")]
+	public void Example14_ApiKeyHeader_Automatic_FromTestSettings()
+	{
+		// NO .WithApiKey() call needed!
+		// API Key is automatically applied from testsettings.json
+
+			.ApiResource("/api/auth/apikey-header")
+			.Get()
+		.When()
+			.Execute()
+		.Then()
+			.AssertStatusCode(200)
+			.AssertJsonPath<string>("$.authType", value => value == "ApiKey-Header", "Auth type should be ApiKey-Header")
+			.AssertJsonPath<bool>("$.authenticated", value => value, "Should be authenticated");
+	}
+
+	[Fact(Skip = "Demo test - requires ApiKey (Query) configured in testsettings.json",
+		  DisplayName = "DEMO: API Key (Query) applied automatically from testsettings.json")]
+	public void Example15_ApiKeyQuery_Automatic_FromTestSettings()
+	{
+		// Configure in testsettings.json:
+		//   "apiKey": { "keyName": "api_key", "keyValue": "api-key-query-xyz789abc", "location": "Query" }
+
+		Given()
+			.ApiResource("/api/auth/apikey-query")
+			.Get()
+		.When()
+			.Execute()
+		.Then()
+			.AssertStatusCode(200)
+			.AssertJsonPath<string>("$.authType", value => value == "ApiKey-Query", "Auth type should be ApiKey-Query")
+			.AssertJsonPath<bool>("$.authenticated", value => value, "Should be authenticated");
+	}
+
+	[Fact(Skip = "Demo test - requires ApiKey configured in testsettings.json",
+		  DisplayName = "DEMO: Manual API Key overrides testsettings.json configuration")]
+	public void Example16_ApiKey_ManualOverride_TestSettings()
+	{
+		// Even if testsettings.json has API Key configured,
+		// calling .WithApiKey() explicitly will override it
+
+		var differentKey = "different-invalid-key";
+
+		Given()
+			.ApiResource("/api/auth/apikey-header")
+			.WithApiKey("X-API-Key", differentKey, ApiKeyLocation.Header)  // Manual override
+			.Get()
+		.When()
+			.Execute()
+		.Then()
+			.AssertStatusCode(401);  // Should fail with invalid key
 	}
 
 	#endregion

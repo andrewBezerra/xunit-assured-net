@@ -220,4 +220,60 @@ public class BearerAuthTests : HttpSamplesRemoteTestBase, IClassFixture<HttpSamp
 			.AssertStatusCode(401);
 		// Note: Server returns 401 without JSON body
 	}
+
+	// ============================================================================
+	// AUTOMATIC AUTHENTICATION TESTS
+	// ============================================================================
+	// These tests demonstrate the automatic authentication feature where
+	// bearer token configured in testsettings.json is automatically applied
+	// without needing to call .WithBearerToken() explicitly.
+	//
+	// To use these tests:
+	// 1. Configure Bearer Auth in testsettings.json:
+	//    "authentication": {
+	//      "type": "Bearer",
+	//      "bearer": {
+	//        "token": "my-super-secret-token-12345",
+	//        "prefix": "Bearer"
+	//      }
+	//    }
+	// 2. Remove the Skip attribute to run the tests
+	// ============================================================================
+
+	[Fact(Skip = "Demo test - requires Bearer Auth configured in testsettings.json", 
+	      DisplayName = "DEMO: Bearer Token applied automatically from testsettings.json")]
+	public void Example11_BearerAuth_Automatic_FromTestSettings()
+	{
+		// NO .WithBearerToken() call needed!
+		// Bearer token is automatically applied from testsettings.json
+
+		Given()
+			.ApiResource("/api/auth/bearer")
+			.Get()
+		.When()
+			.Execute()
+		.Then()
+			.AssertStatusCode(200)
+			.AssertJsonPath<string>("$.authType", value => value == "Bearer", "Auth type should be Bearer")
+			.AssertJsonPath<bool>("$.authenticated", value => value, "Should be authenticated");
+	}
+
+	[Fact(Skip = "Demo test - requires Bearer Auth configured in testsettings.json", 
+	      DisplayName = "DEMO: Manual token overrides testsettings.json configuration")]
+	public void Example12_BearerAuth_ManualOverride_TestSettings()
+	{
+		// Even if testsettings.json has Bearer token configured,
+		// calling .WithBearerToken() explicitly will override it
+
+		var differentToken = "different-token-that-fails";
+
+		Given()
+			.ApiResource("/api/auth/bearer")
+			.WithBearerToken(differentToken)  // Manual override
+			.Get()
+		.When()
+			.Execute()
+		.Then()
+			.AssertStatusCode(401);  // Should fail with invalid token
+	}
 }

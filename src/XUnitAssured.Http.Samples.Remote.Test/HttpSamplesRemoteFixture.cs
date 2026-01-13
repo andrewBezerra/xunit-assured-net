@@ -10,6 +10,7 @@ namespace XUnitAssured.Http.Samples.Remote.Test;
 /// Test fixture for remote HTTP samples using XUnitAssured.Http.
 /// Connects to a remotely published SampleWebApi application for integration testing.
 /// Implements IHttpClientProvider to work seamlessly with Given(fixture) syntax.
+/// Implements IHttpClientAuthProvider to automatically apply authentication from testsettings.json.
 /// </summary>
 /// <remarks>
 /// This fixture is designed for testing against a remote/deployed API instance.
@@ -23,6 +24,13 @@ namespace XUnitAssured.Http.Samples.Remote.Test;
 ///     "timeout": 60,
 ///     "defaultHeaders": {
 ///       "X-Test-Source": "XUnitAssured"
+///     },
+///     "authentication": {
+///       "type": "Basic",
+///       "basic": {
+///         "username": "admin",
+///         "password": "secret123"
+///       }
 ///     }
 ///   }
 /// }
@@ -40,8 +48,12 @@ namespace XUnitAssured.Http.Samples.Remote.Test;
 /// Set via environment variable:
 /// SET REMOTE_API_URL=https://api.staging.com
 /// dotnet test
+/// 
+/// Authentication configured in testsettings.json will be automatically applied
+/// to all requests made through this fixture. You can still override it per-test
+/// using authentication methods like WithBasicAuth(), WithBearerToken(), etc.
 /// </remarks>
-public class HttpSamplesRemoteFixture : IHttpClientProvider, IDisposable
+public class HttpSamplesRemoteFixture : IHttpClientProvider, IHttpClientAuthProvider, IDisposable
 {
 	private readonly HttpSettings _httpSettings;
 	private readonly HttpClient _httpClient;
@@ -116,6 +128,19 @@ public class HttpSamplesRemoteFixture : IHttpClientProvider, IDisposable
 	/// HTTP settings loaded from configuration.
 	/// </summary>
 	public HttpSettings HttpSettings => _httpSettings;
+
+	/// <summary>
+	/// Authentication configuration loaded from testsettings.json.
+	/// Returns null if no authentication is configured.
+	/// </summary>
+	public HttpAuthConfig? AuthenticationConfig => _httpSettings.Authentication;
+
+	/// <summary>
+	/// Gets the authentication configuration to be automatically applied to HTTP requests.
+	/// Implements IHttpClientAuthProvider interface.
+	/// </summary>
+	/// <returns>The authentication configuration from testsettings.json, or null if none configured.</returns>
+	public HttpAuthConfig? GetAuthenticationConfig() => AuthenticationConfig;
 
 	/// <summary>
 	/// Creates an HttpClient for direct API calls if needed.

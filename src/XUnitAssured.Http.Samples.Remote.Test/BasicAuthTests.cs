@@ -203,4 +203,81 @@ public class BasicAuthTests : HttpSamplesRemoteTestBase, IClassFixture<HttpSampl
 			.AssertStatusCode(200)
 			.AssertJsonPath<bool>("$.authenticated", value => value, "Second request should be authenticated");
 	}
+
+	// ============================================================================
+	// AUTOMATIC AUTHENTICATION TESTS
+	// ============================================================================
+	// These tests demonstrate the automatic authentication feature where
+	// credentials configured in testsettings.json are automatically applied
+	// without needing to call .WithBasicAuth() explicitly.
+	//
+	// To use these tests:
+	// 1. Configure Basic Auth in testsettings.json:
+	//    "authentication": {
+	//      "type": "Basic",
+	//      "basic": {
+	//        "username": "admin",
+	//        "password": "secret123"
+	//      }
+	//    }
+	// 2. Remove the Skip attribute to run the tests
+	// ============================================================================
+
+	[Fact(Skip = "Demo test - requires Basic Auth configured in testsettings.json", 
+	      DisplayName = "DEMO: Basic Authentication applied automatically from testsettings.json")]
+	public void Example11_BasicAuth_Automatic_FromTestSettings()
+	{
+		// NO .WithBasicAuth() call needed!
+		// Authentication is automatically applied from testsettings.json
+		// when the fixture implements IHttpClientAuthProvider
+
+		Given()
+			.ApiResource("/api/auth/basic")
+			.Get()
+		.When()
+			.Execute()
+		.Then()
+			.AssertStatusCode(200)
+			.AssertJsonPath<string>("$.authType", value => value == "Basic", "Auth type should be Basic")
+			.AssertJsonPath<bool>("$.authenticated", value => value, "Should be authenticated")
+			.AssertJsonPath<string>("$.username", value => value == "admin", "Username should be 'admin' from config");
+	}
+
+	[Fact(Skip = "Demo test - requires Basic Auth configured in testsettings.json", 
+	      DisplayName = "DEMO: Manual authentication overrides testsettings.json configuration")]
+	public void Example12_BasicAuth_ManualOverride_TestSettings()
+	{
+		// Even if testsettings.json has Basic Auth configured,
+		// calling .WithBasicAuth() explicitly will override it
+
+		var differentUsername = "testuser";
+		var differentPassword = "testpass";
+
+		Given()
+			.ApiResource("/api/auth/basic")
+			.WithBasicAuth(differentUsername, differentPassword)  // Manual override
+			.Get()
+		.When()
+			.Execute()
+		.Then()
+			// This should fail with 401 because we're using different credentials
+			.AssertStatusCode(401);
+	}
+
+	[Fact(Skip = "Demo test - requires Basic Auth configured in testsettings.json", 
+	      DisplayName = "DEMO: Disable authentication with WithNoAuth() method")]
+	public void Example13_BasicAuth_DisableAuth_WithNoAuth()
+	{
+		// Use .WithNoAuth() to explicitly disable authentication
+		// even when it's configured in testsettings.json
+
+		Given()
+			.ApiResource("/api/auth/basic")
+			.WithNoAuth()  // Explicitly disable authentication
+			.Get()
+		.When()
+			.Execute()
+		.Then()
+			.AssertStatusCode(401);  // Should fail without auth
+	}
 }

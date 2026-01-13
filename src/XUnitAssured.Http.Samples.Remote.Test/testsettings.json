@@ -25,42 +25,138 @@
       "Accept": "application/json"
     },
     
-    // Authentication configuration (optional)
-    // Uncomment and configure as needed
+    // ============================================================================
+    // AUTHENTICATION CONFIGURATION
+    // ============================================================================
+    // Configure authentication to be automatically applied to all HTTP requests.
+    // When authentication is configured here, you don't need to call methods like
+    // .WithBasicAuth(), .WithBearerToken(), etc. in your tests.
+    // 
+    // You can still override the configured authentication per-test by using
+    // the authentication methods explicitly.
+    //
+    // Supports environment variables using ${ENV:VARIABLE_NAME} syntax.
+    // ============================================================================
     "authentication": {
-      // Authentication type: "None", "Basic", "Bearer", "ApiKey", "OAuth2"
+      // ========================================
+      // 1. NO AUTHENTICATION (Default)
+      // ========================================
       "type": "None"
       
-      // Basic Auth example:
+      // ========================================
+      // 2. BASIC AUTHENTICATION
+      // ========================================
+      // Sends credentials as base64-encoded "username:password" in Authorization header
+      // Example usage in test (automatic):
+      //   Given().ApiResource("/api/auth/basic").Get()
+      // 
       // "type": "Basic",
       // "basic": {
       //   "username": "admin",
-      //   "password": "${ENV:API_PASSWORD}"
+      //   "password": "secret123"
+      //   // Or use environment variable:
+      //   // "password": "${ENV:API_PASSWORD}"
       // }
       
-      // Bearer Token example:
+      // ========================================
+      // 3. BEARER TOKEN AUTHENTICATION
+      // ========================================
+      // Sends bearer token in Authorization header (e.g., JWT tokens)
+      // Example usage in test (automatic):
+      //   Given().ApiResource("/api/protected").Get()
+      //
       // "type": "Bearer",
       // "bearer": {
-      //   "token": "${ENV:API_TOKEN}",
-      //   "prefix": "Bearer"
+      //   "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+      //   "prefix": "Bearer"  // Optional, defaults to "Bearer"
+      //   // Or use environment variable:
+      //   // "token": "${ENV:JWT_TOKEN}"
       // }
       
-      // API Key example:
+      // ========================================
+      // 4. API KEY AUTHENTICATION
+      // ========================================
+      // Sends API key in HTTP header or query string
+      // Example usage in test (automatic):
+      //   Given().ApiResource("/api/data").Get()
+      //
+      // Option A: API Key in Header
       // "type": "ApiKey",
       // "apiKey": {
-      //   "name": "X-API-Key",
-      //   "value": "${ENV:API_KEY}",
-      //   "location": "Header"  // or "Query"
+      //   "keyName": "X-API-Key",
+      //   "keyValue": "abc123xyz789",
+      //   "location": "Header"
+      //   // Or use environment variable:
+      //   // "keyValue": "${ENV:API_KEY}"
+      // }
+      //
+      // Option B: API Key in Query String
+      // "type": "ApiKey",
+      // "apiKey": {
+      //   "keyName": "api_key",
+      //   "keyValue": "abc123xyz789",
+      //   "location": "Query"
       // }
       
-      // OAuth2 example:
+      // ========================================
+      // 5. OAUTH 2.0 AUTHENTICATION
+      // ========================================
+      // Automatically obtains OAuth2 token using Client Credentials flow
+      // Example usage in test (automatic):
+      //   Given().ApiResource("/api/oauth-protected").Get()
+      //
       // "type": "OAuth2",
       // "oauth2": {
-      //   "tokenUrl": "${ENV:OAUTH_TOKEN_URL}",
-      //   "clientId": "${ENV:OAUTH_CLIENT_ID}",
-      //   "clientSecret": "${ENV:OAUTH_CLIENT_SECRET}",
-      //   "grantType": "ClientCredentials",
-      //   "scopes": ["read", "write"]
+      //   "tokenUrl": "https://auth.example.com/oauth2/token",
+      //   "clientId": "my-client-id",
+      //   "clientSecret": "my-client-secret",
+      //   "grantType": "ClientCredentials",  // or "Password", "AuthorizationCode"
+      //   "scopes": ["read", "write"],  // Optional
+      //   // For Password grant type:
+      //   // "username": "user@example.com",
+      //   // "password": "user-password",
+      //   // Or use environment variables:
+      //   // "clientSecret": "${ENV:OAUTH_CLIENT_SECRET}"
+      // }
+      
+      // ========================================
+      // 6. CUSTOM HEADER AUTHENTICATION
+      // ========================================
+      // Sends custom authentication headers
+      // Example usage in test (automatic):
+      //   Given().ApiResource("/api/custom-auth").Get()
+      //
+      // "type": "CustomHeader",
+      // "customHeader": {
+      //   "headers": {
+      //     "X-Auth-Token": "custom-token-value",
+      //     "X-User-Id": "12345",
+      //     "X-Session-Id": "session-abc123"
+      //   }
+      // }
+      
+      // ========================================
+      // 7. CERTIFICATE AUTHENTICATION (mTLS)
+      // ========================================
+      // Uses client certificate for mutual TLS authentication
+      // Example usage in test (automatic):
+      //   Given().ApiResource("/api/mtls-protected").Get()
+      //
+      // Option A: Certificate from file
+      // "type": "Certificate",
+      // "certificate": {
+      //   "certificatePath": "C:\\certs\\client-cert.pfx",
+      //   "certificatePassword": "cert-password"
+      //   // Or use environment variable:
+      //   // "certificatePassword": "${ENV:CERT_PASSWORD}"
+      // }
+      //
+      // Option B: Certificate from Windows Certificate Store
+      // "type": "Certificate",
+      // "certificate": {
+      //   "thumbprint": "ABC123DEF456...",
+      //   "storeLocation": "CurrentUser",  // or "LocalMachine"
+      //   "storeName": "My"  // or "Root", "TrustedPeople", etc.
       // }
     }
   }
