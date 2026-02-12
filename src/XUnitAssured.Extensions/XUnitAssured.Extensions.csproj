@@ -45,5 +45,6 @@
 	<ItemGroup>
 		<ProjectReference Include="..\XUnitAssured.Core\XUnitAssured.Core.csproj" />
 		<ProjectReference Include="..\XUnitAssured.Http\XUnitAssured.Http.csproj" />
+		<ProjectReference Include="..\XUnitAssured.Kafka\XUnitAssured.Kafka.csproj" />
 	</ItemGroup>
 </Project>
