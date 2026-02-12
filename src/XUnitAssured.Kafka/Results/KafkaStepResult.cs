@@ -1,8 +1,10 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json;
 using Confluent.Kafka;
 using XUnitAssured.Core.Results;
+using XUnitAssured.Kafka.Extensions;
 
 namespace XUnitAssured.Kafka.Results;
 
@@ -65,6 +67,30 @@ public class KafkaStepResult : TestStepResult
 	/// <typeparam name="T">Target type for deserialization</typeparam>
 	/// <returns>Message as type T</returns>
 	public T? GetMessage<T>() => GetData<T>();
+
+	/// <summary>
+	/// Extracts a value from the JSON message using a simplified JSON path.
+	/// Supports: $.propertyName, $.property.nested, $.array[0]
+	/// </summary>
+	/// <typeparam name="T">The expected type of the value</typeparam>
+	/// <param name="path">JSON path expression (e.g., "$.id", "$.items[0].price")</param>
+	/// <returns>The extracted value converted to type T</returns>
+	/// <exception cref="InvalidOperationException">Thrown when message is empty or not a string</exception>
+	public T JsonPath<T>(string path)
+	{
+		var messageBody = Message?.ToString() ?? string.Empty;
+
+		if (string.IsNullOrWhiteSpace(messageBody))
+			throw new InvalidOperationException("Kafka message is empty - cannot extract JSON path");
+
+		using var document = JsonDocument.Parse(messageBody);
+		var root = document.RootElement;
+
+		if (path.StartsWith("$."))
+			path = path.Substring(2);
+
+		return KafkaJsonPathNavigator.Navigate<T>(root, path);
+	}
 
 	/// <summary>
 	/// Gets a specific header value by key.

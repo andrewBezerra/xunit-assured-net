@@ -1,5 +1,6 @@
 using Shouldly;
 using XUnitAssured.Kafka.Extensions;
+using XUnitAssured.Kafka.Testing;
 
 namespace XUnitAssured.Kafka.Samples.Local.Test;
 
@@ -24,9 +25,9 @@ namespace XUnitAssured.Kafka.Samples.Local.Test;
 /// - Kafka accessible at localhost:29092
 /// - testsettings.json configured with local Docker settings
 /// </remarks>
-public class ProducerConsumerBasicTests : KafkaSamplesLocalTestBase, IClassFixture<KafkaSamplesLocalFixture>
+public class ProducerConsumerBasicTests : KafkaTestBase<KafkaClassFixture>, IClassFixture<KafkaClassFixture>
 {
-	public ProducerConsumerBasicTests(KafkaSamplesLocalFixture fixture) : base(fixture)
+	public ProducerConsumerBasicTests(KafkaClassFixture fixture) : base(fixture)
 	{
 	}
 
@@ -34,7 +35,7 @@ public class ProducerConsumerBasicTests : KafkaSamplesLocalTestBase, IClassFixtu
 	public void Example01_ProduceAndConsumeString_ShouldSucceed()
 	{
 		// Arrange
-		var topic = Fixture.DefaultTopic;
+		var topic = GenerateUniqueTopic("string-test");
 		var uniqueGroupId = $"string-test-{Guid.NewGuid():N}";
 		var expectedMessage = $"Test message {GenerateMessageId()}";
 
@@ -57,14 +58,19 @@ public class ProducerConsumerBasicTests : KafkaSamplesLocalTestBase, IClassFixtu
 		.When()
 			.Execute()
 		.Then()
-			.AssertSuccess();
+			.AssertSuccess()
+			.AssertMessage<string>(msg =>
+			{
+				msg.ShouldNotBeNullOrEmpty();
+				msg.ShouldContain("Test message");
+			});
 	}
 
 	[Fact(DisplayName = "Produce and consume JSON object should succeed")]
 	public void Example02_ProduceAndConsumeJson_ShouldSucceed()
 	{
 		// Arrange
-		var topic = "xunit-test-json-topic";
+		var topic = GenerateUniqueTopic("json-test");
 		var uniqueGroupId = $"json-test-{Guid.NewGuid():N}";
 		var expectedMessage = new TestMessage
 		{
@@ -83,7 +89,7 @@ public class ProducerConsumerBasicTests : KafkaSamplesLocalTestBase, IClassFixtu
 		.Then()
 			.AssertSuccess();
 
-		// Act & Assert - Consume
+		// Act & Assert - Consume and validate JSON fields
 		Given()
 			.Topic(topic)
 			.Consume()
@@ -93,14 +99,17 @@ public class ProducerConsumerBasicTests : KafkaSamplesLocalTestBase, IClassFixtu
 		.When()
 			.Execute()
 		.Then()
-			.AssertSuccess();
+			.AssertSuccess()
+			.AssertJsonPath<int>("$.id", id => id.ShouldBe(expectedMessage.Id))
+			.AssertJsonPath<string>("$.value", value => value.ShouldBe(expectedMessage.Value))
+			.AssertJsonPath<string>("$.timestamp", ts => ts.ShouldNotBeNullOrEmpty());
 	}
 
 	[Fact(DisplayName = "Produce and consume message with headers should succeed")]
 	public void Example03_ProduceAndConsumeWithHeaders_ShouldSucceed()
 	{
 		// Arrange
-		var topic = "xunit-test-headers-topic";
+		var topic = GenerateUniqueTopic("headers-test");
 		var uniqueGroupId = $"headers-test-{Guid.NewGuid():N}";
 		var message = $"Message with headers {GenerateMessageId()}";
 		var correlationId = Guid.NewGuid().ToString();
@@ -127,14 +136,17 @@ public class ProducerConsumerBasicTests : KafkaSamplesLocalTestBase, IClassFixtu
 		.When()
 			.Execute()
 		.Then()
-			.AssertSuccess();
+			.AssertSuccess()
+			.AssertHeader("correlation-id", correlationId)
+			.AssertHeader("source", "xunit-test")
+			.AssertMessage<string>(msg => msg.ShouldBe(message));
 	}
 
 	[Fact(DisplayName = "Produce multiple messages and consume all should succeed")]
 	public void Example04_ProduceBatchAndConsumeAll_ShouldSucceed()
 	{
 		// Arrange
-		var topic = "xunit-test-batch-topic";
+		var topic = GenerateUniqueTopic("batch-test");
 		var uniqueGroupId = $"batch-test-{Guid.NewGuid():N}";
 		var messageCount = 5;
 		var messages = Enumerable.Range(1, messageCount)
@@ -195,7 +207,7 @@ public class ProducerConsumerBasicTests : KafkaSamplesLocalTestBase, IClassFixtu
 	public void Example06_ProduceWithKey_ShouldSucceed()
 	{
 		// Arrange
-		var topic = Fixture.DefaultTopic;
+		var topic = GenerateUniqueTopic("key-test");
 		var uniqueGroupId = $"key-test-{Guid.NewGuid():N}";
 		var key = $"key-{GenerateMessageId()}";
 		var value = $"Value for key {key}";
@@ -210,7 +222,7 @@ public class ProducerConsumerBasicTests : KafkaSamplesLocalTestBase, IClassFixtu
 		.Then()
 			.AssertSuccess();
 
-		// Act & Assert - Consume
+		// Act & Assert - Consume and validate key + message
 		Given()
 			.Topic(topic)
 			.Consume()
@@ -219,7 +231,9 @@ public class ProducerConsumerBasicTests : KafkaSamplesLocalTestBase, IClassFixtu
 		.When()
 			.Execute()
 		.Then()
-			.AssertSuccess();
+			.AssertSuccess()
+			.AssertKey(k => k.ShouldBe(key))
+			.AssertMessage<string>(msg => msg.ShouldBe(value));
 	}
 }
 

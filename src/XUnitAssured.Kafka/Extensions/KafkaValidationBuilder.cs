@@ -92,6 +92,54 @@ public class KafkaValidationBuilder : ValidationBuilder<KafkaStepResult>
 	}
 
 	/// <summary>
+	/// Asserts a value extracted from the JSON message using a JSON path.
+	/// Uses Shouldly for fluent assertions with clear error messages.
+	/// </summary>
+	/// <typeparam name="T">The expected type of the value (e.g., int, string, decimal)</typeparam>
+	/// <param name="jsonPath">JSON path expression (e.g., "$.id", "$.name")</param>
+	/// <param name="assertion">Action containing Shouldly assertions on the extracted value</param>
+	/// <returns>The same Kafka validation builder for method chaining</returns>
+	/// <example>
+	/// <code>
+	/// .Then()
+	///     .AssertJsonPath&lt;int&gt;("$.id", id => id.ShouldBe(1))
+	///     .AssertJsonPath&lt;string&gt;("$.name", name => name.ShouldNotBeNullOrEmpty());
+	/// </code>
+	/// </example>
+	public KafkaValidationBuilder AssertJsonPath<T>(string jsonPath, Action<T> assertion)
+	{
+		if (assertion == null) throw new ArgumentNullException(nameof(assertion));
+		var value = Result.JsonPath<T>(jsonPath);
+		assertion(value);
+		return this;
+	}
+
+	/// <summary>
+	/// Asserts a value extracted from the JSON message using a JSON path with a predicate.
+	/// Consider using the Action overload with Shouldly assertions for clearer error messages.
+	/// </summary>
+	/// <typeparam name="T">The expected type of the value</typeparam>
+	/// <param name="jsonPath">JSON path expression (e.g., "$.id", "$.name")</param>
+	/// <param name="predicate">Predicate function that returns true if validation passes</param>
+	/// <param name="failureMessage">Custom failure message</param>
+	/// <returns>The same Kafka validation builder for method chaining</returns>
+	/// <example>
+	/// <code>
+	/// .Then()
+	///     .AssertJsonPath&lt;int&gt;("$.id", value =&gt; value == 1, "ID should be 1")
+	///     .AssertJsonPath&lt;string&gt;("$.name", value =&gt; !string.IsNullOrEmpty(value), "Name required");
+	/// </code>
+	/// </example>
+	public KafkaValidationBuilder AssertJsonPath<T>(string jsonPath, Func<T, bool> predicate, string? failureMessage = null)
+	{
+		if (predicate == null) throw new ArgumentNullException(nameof(predicate));
+		var value = Result.JsonPath<T>(jsonPath);
+		var predicateResult = predicate(value);
+		predicateResult.ShouldBeTrue(failureMessage ?? $"JSON path assertion failed for path: {jsonPath}");
+		return this;
+	}
+
+	/// <summary>
 	/// Asserts that a specific header exists with the expected string value.
 	/// </summary>
 	public KafkaValidationBuilder AssertHeader(string key, string expectedValue)
