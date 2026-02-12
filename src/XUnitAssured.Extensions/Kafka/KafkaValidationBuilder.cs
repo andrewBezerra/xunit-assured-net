@@ -158,8 +158,9 @@ public class KafkaValidationBuilder : ValidationBuilder<KafkaStepResult>
 	}
 
 	/// <summary>
-	/// Legacy version of AssertJsonPath using Func&lt;T, bool&gt; for backward compatibility.
-	/// Consider using the Action&lt;T&gt; overload with Shouldly assertions instead for clearer error messages.
+	/// Alternative version of AssertJsonPath using Func&lt;T, bool&gt; predicate.
+	/// Consider using the Action&lt;T&gt; overload with Shouldly assertions for clearer error messages.
+	/// This overload mirrors the HTTP API pattern for consistency.
 	/// </summary>
 	/// <typeparam name="T">The expected type of the value</typeparam>
 	/// <param name="jsonPath">JSON path expression</param>
