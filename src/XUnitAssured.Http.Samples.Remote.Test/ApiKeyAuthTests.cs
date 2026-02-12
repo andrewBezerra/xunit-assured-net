@@ -299,7 +299,7 @@ public class ApiKeyAuthTests : HttpSamplesRemoteTestBase, IClassFixture<HttpSamp
 	{
 		// NO .WithApiKey() call needed!
 		// API Key is automatically applied from testsettings.json
-
+		Given()
 			.ApiResource("/api/auth/apikey-header")
 			.Get()
 		.When()

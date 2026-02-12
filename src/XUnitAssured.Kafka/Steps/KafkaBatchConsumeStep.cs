@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -13,10 +14,10 @@ using XUnitAssured.Kafka.Results;
 namespace XUnitAssured.Kafka.Steps;
 
 /// <summary>
-/// Represents a Kafka message consumption step in a test scenario.
-/// Executes Kafka consume operations and returns KafkaStepResult.
+/// Represents a Kafka batch message consumption step in a test scenario.
+/// Consumes multiple messages from a topic using a single consumer instance.
 /// </summary>
-public class KafkaConsumeStep : ITestStep
+public class KafkaBatchConsumeStep : ITestStep
 {
 	/// <inheritdoc />
 	public string? Name { get; internal set; }
@@ -39,15 +40,20 @@ public class KafkaConsumeStep : ITestStep
 	public string Topic { get; init; } = string.Empty;
 
 	/// <summary>
-	/// Expected schema type for the consumed message.
+	/// The number of messages to consume.
+	/// </summary>
+	public int MessageCount { get; init; } = 1;
+
+	/// <summary>
+	/// Expected schema type for the consumed messages.
 	/// </summary>
 	public Type? SchemaType { get; init; }
 
 	/// <summary>
-	/// Timeout for consuming a message.
-	/// Default is 10 seconds.
+	/// Timeout for consuming all messages.
+	/// Default is 60 seconds.
 	/// </summary>
-	public TimeSpan Timeout { get; init; } = TimeSpan.FromSeconds(10);
+	public TimeSpan Timeout { get; init; } = TimeSpan.FromSeconds(60);
 
 	/// <summary>
 	/// Kafka consumer configuration.
@@ -76,8 +82,6 @@ public class KafkaConsumeStep : ITestStep
 	/// <inheritdoc />
 	public async Task<ITestStepResult> ExecuteAsync(ITestContext context)
 	{
-		var startTime = DateTimeOffset.UtcNow;
-
 		try
 		{
 			// Resolve bootstrap servers: explicit > context > default
@@ -100,40 +104,41 @@ public class KafkaConsumeStep : ITestStep
 			// Apply authentication
 			ApplyAuthentication(config);
 
-			// Create consumer
+			// Create a single consumer for the entire batch
 			using var consumer = new ConsumerBuilder<string, string>(config).Build();
 
-			// Subscribe to topic
 			consumer.Subscribe(Topic);
 
-			// Try to consume message with timeout
 			using var cts = new CancellationTokenSource(Timeout);
+
+			var consumedResults = new List<ConsumeResult<string, string>>(MessageCount);
 
 			try
 			{
-				var consumeResult = consumer.Consume(cts.Token);
-
-				if (consumeResult != null && consumeResult.Message != null)
+				while (consumedResults.Count < MessageCount)
 				{
-					// Create success result
-					Result = KafkaStepResult.CreateKafkaConsumeSuccess(consumeResult);
-					return Result;
+					var consumeResult = consumer.Consume(cts.Token);
+
+					if (consumeResult?.Message != null)
+					{
+						consumedResults.Add(consumeResult);
+					}
 				}
 
-				// No message received
-				Result = KafkaStepResult.CreateTimeout(Topic, Timeout);
+				// All N messages received
+				Result = KafkaStepResult.CreateBatchConsumeSuccess(consumedResults);
 				return Result;
 			}
-			catch (OperationCanceledException ex)
+			catch (OperationCanceledException)
 			{
-				// Timeout
-				Result = KafkaStepResult.CreateTimeout(Topic, Timeout);
+				// Timeout before collecting all messages
+				Result = KafkaStepResult.CreateBatchConsumePartial(
+					Topic, MessageCount, consumedResults, Timeout);
 				return Result;
 			}
 		}
 		catch (Exception ex)
 		{
-			// Network error, Kafka error, etc.
 			Result = KafkaStepResult.CreateFailure(ex);
 			return Result;
 		}
@@ -159,25 +164,20 @@ public class KafkaConsumeStep : ITestStep
 
 	/// <summary>
 	/// Applies authentication to the consumer configuration.
-	/// Uses AuthConfig if provided, otherwise loads from kafkasettings.json.
 	/// </summary>
 	private void ApplyAuthentication(ConsumerConfig config)
 	{
-		// Get authentication config
 		var authConfig = AuthConfig;
 
-		// If no config provided, try to load from settings
 		if (authConfig == null)
 		{
 			var settings = KafkaSettings.Load();
 			authConfig = settings.Authentication;
 		}
 
-		// Skip if no authentication configured
 		if (authConfig == null || authConfig.Type == KafkaAuthenticationType.None)
 			return;
 
-		// Create appropriate handler and apply authentication
 		IKafkaAuthenticationHandler? handler = authConfig.Type switch
 		{
 			KafkaAuthenticationType.SaslPlain when authConfig.SaslPlain != null => new SaslPlainHandler(authConfig.SaslPlain),

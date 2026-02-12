@@ -1,5 +1,6 @@
 using System;
-using System.Text;
+using System.Collections.Generic;
+using System.Linq;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Threading;
@@ -14,10 +15,10 @@ using XUnitAssured.Kafka.Results;
 namespace XUnitAssured.Kafka.Steps;
 
 /// <summary>
-/// Represents a Kafka message production step in a test scenario.
-/// Executes Kafka produce operations and returns KafkaStepResult.
+/// Represents a Kafka batch message production step in a test scenario.
+/// Produces multiple messages simultaneously using the same producer instance.
 /// </summary>
-public class KafkaProduceStep : ITestStep
+public class KafkaBatchProduceStep : ITestStep
 {
 	/// <inheritdoc />
 	public string? Name { get; internal set; }
@@ -40,37 +41,21 @@ public class KafkaProduceStep : ITestStep
 	public string Topic { get; init; } = string.Empty;
 
 	/// <summary>
-	/// The message key. Can be string or object (will be JSON serialized).
+	/// The messages to produce. Each item is a (Key, Value) pair.
+	/// Key may be null for messages without keys.
 	/// </summary>
-	public object? Key { get; init; }
+	public IReadOnlyList<KeyValuePair<object?, object>> Messages { get; init; } = [];
 
 	/// <summary>
-	/// The message value. Can be string or object (will be JSON serialized).
-	/// </summary>
-	public object? Value { get; init; }
-
-	/// <summary>
-	/// Optional Kafka message headers.
+	/// Optional Kafka message headers applied to all messages.
 	/// </summary>
 	public Headers? Headers { get; init; }
 
 	/// <summary>
-	/// Optional specific partition to produce to.
-	/// If null, Kafka will choose partition based on key or round-robin.
+	/// Timeout for producing the entire batch.
+	/// Default is 60 seconds.
 	/// </summary>
-	public int? Partition { get; init; }
-
-	/// <summary>
-	/// Optional custom timestamp for the message.
-	/// If null, Kafka will use current timestamp.
-	/// </summary>
-	public DateTime? Timestamp { get; init; }
-
-	/// <summary>
-	/// Timeout for producing a message.
-	/// Default is 30 seconds.
-	/// </summary>
-	public TimeSpan Timeout { get; init; } = TimeSpan.FromSeconds(30);
+	public TimeSpan Timeout { get; init; } = TimeSpan.FromSeconds(60);
 
 	/// <summary>
 	/// Kafka producer configuration.
@@ -113,18 +98,18 @@ public class KafkaProduceStep : ITestStep
 				producer = sharedProducer!;
 			}
 			else
-				{
-					// Resolve bootstrap servers: explicit > context > default
-					var resolvedBootstrapServers = BootstrapServers != "localhost:9092"
-						? BootstrapServers
-						: context.GetProperty<string>("_KafkaBootstrapServers") ?? BootstrapServers;
+			{
+				// Resolve bootstrap servers: explicit > context > default
+				var resolvedBootstrapServers = BootstrapServers != "localhost:9092"
+					? BootstrapServers
+					: context.GetProperty<string>("_KafkaBootstrapServers") ?? BootstrapServers;
 
-					// Build producer config
-					var config = ProducerConfig ?? new ProducerConfig
-					{
-						BootstrapServers = resolvedBootstrapServers,
-						ClientId = $"xunitassured-producer-{Guid.NewGuid():N}"
-					};
+				// Build producer config
+				var config = ProducerConfig ?? new ProducerConfig
+				{
+					BootstrapServers = resolvedBootstrapServers,
+					ClientId = $"xunitassured-batch-producer-{Guid.NewGuid():N}"
+				};
 
 				// Apply authentication
 				ApplyAuthentication(config);
@@ -134,48 +119,38 @@ public class KafkaProduceStep : ITestStep
 
 			try
 			{
-				// Serialize key and value to string
-				var keyString = SerializeToString(Key);
-				var valueString = SerializeToString(Value);
-
-				// Build message
-				var message = new Message<string, string>
-				{
-					Key = keyString,
-					Value = valueString,
-					Headers = Headers,
-					Timestamp = Timestamp.HasValue 
-						? new Confluent.Kafka.Timestamp(Timestamp.Value) 
-						: Confluent.Kafka.Timestamp.Default
-				};
-
-				// Produce message with timeout
-				DeliveryResult<string, string> deliveryResult;
-
 				using var cts = new CancellationTokenSource(Timeout);
+
+				// Produce all messages in parallel
+				var tasks = Messages.Select(msg =>
+				{
+					var keyString = SerializeToString(msg.Key);
+					var valueString = SerializeToString(msg.Value);
+
+					var message = new Message<string, string>
+					{
+						Key = keyString,
+						Value = valueString,
+						Headers = Headers != null ? CloneHeaders(Headers) : null,
+						Timestamp = Confluent.Kafka.Timestamp.Default
+					};
+
+					return producer.ProduceAsync(Topic, message, cts.Token);
+				}).ToList();
 
 				try
 				{
-					if (Partition.HasValue)
-					{
-						var topicPartition = new TopicPartition(Topic, new Confluent.Kafka.Partition(Partition.Value));
-						deliveryResult = await producer.ProduceAsync(topicPartition, message, cts.Token);
-					}
-					else
-					{
-						deliveryResult = await producer.ProduceAsync(Topic, message, cts.Token);
-					}
+					var deliveryResults = await Task.WhenAll(tasks);
 
-					// Flush to ensure delivery
-					producer.Flush(TimeSpan.FromSeconds(5));
+					// Flush to ensure all deliveries complete
+					producer.Flush(TimeSpan.FromSeconds(10));
 
-					// Create success result
-					Result = KafkaStepResult.CreateKafkaProduceSuccess(deliveryResult);
+					// Create batch success result
+					Result = KafkaStepResult.CreateBatchProduceSuccess(deliveryResults);
 					return Result;
 				}
 				catch (OperationCanceledException)
 				{
-					// Timeout
 					Result = KafkaStepResult.CreateProduceTimeout(Topic, Timeout);
 					return Result;
 				}
@@ -191,7 +166,6 @@ public class KafkaProduceStep : ITestStep
 		}
 		catch (Exception ex)
 		{
-			// Network error, Kafka error, etc.
 			Result = KafkaStepResult.CreateFailure(ex);
 			return Result;
 		}
@@ -228,7 +202,6 @@ public class KafkaProduceStep : ITestStep
 		if (obj is string str)
 			return str;
 
-		// Serialize object to JSON
 		var options = JsonOptions ?? new JsonSerializerOptions
 		{
 			PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
@@ -240,26 +213,34 @@ public class KafkaProduceStep : ITestStep
 	}
 
 	/// <summary>
+	/// Clones headers so each message gets its own copy (Headers is mutable).
+	/// </summary>
+	private static Headers CloneHeaders(Headers source)
+	{
+		var clone = new Headers();
+		foreach (var header in source)
+		{
+			clone.Add(header.Key, header.GetValueBytes());
+		}
+		return clone;
+	}
+
+	/// <summary>
 	/// Applies authentication to the producer configuration.
-	/// Uses AuthConfig if provided, otherwise loads from kafkasettings.json.
 	/// </summary>
 	private void ApplyAuthentication(ProducerConfig config)
 	{
-		// Get authentication config
 		var authConfig = AuthConfig;
 
-		// If no config provided, try to load from settings
 		if (authConfig == null)
 		{
 			var settings = KafkaSettings.Load();
 			authConfig = settings.Authentication;
 		}
 
-		// Skip if no authentication configured
 		if (authConfig == null || authConfig.Type == KafkaAuthenticationType.None)
 			return;
 
-		// Create appropriate handler and apply authentication
 		IKafkaAuthenticationHandler? handler = authConfig.Type switch
 		{
 			KafkaAuthenticationType.SaslPlain when authConfig.SaslPlain != null => new SaslPlainHandler(authConfig.SaslPlain),

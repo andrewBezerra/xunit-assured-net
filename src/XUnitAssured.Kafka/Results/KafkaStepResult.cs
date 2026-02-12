@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Confluent.Kafka;
 using XUnitAssured.Core.Results;
 
@@ -205,5 +206,102 @@ public class KafkaStepResult : TestStepResult
 			}
 		};
 	}
-}
+
+	/// <summary>
+	/// Creates a successful batch produce result from multiple delivery results.
+	/// </summary>
+	public static KafkaStepResult CreateBatchProduceSuccess(
+		DeliveryResult<string, string>[] deliveryResults)
+	{
+		var allPersisted = deliveryResults.All(r => r.Status == PersistenceStatus.Persisted);
+		var firstResult = deliveryResults[0];
+
+		var properties = new Dictionary<string, object?>
+		{
+			["Topic"] = firstResult.Topic,
+			["BatchSize"] = deliveryResults.Length,
+			["DeliveryResults"] = deliveryResults
+		};
+
+		return new KafkaStepResult
+		{
+			Metadata = new StepMetadata
+			{
+				StartedAt = DateTimeOffset.UtcNow,
+				CompletedAt = DateTimeOffset.UtcNow,
+				Status = StepStatus.Succeeded
+			},
+					Success = allPersisted,
+						Data = deliveryResults,
+						DataType = typeof(DeliveryResult<string, string>[]),
+						Properties = properties
+					};
+				}
+
+				/// <summary>
+				/// Creates a successful batch consume result when all requested messages were received.
+				/// </summary>
+				public static KafkaStepResult CreateBatchConsumeSuccess(
+					List<ConsumeResult<string, string>> consumeResults)
+				{
+					var firstResult = consumeResults[0];
+
+					var properties = new Dictionary<string, object?>
+					{
+						["Topic"] = firstResult.Topic,
+						["BatchSize"] = consumeResults.Count,
+						["ConsumeResults"] = consumeResults
+					};
+
+					return new KafkaStepResult
+					{
+						Metadata = new StepMetadata
+						{
+							StartedAt = DateTimeOffset.UtcNow,
+							CompletedAt = DateTimeOffset.UtcNow,
+							Status = StepStatus.Succeeded
+						},
+						Success = true,
+						Data = consumeResults,
+						DataType = typeof(List<ConsumeResult<string, string>>),
+						Properties = properties
+					};
+				}
+
+				/// <summary>
+				/// Creates a partial batch consume result when timeout expired before all messages were received.
+				/// </summary>
+				public static KafkaStepResult CreateBatchConsumePartial(
+					string topic,
+					int expectedCount,
+					List<ConsumeResult<string, string>> consumeResults,
+					TimeSpan timeout)
+				{
+					var properties = new Dictionary<string, object?>
+					{
+						["Topic"] = topic,
+						["BatchSize"] = consumeResults.Count,
+						["ExpectedBatchSize"] = expectedCount,
+						["ConsumeResults"] = consumeResults
+					};
+
+					return new KafkaStepResult
+					{
+						Metadata = new StepMetadata
+						{
+							StartedAt = DateTimeOffset.UtcNow,
+							CompletedAt = DateTimeOffset.UtcNow,
+							Status = StepStatus.Failed
+						},
+						Success = false,
+						Errors = new List<string>
+						{
+							$"Consumed {consumeResults.Count} of {expectedCount} messages from topic '{topic}' within timeout of {timeout.TotalSeconds}s"
+						},
+						Data = consumeResults,
+						DataType = typeof(List<ConsumeResult<string, string>>),
+						Properties = properties
+					};
+				}
+			}
 

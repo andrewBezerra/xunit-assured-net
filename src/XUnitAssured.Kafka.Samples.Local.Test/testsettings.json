@@ -1,0 +1,24 @@
+{
+  // ============================================================================
+  // KAFKA LOCAL DOCKER CONFIGURATION
+  // ============================================================================
+  
+  "testMode": "Local",
+  "environment": "docker-local",
+  
+  "kafka": {
+    // Bootstrap servers (comma-separated if multiple)
+    "bootstrapServers": "localhost:29092",
+    
+    // Consumer group ID
+    "groupId": "xunit-test-consumer-group",
+    
+    // Security protocol (Plaintext for local Docker)
+    "securityProtocol": "Plaintext",
+    
+    // Schema Registry URL (optional - not used in basic tests)
+    "schemaRegistry": {
+      "url": "http://localhost:8081"
+    }
+  }
+}
