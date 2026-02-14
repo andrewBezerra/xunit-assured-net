@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Confluent.Kafka;
 using XUnitAssured.Core.Abstractions;
+using XUnitAssured.Kafka.Configuration;
 using XUnitAssured.Kafka.Steps;
 
 namespace XUnitAssured.Kafka.Extensions;
@@ -733,6 +734,111 @@ public static class KafkaScenarioExtensions
 		else
 		{
 			throw new InvalidOperationException("Current step is not a Kafka produce step.");
+		}
+
+		return scenario;
+	}
+
+	// ========== AUTHENTICATION ==========
+
+	/// <summary>
+	/// Configures authentication for the Kafka step using a fluent builder action.
+	/// Works with all Kafka step types (Produce, Consume, ProduceBatch, ConsumeBatch).
+	/// Usage: .WithAuth(auth => auth.UseSaslPlain("user", "pass"))
+	/// </summary>
+	/// <param name="scenario">The test scenario</param>
+	/// <param name="configure">Action to configure the authentication</param>
+	/// <returns>The same scenario for method chaining</returns>
+	/// <example>
+	/// <code>
+	/// Given()
+	///     .Topic("my-topic")
+	///     .Produce("hello")
+	///     .WithBootstrapServers("localhost:29093")
+	///     .WithAuth(auth => auth.UseSaslPlain("testuser", "testpass", useSsl: false))
+	/// .When()
+	///     .Execute()
+	/// .Then()
+	///     .AssertSuccess();
+	/// </code>
+	/// </example>
+	public static ITestScenario WithAuth(this ITestScenario scenario, Action<KafkaAuthConfig> configure)
+	{
+		if (configure == null)
+			throw new ArgumentNullException(nameof(configure));
+
+		var authConfig = new KafkaAuthConfig();
+		configure(authConfig);
+
+		if (scenario.CurrentStep is KafkaProduceStep produceStep)
+		{
+			var newStep = new KafkaProduceStep
+			{
+				Topic = produceStep.Topic,
+				Key = produceStep.Key,
+				Value = produceStep.Value,
+				Headers = produceStep.Headers,
+				Partition = produceStep.Partition,
+				Timestamp = produceStep.Timestamp,
+				Timeout = produceStep.Timeout,
+				ProducerConfig = produceStep.ProducerConfig,
+				BootstrapServers = produceStep.BootstrapServers,
+				AuthConfig = authConfig,
+				JsonOptions = produceStep.JsonOptions
+			};
+
+			scenario.SetCurrentStep(newStep);
+		}
+		else if (scenario.CurrentStep is KafkaBatchProduceStep batchProduceStep)
+		{
+			var newStep = new KafkaBatchProduceStep
+			{
+				Topic = batchProduceStep.Topic,
+				Messages = batchProduceStep.Messages,
+				Headers = batchProduceStep.Headers,
+				Timeout = batchProduceStep.Timeout,
+				ProducerConfig = batchProduceStep.ProducerConfig,
+				BootstrapServers = batchProduceStep.BootstrapServers,
+				AuthConfig = authConfig,
+				JsonOptions = batchProduceStep.JsonOptions
+			};
+
+			scenario.SetCurrentStep(newStep);
+		}
+		else if (scenario.CurrentStep is KafkaConsumeStep consumeStep)
+		{
+			var newStep = new KafkaConsumeStep
+			{
+				Topic = consumeStep.Topic,
+				SchemaType = consumeStep.SchemaType,
+				Timeout = consumeStep.Timeout,
+				ConsumerConfig = consumeStep.ConsumerConfig,
+				GroupId = consumeStep.GroupId,
+				BootstrapServers = consumeStep.BootstrapServers,
+				AuthConfig = authConfig
+			};
+
+			scenario.SetCurrentStep(newStep);
+		}
+		else if (scenario.CurrentStep is KafkaBatchConsumeStep batchConsumeStep)
+		{
+			var newStep = new KafkaBatchConsumeStep
+			{
+				Topic = batchConsumeStep.Topic,
+				MessageCount = batchConsumeStep.MessageCount,
+				SchemaType = batchConsumeStep.SchemaType,
+				Timeout = batchConsumeStep.Timeout,
+				ConsumerConfig = batchConsumeStep.ConsumerConfig,
+				GroupId = batchConsumeStep.GroupId,
+				BootstrapServers = batchConsumeStep.BootstrapServers,
+				AuthConfig = authConfig
+			};
+
+			scenario.SetCurrentStep(newStep);
+		}
+		else
+		{
+			throw new InvalidOperationException("Current step is not a Kafka step.");
 		}
 
 		return scenario;
