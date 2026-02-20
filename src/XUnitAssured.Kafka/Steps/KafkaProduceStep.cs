@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -100,36 +101,66 @@ public class KafkaProduceStep : ITestStep
 	public async Task<ITestStepResult> ExecuteAsync(ITestContext context)
 	{
 		var startTime = DateTimeOffset.UtcNow;
+		var diagnosticProperties = new Dictionary<string, object?>();
+		var errorDetails = new List<string>();
 
 		try
 		{
 			// Check for shared producer from fixture (via context)
 			var sharedProducer = context.GetProperty<IProducer<string, string>>("_KafkaSharedProducer");
-			var useSharedProducer = sharedProducer != null && ProducerConfig == null;
+			var contextAuthConfig = context.GetProperty<KafkaAuthConfig>("_KafkaAuthConfig");
+			var useSharedProducer = sharedProducer != null
+				&& ProducerConfig == null
+				&& AuthConfig == null
+				&& BootstrapServers == "localhost:9092"
+				&& (contextAuthConfig == null || contextAuthConfig.Type == KafkaAuthenticationType.None);
 
 			IProducer<string, string> producer;
 			if (useSharedProducer)
 			{
 				producer = sharedProducer!;
+
+				var sharedErrors = context.GetProperty<System.Collections.Concurrent.ConcurrentQueue<string>>("_KafkaSharedProducerErrors");
+				if (sharedErrors != null)
+				{
+					while (sharedErrors.TryDequeue(out var error))
+						errorDetails.Add(error);
+				}
+
+				diagnosticProperties["BootstrapServers"] = context.GetProperty<string>("_KafkaBootstrapServers") ?? BootstrapServers;
+				var authConfig = context.GetProperty<KafkaAuthConfig>("_KafkaAuthConfig");
+				diagnosticProperties["AuthType"] = authConfig?.Type.ToString();
 			}
 			else
-				{
-					// Resolve bootstrap servers: explicit > context > default
-					var resolvedBootstrapServers = BootstrapServers != "localhost:9092"
-						? BootstrapServers
-						: context.GetProperty<string>("_KafkaBootstrapServers") ?? BootstrapServers;
+			{
+				// Resolve bootstrap servers: explicit > context > default
+				var resolvedBootstrapServers = BootstrapServers != "localhost:9092"
+					? BootstrapServers
+					: context.GetProperty<string>("_KafkaBootstrapServers") ?? BootstrapServers;
 
-					// Build producer config
-					var config = ProducerConfig ?? new ProducerConfig
-					{
-						BootstrapServers = resolvedBootstrapServers,
-						ClientId = $"xunitassured-producer-{Guid.NewGuid():N}"
-					};
+				// Build producer config
+				var config = ProducerConfig ?? new ProducerConfig
+				{
+					BootstrapServers = resolvedBootstrapServers,
+					ClientId = $"xunitassured-producer-{Guid.NewGuid():N}"
+				};
 
 				// Apply authentication
-				ApplyAuthentication(config);
+				ApplyAuthentication(config, context);
 
-				producer = new ProducerBuilder<string, string>(config).Build();
+				diagnosticProperties["BootstrapServers"] = config.BootstrapServers;
+				diagnosticProperties["SecurityProtocol"] = config.SecurityProtocol.ToString();
+				diagnosticProperties["SaslMechanism"] = config.SaslMechanism?.ToString();
+				diagnosticProperties["SaslUsername"] = config.SaslUsername;
+
+				producer = new ProducerBuilder<string, string>(config)
+					.SetErrorHandler((_, error) => errorDetails.Add(error.ToString()))
+					.SetLogHandler((_, log) =>
+					{
+						if (log.Level <= SyslogLevel.Error)
+							errorDetails.Add($"{log.Level}: {log.Message}");
+					})
+					.Build();
 			}
 
 			try
@@ -176,7 +207,7 @@ public class KafkaProduceStep : ITestStep
 				catch (OperationCanceledException)
 				{
 					// Timeout
-					Result = KafkaStepResult.CreateProduceTimeout(Topic, Timeout);
+					Result = KafkaStepResult.CreateProduceTimeout(Topic, Timeout, errorDetails, diagnosticProperties);
 					return Result;
 				}
 			}
@@ -192,6 +223,8 @@ public class KafkaProduceStep : ITestStep
 		catch (Exception ex)
 		{
 			// Network error, Kafka error, etc.
+			errorDetails.Add(ex.ToString());
+			diagnosticProperties["ExceptionMessage"] = ex.Message;
 			Result = KafkaStepResult.CreateFailure(ex);
 			return Result;
 		}
@@ -241,14 +274,17 @@ public class KafkaProduceStep : ITestStep
 
 	/// <summary>
 	/// Applies authentication to the producer configuration.
-	/// Uses AuthConfig if provided, otherwise loads from kafkasettings.json.
+	/// Uses AuthConfig if provided, otherwise resolves from context or loads from kafkasettings.json.
 	/// </summary>
-	private void ApplyAuthentication(ProducerConfig config)
+	private void ApplyAuthentication(ProducerConfig config, ITestContext context)
 	{
 		// Get authentication config
 		var authConfig = AuthConfig;
 
-		// If no config provided, try to load from settings
+		// If no config provided, try to resolve from context (fixture settings)
+		authConfig ??= context.GetProperty<KafkaAuthConfig>("_KafkaAuthConfig");
+
+		// If still no config, try to load from settings
 		if (authConfig == null)
 		{
 			var settings = KafkaSettings.Load();
@@ -264,6 +300,10 @@ public class KafkaProduceStep : ITestStep
 		{
 			KafkaAuthenticationType.SaslPlain when authConfig.SaslPlain != null => new SaslPlainHandler(authConfig.SaslPlain),
 			KafkaAuthenticationType.SaslSsl when authConfig.SaslPlain != null => new SaslPlainHandler(authConfig.SaslPlain),
+			KafkaAuthenticationType.SaslScram256 when authConfig.SaslScram != null => new SaslScramHandler(authConfig.SaslScram),
+			KafkaAuthenticationType.SaslScram512 when authConfig.SaslScram != null => new SaslScramHandler(authConfig.SaslScram),
+			KafkaAuthenticationType.Ssl when authConfig.Ssl != null => new SslHandler(authConfig.Ssl),
+			KafkaAuthenticationType.MutualTls when authConfig.Ssl != null => new SslHandler(authConfig.Ssl),
 			_ => null
 		};
 

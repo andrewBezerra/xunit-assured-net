@@ -144,7 +144,13 @@ public class TestStepResult : ITestStepResult
 				Status = StepStatus.Failed
 			},
 			Success = false,
-			Errors = new List<string> { exception.Message }
+			Errors = new List<string> { exception.ToString() },
+			Properties = new Dictionary<string, object?>
+			{
+				["ExceptionType"] = exception.GetType().FullName,
+				["ExceptionMessage"] = exception.Message,
+				["ExceptionStackTrace"] = exception.StackTrace
+			}
 		};
 	}
 }

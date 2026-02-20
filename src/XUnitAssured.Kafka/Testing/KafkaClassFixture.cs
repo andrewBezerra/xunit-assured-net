@@ -1,6 +1,9 @@
 using System;
 using System.Threading;
+using System.Collections.Concurrent;
+
 using Confluent.Kafka;
+
 using XUnitAssured.Core.Configuration;
 using XUnitAssured.Kafka.Configuration;
 using XUnitAssured.Kafka.Handlers;
@@ -26,6 +29,7 @@ namespace XUnitAssured.Kafka.Testing;
 public class KafkaClassFixture : IDisposable
 {
 	private readonly Lazy<IProducer<string, string>> _cachedProducer;
+	private readonly ConcurrentQueue<string> _sharedProducerErrors = new();
 	private bool _disposed;
 
 	public KafkaClassFixture()
@@ -72,6 +76,8 @@ public class KafkaClassFixture : IDisposable
 	/// </summary>
 	public IProducer<string, string> SharedProducer => _cachedProducer.Value;
 
+	internal ConcurrentQueue<string> SharedProducerErrors => _sharedProducerErrors;
+
 	/// <summary>
 	/// Creates a consumer with optimized settings for test scenarios.
 	/// Each call returns a NEW consumer (consumers are stateful and not thread-safe).
@@ -99,7 +105,7 @@ public class KafkaClassFixture : IDisposable
 	/// </summary>
 	protected virtual ConsumerConfig CreateOptimizedConsumerConfig(string? groupId = null)
 	{
-		return new ConsumerConfig
+		var config = new ConsumerConfig
 		{
 			BootstrapServers = BootstrapServers,
 			GroupId = groupId ?? $"xunit-{Guid.NewGuid():N}",
@@ -107,8 +113,25 @@ public class KafkaClassFixture : IDisposable
 			EnableAutoCommit = false,
 			SessionTimeoutMs = 6000,
 			HeartbeatIntervalMs = 2000,
-			FetchWaitMaxMs = 100
+			FetchWaitMaxMs = 100,
+			EnableSslCertificateVerification = KafkaSettings.EnableSslCertificateVerification
 		};
+
+		// Set SslCaLocation if provided
+		if (!string.IsNullOrWhiteSpace(KafkaSettings.SslCaLocation))
+		{
+			config.SslCaLocation = KafkaSettings.SslCaLocation;
+		}
+
+		// For SASL/SSL, disable hostname verification to allow connecting to localhost
+		if (KafkaSettings.SecurityProtocol == Confluent.Kafka.SecurityProtocol.SaslSsl ||
+		    KafkaSettings.SecurityProtocol == Confluent.Kafka.SecurityProtocol.Ssl)
+		{
+			config.SslEndpointIdentificationAlgorithm = SslEndpointIdentificationAlgorithm.None;
+			config.Set("ssl.endpoint.identification.algorithm", "none");
+		}
+
+		return config;
 	}
 
 	/// <summary>
@@ -119,18 +142,44 @@ public class KafkaClassFixture : IDisposable
 		var config = new ProducerConfig
 		{
 			BootstrapServers = BootstrapServers,
-			ClientId = $"xunitassured-shared-{Guid.NewGuid():N}"
+			ClientId = $"xunitassured-shared-{Guid.NewGuid():N}",
+			EnableSslCertificateVerification = KafkaSettings.EnableSslCertificateVerification
 		};
+
+		// Set SslCaLocation if provided
+		if (!string.IsNullOrWhiteSpace(KafkaSettings.SslCaLocation))
+		{
+			config.SslCaLocation = KafkaSettings.SslCaLocation;
+		}
+
+		// For SASL/SSL, disable hostname verification to allow connecting to localhost
+		// even when certificate is issued for "kafka" hostname
+		if (KafkaSettings.SecurityProtocol == Confluent.Kafka.SecurityProtocol.SaslSsl ||
+		    KafkaSettings.SecurityProtocol == Confluent.Kafka.SecurityProtocol.Ssl)
+		{
+			config.SslEndpointIdentificationAlgorithm = SslEndpointIdentificationAlgorithm.None;
+			// Also try via librdkafka config
+			config.Set("ssl.endpoint.identification.algorithm", "none");
+		}
 
 		ApplyAuthentication(config);
 
-		return new ProducerBuilder<string, string>(config).Build();
+		return new ProducerBuilder<string, string>(config)
+			.SetErrorHandler((_, error) => _sharedProducerErrors.Enqueue(error.ToString()))
+			.SetLogHandler((_, log) =>
+			{
+				if (log.Level <= SyslogLevel.Error)
+					_sharedProducerErrors.Enqueue($"{log.Level}: {log.Message}");
+			})
+			.Build();
 	}
 
 	/// <summary>
-	/// Applies authentication settings from KafkaSettings to a consumer config.
+	/// Applies authentication settings from KafkaSettings to a client config.
+	/// Applies authentication settings from KafkaSettings to a client config.
+	/// Supports SASL/PLAIN, SASL/SSL, SASL/SCRAM-256, SASL/SCRAM-512, SSL, and Mutual TLS.
 	/// </summary>
-	private void ApplyAuthentication(ConsumerConfig config)
+	private void ApplyAuthentication(ClientConfig config)
 	{
 		var authConfig = KafkaSettings.Authentication;
 		if (authConfig == null || authConfig.Type == KafkaAuthenticationType.None)
@@ -142,31 +191,60 @@ public class KafkaClassFixture : IDisposable
 				=> new Handlers.SaslPlainHandler(authConfig.SaslPlain),
 			KafkaAuthenticationType.SaslSsl when authConfig.SaslPlain != null
 				=> new Handlers.SaslPlainHandler(authConfig.SaslPlain),
+			KafkaAuthenticationType.SaslScram256 when authConfig.SaslScram != null
+				=> new Handlers.SaslScramHandler(authConfig.SaslScram),
+			KafkaAuthenticationType.SaslScram512 when authConfig.SaslScram != null
+				=> new Handlers.SaslScramHandler(authConfig.SaslScram),
+			KafkaAuthenticationType.Ssl when authConfig.Ssl != null
+				=> new Handlers.SslHandler(authConfig.Ssl),
+			KafkaAuthenticationType.MutualTls when authConfig.Ssl != null
+				=> new Handlers.SslHandler(authConfig.Ssl),
 			_ => null
 		};
 
-		handler?.ApplyAuthentication(config);
+		if (handler != null)
+		{
+			if (config is ConsumerConfig consumerConfig)
+				handler.ApplyAuthentication(consumerConfig);
+			else if (config is ProducerConfig producerConfig)
+				handler.ApplyAuthentication(producerConfig);
+		}
+
+		// Apply additional SSL settings if configured
+		// This is important for SASL/SSL scenarios where SSL config is separate from SASL config
+		if (authConfig.Ssl != null)
+		{
+			ApplySslConfiguration(config, authConfig.Ssl);
+		}
 	}
 
 	/// <summary>
-	/// Applies authentication settings from KafkaSettings to a producer config.
+	/// Applies SSL configuration settings to a client config.
+	/// Used for additional SSL settings in SASL/SSL scenarios.
 	/// </summary>
-	private void ApplyAuthentication(ProducerConfig config)
+	private void ApplySslConfiguration(ClientConfig config, Configuration.SslConfig sslConfig)
 	{
-		var authConfig = KafkaSettings.Authentication;
-		if (authConfig == null || authConfig.Type == KafkaAuthenticationType.None)
-			return;
-
-		IKafkaAuthenticationHandler? handler = authConfig.Type switch
+		if (!string.IsNullOrWhiteSpace(sslConfig.SslCaLocation))
 		{
-			KafkaAuthenticationType.SaslPlain when authConfig.SaslPlain != null
-				=> new Handlers.SaslPlainHandler(authConfig.SaslPlain),
-			KafkaAuthenticationType.SaslSsl when authConfig.SaslPlain != null
-				=> new Handlers.SaslPlainHandler(authConfig.SaslPlain),
-			_ => null
-		};
+			config.SslCaLocation = sslConfig.SslCaLocation;
+		}
 
-		handler?.ApplyAuthentication(config);
+		config.EnableSslCertificateVerification = sslConfig.EnableSslCertificateVerification;
+
+		if (!string.IsNullOrWhiteSpace(sslConfig.SslCertificateLocation))
+		{
+			config.SslCertificateLocation = sslConfig.SslCertificateLocation;
+		}
+
+		if (!string.IsNullOrWhiteSpace(sslConfig.SslKeyLocation))
+		{
+			config.SslKeyLocation = sslConfig.SslKeyLocation;
+		}
+
+		if (!string.IsNullOrWhiteSpace(sslConfig.SslKeyPassword))
+		{
+			config.SslKeyPassword = sslConfig.SslKeyPassword;
+		}
 	}
 
 	public void Dispose()

@@ -1,109 +1,283 @@
-# ============================================================================
-# KAFKA LOCAL DOCKER COMPOSE - REFERENCE
-# ============================================================================
-# This is a reference copy of the Docker Compose configuration.
-# The actual compose file should be in your project root.
-#
-# To use this configuration:
-# 1. Copy this file to your project root or use your existing compose file
-# 2. Run: docker-compose up -d
-# 3. Verify: docker ps | grep kafka
-# 4. Access Kafka UI: http://localhost:8083
-# ============================================================================
-
-name: kafka-local
-
+version: "3.5"
 services:
-  zookeeper:
-    image: confluentinc/cp-zookeeper:7.6.1
-    container_name: zookeeper
-    hostname: zookeeper
-    restart: always
+  kafka-gen:
+    image: confluentinc/cp-kafka:7.5.0
+    hostname: kafka-gen
+    container_name: kafka-gen
+    volumes:
+      - ./scripts/create_cluster_id.sh:/tmp/create_cluster_id.sh
+      - ./clusterID:/tmp/clusterID
+    command: "bash -c '/tmp/create_cluster_id.sh'"
+
+  kafka1:
+    image: confluentinc/cp-kafka:7.5.0
+    hostname: kafka1
+    container_name: kafka1
     ports:
-      - "2181:2181"
+      - "39092:39092"
     environment:
-      ZOOKEEPER_CLIENT_PORT: 2181
-      ZOOKEEPER_TICK_TIME: 2000
-    networks:
-      microservices-net:
-        aliases:
-          - zookeeper
+      CLUSTER_ID: "vRSrPl6TRIusn12aG21giQ"
+      KAFKA_NODE_ID: 1
+      KAFKA_CONTROLLER_QUORUM_VOTERS: "1@kafka1:9093,2@kafka2:9093,3@kafka3:9093"
+      KAFKA_PROCESS_ROLES: "controller,broker"
+      KAFKA_INTER_BROKER_LISTENER_NAME: BROKER
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
 
-  broker:
-    image: confluentinc/cp-kafka:7.6.1
-    container_name: kafka
-    hostname: kafka
-    restart: always
-    depends_on:
-      - zookeeper
-    ports:
-      - "9092:9092"
-      - "29092:29092"
-    environment:
-      KAFKA_BROKER_ID: 1
-      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-
-      # LISTENERS
-      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,PLAINTEXT_HOST://0.0.0.0:29092
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:29092
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
-      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
-
-      # Stability in local environment
-      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
-      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
-      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_METADATA_LOG_SEGMENT_MS: 15000
+      KAFKA_METADATA_MAX_RETENTION_MS: 1200000
+      KAFKA_METADATA_LOG_MAX_RECORD_BYTES_BETWEEN_SNAPSHOTS: 2800
+      KAFKA_LOG_DIRS: "/tmp/kraft-combined-logs"
       KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
 
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,BROKER:SASL_PLAINTEXT,EXTERNAL:SASL_PLAINTEXT
+      KAFKA_LISTENERS: BROKER://kafka1:19092,EXTERNAL://kafka1:39092,CONTROLLER://kafka1:9093
+      KAFKA_ADVERTISED_LISTENERS: BROKER://kafka1:19092,EXTERNAL://kafka1:39092
+
+      # PRPTOCOL settings
+      KAFKA_SASL_ENABLED_MECHANISMS: PLAIN, SCRAM-SHA-256
+      KAFKA_SASL_MECHANISM_INTER_BROKER_PROTOCOL: SCRAM-SHA-256
+      KAFKA_SASL_MECHANISM_CONTROLLER_PROTOCOL: PLAIN
+
+      KAFKA_ALLOW_EVERYONE_IF_NO_ACL_FOUND: "false"
+      KAFKA_AUTHORIZER_CLASS_NAME: org.apache.kafka.metadata.authorizer.StandardAuthorizer
+      KAFKA_SUPER_USERS: User:admin;User:client;User:tool;User:ANONYMOUS;
+
+      # Auth settings for SCRAM
+      # Example:
+      # KAFKA_LISTENER_NAME_<LISTENER-NAME>_SASL_ENABLED_MECHANISMS: PLAIN, SCRAM-SHA-256
+      # KAFKA_LISTENER_NAME_<LISTENER-NAME>_<PLAIN_SASL or SCRAM-SHA-256>_JAAS_CONFIG: |
+      #         org.apache.kafka.common.security.plain.PlainLoginModule required \
+      #         username="admin" \
+      #         password="admin-secret" \
+      #         user_admin="admin-secret" \
+      #         user_mds="mds-secret";
+
+      # KAFKA_LISTENER_NAME_CONTROLLER_SASL_ENABLED_MECHANISMS: PLAIN
+      # KAFKA_LISTENER_NAME_CONTROLLER_PLAIN_SASL_JAAS_CONFIG: org.apache.kafka.common.security.plain.PlainLoginModule required \
+      #     username="admin" password="admin-secret" \
+      #     user_admin="admin-secret";
+      KAFKA_LISTENER_NAME_BROKER_SASL_ENABLED_MECHANISMS: SCRAM-SHA-256
+      KAFKA_LISTENER_NAME_BROKER_SCRAM-SHA-256_SASL_JAAS_CONFIG:
+        org.apache.kafka.common.security.scram.ScramLoginModule required \
+        username="admin" password="admin-secret" \
+        user_admin="admin-secret" \
+        user_connect="connect-secret" \
+        user_schemaregistry="schemaregistry-secret" \
+        user_ksqldb="ksqldb-secret" \
+        user_tool="tool-secret" ;
+      KAFKA_LISTENER_NAME_EXTERNAL_SASL_ENABLED_MECHANISMS: SCRAM-SHA-256
+      KAFKA_LISTENER_NAME_EXTERNAL_SCRAM-SHA-256_SASL_JAAS_CONFIG:
+        org.apache.kafka.common.security.scram.ScramLoginModule required \
+        username="admin" password="admin-secret" \
+        user_admin="admin-secret" \
+        user_connect="connect-secret" \
+        user_schemaregistry="schemaregistry-secret" \
+        user_ksqldb="ksqldb-secret" \
+        user_tool="tool-secret" ;
+      KAFKA_SASL_SERVER_CALLBACK_HANDLER_CLASS:
+
+      KAFKA_OPTS: "-Djava.security.auth.login.config=/etc/kafka/kafka_server_jaas.conf"
+
     volumes:
-      - kafka_data:/var/lib/kafka/data
-    networks:
-      microservices-net:
-        aliases:
-          - kafka
+      - kafka1-data:/var/lib/kafka/data
+      - ./scripts/update_scram_run.sh:/tmp/update_scram_run.sh
+      - ./clusterID:/tmp/clusterID
+    command: "bash -c '/tmp/update_scram_run.sh && /etc/confluent/docker/run'"
 
-  schema-registry:
-    image: confluentinc/cp-schema-registry:7.6.1
-    container_name: schema-registry
-    hostname: schema-registry
-    restart: always
-    depends_on:
-      - broker
+  kafka2:
+    image: confluentinc/cp-kafka:7.5.0
+    hostname: kafka2
+    container_name: kafka2
     ports:
-      - "8081:8081"
+      - "39093:39093"
     environment:
-      SCHEMA_REGISTRY_HOST_NAME: schema-registry
-      SCHEMA_REGISTRY_LISTENERS: http://0.0.0.0:8081
+      CLUSTER_ID: "vRSrPl6TRIusn12aG21giQ"
+      KAFKA_NODE_ID: 2
+      KAFKA_CONTROLLER_QUORUM_VOTERS: "1@kafka1:9093,2@kafka2:9093,3@kafka3:9093"
+      KAFKA_PROCESS_ROLES: "controller,broker"
+      KAFKA_INTER_BROKER_LISTENER_NAME: BROKER
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
 
-      # Always use 9092 inside Docker
-      SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: PLAINTEXT://kafka:9092
-    networks:
-      - microservices-net
+      KAFKA_METADATA_LOG_SEGMENT_MS: 15000
+      KAFKA_METADATA_MAX_RETENTION_MS: 1200000
+      KAFKA_METADATA_LOG_MAX_RECORD_BYTES_BETWEEN_SNAPSHOTS: 2800
+      KAFKA_LOG_DIRS: "/tmp/kraft-combined-logs"
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,BROKER:SASL_PLAINTEXT,EXTERNAL:SASL_PLAINTEXT
+      KAFKA_LISTENERS: BROKER://kafka2:19093,EXTERNAL://kafka2:39093,CONTROLLER://kafka2:9093
+      KAFKA_ADVERTISED_LISTENERS: BROKER://kafka2:19093,EXTERNAL://kafka2:39093
+
+      # PRPTOCOL settings
+      KAFKA_SASL_ENABLED_MECHANISMS: PLAIN, SCRAM-SHA-256
+      KAFKA_SASL_MECHANISM_INTER_BROKER_PROTOCOL: SCRAM-SHA-256
+      KAFKA_SASL_MECHANISM_CONTROLLER_PROTOCOL: PLAIN
+
+      KAFKA_ALLOW_EVERYONE_IF_NO_ACL_FOUND: "false"
+      KAFKA_AUTHORIZER_CLASS_NAME: org.apache.kafka.metadata.authorizer.StandardAuthorizer
+      KAFKA_SUPER_USERS: User:admin;User:client;User:tool;User:ANONYMOUS;
+
+      # Auth settings for SCRAM
+      # Example:
+      # KAFKA_LISTENER_NAME_<LISTENER-NAME>_SASL_ENABLED_MECHANISMS: PLAIN, SCRAM-SHA-256
+      # KAFKA_LISTENER_NAME_<LISTENER-NAME>_<PLAIN_SASL or SCRAM-SHA-256>_JAAS_CONFIG: |
+      #         org.apache.kafka.common.security.plain.PlainLoginModule required \
+      #         username="admin" \
+      #         password="admin-secret" \
+      #         user_admin="admin-secret" \
+      #         user_mds="mds-secret";
+
+      # KAFKA_LISTENER_NAME_CONTROLLER_SASL_ENABLED_MECHANISMS: PLAIN
+      # KAFKA_LISTENER_NAME_CONTROLLER_PLAIN_SASL_JAAS_CONFIG: org.apache.kafka.common.security.plain.PlainLoginModule required \
+      #     username="admin" password="admin-secret" \
+      #     user_admin="admin-secret";
+      KAFKA_LISTENER_NAME_BROKER_SASL_ENABLED_MECHANISMS: SCRAM-SHA-256
+      KAFKA_LISTENER_NAME_BROKER_SCRAM-SHA-256_SASL_JAAS_CONFIG:
+        org.apache.kafka.common.security.scram.ScramLoginModule required \
+        username="admin" password="admin-secret" \
+        user_admin="admin-secret" \
+        user_connect="connect-secret" \
+        user_schemaregistry="schemaregistry-secret" \
+        user_ksqldb="ksqldb-secret" \
+        user_tool="tool-secret" ;
+      KAFKA_LISTENER_NAME_EXTERNAL_SASL_ENABLED_MECHANISMS: SCRAM-SHA-256
+      KAFKA_LISTENER_NAME_EXTERNAL_SCRAM-SHA-256_SASL_JAAS_CONFIG:
+        org.apache.kafka.common.security.scram.ScramLoginModule required \
+        username="admin" password="admin-secret" \
+        user_admin="admin-secret" \
+        user_connect="connect-secret" \
+        user_schemaregistry="schemaregistry-secret" \
+        user_ksqldb="ksqldb-secret" \
+        user_tool="tool-secret" ;
+      KAFKA_SASL_SERVER_CALLBACK_HANDLER_CLASS:
+
+      KAFKA_OPTS: "-Djava.security.auth.login.config=/etc/kafka/kafka_server_jaas.conf"
+
+    volumes:
+      - kafka2-data:/var/lib/kafka/data
+      - ./scripts/update_scram_run.sh:/tmp/update_scram_run.sh
+      - ./clusterID:/tmp/clusterID
+    command: "bash -c '/tmp/update_scram_run.sh && /etc/confluent/docker/run'"
+
+  kafka3:
+    image: confluentinc/cp-kafka:7.5.0
+    hostname: kafka3
+    container_name: kafka3
+    ports:
+      - "39094:39094"
+    environment:
+      CLUSTER_ID: "vRSrPl6TRIusn12aG21giQ"
+      KAFKA_NODE_ID: 3
+      KAFKA_CONTROLLER_QUORUM_VOTERS: "1@kafka1:9093,2@kafka2:9093,3@kafka3:9093"
+      KAFKA_PROCESS_ROLES: "controller,broker"
+      KAFKA_INTER_BROKER_LISTENER_NAME: BROKER
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+
+      KAFKA_METADATA_LOG_SEGMENT_MS: 15000
+      KAFKA_METADATA_MAX_RETENTION_MS: 1200000
+      KAFKA_METADATA_LOG_MAX_RECORD_BYTES_BETWEEN_SNAPSHOTS: 2800
+      KAFKA_LOG_DIRS: "/tmp/kraft-combined-logs"
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,BROKER:SASL_PLAINTEXT,EXTERNAL:SASL_PLAINTEXT
+      KAFKA_LISTENERS: BROKER://kafka3:19094,EXTERNAL://kafka3:39094,CONTROLLER://kafka3:9093
+      KAFKA_ADVERTISED_LISTENERS: BROKER://kafka3:19094,EXTERNAL://kafka3:39094
+
+      # PRPTOCOL settings
+      KAFKA_SASL_ENABLED_MECHANISMS: PLAIN, SCRAM-SHA-256
+      KAFKA_SASL_MECHANISM_INTER_BROKER_PROTOCOL: SCRAM-SHA-256
+      KAFKA_SASL_MECHANISM_CONTROLLER_PROTOCOL: SASL_PLAINTEXT
+
+      KAFKA_ALLOW_EVERYONE_IF_NO_ACL_FOUND: "false"
+      KAFKA_AUTHORIZER_CLASS_NAME: org.apache.kafka.metadata.authorizer.StandardAuthorizer
+      KAFKA_SUPER_USERS: User:admin;User:client;User:tool;User:ANONYMOUS;
+
+      # Auth settings for SCRAM
+      # Example:
+      # KAFKA_LISTENER_NAME_<LISTENER-NAME>_SASL_ENABLED_MECHANISMS: PLAIN, SCRAM-SHA-256
+      # KAFKA_LISTENER_NAME_<LISTENER-NAME>_<PLAIN_SASL or SCRAM-SHA-256>_JAAS_CONFIG: |
+      #         org.apache.kafka.common.security.plain.PlainLoginModule required \
+      #         username="admin" \
+      #         password="admin-secret" \
+      #         user_admin="admin-secret" \
+      #         user_mds="mds-secret";
+
+      # KAFKA_LISTENER_NAME_CONTROLLER_SASL_ENABLED_MECHANISMS: PLAIN
+      # KAFKA_LISTENER_NAME_CONTROLLER_PLAIN_SASL_JAAS_CONFIG: org.apache.kafka.common.security.plain.PlainLoginModule required \
+      #     username="admin" password="admin-secret" \
+      #     user_admin="admin-secret";
+      KAFKA_LISTENER_NAME_BROKER_SASL_ENABLED_MECHANISMS: SCRAM-SHA-256
+      KAFKA_LISTENER_NAME_BROKER_SCRAM-SHA-256_SASL_JAAS_CONFIG:
+        org.apache.kafka.common.security.scram.ScramLoginModule required \
+        username="admin" password="admin-secret" \
+        user_admin="admin-secret" \
+        user_connect="connect-secret" \
+        user_schemaregistry="schemaregistry-secret" \
+        user_ksqldb="ksqldb-secret" \
+        user_tool="tool-secret" ;
+      KAFKA_LISTENER_NAME_EXTERNAL_SASL_ENABLED_MECHANISMS: SCRAM-SHA-256
+      KAFKA_LISTENER_NAME_EXTERNAL_SCRAM-SHA-256_SASL_JAAS_CONFIG:
+        org.apache.kafka.common.security.scram.ScramLoginModule required \
+        username="admin" password="admin-secret" \
+        user_admin="admin-secret" \
+        user_connect="connect-secret" \
+        user_schemaregistry="schemaregistry-secret" \
+        user_ksqldb="ksqldb-secret" \
+        user_tool="tool-secret" ;
+      KAFKA_SASL_SERVER_CALLBACK_HANDLER_CLASS:
+
+      KAFKA_OPTS: "-Djava.security.auth.login.config=/etc/kafka/kafka_server_jaas.conf"
+
+    volumes:
+      - kafka3-data:/var/lib/kafka/data
+      - ./scripts/update_scram_run.sh:/tmp/update_scram_run.sh
+      - ./clusterID:/tmp/clusterID
+    command: "bash -c '/tmp/update_scram_run.sh && /etc/confluent/docker/run'"
 
   kafka-ui:
     image: provectuslabs/kafka-ui:latest
     container_name: kafka-ui
-    restart: always
+    hostname: kafka-ui
+
     depends_on:
-      - broker
+      kafka1:
+        condition: service_healthy
     ports:
-      - "8083:8080"
+      - "8080:8080"
     environment:
-      KAFKA_CLUSTERS_0_NAME: local
-      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
-
-      # Link Schema Registry
-      KAFKA_CLUSTERS_0_SCHEMAREGISTRY: http://schema-registry:8081
-      KAFKA_CLUSTERS_0_SCHEMAREGISTRY_AUTH_ENABLED: "false"
-
       DYNAMIC_CONFIG_ENABLED: "true"
-    networks:
-      - microservices-net
+
+      # Cluster 1: SASL/PLAIN
+      KAFKA_CLUSTERS_0_NAME: SCRAM-SHA-2560
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka1:39092
+      KAFKA_CLUSTERS_0_PROPERTIES_SECURITY_PROTOCOL: SASL_PLAINTEXT
+      KAFKA_CLUSTERS_0_PROPERTIES_SASL_MECHANISM: SCRAM-SHA-256
+      KAFKA_CLUSTERS_0_PROPERTIES_SASL_JAAS_CONFIG: 'org.apache.kafka.common.security.scram.ScramLoginModule required username="admin" password="admin-secret";'
+
+      # Cluster 2: SASL/SCRAM-SHA-256
+      KAFKA_CLUSTERS_1_NAME: SCRAM-SHA-2561
+      KAFKA_CLUSTERS_1_BOOTSTRAPSERVERS: kafka2:39093
+      KAFKA_CLUSTERS_1_PROPERTIES_SECURITY_PROTOCOL: SASL_PLAINTEXT
+      KAFKA_CLUSTERS_1_PROPERTIES_SASL_MECHANISM: SCRAM-SHA-256
+      KAFKA_CLUSTERS_1_PROPERTIES_SASL_JAAS_CONFIG: 'org.apache.kafka.common.security.scram.ScramLoginModule required username="admin" password="admin-secret";'
+
+      # Cluster 3: SASL/SCRAM-SHA-256
+      KAFKA_CLUSTERS_2_NAME: SCRAM-SHA-2562
+      KAFKA_CLUSTERS_2_BOOTSTRAPSERVERS: kafka3:39094
+      KAFKA_CLUSTERS_2_PROPERTIES_SECURITY_PROTOCOL: SASL_PLAINTEXT
+      KAFKA_CLUSTERS_2_PROPERTIES_SASL_MECHANISM: SCRAM-SHA-256
+      KAFKA_CLUSTERS_2_PROPERTIES_SASL_JAAS_CONFIG: 'org.apache.kafka.common.security.scram.ScramLoginModule required username="admin" password="admin-secret";'
+
+      # # Cluster 3: SASL/SCRAM-SHA-512
+      # KAFKA_CLUSTERS_2_NAME: SCRAM-SHA-512
+      # KAFKA_CLUSTERS_2_BOOTSTRAPSERVERS: kafka:39094
+      # KAFKA_CLUSTERS_2_PROPERTIES_SECURITY_PROTOCOL: SASL_PLAINTEXT
+      # KAFKA_CLUSTERS_2_PROPERTIES_SASL_MECHANISM: SCRAM-SHA-512
+      # KAFKA_CLUSTERS_2_PROPERTIES_SASL_JAAS_CONFIG: 'org.apache.kafka.common.security.scram.ScramLoginModule required username="admin" password="admin-secret";'
+
+    volumes:
+      - ./certs:/etc/kafka/secrets
 
 volumes:
-  kafka_data:
-    driver: local
-
-networks:
-  microservices-net:
-    driver: bridge
+  kafka1-data:
+  kafka2-data:
+  kafka3-data:

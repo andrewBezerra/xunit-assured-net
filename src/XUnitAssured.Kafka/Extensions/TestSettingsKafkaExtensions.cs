@@ -137,16 +137,7 @@ public static class TestSettingsKafkaExtensions
 			return customPath;
 
 		// Try to find default testsettings.json
-		var searchPaths = new[]
-		{
-			"testsettings.json",
-			"./testsettings.json",
-			"../testsettings.json",
-			"../../testsettings.json",
-			"../../../testsettings.json"
-		};
-
-		foreach (var path in searchPaths)
+		foreach (var path in EnumerateSearchPaths())
 		{
 			if (File.Exists(path))
 				return Path.GetFullPath(path);
@@ -158,16 +149,6 @@ public static class TestSettingsKafkaExtensions
 
 	private static KafkaSettings? LoadKafkaSettingsFromFile()
 	{
-		// Try to find testsettings.json
-		var searchPaths = new[]
-		{
-			"testsettings.json",
-			"./testsettings.json",
-			"../testsettings.json",
-			"../../testsettings.json",
-			"../../../testsettings.json"
-		};
-
 		// Try custom path from environment variable
 		var customPath = System.Environment.GetEnvironmentVariable("TESTSETTINGS_PATH");
 		if (!string.IsNullOrEmpty(customPath) && File.Exists(customPath))
@@ -176,7 +157,7 @@ public static class TestSettingsKafkaExtensions
 		}
 
 		// Try standard paths
-		foreach (var path in searchPaths)
+		foreach (var path in EnumerateSearchPaths())
 		{
 			if (File.Exists(path))
 			{
@@ -186,6 +167,28 @@ public static class TestSettingsKafkaExtensions
 
 		// No settings found
 		return null;
+	}
+
+	private static IEnumerable<string> EnumerateSearchPaths()
+	{
+		var searchPaths = new List<string>
+		{
+			"testsettings.json",
+			"./testsettings.json",
+			"../testsettings.json",
+			"../../testsettings.json",
+			"../../../testsettings.json"
+		};
+
+		foreach (var path in searchPaths)
+			yield return path;
+
+		var baseDirectory = AppContext.BaseDirectory;
+		while (!string.IsNullOrWhiteSpace(baseDirectory))
+		{
+			yield return Path.Combine(baseDirectory, "testsettings.json");
+			baseDirectory = Directory.GetParent(baseDirectory)?.FullName ?? string.Empty;
+		}
 	}
 
 	private static KafkaSettings? ParseKafkaSettings(string filePath)
@@ -217,6 +220,12 @@ public static class TestSettingsKafkaExtensions
 						Converters = { new JsonStringEnumConverter() }
 					});
 
+				// Normalize authentication settings after deserialization
+				if (kafkaSettings != null)
+				{
+					NormalizeAuthenticationSettings(kafkaSettings);
+				}
+
 				return kafkaSettings;
 			}
 
@@ -239,5 +248,29 @@ public static class TestSettingsKafkaExtensions
 			var value = System.Environment.GetEnvironmentVariable(varName);
 			return value ?? match.Value;
 		});
+	}
+
+	/// <summary>
+	/// Normalizes authentication settings after deserialization.
+	/// Ensures SASL mechanism is correctly set based on authentication type.
+	/// </summary>
+	private static void NormalizeAuthenticationSettings(KafkaSettings kafkaSettings)
+	{
+		var authConfig = kafkaSettings.Authentication;
+		if (authConfig == null) return;
+
+		// Normalize SASL/SCRAM mechanism based on authentication type
+		if (authConfig.SaslScram != null)
+		{
+			switch (authConfig.Type)
+			{
+				case Configuration.KafkaAuthenticationType.SaslScram256:
+					authConfig.SaslScram.Mechanism = Confluent.Kafka.SaslMechanism.ScramSha256;
+					break;
+				case Configuration.KafkaAuthenticationType.SaslScram512:
+					authConfig.SaslScram.Mechanism = Confluent.Kafka.SaslMechanism.ScramSha512;
+					break;
+			}
+		}
 	}
 }

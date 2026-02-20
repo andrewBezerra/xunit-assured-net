@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using Shouldly;
 using XUnitAssured.Core.Abstractions;
 using XUnitAssured.Core.Results;
@@ -76,8 +77,22 @@ public class ValidationBuilder<TResult> where TResult : class, ITestStepResult
 	/// <exception cref="Shouldly.ShouldAssertException">Thrown when the assertion fails</exception>
 	public ValidationBuilder<TResult> AssertSuccess()
 	{
+		string BuildDiagnostics()
+		{
+			if (Result.Properties == null || Result.Properties.Count == 0)
+				return string.Empty;
+
+			var entries = Result.Properties
+				.Select(kvp => $"{kvp.Key}={kvp.Value}")
+				.ToArray();
+
+			return entries.Length == 0
+				? string.Empty
+				: $" Properties: {string.Join("; ", entries)}";
+		}
+
 		Result.Success.ShouldBeTrue(
-			$"Expected step to succeed but it failed with errors: {string.Join(", ", Result.Errors)}");
+			$"Expected step to succeed but it failed with errors: {string.Join(", ", Result.Errors)}{BuildDiagnostics()}");
 		return this;
 	}
 

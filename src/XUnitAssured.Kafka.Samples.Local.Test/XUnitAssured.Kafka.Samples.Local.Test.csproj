@@ -24,4 +24,14 @@
     <ProjectReference Include="..\XUnitAssured.Kafka\XUnitAssured.Kafka.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Update="testsettings.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="docker\KRaft-SASL_SCRAM-512\certs\" />
+  </ItemGroup>
+
 </Project>

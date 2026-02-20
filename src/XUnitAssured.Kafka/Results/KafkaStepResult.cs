@@ -185,15 +185,32 @@ public class KafkaStepResult : TestStepResult
 				Status = StepStatus.Failed
 			},
 			Success = false,
-			Errors = new List<string> { exception.Message }
+			Errors = new List<string> { exception.ToString() },
+			Properties = new Dictionary<string, object?>
+			{
+				["ExceptionType"] = exception.GetType().FullName,
+				["ExceptionMessage"] = exception.Message,
+				["ExceptionStackTrace"] = exception.StackTrace
+			}
 		};
 	}
 
 	/// <summary>
 	/// Creates a timeout result (no message consumed within timeout period).
 	/// </summary>
-	public static KafkaStepResult CreateTimeout(string topic, TimeSpan timeout)
+	public static KafkaStepResult CreateTimeout(string topic, TimeSpan timeout, IEnumerable<string>? details = null, Dictionary<string, object?>? properties = null)
 	{
+		var errors = new List<string>
+		{
+			$"No message consumed from topic '{topic}' within timeout of {timeout.TotalSeconds}s"
+		};
+
+		if (details != null)
+			errors.AddRange(details);
+
+		var resultProperties = properties ?? new Dictionary<string, object?>();
+		resultProperties["Topic"] = topic;
+
 		return new KafkaStepResult
 		{
 			Metadata = new StepMetadata
@@ -203,19 +220,27 @@ public class KafkaStepResult : TestStepResult
 				Status = StepStatus.Failed
 			},
 			Success = false,
-			Errors = new List<string> { $"No message consumed from topic '{topic}' within timeout of {timeout.TotalSeconds}s" },
-			Properties = new Dictionary<string, object?>
-			{
-				["Topic"] = topic
-			}
+			Errors = errors,
+			Properties = resultProperties
 		};
 	}
 
 	/// <summary>
 	/// Creates a timeout result for produce operation.
 	/// </summary>
-	public static KafkaStepResult CreateProduceTimeout(string topic, TimeSpan timeout)
+	public static KafkaStepResult CreateProduceTimeout(string topic, TimeSpan timeout, IEnumerable<string>? details = null, Dictionary<string, object?>? properties = null)
 	{
+		var errors = new List<string>
+		{
+			$"Failed to produce message to topic '{topic}' within timeout of {timeout.TotalSeconds}s"
+		};
+
+		if (details != null)
+			errors.AddRange(details);
+
+		var resultProperties = properties ?? new Dictionary<string, object?>();
+		resultProperties["Topic"] = topic;
+
 		return new KafkaStepResult
 		{
 			Metadata = new StepMetadata
@@ -225,11 +250,8 @@ public class KafkaStepResult : TestStepResult
 				Status = StepStatus.Failed
 			},
 			Success = false,
-			Errors = new List<string> { $"Failed to produce message to topic '{topic}' within timeout of {timeout.TotalSeconds}s" },
-			Properties = new Dictionary<string, object?>
-			{
-				["Topic"] = topic
-			}
+			Errors = errors,
+			Properties = resultProperties
 		};
 	}
 
