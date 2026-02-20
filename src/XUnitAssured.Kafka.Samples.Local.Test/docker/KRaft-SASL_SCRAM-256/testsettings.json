@@ -1,0 +1,35 @@
+{
+    // ============================================================================
+    // KAFKA LOCAL DOCKER CONFIGURATION - SASL/SCRAM-SHA-256 (Auth without SSL)
+    // ============================================================================
+
+    "testMode": "Local",
+    "environment": "docker-local",
+
+    "kafka": {
+        // Bootstrap servers (comma-separated if multiple)
+        // KRaft-SASL_SCRAM-256 uses port 39092 for external connections with SASL/SCRAM-SHA-256
+        "bootstrapServers": "localhost:39092",
+
+        // Consumer group ID
+        "groupId": "xunit-test-consumer-group",
+
+        // Security protocol: SaslPlaintext (SASL authentication without SSL encryption)
+        "securityProtocol": "SaslPlaintext",
+
+        // Authentication configuration for SASL/SCRAM-SHA-256
+        "authentication": {
+            "type": "SaslScram256",
+            "saslScram": {
+                "username": "admin",
+                "password": "admin-secret",
+                "useSsl": false
+            }
+        },
+
+        // Schema Registry URL (optional - not used in basic tests)
+        "schemaRegistry": {
+            "url": "http://localhost:8081"
+        }
+    }
+}

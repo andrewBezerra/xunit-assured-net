@@ -8,10 +8,8 @@
 
     "kafka": {
         // Bootstrap servers (comma-separated if multiple)
-        // Using "localhost" hostname for connections from the host machine
-        // The certificate is issued for "kafka" but hostname verification is disabled
-        // If you add "kafka" to your hosts file (127.0.0.1 kafka), you can use "kafka:39093" instead
-        "bootstrapServers": "localhost:39093",
+        // Using "kafka" hostname to match the certificate's Common Name
+        "bootstrapServers": "kafka:39093",
 
         // Consumer group ID
         "groupId": "xunit-test-consumer-group",
