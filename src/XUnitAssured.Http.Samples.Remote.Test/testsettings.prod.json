@@ -1,0 +1,41 @@
+{
+  // PRODUCTION ENVIRONMENT CONFIGURATION
+  // WARNING: Use with caution! These tests will run against PRODUCTION!
+  // Usage: Set TEST_ENV=prod before running tests
+  
+  "testMode": "Remote",
+  "environment": "production",
+  
+  "http": {
+    // Production API URL
+    "baseUrl": "${ENV:PROD_API_URL}",
+    
+    // Production timeout (should be fast)
+    "timeout": 30,
+    
+    // Production headers
+    "defaultHeaders": {
+      "X-Test-Source": "XUnitAssured.Remote.Test",
+      "X-Environment": "Production",
+      "Accept": "application/json"
+    },
+    
+    // Production authentication - ALWAYS use environment variables!
+    "authentication": {
+      "type": "Bearer",
+      "bearer": {
+        "token": "${ENV:PROD_API_TOKEN}",
+        "prefix": "Bearer"
+      }
+    }
+  }
+  
+  // PRODUCTION TESTING BEST PRACTICES:
+  // 1. Run only non-destructive tests (GET operations)
+  // 2. Use read-only API keys/tokens
+  // 3. Never commit production credentials
+  // 4. Consider using a production-readonly test environment instead
+  // 5. Have monitoring/alerting in place
+  // 6. Run during low-traffic periods
+  // 7. Implement rate limiting in tests
+}

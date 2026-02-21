@@ -8,7 +8,7 @@ using Xunit;
 using Xunit.Microsoft.DependencyInjection;
 using Xunit.Microsoft.DependencyInjection.Abstracts;
 
-using XUnitAssured.DependencyInjection;
+using XUnitAssured.Core.Testing;
 
 namespace XUnitAssured.Tests;
 

@@ -1,0 +1,43 @@
+{
+    // ============================================================================
+    // KAFKA LOCAL DOCKER CONFIGURATION
+    // ============================================================================
+
+    "testMode": "Local",
+    "environment": "docker-local",
+
+    "kafka": {
+        // Bootstrap servers (comma-separated if multiple)
+        // Using "kafka" hostname to match the certificate's Common Name
+        "bootstrapServers": "kafka:39093",
+
+        // Consumer group ID
+        "groupId": "xunit-test-consumer-group",
+
+        // Security protocol (SaslSsl for SASL with SSL encryption)
+        "securityProtocol": "SaslSsl",
+
+        // SSL configuration: Use CA certificate to trust the Kafka broker
+        // Absolute path to ensure certificate is found during test execution
+        "sslCaLocation": "C:/DEV/ProjetosPessoais/XUnitAssured.Net/src/XUnitAssured.Kafka.Samples.Local.Test/docker/KRaft-SASLSSL/secrets/ca-cert.pem",
+
+        // Enable certificate verification but allow hostname mismatch
+        // The certificate is issued for "kafka" but we connect to "localhost"
+        "enableSslCertificateVerification": true,
+
+        // Authentication configuration for SASL/SCRAM-SHA-512 with SSL
+        "authentication": {
+            "type": "SaslScram512",
+            "saslScram": {
+                "username": "admin",
+                "password": "admin-secret",
+                "useSsl": true
+            }
+        },
+
+        // Schema Registry URL (optional - not used in basic tests)
+        "schemaRegistry": {
+            "url": "http://localhost:8081"
+        }
+    }
+}
