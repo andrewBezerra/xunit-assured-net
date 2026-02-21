@@ -1,16 +1,20 @@
 # XUnitAssured.Net
 
-XUnitAssured.Net is a fluent testing framework for .NET that helps developers create and maintain test collections with the goal of promoting the development of quality software products.
+XUnitAssured.Net is a fluent testing framework for .NET that helps developers create and maintain test collections with the goal of promoting the development of quality software products. Write expressive integration tests using a natural `Given().When().Then()` DSL for both HTTP/REST APIs and Apache Kafka.
 
 ## 🎯 Features
 
-- **Fluent DSL**: Write tests in a natural, readable way using `Given().When().Then()` syntax
-- **HTTP Testing**: Comprehensive HTTP/REST API testing with authentication support
-- **Kafka Testing**: Integration testing with Apache Kafka (producers and consumers)
+- **Fluent BDD DSL**: Write tests in a natural, readable way using `Given().When().Then()` syntax
+- **HTTP Testing**: Comprehensive HTTP/REST API testing with full CRUD support, JSON path assertions, and schema validation
+- **Kafka Testing**: Integration testing with Apache Kafka — produce/consume single and batch messages with header and key support
 - **Modular Architecture**: Install only what you need (Core, Http, Kafka)
-- **Multiple Auth Types**: Bearer, Basic, OAuth2, API Key, Certificate, Custom headers
-- **Retry Logic**: Built-in retry mechanisms for resilient tests
-- **xUnit Integration**: Seamless integration with xUnit's dependency injection
+- **Multiple HTTP Auth Types**: Bearer, BearerWithAutoRefresh, Basic, OAuth2 (Client Credentials, Password, Authorization Code), API Key (Header/Query), Certificate (mTLS), Custom Headers
+- **Multiple Kafka Auth Types**: SASL/PLAIN, SASL/SCRAM-SHA-256, SASL/SCRAM-SHA-512, SSL, Mutual TLS (mTLS)
+- **Automatic Authentication**: Configure auth once in `testsettings.json` and have it applied automatically to every request
+- **Dependency Injection**: Built-in DI support via `DITestFixture` base class
+- **Validation & BDD Extensions**: `ValidationBuilder` and BDD scenario extensions consolidated in Core
+- **Multi-target Support**: Targets `net7.0`, `net8.0`, and `net9.0`
+- **xUnit Integration**: Seamless integration with xUnit's fixtures and dependency injection
 
 ## 📦 Packages
 
@@ -18,15 +22,14 @@ XUnitAssured.Net is a fluent testing framework for .NET that helps developers cr
 
 | Package | Version | Description |
 |---------|---------|-------------|
-| **XUnitAssured.Core** | 2.0.0 | Core abstractions and DSL infrastructure |
-| **XUnitAssured** | 1.0.0 | Base test fixtures and settings |
+| **XUnitAssured.Core** | 4.2.0 | Core abstractions, DSL infrastructure, DI support (`DITestFixture`), `ValidationBuilder`, and BDD extensions |
 
 ### Protocol Packages
 
 | Package | Version | Description |
 |---------|---------|-------------|
-| **XUnitAssured.Http** | 2.0.0 | HTTP/REST API testing with Flurl |
-| **XUnitAssured.Kafka** | 1.0.0 | Apache Kafka integration testing |
+| **XUnitAssured.Http** | 4.0.0 | HTTP/REST API testing — fluent DSL, authentication handlers, JSON path assertions, schema validation |
+| **XUnitAssured.Kafka** | 3.0.0 | Apache Kafka integration testing — produce/consume, batch operations, authentication, Schema Registry support |
 
 ## 🚀 Quick Start
 
@@ -37,47 +40,58 @@ dotnet add package XUnitAssured.Http
 ```
 
 ```csharp
-using XUnitAssured.Http;
-using Xunit;
-using Xunit.Abstractions;
+using XUnitAssured.Http.Extensions;
+using XUnitAssured.Http.Testing;
 
-public class MyApiTestFixture : HttpTestFixture { }
-
-public class MyApiTests : IClassFixture<MyApiTestFixture>
+public class MyApiTests : HttpTestBase<MyTestFixture>, IClassFixture<MyTestFixture>
 {
-    private readonly IFlurlClient _client;
-    
-    public MyApiTests(ITestOutputHelper output, MyApiTestFixture fixture)
-    {
-        _client = fixture.GetFlurlClient();
-    }
+    public MyApiTests(MyTestFixture fixture) : base(fixture) { }
 
     [Fact]
-    public async Task Get_Users_Returns_Success()
+    public void Get_Users_Returns_Success()
     {
-        var response = await _client
-            .Request("/api/users")
-            .GetAsync();
-
-        Assert.True(response.ResponseMessage.IsSuccessStatusCode);
+        Given()
+            .ApiResource("/api/users")
+            .Get()
+        .When()
+            .Execute()
+        .Then()
+            .AssertStatusCode(200)
+            .AssertJsonPath<string>("$.name", value => value == "John", "Name should be John");
     }
 }
 ```
 
-**Configuration (httpsettings.json):**
-```json
-{
-  "Http": {
-    "BaseUrl": "https://api.example.com",
-    "Timeout": 30,
-    "Authentication": {
-      "Type": "Bearer",
-      "Config": {
-        "Token": "your-token-here"
-      }
-    }
-  }
-}
+### HTTP Authentication Examples
+
+```csharp
+// Bearer Token
+Given().ApiResource("/api/secure")
+    .WithBearerToken("my-jwt-token")
+    .Get()
+.When().Execute()
+.Then().AssertStatusCode(200);
+
+// Basic Auth
+Given().ApiResource("/api/secure")
+    .WithBasicAuth("username", "password")
+    .Get()
+.When().Execute()
+.Then().AssertStatusCode(200);
+
+// API Key (Header or Query)
+Given().ApiResource("/api/secure")
+    .WithApiKey("X-API-Key", "my-api-key", ApiKeyLocation.Header)
+    .Get()
+.When().Execute()
+.Then().AssertStatusCode(200);
+
+// OAuth2 Client Credentials
+Given().ApiResource("/api/secure")
+    .WithOAuth2ClientCredentials("https://auth.example.com/token", "client-id", "client-secret")
+    .Get()
+.When().Execute()
+.Then().AssertStatusCode(200);
 ```
 
 ### Kafka Testing
@@ -87,61 +101,102 @@ dotnet add package XUnitAssured.Kafka
 ```
 
 ```csharp
-using XUnitAssured.Kafka;
-using Xunit;
-using Xunit.Abstractions;
+using XUnitAssured.Kafka.Extensions;
+using XUnitAssured.Kafka.Testing;
 
-public class MyKafkaTestFixture : KafkaTestFixture { }
-
-public class MyKafkaTests : IClassFixture<MyKafkaTestFixture>
+public class MyKafkaTests : KafkaTestBase<KafkaClassFixture>, IClassFixture<KafkaClassFixture>
 {
-    private readonly MyKafkaTestFixture _fixture;
-    
-    public MyKafkaTests(ITestOutputHelper output, MyKafkaTestFixture fixture)
-    {
-        _fixture = fixture;
-    }
+    public MyKafkaTests(KafkaClassFixture fixture) : base(fixture) { }
 
     [Fact]
-    public async Task Produce_And_Consume_Message()
+    public void Produce_And_Consume_Message()
     {
+        var topic = GenerateUniqueTopic("my-test");
+        var groupId = $"test-{Guid.NewGuid():N}";
+
         // Produce
-        await _fixture.ProduceAsync("my-topic", "key1", "value1");
+        Given()
+            .Topic(topic)
+            .Produce("Hello, Kafka!")
+        .When()
+            .Execute()
+        .Then()
+            .AssertSuccess();
 
         // Consume
-        var result = _fixture.ConsumeOne<string, string>("my-topic");
-        
-        Assert.NotNull(result);
-        Assert.Equal("value1", result.Message.Value);
+        Given()
+            .Topic(topic)
+            .Consume()
+            .WithGroupId(groupId)
+        .When()
+            .Execute()
+        .Then()
+            .AssertSuccess()
+            .AssertMessage<string>(msg => msg.ShouldBe("Hello, Kafka!"));
     }
 }
 ```
 
-## 📚 Documentation
+### Kafka Batch Operations
 
-- [Migration Guide v2.0](MIGRATION-GUIDE-V2.md) - Upgrading from v1.x (Remote package removal)
-- [HTTP Testing Guide](docs/http-testing.md) - Detailed HTTP testing scenarios
-- [Kafka Testing Guide](docs/kafka-testing.md) - Kafka integration patterns
-- [Authentication Guide](docs/authentication.md) - All supported authentication types
+```csharp
+// Produce batch
+Given()
+    .Topic("my-topic")
+    .ProduceBatch(messages)
+.When()
+    .Execute()
+.Then()
+    .AssertSuccess()
+    .AssertBatchCount(5);
 
-## 🔄 Version 2.0 Changes
+// Consume batch
+Given()
+    .Topic("my-topic")
+    .ConsumeBatch(5)
+    .WithGroupId(groupId)
+.When()
+    .Execute()
+.Then()
+    .AssertSuccess()
+    .AssertBatchCount(5);
+```
 
-**Breaking Changes:**
-- ❌ Removed `XUnitAssured.Remote` package
-- ✅ `HttpTestFixture` added to `XUnitAssured.Http`
-- ✅ `KafkaTestFixture` now independent (no dependency on Base)
-- 🔄 Configuration split: `httpsettings.json` and `kafkasettings.json`
+### Kafka Authentication Examples
 
-See [MIGRATION-GUIDE-V2.md](MIGRATION-GUIDE-V2.md) for detailed migration instructions.
+```csharp
+// SASL/PLAIN
+Given().Topic("my-topic")
+    .Produce("message")
+    .WithBootstrapServers("localhost:29093")
+    .WithAuth(auth => auth.UseSaslPlain("user", "password", useSsl: false))
+.When().Execute()
+.Then().AssertSuccess();
+
+// SSL (one-way)
+Given().Topic("my-topic")
+    .Produce("message")
+    .WithBootstrapServers("localhost:29096")
+    .WithAuth(auth => auth.UseSsl("certs/ca-cert.pem"))
+.When().Execute()
+.Then().AssertSuccess();
+
+// Mutual TLS (mTLS)
+Given().Topic("my-topic")
+    .Produce("message")
+    .WithBootstrapServers("localhost:29097")
+    .WithAuth(auth => auth.UseMutualTls("client-cert.pem", "client-key.pem", "ca-cert.pem"))
+.When().Execute()
+.Then().AssertSuccess();
+```
 
 ## 🏗️ Architecture
 
 ```
-XUnitAssured.Core (DSL + Abstractions)
-    ↓
-XUnitAssured.Http (HTTP Testing)    XUnitAssured.Kafka (Kafka Testing)
-    ↓                                    ↓
-XUnitAssured (Base Fixtures)
+XUnitAssured.Core  (DSL + Abstractions + DI + ValidationBuilder + BDD Extensions)
+       ↓                              ↓
+XUnitAssured.Http             XUnitAssured.Kafka
+(HTTP/REST Testing)           (Kafka Integration Testing)
 ```
 
 **Design Principles:**
@@ -150,6 +205,56 @@ XUnitAssured (Base Fixtures)
 - **DRY**: Reusable components across tests
 - **YAGNI**: Only what you need, when you need it
 - **Separation of Concerns**: Clear boundaries between HTTP, Kafka, and Core
+
+## 📚 Sample Projects
+
+The repository includes comprehensive sample projects for both local and remote testing:
+
+| Project | Description |
+|---------|-------------|
+| `XUnitAssured.Http.Samples.Local.Test` | HTTP tests against a local `SampleWebApi` (WebApplicationFactory) |
+| `XUnitAssured.Http.Samples.Remote.Test` | HTTP tests against a deployed remote API |
+| `XUnitAssured.Kafka.Samples.Remote.Test` | Kafka tests against local Docker or remote Kafka clusters |
+
+### HTTP Sample Test Categories
+
+- **SimpleIntegrationTests** — Basic GET/POST/PUT/DELETE operations
+- **CrudOperationsTests** — Full CRUD lifecycle with JSON path assertions
+- **BearerAuthTests** — Bearer token authentication
+- **BasicAuthTests** — Basic authentication
+- **ApiKeyAuthTests** — API Key via Header and Query parameter
+- **OAuth2AuthTests** — OAuth2 flows (Client Credentials, Password)
+- **CertificateAuthTests** — Certificate-based (mTLS) authentication
+- **CustomHeaderAuthTests** — Custom header authentication
+- **HybridValidationTests** — Mixed validation strategies
+- **DiagnosticTests** — Connectivity and diagnostic tests
+
+### Kafka Sample Test Categories
+
+- **ProducerConsumerBasicTests** — Produce/consume strings, JSON, headers, batches, keys, timeouts
+- **AuthenticationPlainTextTests** — Plaintext (no auth)
+- **AuthenticationSaslPlainTests** — SASL/PLAIN
+- **AuthenticationScramSha256Tests** — SASL/SCRAM-SHA-256
+- **AuthenticationScramSha512Tests** — SASL/SCRAM-SHA-512
+- **AuthenticationScramSha512SslTests** — SASL/SSL
+- **AuthenticationTests** — SSL, mTLS, invalid credentials
+
+## 🔄 Version History
+
+### v4.2.0 (Current — Core)
+- Consolidated DI support from `XUnitAssured.DependencyInjection` into `XUnitAssured.Core` (`DITestFixture`)
+
+### v4.0.0 (Core + Http)
+- Added `ValidationBuilder` and BDD extensions (consolidated from `XUnitAssured.Extensions`)
+- Added `HttpValidationBuilder` and BDD extensions for HTTP
+- Multi-target support: `net7.0`, `net8.0`, `net9.0`
+
+### v3.0.0 (Kafka)
+- Aligned with framework architecture refactoring
+- Full fluent DSL integration for Kafka produce/consume
+- Batch operations (`ProduceBatch`, `ConsumeBatch`)
+- Comprehensive authentication support (SASL, SSL, mTLS)
+- Schema Registry support with Avro serialization
 
 ## 🤝 Contributing
 
