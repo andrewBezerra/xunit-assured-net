@@ -129,8 +129,8 @@ public class KafkaBatchProduceStep : ITestStep
 
 					var message = new Message<string, string>
 					{
-						Key = keyString,
-						Value = valueString,
+						Key = keyString!,
+						Value = valueString!,
 						Headers = Headers != null ? CloneHeaders(Headers) : null,
 						Timestamp = Confluent.Kafka.Timestamp.Default
 					};
