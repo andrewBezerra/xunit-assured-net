@@ -1,7 +1,7 @@
-
+﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 18
-VisualStudioVersion = 18.4.11506.43
+# Visual Studio Version 17
+VisualStudioVersion = 17.14.36915.13
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tests", "Tests", "{02EA681E-C7D8-13C7-8484-4AC65E1B71E8}"
 EndProject
@@ -24,8 +24,6 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "XUnitAssured.Http.Samples.Remote.Test", "XUnitAssured.Http.Samples.Remote.Test\XUnitAssured.Http.Samples.Remote.Test.csproj", "{329B2ADB-2689-4211-BBF6-F84FE81AF72A}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "XUnitAssured.Kafka.Samples.Local.Test", "XUnitAssured.Kafka.Samples.Local.Test\XUnitAssured.Kafka.Samples.Local.Test.csproj", "{0F59F930-AD4A-96D3-F14D-080A61F461F4}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "XUnitAssured.Http.Samples.Test", "XUnitAssured.Http.Samples.Test\XUnitAssured.Http.Samples.Test.csproj", "{113FD701-5F29-4CDC-9629-198C69ED16C1}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
