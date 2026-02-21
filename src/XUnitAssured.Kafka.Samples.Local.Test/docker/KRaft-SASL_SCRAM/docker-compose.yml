@@ -1,0 +1,92 @@
+version: "3.8"
+
+networks:
+  kafka-network:
+    driver: bridge
+
+services:
+  kafka:
+    image: confluentinc/cp-kafka:latest
+    container_name: kafka
+    hostname: kafka
+    networks:
+      - kafka-network
+    ports:
+      - "9092:9092"   # Internal SCRAM
+      - "9094:9094"   # External SCRAM
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9095
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      
+      # Listeners
+      KAFKA_LISTENERS: INTERNAL://0.0.0.0:9092,EXTERNAL://0.0.0.0:9094,CONTROLLER://0.0.0.0:9095
+      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka:9092,EXTERNAL://localhost:9094
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INTERNAL:SASL_PLAINTEXT,EXTERNAL:SASL_PLAINTEXT,CONTROLLER:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
+      
+      # SASL Configuration - SCRAM
+      KAFKA_SASL_ENABLED_MECHANISMS: SCRAM-SHA-256,SCRAM-SHA-512
+      KAFKA_SASL_MECHANISM_INTER_BROKER_PROTOCOL: SCRAM-SHA-256
+      
+      # Replication factors for single broker
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_OFFSETS_TOPIC_NUM_PARTITIONS: 50
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_DEFAULT_REPLICATION_FACTOR: 1
+      KAFKA_MIN_INSYNC_REPLICAS: 1
+      
+      # Cluster ID
+      CLUSTER_ID: "MkU3OEVBNTcwNTJENDM2Qk"
+      
+      # Log dirs
+      KAFKA_LOG_DIRS: "/var/lib/kafka/data"
+      
+    volumes:
+      - kafka-data:/var/lib/kafka/data
+      - ./scripts/create_scram_users.sh:/tmp/create_scram_users.sh
+    command: >
+      bash -c "
+      # Start Kafka in background
+      /etc/confluent/docker/run &
+      
+      # Wait for Kafka to be ready
+      echo 'Waiting for Kafka to start...'
+      sleep 15
+      
+      # Create SCRAM users
+      /tmp/create_scram_users.sh
+      
+      # Keep container running
+      wait
+      "
+    healthcheck:
+      test: ["CMD-SHELL", "kafka-broker-api-versions --bootstrap-server kafka:9092 --command-config /tmp/client.properties || exit 1"]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+      start_period: 40s
+
+  kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    container_name: kafka-ui
+    hostname: kafka-ui
+    networks:
+      - kafka-network
+    depends_on:
+      kafka:
+        condition: service_healthy
+    ports:
+      - "8080:8080"
+    environment:
+      KAFKA_CLUSTERS_0_NAME: local-scram
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
+      KAFKA_CLUSTERS_0_PROPERTIES_SECURITY_PROTOCOL: SASL_PLAINTEXT
+      KAFKA_CLUSTERS_0_PROPERTIES_SASL_MECHANISM: SCRAM-SHA-256
+      KAFKA_CLUSTERS_0_PROPERTIES_SASL_JAAS_CONFIG: 'org.apache.kafka.common.security.scram.ScramLoginModule required username="admin" password="admin-secret";'
+      DYNAMIC_CONFIG_ENABLED: "true"
+
+volumes:
+  kafka-data:

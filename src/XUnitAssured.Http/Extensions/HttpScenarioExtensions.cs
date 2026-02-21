@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Net.Http;
 
 using XUnitAssured.Core.Abstractions;
+using XUnitAssured.Http.Configuration;
 using XUnitAssured.Http.Steps;
 
 namespace XUnitAssured.Http.Extensions;
@@ -14,6 +15,7 @@ public static class HttpScenarioExtensions
 {
 	/// <summary>
 	/// Starts an HTTP request step with the specified URL.
+	/// Automatically detects and applies authentication from IHttpClientAuthProvider if available.
 	/// Usage: Given().ApiResource("http://api.com/endpoint")
 	/// </summary>
 	public static ITestScenario ApiResource(this ITestScenario scenario, string url)
@@ -24,9 +26,11 @@ public static class HttpScenarioExtensions
 		// Check if there's already an HttpRequestStep (e.g., from WithHttpClient)
 		// and preserve its properties
 		HttpClient? existingHttpClient = null;
+		HttpAuthConfig? existingAuthConfig = null;
 		if (scenario.CurrentStep is HttpRequestStep existingStep)
 		{
 			existingHttpClient = existingStep.CustomHttpClient;
+			existingAuthConfig = existingStep.AuthConfig;
 		}
 		
 		// Check if HttpClientProvider was set via Given(IHttpClientProvider)
@@ -36,6 +40,12 @@ public static class HttpScenarioExtensions
 			if (provider != null)
 			{
 				existingHttpClient = provider.CreateClient();
+				
+				// Check if provider also implements IHttpClientAuthProvider
+				if (provider is IHttpClientAuthProvider authProvider && existingAuthConfig == null)
+				{
+					existingAuthConfig = authProvider.GetAuthenticationConfig();
+				}
 			}
 		}
 
@@ -43,7 +53,8 @@ public static class HttpScenarioExtensions
 		{
 			Url = url,
 			Method = HttpMethod.Get,
-			CustomHttpClient = existingHttpClient  // Preserve CustomHttpClient if set
+			CustomHttpClient = existingHttpClient,  // Preserve CustomHttpClient if set
+			AuthConfig = existingAuthConfig  // Preserve or set AuthConfig from provider
 		};
 
 		scenario.SetCurrentStep(step);

@@ -1,7 +1,10 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Text.Json;
 using Confluent.Kafka;
 using XUnitAssured.Core.Results;
+using XUnitAssured.Kafka.Extensions;
 
 namespace XUnitAssured.Kafka.Results;
 
@@ -64,6 +67,30 @@ public class KafkaStepResult : TestStepResult
 	/// <typeparam name="T">Target type for deserialization</typeparam>
 	/// <returns>Message as type T</returns>
 	public T? GetMessage<T>() => GetData<T>();
+
+	/// <summary>
+	/// Extracts a value from the JSON message using a simplified JSON path.
+	/// Supports: $.propertyName, $.property.nested, $.array[0]
+	/// </summary>
+	/// <typeparam name="T">The expected type of the value</typeparam>
+	/// <param name="path">JSON path expression (e.g., "$.id", "$.items[0].price")</param>
+	/// <returns>The extracted value converted to type T</returns>
+	/// <exception cref="InvalidOperationException">Thrown when message is empty or not a string</exception>
+	public T JsonPath<T>(string path)
+	{
+		var messageBody = Message?.ToString() ?? string.Empty;
+
+		if (string.IsNullOrWhiteSpace(messageBody))
+			throw new InvalidOperationException("Kafka message is empty - cannot extract JSON path");
+
+		using var document = JsonDocument.Parse(messageBody);
+		var root = document.RootElement;
+
+		if (path.StartsWith("$."))
+			path = path.Substring(2);
+
+		return KafkaJsonPathNavigator.Navigate<T>(root, path);
+	}
 
 	/// <summary>
 	/// Gets a specific header value by key.
@@ -158,15 +185,32 @@ public class KafkaStepResult : TestStepResult
 				Status = StepStatus.Failed
 			},
 			Success = false,
-			Errors = new List<string> { exception.Message }
+			Errors = new List<string> { exception.ToString() },
+			Properties = new Dictionary<string, object?>
+			{
+				["ExceptionType"] = exception.GetType().FullName,
+				["ExceptionMessage"] = exception.Message,
+				["ExceptionStackTrace"] = exception.StackTrace
+			}
 		};
 	}
 
 	/// <summary>
 	/// Creates a timeout result (no message consumed within timeout period).
 	/// </summary>
-	public static KafkaStepResult CreateTimeout(string topic, TimeSpan timeout)
+	public static KafkaStepResult CreateTimeout(string topic, TimeSpan timeout, IEnumerable<string>? details = null, Dictionary<string, object?>? properties = null)
 	{
+		var errors = new List<string>
+		{
+			$"No message consumed from topic '{topic}' within timeout of {timeout.TotalSeconds}s"
+		};
+
+		if (details != null)
+			errors.AddRange(details);
+
+		var resultProperties = properties ?? new Dictionary<string, object?>();
+		resultProperties["Topic"] = topic;
+
 		return new KafkaStepResult
 		{
 			Metadata = new StepMetadata
@@ -176,19 +220,27 @@ public class KafkaStepResult : TestStepResult
 				Status = StepStatus.Failed
 			},
 			Success = false,
-			Errors = new List<string> { $"No message consumed from topic '{topic}' within timeout of {timeout.TotalSeconds}s" },
-			Properties = new Dictionary<string, object?>
-			{
-				["Topic"] = topic
-			}
+			Errors = errors,
+			Properties = resultProperties
 		};
 	}
 
 	/// <summary>
 	/// Creates a timeout result for produce operation.
 	/// </summary>
-	public static KafkaStepResult CreateProduceTimeout(string topic, TimeSpan timeout)
+	public static KafkaStepResult CreateProduceTimeout(string topic, TimeSpan timeout, IEnumerable<string>? details = null, Dictionary<string, object?>? properties = null)
 	{
+		var errors = new List<string>
+		{
+			$"Failed to produce message to topic '{topic}' within timeout of {timeout.TotalSeconds}s"
+		};
+
+		if (details != null)
+			errors.AddRange(details);
+
+		var resultProperties = properties ?? new Dictionary<string, object?>();
+		resultProperties["Topic"] = topic;
+
 		return new KafkaStepResult
 		{
 			Metadata = new StepMetadata
@@ -198,12 +250,106 @@ public class KafkaStepResult : TestStepResult
 				Status = StepStatus.Failed
 			},
 			Success = false,
-			Errors = new List<string> { $"Failed to produce message to topic '{topic}' within timeout of {timeout.TotalSeconds}s" },
-			Properties = new Dictionary<string, object?>
-			{
-				["Topic"] = topic
-			}
+			Errors = errors,
+			Properties = resultProperties
 		};
 	}
-}
+
+	/// <summary>
+	/// Creates a successful batch produce result from multiple delivery results.
+	/// </summary>
+	public static KafkaStepResult CreateBatchProduceSuccess(
+		DeliveryResult<string, string>[] deliveryResults)
+	{
+		var allPersisted = deliveryResults.All(r => r.Status == PersistenceStatus.Persisted);
+		var firstResult = deliveryResults[0];
+
+		var properties = new Dictionary<string, object?>
+		{
+			["Topic"] = firstResult.Topic,
+			["BatchSize"] = deliveryResults.Length,
+			["DeliveryResults"] = deliveryResults
+		};
+
+		return new KafkaStepResult
+		{
+			Metadata = new StepMetadata
+			{
+				StartedAt = DateTimeOffset.UtcNow,
+				CompletedAt = DateTimeOffset.UtcNow,
+				Status = StepStatus.Succeeded
+			},
+					Success = allPersisted,
+						Data = deliveryResults,
+						DataType = typeof(DeliveryResult<string, string>[]),
+						Properties = properties
+					};
+				}
+
+				/// <summary>
+				/// Creates a successful batch consume result when all requested messages were received.
+				/// </summary>
+				public static KafkaStepResult CreateBatchConsumeSuccess(
+					List<ConsumeResult<string, string>> consumeResults)
+				{
+					var firstResult = consumeResults[0];
+
+					var properties = new Dictionary<string, object?>
+					{
+						["Topic"] = firstResult.Topic,
+						["BatchSize"] = consumeResults.Count,
+						["ConsumeResults"] = consumeResults
+					};
+
+					return new KafkaStepResult
+					{
+						Metadata = new StepMetadata
+						{
+							StartedAt = DateTimeOffset.UtcNow,
+							CompletedAt = DateTimeOffset.UtcNow,
+							Status = StepStatus.Succeeded
+						},
+						Success = true,
+						Data = consumeResults,
+						DataType = typeof(List<ConsumeResult<string, string>>),
+						Properties = properties
+					};
+				}
+
+				/// <summary>
+				/// Creates a partial batch consume result when timeout expired before all messages were received.
+				/// </summary>
+				public static KafkaStepResult CreateBatchConsumePartial(
+					string topic,
+					int expectedCount,
+					List<ConsumeResult<string, string>> consumeResults,
+					TimeSpan timeout)
+				{
+					var properties = new Dictionary<string, object?>
+					{
+						["Topic"] = topic,
+						["BatchSize"] = consumeResults.Count,
+						["ExpectedBatchSize"] = expectedCount,
+						["ConsumeResults"] = consumeResults
+					};
+
+					return new KafkaStepResult
+					{
+						Metadata = new StepMetadata
+						{
+							StartedAt = DateTimeOffset.UtcNow,
+							CompletedAt = DateTimeOffset.UtcNow,
+							Status = StepStatus.Failed
+						},
+						Success = false,
+						Errors = new List<string>
+						{
+							$"Consumed {consumeResults.Count} of {expectedCount} messages from topic '{topic}' within timeout of {timeout.TotalSeconds}s"
+						},
+						Data = consumeResults,
+						DataType = typeof(List<ConsumeResult<string, string>>),
+						Properties = properties
+					};
+				}
+			}
 

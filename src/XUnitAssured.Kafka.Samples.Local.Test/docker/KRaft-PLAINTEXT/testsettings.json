@@ -1,0 +1,30 @@
+{
+    // ============================================================================
+    // KAFKA LOCAL DOCKER CONFIGURATION - PLAINTEXT (No Auth, No SSL)
+    // ============================================================================
+
+    "testMode": "Local",
+    "environment": "docker-local",
+
+    "kafka": {
+        // Bootstrap servers (comma-separated if multiple)
+        // KRaft-PLAINTEXT uses port 9092 for external connections
+        "bootstrapServers": "localhost:9092",
+
+        // Consumer group ID
+        "groupId": "xunit-test-consumer-group",
+
+        // Security protocol: Plaintext (no authentication, no encryption)
+        "securityProtocol": "Plaintext",
+
+        // No authentication required for PLAINTEXT
+        "authentication": {
+            "type": "None"
+        },
+
+        // Schema Registry URL (optional - not used in basic tests)
+        "schemaRegistry": {
+            "url": "http://localhost:8081"
+        }
+    }
+}

@@ -1,0 +1,54 @@
+# XUnitAssured.Http.Samples.Remote.Test .gitignore
+
+# Test configuration with secrets (local overrides)
+testsettings.local.json
+testsettings.*.local.json
+
+# Environment-specific configs with real credentials
+# Commit templates (*.json) but not real configs
+# testsettings.prod.json  # Uncomment if you want to ignore prod config
+
+# Test results
+TestResults/
+*.trx
+*.coverage
+
+# Build output
+bin/
+obj/
+*.dll
+*.exe
+*.pdb
+
+# User-specific files
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# IDE
+.vs/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Certificates (NEVER commit these!)
+*.pfx
+*.p12
+*.cer
+*.crt
+*.key
+
+# Logs
+*.log
+logs/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Environment variable files
+.env
+.env.local
+.env.*.local
