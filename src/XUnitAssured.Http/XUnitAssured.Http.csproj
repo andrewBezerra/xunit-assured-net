@@ -1,14 +1,14 @@
 <Project Sdk="Microsoft.NET.Sdk">
 	<PropertyGroup>
-		<TargetFrameworks>net7.0;net8.0;net9.0</TargetFrameworks>
+		<TargetFrameworks>net7.0;net8.0;net9.0;net10.0</TargetFrameworks>
 		<LangVersion>12</LangVersion>
 		<ImplicitUsings>disable</ImplicitUsings>
 		<Nullable>enable</Nullable>
 		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
-		<Version>4.0.0</Version>
+		<Version>5.0.0</Version>
 		<Authors>Carlos Andrew Costa Bezerra</Authors>
 		<Company>R2A Sistemas</Company>
-		<Description>HTTP/REST testing extensions for XUnitAssured. Provides fluent DSL for testing REST APIs with support for HTTP methods, headers, authentication (OAuth2, Bearer, Basic, Certificate), and response validation. v4.0: Added HttpValidationBuilder and BDD extensions (consolidated from XUnitAssured.Extensions).</Description>
+		<Description>HTTP/REST testing extensions for XUnitAssured. Provides fluent DSL for testing REST APIs with support for HTTP methods, headers, authentication (OAuth2, Bearer, Basic, Certificate), and response validation. v4.0: Added HttpValidationBuilder and BDD extensions (consolidated from XUnitAssured.Extensions). v5.0: Added .NET 10 support.</Description>
 		<PackageProjectUrl>https://github.com/andrewBezerra/xunit-assured-net</PackageProjectUrl>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
 		<RepositoryUrl>https://github.com/andrewBezerra/xunit-assured-net</RepositoryUrl>
@@ -32,6 +32,7 @@
 		<PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="7.0.20" Condition="'$(TargetFramework)' == 'net7.0'" />
 		<PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="8.0.11" Condition="'$(TargetFramework)' == 'net8.0'" />
 		<PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="9.0.1" Condition="'$(TargetFramework)' == 'net9.0'" />
+		<PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="10.0.3" Condition="'$(TargetFramework)' == 'net10.0'" />
 	</ItemGroup>
 
 	<!-- Package Files -->

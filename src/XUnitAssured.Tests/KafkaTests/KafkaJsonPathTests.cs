@@ -190,7 +190,7 @@ public class KafkaJsonPathTests
 		Should.Throw<InvalidOperationException>(() =>
 		{
 			result.JsonPath<string>("$.name");
-		}).Message.ShouldContain("null");
+		}).Message.ShouldContain("empty");
 	}
 
 	[Fact(DisplayName = "JsonPath should throw for empty message")]

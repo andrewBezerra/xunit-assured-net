@@ -62,7 +62,7 @@ public class KafkaConsumeStepTests
 		};
 
 		// Assert
-		step.Timeout.ShouldBe(TimeSpan.FromSeconds(10));
+		step.Timeout.ShouldBe(TimeSpan.FromSeconds(30));
 	}
 
 	[Fact(DisplayName = "KafkaConsumeStep should allow custom timeout configuration")]

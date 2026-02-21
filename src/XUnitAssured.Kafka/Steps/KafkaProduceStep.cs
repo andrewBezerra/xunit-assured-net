@@ -172,8 +172,8 @@ public class KafkaProduceStep : ITestStep
 				// Build message
 				var message = new Message<string, string>
 				{
-					Key = keyString,
-					Value = valueString,
+					Key = keyString!,
+					Value = valueString!,
 					Headers = Headers,
 					Timestamp = Timestamp.HasValue 
 						? new Confluent.Kafka.Timestamp(Timestamp.Value) 

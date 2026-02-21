@@ -78,7 +78,13 @@ public class KafkaStepResult : TestStepResult
 	/// <exception cref="InvalidOperationException">Thrown when message is empty or not a string</exception>
 	public T JsonPath<T>(string path)
 	{
-		var messageBody = Message?.ToString() ?? string.Empty;
+		string messageBody;
+		if (Message is string strMessage)
+			messageBody = strMessage;
+		else if (Message != null)
+			messageBody = JsonSerializer.Serialize(Message);
+		else
+			messageBody = string.Empty;
 
 		if (string.IsNullOrWhiteSpace(messageBody))
 			throw new InvalidOperationException("Kafka message is empty - cannot extract JSON path");
