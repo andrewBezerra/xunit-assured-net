@@ -16,7 +16,7 @@ public class AuthenticationPlainTextTests : KafkaTestBase<KafkaClassFixture>, IC
 	{
 	}
 
-	[Fact(DisplayName = "Plaintext (no auth) should produce and consume successfully")]
+	[Fact(Skip = "Remote test - requires deployed API environment", DisplayName = "Plaintext (no auth) should produce and consume successfully")]
 	public void Auth01_Plaintext_ShouldSucceed()
 	{
 		// Arrange

@@ -17,7 +17,7 @@ public class AuthenticationSaslPlainTests : KafkaTestBase<KafkaClassFixture>, IC
 	{
 	}
 
-	[Fact(DisplayName = "SASL/PLAIN should produce and consume successfully")]
+	[Fact(Skip = "Remote test - requires deployed API environment", DisplayName = "SASL/PLAIN should produce and consume successfully")]
 	public void Auth02_SaslPlain_ShouldSucceed()
 	{
 		// Arrange

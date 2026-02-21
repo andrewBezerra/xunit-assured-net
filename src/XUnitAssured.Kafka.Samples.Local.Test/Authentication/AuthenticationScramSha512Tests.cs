@@ -17,7 +17,7 @@ public class AuthenticationScramSha512Tests : KafkaTestBase<KafkaClassFixture>, 
 	{
 	}
 
-	[Fact(DisplayName = "SASL/SCRAM-SHA-512 should produce and consume successfully")]
+	[Fact(Skip = "Remote test - requires deployed API environment", DisplayName = "SASL/SCRAM-SHA-512 should produce and consume successfully")]
 	public void Auth04_SaslScram512_ShouldSucceed()
 	{
 		// Arrange
