@@ -31,7 +31,7 @@ public class ProducerConsumerBasicTests : KafkaTestBase<KafkaClassFixture>, ICla
 	{
 	}
 
-	[Fact(DisplayName = "Produce and consume simple string message should succeed")]
+	[Fact(Skip = "Remote test - requires deployed API environment", DisplayName = "Produce and consume simple string message should succeed")]
 	public void Example01_ProduceAndConsumeString_ShouldSucceed()
 	{
 		// Arrange
@@ -64,7 +64,7 @@ public class ProducerConsumerBasicTests : KafkaTestBase<KafkaClassFixture>, ICla
 			});
 	}
 
-	[Fact(DisplayName = "Produce and consume JSON object should succeed")]
+	[Fact(Skip = "Remote test - requires deployed API environment", DisplayName = "Produce and consume JSON object should succeed")]
 	public void Example02_ProduceAndConsumeJson_ShouldSucceed()
 	{
 		// Arrange
@@ -101,7 +101,7 @@ public class ProducerConsumerBasicTests : KafkaTestBase<KafkaClassFixture>, ICla
 			.AssertJsonPath<string>("$.timestamp", ts => ts.ShouldNotBeNullOrEmpty());
 	}
 
-	[Fact(DisplayName = "Produce and consume message with headers should succeed")]
+	[Fact(Skip = "Remote test - requires deployed API environment", DisplayName = "Produce and consume message with headers should succeed")]
 	public void Example03_ProduceAndConsumeWithHeaders_ShouldSucceed()
 	{
 		// Arrange
@@ -136,7 +136,7 @@ public class ProducerConsumerBasicTests : KafkaTestBase<KafkaClassFixture>, ICla
 			.AssertMessage<string>(msg => msg.ShouldBe(message));
 	}
 
-	[Fact(DisplayName = "Produce multiple messages and consume all should succeed")]
+	[Fact(Skip = "Remote test - requires deployed API environment", DisplayName = "Produce multiple messages and consume all should succeed")]
 	public void Example04_ProduceBatchAndConsumeAll_ShouldSucceed()
 	{
 		// Arrange
@@ -175,7 +175,7 @@ public class ProducerConsumerBasicTests : KafkaTestBase<KafkaClassFixture>, ICla
 			.AssertBatchCount(messageCount);
 	}
 
-	[Fact(DisplayName = "Consume from empty topic should timeout gracefully")]
+	[Fact(Skip = "Remote test - requires deployed API environment", DisplayName = "Consume from empty topic should timeout gracefully")]
 	public void Example05_ConsumeWithTimeout_ShouldTimeout()
 	{
 		// Arrange
@@ -194,7 +194,7 @@ public class ProducerConsumerBasicTests : KafkaTestBase<KafkaClassFixture>, ICla
 			.AssertFailure();
 	}
 
-	[Fact(DisplayName = "Produce message with key should succeed")]
+	[Fact(Skip = "Remote test - requires deployed API environment", DisplayName = "Produce message with key should succeed")]
 	public void Example06_ProduceWithKey_ShouldSucceed()
 	{
 		// Arrange

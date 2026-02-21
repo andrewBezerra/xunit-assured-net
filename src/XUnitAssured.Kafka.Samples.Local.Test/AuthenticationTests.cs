@@ -18,7 +18,7 @@ public class AuthenticationTests : KafkaTestBase<KafkaClassFixture>, IClassFixtu
 	}
 
 
-	[Fact(DisplayName = "SSL (one-way) should produce and consume successfully")]
+	[Fact(Skip = "Remote test - requires deployed API environment", DisplayName = "SSL (one-way) should produce and consume successfully")]
 	public void Auth06_Ssl_ShouldSucceed()
 	{
 		// Arrange
@@ -52,7 +52,7 @@ public class AuthenticationTests : KafkaTestBase<KafkaClassFixture>, IClassFixtu
 			.AssertMessage<string>(msg => msg.ShouldBe(message));
 	}
 
-	[Fact(DisplayName = "Mutual TLS (mTLS) should produce and consume successfully")]
+	[Fact(Skip = "Remote test - requires deployed API environment", DisplayName = "Mutual TLS (mTLS) should produce and consume successfully")]
 	public void Auth07_MutualTls_ShouldSucceed()
 	{
 		// Arrange
@@ -88,7 +88,7 @@ public class AuthenticationTests : KafkaTestBase<KafkaClassFixture>, IClassFixtu
 			.AssertMessage<string>(msg => msg.ShouldBe(message));
 	}
 
-	[Fact(DisplayName = "SASL/PLAIN with invalid credentials should fail")]
+	[Fact(Skip = "Remote test - requires deployed API environment", DisplayName = "SASL/PLAIN with invalid credentials should fail")]
 	public void Auth08_InvalidCredentials_ShouldFail()
 	{
 		// Arrange
