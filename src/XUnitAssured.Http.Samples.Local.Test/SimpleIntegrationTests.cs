@@ -29,7 +29,7 @@ public class SimpleIntegrationTests : HttpTestBase<HttpSamplesFixture>, IClassFi
 	}
 
 	[Fact(DisplayName = "XUnitAssured with custom HTTP Client should work with relative URLs")]
-	public void XUnitAssured_WithCustomHttpClient_ShouldWork()
+	public async Task XUnitAssured_WithCustomHttpClient_ShouldWork()
 	{
 		// ✅ Using WithHttpClient to inject test server's client
 		var client = Fixture.CreateClient();
@@ -39,7 +39,7 @@ public class SimpleIntegrationTests : HttpTestBase<HttpSamplesFixture>, IClassFi
 			.ApiResource("/api/products/1")           // ← Relative URL now works!
 			.Get();
 
-		scenario.ExecuteCurrentStepAsync().GetAwaiter().GetResult();
+		await scenario.ExecuteCurrentStepAsync();
 
 		var step = scenario.CurrentStep;
 		var result = step?.Result as Results.HttpStepResult;

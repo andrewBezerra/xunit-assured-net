@@ -1,5 +1,4 @@
 using XUnitAssured.Http.Extensions;
-using XUnitAssured.Http.Extensions;
 
 namespace XUnitAssured.Http.Samples.Remote.Test;
 

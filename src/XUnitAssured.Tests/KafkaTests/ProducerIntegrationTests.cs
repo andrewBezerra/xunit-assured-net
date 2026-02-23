@@ -76,8 +76,8 @@ public class ProducerIntegrationTests
 			.WithBootstrapServers("kafka-cluster:9092");
 
 		// Assert - Step configuration
-		scenario.CurrentStep.ShouldBeOfType<KafkaProduceStep>();
-		var step = (KafkaProduceStep)scenario.CurrentStep;
+		scenario.CurrentStep!.ShouldBeOfType<KafkaProduceStep>();
+		var step = (KafkaProduceStep)scenario.CurrentStep!;
 
 		// ProducerConfig assertions
 		step.ProducerConfig.ShouldNotBeNull();
@@ -130,13 +130,13 @@ public class ProducerIntegrationTests
 			.WithJsonOptions(jsonOptions);
 
 		// Assert
-		var step = (KafkaProduceStep)scenario.CurrentStep;
+		var step = (KafkaProduceStep)scenario.CurrentStep!;
 		step.ProducerConfig.ShouldNotBeNull();
 		step.ProducerConfig.CompressionType.ShouldBe(CompressionType.Lz4);
 		step.ProducerConfig.Acks.ShouldBe(Acks.Leader);
 		step.ProducerConfig.BatchSize.ShouldBe(65536);
 		step.ProducerConfig.LingerMs.ShouldBe(100);
-		step.JsonOptions.WriteIndented.ShouldBe(false);
+		step.JsonOptions!.WriteIndented.ShouldBe(false);
 	}
 
 	[Fact(DisplayName = "Low-latency configuration should optimize for speed")]
@@ -170,7 +170,7 @@ public class ProducerIntegrationTests
 			.WithJsonOptions(jsonOptions);
 
 		// Assert
-		var step = (KafkaProduceStep)scenario.CurrentStep;
+		var step = (KafkaProduceStep)scenario.CurrentStep!;
 		step.ProducerConfig.ShouldNotBeNull();
 		step.ProducerConfig.CompressionType.ShouldBe(CompressionType.None);
 		step.ProducerConfig.BatchSize.ShouldBe(1);
@@ -215,7 +215,7 @@ public class ProducerIntegrationTests
 			.WithTimeout(TimeSpan.FromSeconds(60));
 
 		// Assert
-		var step = (KafkaProduceStep)scenario.CurrentStep;
+		var step = (KafkaProduceStep)scenario.CurrentStep!;
 		step.ProducerConfig.ShouldNotBeNull();
 		step.ProducerConfig.Acks.ShouldBe(Acks.All);
 		step.ProducerConfig.EnableIdempotence.ShouldBe(true);
@@ -256,7 +256,7 @@ public class ProducerIntegrationTests
 			.WithJsonOptions(jsonOptions);
 
 		// Assert
-		var step = (KafkaProduceStep)scenario.CurrentStep;
+		var step = (KafkaProduceStep)scenario.CurrentStep!;
 		step.ProducerConfig.ShouldNotBeNull();
 		step.ProducerConfig.TransactionalId.ShouldBe("test-transaction-001");
 		step.ProducerConfig.EnableIdempotence.ShouldBe(true);
@@ -306,7 +306,7 @@ public class ProducerIntegrationTests
 			.WithJsonOptions(jsonOptions);
 
 		// Assert
-		var step = (KafkaProduceStep)scenario.CurrentStep;
+		var step = (KafkaProduceStep)scenario.CurrentStep!;
 		step.JsonOptions.ShouldNotBeNull();
 		step.JsonOptions.PropertyNamingPolicy.ShouldBe(JsonNamingPolicy.SnakeCaseLower);
 		
@@ -350,7 +350,7 @@ public class ProducerIntegrationTests
 			.WithJsonOptions(jsonOptions);
 
 		// Assert
-		var step = (KafkaProduceStep)scenario.CurrentStep;
+		var step = (KafkaProduceStep)scenario.CurrentStep!;
 		step.ProducerConfig.ShouldNotBeNull();
 		step.ProducerConfig.BatchSize.ShouldBe(65536);
 		step.ProducerConfig.CompressionType.ShouldBe(CompressionType.Gzip);

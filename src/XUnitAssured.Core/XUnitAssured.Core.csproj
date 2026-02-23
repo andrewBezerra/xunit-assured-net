@@ -1,14 +1,14 @@
 <Project Sdk="Microsoft.NET.Sdk">
 	<PropertyGroup>
-		<TargetFrameworks>net7.0;net8.0;net9.0</TargetFrameworks>
+		<TargetFrameworks>net7.0;net8.0;net9.0;net10.0</TargetFrameworks>
 		<LangVersion>12</LangVersion>
 		<ImplicitUsings>disable</ImplicitUsings>
 		<Nullable>enable</Nullable>
 		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
-		<Version>4.2.0</Version>
+		<Version>5.0.0</Version>
 		<Authors>Carlos Andrew Costa Bezerra</Authors>
 		<Company>R2A Sistemas</Company>
-		<Description>Core abstractions and DSL infrastructure for XUnitAssured testing framework. Provides technology-agnostic interfaces, result types, and exceptions for building fluent test scenarios. Includes Dependency Injection support with DITestFixture base class. v4.0: Added ValidationBuilder and BDD extensions (consolidated from XUnitAssured.Extensions). v4.2: Consolidated DI support from XUnitAssured.DependencyInjection.</Description>
+		<Description>Core abstractions and DSL infrastructure for XUnitAssured testing framework. Provides technology-agnostic interfaces, result types, and exceptions for building fluent test scenarios. Includes Dependency Injection support with DITestFixture base class. v4.0: Added ValidationBuilder and BDD extensions (consolidated from XUnitAssured.Extensions). v4.2: Consolidated DI support from XUnitAssured.DependencyInjection. v5.0: Added .NET 10 support.</Description>
 		<PackageProjectUrl>https://github.com/andrewBezerra/xunit-assured-net</PackageProjectUrl>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
 		<RepositoryUrl>https://github.com/andrewBezerra/xunit-assured-net</RepositoryUrl>
@@ -49,6 +49,17 @@
 
 	<!-- .NET 9 Dependencies -->
 	<ItemGroup Condition="'$(TargetFramework)' == 'net9.0'">
+		<PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="9.0.8" />
+		<PackageReference Include="Microsoft.Extensions.Configuration.Binder" Version="9.0.8" />
+		<PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="9.0.8" />
+		<PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="9.0.8" />
+		<PackageReference Include="Microsoft.Extensions.Options" Version="9.0.8" />
+		<PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="9.0.8" />
+		<PackageReference Include="Xunit.Microsoft.DependencyInjection" Version="9.0.5" />
+	</ItemGroup>
+
+	<!-- .NET 10 Dependencies -->
+	<ItemGroup Condition="'$(TargetFramework)' == 'net10.0'">
 		<PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="9.0.8" />
 		<PackageReference Include="Microsoft.Extensions.Configuration.Binder" Version="9.0.8" />
 		<PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="9.0.8" />

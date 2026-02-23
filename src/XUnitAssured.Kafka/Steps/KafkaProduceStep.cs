@@ -169,6 +169,11 @@ public class KafkaProduceStep : ITestStep
 				var keyString = SerializeToString(Key);
 				var valueString = SerializeToString(Value);
 
+				if (keyString is null)
+					throw new InvalidOperationException($"Message key for topic '{Topic}' is null or its serialization returned null. Provide a non-null key value.");
+				if (valueString is null)
+					throw new InvalidOperationException($"Message value for topic '{Topic}' is null or its serialization returned null. Provide a non-null value.");
+
 				// Build message
 				var message = new Message<string, string>
 				{

@@ -13,7 +13,7 @@ XUnitAssured.Net is a fluent testing framework for .NET that helps developers cr
 - **Automatic Authentication**: Configure auth once in `testsettings.json` and have it applied automatically to every request
 - **Dependency Injection**: Built-in DI support via `DITestFixture` base class
 - **Validation & BDD Extensions**: `ValidationBuilder` and BDD scenario extensions consolidated in Core
-- **Multi-target Support**: Targets `net7.0`, `net8.0`, and `net9.0`
+- **Multi-target Support**: Targets `net7.0`, `net8.0`, `net9.0`, and `net10.0`
 - **xUnit Integration**: Seamless integration with xUnit's fixtures and dependency injection
 
 ## 📦 Packages
@@ -22,14 +22,14 @@ XUnitAssured.Net is a fluent testing framework for .NET that helps developers cr
 
 | Package | Version | Description |
 |---------|---------|-------------|
-| **XUnitAssured.Core** | 4.2.0 | Core abstractions, DSL infrastructure, DI support (`DITestFixture`), `ValidationBuilder`, and BDD extensions |
+| **XUnitAssured.Core** | 5.0.0 | Core abstractions, DSL infrastructure, DI support (`DITestFixture`), `ValidationBuilder`, and BDD extensions |
 
 ### Protocol Packages
 
 | Package | Version | Description |
 |---------|---------|-------------|
-| **XUnitAssured.Http** | 4.0.0 | HTTP/REST API testing — fluent DSL, authentication handlers, JSON path assertions, schema validation |
-| **XUnitAssured.Kafka** | 3.0.0 | Apache Kafka integration testing — produce/consume, batch operations, authentication, Schema Registry support |
+| **XUnitAssured.Http** | 5.0.0 | HTTP/REST API testing — fluent DSL, authentication handlers, JSON path assertions, schema validation |
+| **XUnitAssured.Kafka** | 5.0.0 | Apache Kafka integration testing — produce/consume, batch operations, authentication, Schema Registry support |
 
 ## 🚀 Quick Start
 
@@ -241,7 +241,12 @@ The repository includes comprehensive sample projects for both local and remote 
 
 ## 🔄 Version History
 
-### v4.2.0 (Current — Core)
+### v5.0.0 (Current — Core, Http, Kafka)
+- Added .NET 10 support across all packages
+- Multi-target support: `net7.0`, `net8.0`, `net9.0`, `net10.0`
+- Unified version across all packages (Core, Http, Kafka)
+
+### v4.2.0 (Core)
 - Consolidated DI support from `XUnitAssured.DependencyInjection` into `XUnitAssured.Core` (`DITestFixture`)
 
 ### v4.0.0 (Core + Http)

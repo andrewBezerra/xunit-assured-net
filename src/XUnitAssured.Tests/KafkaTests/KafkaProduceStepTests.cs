@@ -208,9 +208,9 @@ public class KafkaProduceStepTests
 		scenario.Produce(value);
 
 		// Assert
-		scenario.CurrentStep.ShouldNotBeNull();
-		scenario.CurrentStep.ShouldBeOfType<KafkaProduceStep>();
-		var step = (KafkaProduceStep)scenario.CurrentStep;
+		scenario.CurrentStep!.ShouldNotBeNull();
+		scenario.CurrentStep!.ShouldBeOfType<KafkaProduceStep>();
+		var step = (KafkaProduceStep)scenario.CurrentStep!;
 		step.Topic.ShouldBe("my-topic");
 		step.Value.ShouldBe(value);
 		step.Key.ShouldBeNull();
@@ -228,9 +228,9 @@ public class KafkaProduceStepTests
 		scenario.Produce(key, value);
 
 		// Assert
-		scenario.CurrentStep.ShouldNotBeNull();
-		scenario.CurrentStep.ShouldBeOfType<KafkaProduceStep>();
-		var step = (KafkaProduceStep)scenario.CurrentStep;
+		scenario.CurrentStep!.ShouldNotBeNull();
+		scenario.CurrentStep!.ShouldBeOfType<KafkaProduceStep>();
+		var step = (KafkaProduceStep)scenario.CurrentStep!;
 		step.Topic.ShouldBe("my-topic");
 		step.Key.ShouldBe(key);
 		step.Value.ShouldBe(value);
@@ -256,7 +256,7 @@ public class KafkaProduceStepTests
 		scenario.Topic("my-topic").Produce("test-value");
 
 		// Assert
-		var step = (KafkaProduceStep)scenario.CurrentStep;
+		var step = (KafkaProduceStep)scenario.CurrentStep!;
 		step.Topic.ShouldBe("my-topic");
 	}
 
@@ -274,7 +274,7 @@ public class KafkaProduceStepTests
 		scenario.WithKey("my-key");
 
 		// Assert
-		var step = (KafkaProduceStep)scenario.CurrentStep;
+		var step = (KafkaProduceStep)scenario.CurrentStep!;
 		step.Key.ShouldBe("my-key");
 	}
 
@@ -300,7 +300,7 @@ public class KafkaProduceStepTests
 		scenario.WithHeaders(headers);
 
 		// Assert
-		var step = (KafkaProduceStep)scenario.CurrentStep;
+		var step = (KafkaProduceStep)scenario.CurrentStep!;
 		step.Headers.ShouldBe(headers);
 	}
 
@@ -315,7 +315,7 @@ public class KafkaProduceStepTests
 		scenario.WithHeader("correlation-id", headerValue);
 
 		// Assert
-		var step = (KafkaProduceStep)scenario.CurrentStep;
+		var step = (KafkaProduceStep)scenario.CurrentStep!;
 		step.Headers.ShouldNotBeNull();
 		step.Headers.Count.ShouldBe(1);
 		var header = step.Headers[0];
@@ -335,7 +335,7 @@ public class KafkaProduceStepTests
 			.WithHeader("event-type", Encoding.UTF8.GetBytes("OrderCreated"));
 
 		// Assert
-		var step = (KafkaProduceStep)scenario.CurrentStep;
+		var step = (KafkaProduceStep)scenario.CurrentStep!;
 		step.Headers.ShouldNotBeNull();
 		step.Headers.Count.ShouldBe(2);
 	}
@@ -365,7 +365,7 @@ public class KafkaProduceStepTests
 		scenario.WithPartition(2);
 
 		// Assert
-		var step = (KafkaProduceStep)scenario.CurrentStep;
+		var step = (KafkaProduceStep)scenario.CurrentStep!;
 		step.Partition.ShouldBe(2);
 	}
 
@@ -390,7 +390,7 @@ public class KafkaProduceStepTests
 		scenario.WithTimestamp(timestamp);
 
 		// Assert
-		var step = (KafkaProduceStep)scenario.CurrentStep;
+		var step = (KafkaProduceStep)scenario.CurrentStep!;
 		step.Timestamp.ShouldBe(timestamp);
 	}
 
@@ -423,7 +423,7 @@ public class KafkaProduceStepTests
 		scenario.WithProducerConfig(config);
 
 		// Assert
-		var step = (KafkaProduceStep)scenario.CurrentStep;
+		var step = (KafkaProduceStep)scenario.CurrentStep!;
 		step.ProducerConfig.ShouldBe(config);
 	}
 
@@ -452,7 +452,7 @@ public class KafkaProduceStepTests
 		scenario.WithJsonOptions(jsonOptions);
 
 		// Assert
-		var step = (KafkaProduceStep)scenario.CurrentStep;
+		var step = (KafkaProduceStep)scenario.CurrentStep!;
 		step.JsonOptions.ShouldBe(jsonOptions);
 	}
 
@@ -481,7 +481,7 @@ public class KafkaProduceStepTests
 		scenario.WithTimeout(TimeSpan.FromSeconds(60));
 
 		// Assert
-		var step = (KafkaProduceStep)scenario.CurrentStep;
+		var step = (KafkaProduceStep)scenario.CurrentStep!;
 		step.Timeout.ShouldBe(TimeSpan.FromSeconds(60));
 	}
 
@@ -495,7 +495,7 @@ public class KafkaProduceStepTests
 		scenario.WithBootstrapServers("kafka:9092");
 
 		// Assert
-		var step = (KafkaProduceStep)scenario.CurrentStep;
+		var step = (KafkaProduceStep)scenario.CurrentStep!;
 		step.BootstrapServers.ShouldBe("kafka:9092");
 	}
 
@@ -526,7 +526,7 @@ public class KafkaProduceStepTests
 
 		// Assert
 		scenario.ShouldNotBeNull();
-		var step = (KafkaProduceStep)scenario.CurrentStep;
+		var step = (KafkaProduceStep)scenario.CurrentStep!;
 		step.Topic.ShouldBe("test-topic");
 		step.Key.ShouldBe("order-123");
 		step.Value.ShouldNotBeNull();
@@ -555,7 +555,7 @@ public class KafkaProduceStepTests
 		// Assert
 		scenario.ShouldNotBeNull();
 		// Last step should be consume
-		scenario.CurrentStep.ShouldBeOfType<KafkaConsumeStep>();
+		scenario.CurrentStep!.ShouldBeOfType<KafkaConsumeStep>();
 	}
 
 	[Fact(DisplayName = "Kafka DSL should maintain immutability pattern for all With methods")]
@@ -571,8 +571,8 @@ public class KafkaProduceStepTests
 
 		// Assert
 		originalStep.ShouldNotBe(newStep);
-		((KafkaProduceStep)originalStep).Key.ShouldBeNull();
-		((KafkaProduceStep)newStep).Key.ShouldBe("new-key");
+		((KafkaProduceStep)originalStep!).Key.ShouldBeNull();
+		((KafkaProduceStep)newStep!).Key.ShouldBe("new-key");
 	}
 
 	[Fact(DisplayName = "Produce with string value should store value correctly")]
@@ -584,7 +584,7 @@ public class KafkaProduceStepTests
 			.Produce("simple string message");
 
 		// Assert
-		var step = (KafkaProduceStep)scenario.CurrentStep;
+		var step = (KafkaProduceStep)scenario.CurrentStep!;
 		step.Value.ShouldBe("simple string message");
 	}
 
@@ -600,7 +600,7 @@ public class KafkaProduceStepTests
 			.Produce(order);
 
 		// Assert
-		var step = (KafkaProduceStep)scenario.CurrentStep;
+		var step = (KafkaProduceStep)scenario.CurrentStep!;
 		step.Value.ShouldBe(order);
 	}
 
@@ -617,7 +617,7 @@ public class KafkaProduceStepTests
 			.Produce(key, value);
 
 		// Assert
-		var step = (KafkaProduceStep)scenario.CurrentStep;
+		var step = (KafkaProduceStep)scenario.CurrentStep!;
 		step.Key.ShouldBe(key);
 		step.Value.ShouldBe(value);
 	}

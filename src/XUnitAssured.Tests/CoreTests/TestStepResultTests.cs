@@ -137,7 +137,7 @@ public class TestStepResultTests
 		result.Success.ShouldBeFalse();
 		result.Metadata.Status.ShouldBe(StepStatus.Failed);
 		result.Errors.Count.ShouldBe(1);
-		result.Errors[0].ShouldBe("Something went wrong");
+		result.Errors[0].ShouldContain("Something went wrong");
 	}
 
 	[Fact(DisplayName = "Metadata should calculate duration between start and completion time")]

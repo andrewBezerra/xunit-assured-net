@@ -78,10 +78,18 @@ public class CertificateAuthHandler : IAuthenticationHandler
 			// Load certificate with or without password
 			if (!string.IsNullOrWhiteSpace(_config.CertificatePassword))
 			{
+#if NET9_0_OR_GREATER
+				return X509CertificateLoader.LoadPkcs12FromFile(_config.CertificatePath, _config.CertificatePassword);
+#else
 				return new X509Certificate2(_config.CertificatePath, _config.CertificatePassword);
+#endif
 			}
 
+#if NET9_0_OR_GREATER
+			return X509CertificateLoader.LoadPkcs12FromFile(_config.CertificatePath, null);
+#else
 			return new X509Certificate2(_config.CertificatePath);
+#endif
 		}
 		catch (Exception ex)
 		{
