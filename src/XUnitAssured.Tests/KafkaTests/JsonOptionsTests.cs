@@ -32,7 +32,7 @@ public class JsonOptionsTests
 			.WithJsonOptions(options);
 
 		// Assert
-		var step = (KafkaProduceStep)scenario.CurrentStep;
+		var step = (KafkaProduceStep)scenario.CurrentStep!;
 		step.JsonOptions.ShouldNotBeNull();
 		step.JsonOptions.PropertyNamingPolicy.ShouldBe(JsonNamingPolicy.CamelCase);
 		
@@ -60,7 +60,7 @@ public class JsonOptionsTests
 			.WithJsonOptions(options);
 
 		// Assert
-		var step = (KafkaProduceStep)scenario.CurrentStep;
+		var step = (KafkaProduceStep)scenario.CurrentStep!;
 		step.JsonOptions.ShouldNotBeNull();
 		step.JsonOptions.PropertyNamingPolicy.ShouldBe(JsonNamingPolicy.SnakeCaseLower);
 		
@@ -88,7 +88,7 @@ public class JsonOptionsTests
 			.WithJsonOptions(options);
 
 		// Assert
-		var step = (KafkaProduceStep)scenario.CurrentStep;
+		var step = (KafkaProduceStep)scenario.CurrentStep!;
 		step.JsonOptions.ShouldNotBeNull();
 		step.JsonOptions.PropertyNamingPolicy.ShouldBe(JsonNamingPolicy.SnakeCaseUpper);
 		
@@ -116,7 +116,7 @@ public class JsonOptionsTests
 			.WithJsonOptions(options);
 
 		// Assert
-		var step = (KafkaProduceStep)scenario.CurrentStep;
+		var step = (KafkaProduceStep)scenario.CurrentStep!;
 		step.JsonOptions.ShouldNotBeNull();
 		step.JsonOptions.PropertyNamingPolicy.ShouldBe(JsonNamingPolicy.KebabCaseLower);
 		
@@ -144,7 +144,7 @@ public class JsonOptionsTests
 			.WithJsonOptions(options);
 
 		// Assert
-		var step = (KafkaProduceStep)scenario.CurrentStep;
+		var step = (KafkaProduceStep)scenario.CurrentStep!;
 		step.JsonOptions.ShouldNotBeNull();
 		step.JsonOptions.PropertyNamingPolicy.ShouldBe(JsonNamingPolicy.KebabCaseUpper);
 		
@@ -182,7 +182,7 @@ public class JsonOptionsTests
 			.WithJsonOptions(options);
 
 		// Assert
-		var step = (KafkaProduceStep)scenario.CurrentStep;
+		var step = (KafkaProduceStep)scenario.CurrentStep!;
 		step.JsonOptions.ShouldNotBeNull();
 		step.JsonOptions.DefaultIgnoreCondition.ShouldBe(JsonIgnoreCondition.WhenWritingNull);
 		
@@ -217,7 +217,7 @@ public class JsonOptionsTests
 			.WithJsonOptions(options);
 
 		// Assert
-		var step = (KafkaProduceStep)scenario.CurrentStep;
+		var step = (KafkaProduceStep)scenario.CurrentStep!;
 		step.JsonOptions.ShouldNotBeNull();
 		step.JsonOptions.DefaultIgnoreCondition.ShouldBe(JsonIgnoreCondition.WhenWritingDefault);
 		
@@ -253,7 +253,7 @@ public class JsonOptionsTests
 			.WithJsonOptions(options);
 
 		// Assert
-		var step = (KafkaProduceStep)scenario.CurrentStep;
+		var step = (KafkaProduceStep)scenario.CurrentStep!;
 		step.JsonOptions.ShouldNotBeNull();
 		step.JsonOptions.DefaultIgnoreCondition.ShouldBe(JsonIgnoreCondition.Never);
 		
@@ -292,7 +292,7 @@ public class JsonOptionsTests
 			.WithJsonOptions(options);
 
 		// Assert
-		var step = (KafkaProduceStep)scenario.CurrentStep;
+		var step = (KafkaProduceStep)scenario.CurrentStep!;
 		step.JsonOptions.ShouldNotBeNull();
 		step.JsonOptions.Converters.Count.ShouldBe(1);
 		
@@ -324,7 +324,7 @@ public class JsonOptionsTests
 			.WithJsonOptions(options);
 
 		// Assert
-		var step = (KafkaProduceStep)scenario.CurrentStep;
+		var step = (KafkaProduceStep)scenario.CurrentStep!;
 		step.JsonOptions.ShouldNotBeNull();
 		step.JsonOptions.Converters.Count.ShouldBe(1);
 		
@@ -358,7 +358,7 @@ public class JsonOptionsTests
 			.WithJsonOptions(options);
 
 		// Assert
-		var step = (KafkaProduceStep)scenario.CurrentStep;
+		var step = (KafkaProduceStep)scenario.CurrentStep!;
 		step.JsonOptions.ShouldNotBeNull();
 		step.JsonOptions.Converters.Count.ShouldBe(2);
 		
@@ -391,7 +391,7 @@ public class JsonOptionsTests
 			.WithJsonOptions(options);
 
 		// Assert
-		var step = (KafkaProduceStep)scenario.CurrentStep;
+		var step = (KafkaProduceStep)scenario.CurrentStep!;
 		step.JsonOptions.ShouldNotBeNull();
 		step.JsonOptions.WriteIndented.ShouldBe(true);
 		
@@ -424,7 +424,7 @@ public class JsonOptionsTests
 			.WithJsonOptions(options);
 
 		// Assert
-		var step = (KafkaProduceStep)scenario.CurrentStep;
+		var step = (KafkaProduceStep)scenario.CurrentStep!;
 		step.JsonOptions.ShouldNotBeNull();
 		step.JsonOptions.Encoder.ShouldBe(System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping);
 		
@@ -452,7 +452,7 @@ public class JsonOptionsTests
 			.WithJsonOptions(options);
 
 		// Assert
-		var step = (KafkaProduceStep)scenario.CurrentStep;
+		var step = (KafkaProduceStep)scenario.CurrentStep!;
 		step.JsonOptions.ShouldNotBeNull();
 		step.JsonOptions.AllowTrailingCommas.ShouldBe(true);
 	}
@@ -492,7 +492,7 @@ public class JsonOptionsTests
 			.WithJsonOptions(options);
 
 		// Assert
-		var step = (KafkaProduceStep)scenario.CurrentStep;
+		var step = (KafkaProduceStep)scenario.CurrentStep!;
 		step.JsonOptions.ShouldNotBeNull();
 		step.JsonOptions.PropertyNamingPolicy.ShouldBe(JsonNamingPolicy.CamelCase);
 		step.JsonOptions.DefaultIgnoreCondition.ShouldBe(JsonIgnoreCondition.WhenWritingNull);

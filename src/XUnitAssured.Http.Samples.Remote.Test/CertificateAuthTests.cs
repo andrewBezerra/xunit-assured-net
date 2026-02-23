@@ -1,5 +1,4 @@
 using XUnitAssured.Http.Extensions;
-using XUnitAssured.Http.Extensions;
 
 namespace XUnitAssured.Http.Samples.Remote.Test;
 
@@ -68,9 +67,15 @@ public class CertificateAuthTests : HttpSamplesRemoteTestBase, IClassFixture<Htt
 	{
 		// Arrange
 		// This would typically be loaded from a file or certificate store
+#if NET9_0_OR_GREATER
+		var certificate = System.Security.Cryptography.X509Certificates.X509CertificateLoader.LoadPkcs12FromFile(
+			"path/to/certificate.pfx",
+			"password");
+#else
 		var certificate = new System.Security.Cryptography.X509Certificates.X509Certificate2(
 			"path/to/certificate.pfx",
 			"password");
+#endif
 
 		// Act & Assert
 		Given()

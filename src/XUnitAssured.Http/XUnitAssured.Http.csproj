@@ -4,6 +4,7 @@
 		<LangVersion>12</LangVersion>
 		<ImplicitUsings>disable</ImplicitUsings>
 		<Nullable>enable</Nullable>
+		<SuppressTfmSupportBuildWarnings>true</SuppressTfmSupportBuildWarnings>
 		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
 		<Version>5.0.0</Version>
 		<Authors>Carlos Andrew Costa Bezerra</Authors>

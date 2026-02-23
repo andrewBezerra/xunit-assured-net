@@ -33,7 +33,7 @@ public class KafkaProducerConfigAdvancedTests
 			.WithProducerConfig(config);
 
 		// Assert
-		var step = (KafkaProduceStep)scenario.CurrentStep;
+		var step = (KafkaProduceStep)scenario.CurrentStep!;
 		step.ProducerConfig.ShouldNotBeNull();
 		step.ProducerConfig!.CompressionType.ShouldBe(CompressionType.Gzip);
 	}
@@ -55,7 +55,7 @@ public class KafkaProducerConfigAdvancedTests
 			.WithProducerConfig(config);
 
 		// Assert
-		var step = (KafkaProduceStep)scenario.CurrentStep;
+		var step = (KafkaProduceStep)scenario.CurrentStep!;
 		step.ProducerConfig!.CompressionType.ShouldBe(CompressionType.Snappy);
 	}
 
@@ -76,7 +76,7 @@ public class KafkaProducerConfigAdvancedTests
 			.WithProducerConfig(config);
 
 		// Assert
-		var step = (KafkaProduceStep)scenario.CurrentStep;
+		var step = (KafkaProduceStep)scenario.CurrentStep!;
 		step.ProducerConfig!.CompressionType.ShouldBe(CompressionType.Lz4);
 	}
 
@@ -97,7 +97,7 @@ public class KafkaProducerConfigAdvancedTests
 			.WithProducerConfig(config);
 
 		// Assert
-		var step = (KafkaProduceStep)scenario.CurrentStep;
+		var step = (KafkaProduceStep)scenario.CurrentStep!;
 		step.ProducerConfig!.CompressionType.ShouldBe(CompressionType.Zstd);
 	}
 
@@ -118,7 +118,7 @@ public class KafkaProducerConfigAdvancedTests
 			.WithProducerConfig(config);
 
 		// Assert
-		var step = (KafkaProduceStep)scenario.CurrentStep;
+		var step = (KafkaProduceStep)scenario.CurrentStep!;
 		step.ProducerConfig!.CompressionType.ShouldBe(CompressionType.None);
 	}
 
@@ -143,7 +143,7 @@ public class KafkaProducerConfigAdvancedTests
 			.WithProducerConfig(config);
 
 		// Assert
-		var step = (KafkaProduceStep)scenario.CurrentStep;
+		var step = (KafkaProduceStep)scenario.CurrentStep!;
 		step.ProducerConfig!.Acks.ShouldBe(Acks.None);
 	}
 
@@ -164,7 +164,7 @@ public class KafkaProducerConfigAdvancedTests
 			.WithProducerConfig(config);
 
 		// Assert
-		var step = (KafkaProduceStep)scenario.CurrentStep;
+		var step = (KafkaProduceStep)scenario.CurrentStep!;
 		step.ProducerConfig!.Acks.ShouldBe(Acks.Leader);
 	}
 
@@ -185,7 +185,7 @@ public class KafkaProducerConfigAdvancedTests
 			.WithProducerConfig(config);
 
 		// Assert
-		var step = (KafkaProduceStep)scenario.CurrentStep;
+		var step = (KafkaProduceStep)scenario.CurrentStep!;
 		step.ProducerConfig!.Acks.ShouldBe(Acks.All);
 	}
 
@@ -210,7 +210,7 @@ public class KafkaProducerConfigAdvancedTests
 			.WithProducerConfig(config);
 
 		// Assert
-		var step = (KafkaProduceStep)scenario.CurrentStep;
+		var step = (KafkaProduceStep)scenario.CurrentStep!;
 		step.ProducerConfig!.BatchSize.ShouldBe(32768);
 	}
 
@@ -231,7 +231,7 @@ public class KafkaProducerConfigAdvancedTests
 			.WithProducerConfig(config);
 
 		// Assert
-		var step = (KafkaProduceStep)scenario.CurrentStep;
+		var step = (KafkaProduceStep)scenario.CurrentStep!;
 		step.ProducerConfig!.LingerMs.ShouldBe(10);
 	}
 
@@ -253,7 +253,7 @@ public class KafkaProducerConfigAdvancedTests
 			.WithProducerConfig(config);
 
 		// Assert
-		var step = (KafkaProduceStep)scenario.CurrentStep;
+		var step = (KafkaProduceStep)scenario.CurrentStep!;
 		step.ProducerConfig!.MessageMaxBytes.ShouldBe(1048576);
 	}
 
@@ -274,7 +274,7 @@ public class KafkaProducerConfigAdvancedTests
 			.WithProducerConfig(config);
 
 		// Assert
-		var step = (KafkaProduceStep)scenario.CurrentStep;
+		var step = (KafkaProduceStep)scenario.CurrentStep!;
 		step.ProducerConfig!.MaxInFlight.ShouldBe(5);
 	}
 
@@ -299,7 +299,7 @@ public class KafkaProducerConfigAdvancedTests
 			.WithProducerConfig(config);
 
 		// Assert
-		var step = (KafkaProduceStep)scenario.CurrentStep;
+		var step = (KafkaProduceStep)scenario.CurrentStep!;
 		step.ProducerConfig!.RetryBackoffMs.ShouldBe(500);
 	}
 
@@ -320,7 +320,7 @@ public class KafkaProducerConfigAdvancedTests
 			.WithProducerConfig(config);
 
 		// Assert
-		var step = (KafkaProduceStep)scenario.CurrentStep;
+		var step = (KafkaProduceStep)scenario.CurrentStep!;
 		step.ProducerConfig!.RequestTimeoutMs.ShouldBe(60000);
 	}
 
@@ -341,7 +341,7 @@ public class KafkaProducerConfigAdvancedTests
 			.WithProducerConfig(config);
 
 		// Assert
-		var step = (KafkaProduceStep)scenario.CurrentStep;
+		var step = (KafkaProduceStep)scenario.CurrentStep!;
 		step.ProducerConfig!.MessageTimeoutMs.ShouldBe(120000);
 	}
 
@@ -362,7 +362,7 @@ public class KafkaProducerConfigAdvancedTests
 			.WithProducerConfig(config);
 
 		// Assert
-		var step = (KafkaProduceStep)scenario.CurrentStep;
+		var step = (KafkaProduceStep)scenario.CurrentStep!;
 		step.ProducerConfig!.EnableIdempotence.HasValue.ShouldBeTrue();
 		step.ProducerConfig.EnableIdempotence.Value.ShouldBeTrue();
 	}
@@ -388,7 +388,7 @@ public class KafkaProducerConfigAdvancedTests
 			.WithProducerConfig(config);
 
 		// Assert
-		var step = (KafkaProduceStep)scenario.CurrentStep;
+		var step = (KafkaProduceStep)scenario.CurrentStep!;
 		step.ProducerConfig!.ClientId.ShouldBe("my-custom-producer-client");
 	}
 
@@ -408,7 +408,7 @@ public class KafkaProducerConfigAdvancedTests
 			.WithProducerConfig(config);
 
 		// Assert
-		var step = (KafkaProduceStep)scenario.CurrentStep;
+		var step = (KafkaProduceStep)scenario.CurrentStep!;
 		step.ProducerConfig!.BootstrapServers.ShouldBe("broker1:9092,broker2:9092,broker3:9092");
 	}
 
@@ -432,7 +432,7 @@ public class KafkaProducerConfigAdvancedTests
 			.WithJsonOptions(options);
 
 		// Assert
-		var step = (KafkaProduceStep)scenario.CurrentStep;
+		var step = (KafkaProduceStep)scenario.CurrentStep!;
 		step.JsonOptions.ShouldNotBeNull();
 		step.JsonOptions!.PropertyNamingPolicy.ShouldBe(JsonNamingPolicy.CamelCase);
 	}
@@ -453,7 +453,7 @@ public class KafkaProducerConfigAdvancedTests
 			.WithJsonOptions(options);
 
 		// Assert
-		var step = (KafkaProduceStep)scenario.CurrentStep;
+		var step = (KafkaProduceStep)scenario.CurrentStep!;
 		step.JsonOptions!.PropertyNamingPolicy.ShouldBe(JsonNamingPolicy.SnakeCaseLower);
 	}
 
@@ -473,7 +473,7 @@ public class KafkaProducerConfigAdvancedTests
 			.WithJsonOptions(options);
 
 		// Assert
-		var step = (KafkaProduceStep)scenario.CurrentStep;
+		var step = (KafkaProduceStep)scenario.CurrentStep!;
 		step.JsonOptions!.PropertyNamingPolicy.ShouldBe(JsonNamingPolicy.SnakeCaseUpper);
 	}
 
@@ -493,7 +493,7 @@ public class KafkaProducerConfigAdvancedTests
 			.WithJsonOptions(options);
 
 		// Assert
-		var step = (KafkaProduceStep)scenario.CurrentStep;
+		var step = (KafkaProduceStep)scenario.CurrentStep!;
 		step.JsonOptions!.PropertyNamingPolicy.ShouldBe(JsonNamingPolicy.KebabCaseLower);
 	}
 
@@ -517,7 +517,7 @@ public class KafkaProducerConfigAdvancedTests
 			.WithJsonOptions(options);
 
 		// Assert
-		var step = (KafkaProduceStep)scenario.CurrentStep;
+		var step = (KafkaProduceStep)scenario.CurrentStep!;
 		step.JsonOptions!.WriteIndented.ShouldBeTrue();
 	}
 
@@ -537,7 +537,7 @@ public class KafkaProducerConfigAdvancedTests
 			.WithJsonOptions(options);
 
 		// Assert
-		var step = (KafkaProduceStep)scenario.CurrentStep;
+		var step = (KafkaProduceStep)scenario.CurrentStep!;
 		step.JsonOptions!.DefaultIgnoreCondition.ShouldBe(JsonIgnoreCondition.WhenWritingNull);
 	}
 
@@ -557,7 +557,7 @@ public class KafkaProducerConfigAdvancedTests
 			.WithJsonOptions(options);
 
 		// Assert
-		var step = (KafkaProduceStep)scenario.CurrentStep;
+		var step = (KafkaProduceStep)scenario.CurrentStep!;
 		step.JsonOptions!.PropertyNameCaseInsensitive.ShouldBeTrue();
 	}
 
@@ -577,7 +577,7 @@ public class KafkaProducerConfigAdvancedTests
 			.WithJsonOptions(options);
 
 		// Assert
-		var step = (KafkaProduceStep)scenario.CurrentStep;
+		var step = (KafkaProduceStep)scenario.CurrentStep!;
 		step.JsonOptions!.AllowTrailingCommas.ShouldBeTrue();
 	}
 
@@ -597,7 +597,7 @@ public class KafkaProducerConfigAdvancedTests
 			.WithJsonOptions(options);
 
 		// Assert
-		var step = (KafkaProduceStep)scenario.CurrentStep;
+		var step = (KafkaProduceStep)scenario.CurrentStep!;
 		step.JsonOptions!.MaxDepth.ShouldBe(64);
 	}
 
@@ -628,7 +628,7 @@ public class KafkaProducerConfigAdvancedTests
 			.WithProducerConfig(config);
 
 		// Assert
-		var step = (KafkaProduceStep)scenario.CurrentStep;
+		var step = (KafkaProduceStep)scenario.CurrentStep!;
 		step.ProducerConfig.ShouldNotBeNull();
 		step.ProducerConfig!.Acks.ShouldBe(Acks.Leader);
 		step.ProducerConfig.CompressionType.ShouldBe(CompressionType.Lz4);
@@ -661,7 +661,7 @@ public class KafkaProducerConfigAdvancedTests
 			.WithProducerConfig(config);
 
 		// Assert
-		var step = (KafkaProduceStep)scenario.CurrentStep;
+		var step = (KafkaProduceStep)scenario.CurrentStep!;
 		step.ProducerConfig.ShouldNotBeNull();
 		step.ProducerConfig!.Acks.ShouldBe(Acks.All);
 		step.ProducerConfig.EnableIdempotence.ShouldBe(true);
@@ -705,7 +705,7 @@ public class KafkaProducerConfigAdvancedTests
 			.WithJsonOptions(jsonOptions);
 
 		// Assert
-		var step = (KafkaProduceStep)scenario.CurrentStep;
+		var step = (KafkaProduceStep)scenario.CurrentStep!;
 		step.JsonOptions.ShouldNotBeNull();
 		step.JsonOptions!.PropertyNamingPolicy.ShouldBe(JsonNamingPolicy.CamelCase);
 		step.JsonOptions.DefaultIgnoreCondition.ShouldBe(JsonIgnoreCondition.WhenWritingNull);
@@ -740,7 +740,7 @@ public class KafkaProducerConfigAdvancedTests
 			.WithHeader("schema-version", Encoding.UTF8.GetBytes("v2"));
 
 		// Assert
-		var step = (KafkaProduceStep)scenario.CurrentStep;
+		var step = (KafkaProduceStep)scenario.CurrentStep!;
 		step.ProducerConfig.ShouldNotBeNull();
 		step.ProducerConfig!.CompressionType.ShouldBe(CompressionType.Gzip);
 		step.JsonOptions.ShouldNotBeNull();
@@ -773,7 +773,7 @@ public class KafkaProducerConfigAdvancedTests
 
 		// Assert
 		originalStep.ShouldNotBe(finalStep);
-		((KafkaProduceStep)finalStep).ProducerConfig.ShouldBe(config2);
+		((KafkaProduceStep)finalStep!).ProducerConfig.ShouldBe(config2);
 	}
 
 	[Fact(DisplayName = "WithJsonOptions should maintain immutability")]
@@ -795,7 +795,7 @@ public class KafkaProducerConfigAdvancedTests
 
 		// Assert
 		originalStep.ShouldNotBe(finalStep);
-		((KafkaProduceStep)finalStep).JsonOptions.ShouldBe(options2);
+		((KafkaProduceStep)finalStep!).JsonOptions.ShouldBe(options2);
 	}
 
 	#endregion

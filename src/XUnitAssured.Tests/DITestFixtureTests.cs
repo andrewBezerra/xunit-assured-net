@@ -41,7 +41,7 @@ public class DITestFixtureTests
 			AddServices(services, configuration);
 		}
 
-		public IEnumerable<(string Filename, bool IsOptional)> GetTestAppSettingsPublic()
+		public IEnumerable<(string? Filename, bool IsOptional)> GetTestAppSettingsPublic()
 		{
 			foreach (var setting in GetTestAppSettings())
 			{

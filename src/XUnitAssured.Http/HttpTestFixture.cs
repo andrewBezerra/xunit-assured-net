@@ -79,9 +79,15 @@ public abstract class HttpTestFixture : TestBedFixture
 				if (!string.IsNullOrWhiteSpace(certConfig.CertificatePath))
 				{
 					// Load from file
+#if NET9_0_OR_GREATER
+					certificate = X509CertificateLoader.LoadPkcs12FromFile(
+						certConfig.CertificatePath,
+						string.IsNullOrWhiteSpace(certConfig.CertificatePassword) ? null : certConfig.CertificatePassword);
+#else
 					certificate = string.IsNullOrWhiteSpace(certConfig.CertificatePassword)
 						? new X509Certificate2(certConfig.CertificatePath)
 						: new X509Certificate2(certConfig.CertificatePath, certConfig.CertificatePassword);
+#endif
 				}
 				else if (!string.IsNullOrWhiteSpace(certConfig.Thumbprint))
 				{

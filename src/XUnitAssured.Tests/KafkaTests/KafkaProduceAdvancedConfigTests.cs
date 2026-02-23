@@ -25,7 +25,7 @@ public class KafkaProduceAdvancedConfigTests
 			.WithKey("string-key");
 
 		// Assert
-		var step = (KafkaProduceStep)scenario.CurrentStep;
+		var step = (KafkaProduceStep)scenario.CurrentStep!;
 		step.Key.ShouldBe("string-key");
 		step.Key.ShouldBeOfType<string>();
 	}
@@ -40,7 +40,7 @@ public class KafkaProduceAdvancedConfigTests
 			.WithKey(12345);
 
 		// Assert
-		var step = (KafkaProduceStep)scenario.CurrentStep;
+		var step = (KafkaProduceStep)scenario.CurrentStep!;
 		step.Key.ShouldBe(12345);
 		step.Key.ShouldBeOfType<int>();
 	}
@@ -58,7 +58,7 @@ public class KafkaProduceAdvancedConfigTests
 			.WithKey(guid);
 
 		// Assert
-		var step = (KafkaProduceStep)scenario.CurrentStep;
+		var step = (KafkaProduceStep)scenario.CurrentStep!;
 		step.Key.ShouldBe(guid);
 	}
 
@@ -75,7 +75,7 @@ public class KafkaProduceAdvancedConfigTests
 			.WithKey(complexKey);
 
 		// Assert
-		var step = (KafkaProduceStep)scenario.CurrentStep;
+		var step = (KafkaProduceStep)scenario.CurrentStep!;
 		step.Key.ShouldBe(complexKey);
 	}
 
@@ -89,7 +89,7 @@ public class KafkaProduceAdvancedConfigTests
 			.WithKey("key-2");
 
 		// Assert
-		var step = (KafkaProduceStep)scenario.CurrentStep;
+		var step = (KafkaProduceStep)scenario.CurrentStep!;
 		step.Key.ShouldBe("key-2");
 	}
 
@@ -100,10 +100,10 @@ public class KafkaProduceAdvancedConfigTests
 		var scenario = Given()
 			.Topic("test-topic")
 			.Produce("key-1", "test-value")
-			.WithKey(null);
+			.WithKey(null!);
 
 		// Assert
-		var step = (KafkaProduceStep)scenario.CurrentStep;
+		var step = (KafkaProduceStep)scenario.CurrentStep!;
 		step.Key.ShouldBeNull();
 	}
 
@@ -129,7 +129,7 @@ public class KafkaProduceAdvancedConfigTests
 			.WithHeaders(newHeaders);
 
 		// Assert
-		var step = (KafkaProduceStep)scenario.CurrentStep;
+		var step = (KafkaProduceStep)scenario.CurrentStep!;
 		step.Headers.ShouldBe(newHeaders);
 		step.Headers!.Count.ShouldBe(1);
 		step.Headers[0].Key.ShouldBe("new-header");
@@ -148,7 +148,7 @@ public class KafkaProduceAdvancedConfigTests
 			.WithHeaders(emptyHeaders);
 
 		// Assert
-		var step = (KafkaProduceStep)scenario.CurrentStep;
+		var step = (KafkaProduceStep)scenario.CurrentStep!;
 		step.Headers.ShouldNotBeNull();
 		step.Headers!.Count.ShouldBe(0);
 	}
@@ -166,7 +166,7 @@ public class KafkaProduceAdvancedConfigTests
 			.WithHeader("version", Encoding.UTF8.GetBytes("v1"));
 
 		// Assert
-		var step = (KafkaProduceStep)scenario.CurrentStep;
+		var step = (KafkaProduceStep)scenario.CurrentStep!;
 		step.Headers.ShouldNotBeNull();
 		step.Headers!.Count.ShouldBe(4);
 		step.Headers[0].Key.ShouldBe("correlation-id");
@@ -188,7 +188,7 @@ public class KafkaProduceAdvancedConfigTests
 			.WithHeader("binary-data", binaryData);
 
 		// Assert
-		var step = (KafkaProduceStep)scenario.CurrentStep;
+		var step = (KafkaProduceStep)scenario.CurrentStep!;
 		step.Headers.ShouldNotBeNull();
 		var header = step.Headers![0];
 		header.GetValueBytes().ShouldBe(binaryData);
@@ -204,7 +204,7 @@ public class KafkaProduceAdvancedConfigTests
 			.WithHeader("empty-header", Array.Empty<byte>());
 
 		// Assert
-		var step = (KafkaProduceStep)scenario.CurrentStep;
+		var step = (KafkaProduceStep)scenario.CurrentStep!;
 		step.Headers.ShouldNotBeNull();
 		step.Headers!.Count.ShouldBe(1);
 		step.Headers[0].GetValueBytes().Length.ShouldBe(0);
@@ -223,7 +223,7 @@ public class KafkaProduceAdvancedConfigTests
 			.WithHeader(longHeaderName, Encoding.UTF8.GetBytes("value"));
 
 		// Assert
-		var step = (KafkaProduceStep)scenario.CurrentStep;
+		var step = (KafkaProduceStep)scenario.CurrentStep!;
 		step.Headers.ShouldNotBeNull();
 		step.Headers![0].Key.ShouldBe(longHeaderName);
 		step.Headers[0].Key.Length.ShouldBe(1000);
@@ -240,7 +240,7 @@ public class KafkaProduceAdvancedConfigTests
 			.WithHeader("duplicate", Encoding.UTF8.GetBytes("value2"));
 
 		// Assert
-		var step = (KafkaProduceStep)scenario.CurrentStep;
+		var step = (KafkaProduceStep)scenario.CurrentStep!;
 		step.Headers.ShouldNotBeNull();
 		step.Headers!.Count.ShouldBe(2);
 		step.Headers[0].Key.ShouldBe("duplicate");
@@ -263,7 +263,7 @@ public class KafkaProduceAdvancedConfigTests
 			.WithPartition(0);
 
 		// Assert
-		var step = (KafkaProduceStep)scenario.CurrentStep;
+		var step = (KafkaProduceStep)scenario.CurrentStep!;
 		step.Partition.ShouldBe(0);
 	}
 
@@ -277,7 +277,7 @@ public class KafkaProduceAdvancedConfigTests
 			.WithPartition(999);
 
 		// Assert
-		var step = (KafkaProduceStep)scenario.CurrentStep;
+		var step = (KafkaProduceStep)scenario.CurrentStep!;
 		step.Partition.ShouldBe(999);
 	}
 
@@ -292,7 +292,7 @@ public class KafkaProduceAdvancedConfigTests
 			.WithPartition(5);
 
 		// Assert
-		var step = (KafkaProduceStep)scenario.CurrentStep;
+		var step = (KafkaProduceStep)scenario.CurrentStep!;
 		step.Partition.ShouldBe(5);
 	}
 
@@ -313,7 +313,7 @@ public class KafkaProduceAdvancedConfigTests
 			.WithTimestamp(pastTimestamp);
 
 		// Assert
-		var step = (KafkaProduceStep)scenario.CurrentStep;
+		var step = (KafkaProduceStep)scenario.CurrentStep!;
 		step.Timestamp.ShouldBe(pastTimestamp);
 	}
 
@@ -330,7 +330,7 @@ public class KafkaProduceAdvancedConfigTests
 			.WithTimestamp(futureTimestamp);
 
 		// Assert
-		var step = (KafkaProduceStep)scenario.CurrentStep;
+		var step = (KafkaProduceStep)scenario.CurrentStep!;
 		step.Timestamp.ShouldBe(futureTimestamp);
 	}
 
@@ -347,7 +347,7 @@ public class KafkaProduceAdvancedConfigTests
 			.WithTimestamp(epoch);
 
 		// Assert
-		var step = (KafkaProduceStep)scenario.CurrentStep;
+		var step = (KafkaProduceStep)scenario.CurrentStep!;
 		step.Timestamp.ShouldBe(epoch);
 	}
 
@@ -366,7 +366,7 @@ public class KafkaProduceAdvancedConfigTests
 			.WithTimestamp(timestamp2);
 
 		// Assert
-		var step = (KafkaProduceStep)scenario.CurrentStep;
+		var step = (KafkaProduceStep)scenario.CurrentStep!;
 		step.Timestamp.ShouldBe(timestamp2);
 	}
 
@@ -405,7 +405,7 @@ public class KafkaProduceAdvancedConfigTests
 			.Produce(nestedObject);
 
 		// Assert
-		var step = (KafkaProduceStep)scenario.CurrentStep;
+		var step = (KafkaProduceStep)scenario.CurrentStep!;
 		step.Value.ShouldBe(nestedObject);
 	}
 
@@ -421,7 +421,7 @@ public class KafkaProduceAdvancedConfigTests
 			.Produce(arrayValue);
 
 		// Assert
-		var step = (KafkaProduceStep)scenario.CurrentStep;
+		var step = (KafkaProduceStep)scenario.CurrentStep!;
 		step.Value.ShouldBe(arrayValue);
 	}
 
@@ -434,7 +434,7 @@ public class KafkaProduceAdvancedConfigTests
 			.Produce(null!);
 
 		// Assert
-		var step = (KafkaProduceStep)scenario.CurrentStep;
+		var step = (KafkaProduceStep)scenario.CurrentStep!;
 		step.Value.ShouldBeNull();
 	}
 
@@ -455,7 +455,7 @@ public class KafkaProduceAdvancedConfigTests
 			.WithJsonOptions(customOptions);
 
 		// Assert
-		var step = (KafkaProduceStep)scenario.CurrentStep;
+		var step = (KafkaProduceStep)scenario.CurrentStep!;
 		step.JsonOptions.ShouldBe(customOptions);
 		step.JsonOptions!.PropertyNamingPolicy.ShouldBe(JsonNamingPolicy.SnakeCaseLower);
 		step.JsonOptions.WriteIndented.ShouldBeTrue();
@@ -487,8 +487,8 @@ public class KafkaProduceAdvancedConfigTests
 
 		// Assert
 		originalStep.ShouldNotBe(finalStep);
-		((KafkaProduceStep)originalStep).Key.ShouldBeNull();
-		((KafkaProduceStep)finalStep).Key.ShouldBe("new-key");
+		((KafkaProduceStep)originalStep!).Key.ShouldBeNull();
+		((KafkaProduceStep)finalStep!).Key.ShouldBe("new-key");
 	}
 
 	[Fact(DisplayName = "WithKey should preserve all other properties")]
@@ -507,11 +507,11 @@ public class KafkaProduceAdvancedConfigTests
 			.WithTimeout(TimeSpan.FromSeconds(45))
 			.WithBootstrapServers("kafka:9092");
 
-		var stepBeforeKey = (KafkaProduceStep)scenario.CurrentStep;
+		var stepBeforeKey = (KafkaProduceStep)scenario.CurrentStep!;
 
 		// Act
 		scenario.WithKey("new-key");
-		var stepAfterKey = (KafkaProduceStep)scenario.CurrentStep;
+		var stepAfterKey = (KafkaProduceStep)scenario.CurrentStep!;
 
 		// Assert
 		stepAfterKey.Topic.ShouldBe(stepBeforeKey.Topic);
@@ -557,7 +557,7 @@ public class KafkaProduceAdvancedConfigTests
 			});
 
 		// Assert
-		var step = (KafkaProduceStep)scenario.CurrentStep;
+		var step = (KafkaProduceStep)scenario.CurrentStep!;
 		step.Topic.ShouldBe("events");
 		step.Key.ShouldBe("order-123");
 		step.Value.ShouldBe(complexValue);

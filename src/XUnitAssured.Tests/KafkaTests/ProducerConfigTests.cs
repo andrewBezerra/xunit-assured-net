@@ -31,7 +31,7 @@ public class ProducerConfigTests
 			.WithProducerConfig(config);
 
 		// Assert
-		var step = (KafkaProduceStep)scenario.CurrentStep;
+		var step = (KafkaProduceStep)scenario.CurrentStep!;
 		step.ProducerConfig.ShouldNotBeNull();
 		step.ProducerConfig.CompressionType.ShouldBe(CompressionType.Gzip);
 		step.ProducerConfig.CompressionLevel.ShouldBe(6);
@@ -54,7 +54,7 @@ public class ProducerConfigTests
 			.WithProducerConfig(config);
 
 		// Assert
-		var step = (KafkaProduceStep)scenario.CurrentStep;
+		var step = (KafkaProduceStep)scenario.CurrentStep!;
 		step.ProducerConfig.ShouldNotBeNull();
 		step.ProducerConfig.CompressionType.ShouldBe(CompressionType.Snappy);
 	}
@@ -76,7 +76,7 @@ public class ProducerConfigTests
 			.WithProducerConfig(config);
 
 		// Assert
-		var step = (KafkaProduceStep)scenario.CurrentStep;
+		var step = (KafkaProduceStep)scenario.CurrentStep!;
 		step.ProducerConfig.ShouldNotBeNull();
 		step.ProducerConfig.CompressionType.ShouldBe(CompressionType.Lz4);
 	}
@@ -98,7 +98,7 @@ public class ProducerConfigTests
 			.WithProducerConfig(config);
 
 		// Assert
-		var step = (KafkaProduceStep)scenario.CurrentStep;
+		var step = (KafkaProduceStep)scenario.CurrentStep!;
 		step.ProducerConfig.ShouldNotBeNull();
 		step.ProducerConfig.CompressionType.ShouldBe(CompressionType.Zstd);
 	}
@@ -120,7 +120,7 @@ public class ProducerConfigTests
 			.WithProducerConfig(config);
 
 		// Assert
-		var step = (KafkaProduceStep)scenario.CurrentStep;
+		var step = (KafkaProduceStep)scenario.CurrentStep!;
 		step.ProducerConfig.ShouldNotBeNull();
 		step.ProducerConfig.CompressionType.ShouldBe(CompressionType.None);
 	}
@@ -147,7 +147,7 @@ public class ProducerConfigTests
 			.WithProducerConfig(config);
 
 		// Assert
-		var step = (KafkaProduceStep)scenario.CurrentStep;
+		var step = (KafkaProduceStep)scenario.CurrentStep!;
 		step.ProducerConfig.ShouldNotBeNull();
 		step.ProducerConfig.Acks.ShouldBe(Acks.All);
 		step.ProducerConfig.RequestTimeoutMs.ShouldBe(30000);
@@ -170,7 +170,7 @@ public class ProducerConfigTests
 			.WithProducerConfig(config);
 
 		// Assert
-		var step = (KafkaProduceStep)scenario.CurrentStep;
+		var step = (KafkaProduceStep)scenario.CurrentStep!;
 		step.ProducerConfig.ShouldNotBeNull();
 		step.ProducerConfig.Acks.ShouldBe(Acks.Leader);
 	}
@@ -192,7 +192,7 @@ public class ProducerConfigTests
 			.WithProducerConfig(config);
 
 		// Assert
-		var step = (KafkaProduceStep)scenario.CurrentStep;
+		var step = (KafkaProduceStep)scenario.CurrentStep!;
 		step.ProducerConfig.ShouldNotBeNull();
 		step.ProducerConfig.Acks.ShouldBe(Acks.None);
 	}
@@ -220,7 +220,7 @@ public class ProducerConfigTests
 			.WithProducerConfig(config);
 
 		// Assert
-		var step = (KafkaProduceStep)scenario.CurrentStep;
+		var step = (KafkaProduceStep)scenario.CurrentStep!;
 		step.ProducerConfig.ShouldNotBeNull();
 		step.ProducerConfig.BatchSize.ShouldBe(16384);
 		step.ProducerConfig.LingerMs.ShouldBe(10);
@@ -245,7 +245,7 @@ public class ProducerConfigTests
 			.WithProducerConfig(config);
 
 		// Assert
-		var step = (KafkaProduceStep)scenario.CurrentStep;
+		var step = (KafkaProduceStep)scenario.CurrentStep!;
 		step.ProducerConfig.ShouldNotBeNull();
 		step.ProducerConfig.BatchSize.ShouldBe(32768);
 		step.ProducerConfig.LingerMs.ShouldBe(100);
@@ -269,7 +269,7 @@ public class ProducerConfigTests
 			.WithProducerConfig(config);
 
 		// Assert
-		var step = (KafkaProduceStep)scenario.CurrentStep;
+		var step = (KafkaProduceStep)scenario.CurrentStep!;
 		step.ProducerConfig.ShouldNotBeNull();
 		step.ProducerConfig.QueueBufferingMaxMessages.ShouldBe(10000);
 		step.ProducerConfig.QueueBufferingMaxKbytes.ShouldBe(1048576);
@@ -293,7 +293,7 @@ public class ProducerConfigTests
 			.WithProducerConfig(config);
 
 		// Assert
-		var step = (KafkaProduceStep)scenario.CurrentStep;
+		var step = (KafkaProduceStep)scenario.CurrentStep!;
 		step.ProducerConfig.ShouldNotBeNull();
 		step.ProducerConfig.LingerMs.ShouldBe(0);
 		step.ProducerConfig.BatchSize.ShouldBe(1);
@@ -322,7 +322,7 @@ public class ProducerConfigTests
 			.WithProducerConfig(config);
 
 		// Assert
-		var step = (KafkaProduceStep)scenario.CurrentStep;
+		var step = (KafkaProduceStep)scenario.CurrentStep!;
 		step.ProducerConfig.ShouldNotBeNull();
 		step.ProducerConfig.MessageSendMaxRetries.ShouldBe(3);
 		step.ProducerConfig.RetryBackoffMs.ShouldBe(100);
@@ -347,7 +347,7 @@ public class ProducerConfigTests
 			.WithProducerConfig(config);
 
 		// Assert
-		var step = (KafkaProduceStep)scenario.CurrentStep;
+		var step = (KafkaProduceStep)scenario.CurrentStep!;
 		step.ProducerConfig.ShouldNotBeNull();
 		step.ProducerConfig.MessageSendMaxRetries.ShouldBe(10);
 		step.ProducerConfig.RetryBackoffMs.ShouldBe(500);
@@ -370,7 +370,7 @@ public class ProducerConfigTests
 			.WithProducerConfig(config);
 
 		// Assert
-		var step = (KafkaProduceStep)scenario.CurrentStep;
+		var step = (KafkaProduceStep)scenario.CurrentStep!;
 		step.ProducerConfig.ShouldNotBeNull();
 		step.ProducerConfig.RequestTimeoutMs.ShouldBe(10000);
 	}
@@ -392,7 +392,7 @@ public class ProducerConfigTests
 			.WithProducerConfig(config);
 
 		// Assert
-		var step = (KafkaProduceStep)scenario.CurrentStep;
+		var step = (KafkaProduceStep)scenario.CurrentStep!;
 		step.ProducerConfig.ShouldNotBeNull();
 		step.ProducerConfig.MessageSendMaxRetries.ShouldBe(0);
 	}
@@ -420,7 +420,7 @@ public class ProducerConfigTests
 			.WithProducerConfig(config);
 
 		// Assert
-		var step = (KafkaProduceStep)scenario.CurrentStep;
+		var step = (KafkaProduceStep)scenario.CurrentStep!;
 		step.ProducerConfig.ShouldNotBeNull();
 		step.ProducerConfig.EnableIdempotence.ShouldBe(true);
 		step.ProducerConfig.Acks.ShouldBe(Acks.All);
@@ -444,7 +444,7 @@ public class ProducerConfigTests
 			.WithProducerConfig(config);
 
 		// Assert
-		var step = (KafkaProduceStep)scenario.CurrentStep;
+		var step = (KafkaProduceStep)scenario.CurrentStep!;
 		step.ProducerConfig.ShouldNotBeNull();
 		step.ProducerConfig.TransactionalId.ShouldBe("test-transaction-id");
 		step.ProducerConfig.EnableIdempotence.ShouldBe(true);
@@ -471,7 +471,7 @@ public class ProducerConfigTests
 			.WithProducerConfig(config);
 
 		// Assert
-		var step = (KafkaProduceStep)scenario.CurrentStep;
+		var step = (KafkaProduceStep)scenario.CurrentStep!;
 		step.ProducerConfig.ShouldNotBeNull();
 		step.ProducerConfig.MessageMaxBytes.ShouldBe(2097152);
 	}
@@ -493,7 +493,7 @@ public class ProducerConfigTests
 			.WithProducerConfig(config);
 
 		// Assert
-		var step = (KafkaProduceStep)scenario.CurrentStep;
+		var step = (KafkaProduceStep)scenario.CurrentStep!;
 		step.ProducerConfig.ShouldNotBeNull();
 		step.ProducerConfig.MessageMaxBytes.ShouldBe(1024);
 	}
@@ -528,7 +528,7 @@ public class ProducerConfigTests
 			.WithProducerConfig(config);
 
 		// Assert
-		var step = (KafkaProduceStep)scenario.CurrentStep;
+		var step = (KafkaProduceStep)scenario.CurrentStep!;
 		step.ProducerConfig.ShouldNotBeNull();
 		step.ProducerConfig.BootstrapServers.ShouldBe("kafka-cluster:9092");
 		step.ProducerConfig.CompressionType.ShouldBe(CompressionType.Gzip);

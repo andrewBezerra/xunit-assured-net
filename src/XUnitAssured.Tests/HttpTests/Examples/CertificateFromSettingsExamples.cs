@@ -186,7 +186,7 @@ public class CertificateFromSettingsExamples
 				.Validate(response =>
 				{
 					response.StatusCode.ShouldBe(200);
-					response.ContentType.ShouldContain("application/json");
+						response.ContentType!.ShouldContain("application/json");
 				});
 
 			// Process response (example - actual deserialization depends on your implementation)

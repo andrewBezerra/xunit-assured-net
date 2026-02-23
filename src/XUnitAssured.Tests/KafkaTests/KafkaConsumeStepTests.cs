@@ -130,7 +130,7 @@ public class KafkaConsumeStepTests
 		// Assert
 		scenario.CurrentStep.ShouldNotBeNull();
 		scenario.CurrentStep.ShouldBeOfType<KafkaConsumeStep>();
-		((KafkaConsumeStep)scenario.CurrentStep).Topic.ShouldBe("my-topic");
+		((KafkaConsumeStep)scenario.CurrentStep!).Topic.ShouldBe("my-topic");
 	}
 
 	[Fact(DisplayName = "Topic extension should throw ArgumentException when topic is null")]
@@ -163,7 +163,7 @@ public class KafkaConsumeStepTests
 		scenario.WithSchema(typeof(string));
 
 		// Assert
-		var kafkaStep = (KafkaConsumeStep)scenario.CurrentStep;
+		var kafkaStep = (KafkaConsumeStep)scenario.CurrentStep!;
 		kafkaStep.SchemaType.ShouldBe(typeof(string));
 	}
 
@@ -177,7 +177,7 @@ public class KafkaConsumeStepTests
 		scenario.WithTimeout(TimeSpan.FromSeconds(60));
 
 		// Assert
-		var kafkaStep = (KafkaConsumeStep)scenario.CurrentStep;
+		var kafkaStep = (KafkaConsumeStep)scenario.CurrentStep!;
 		kafkaStep.Timeout.ShouldBe(TimeSpan.FromSeconds(60));
 	}
 
@@ -191,7 +191,7 @@ public class KafkaConsumeStepTests
 		scenario.WithBootstrapServers("kafka:9092");
 
 		// Assert
-		var kafkaStep = (KafkaConsumeStep)scenario.CurrentStep;
+		var kafkaStep = (KafkaConsumeStep)scenario.CurrentStep!;
 		kafkaStep.BootstrapServers.ShouldBe("kafka:9092");
 	}
 
@@ -205,7 +205,7 @@ public class KafkaConsumeStepTests
 		scenario.WithGroupId("my-consumer-group");
 
 		// Assert
-		var kafkaStep = (KafkaConsumeStep)scenario.CurrentStep;
+		var kafkaStep = (KafkaConsumeStep)scenario.CurrentStep!;
 		kafkaStep.GroupId.ShouldBe("my-consumer-group");
 	}
 
@@ -223,7 +223,7 @@ public class KafkaConsumeStepTests
 
 		// Assert
 		scenario.ShouldNotBeNull();
-		var kafkaStep = (KafkaConsumeStep)scenario.CurrentStep;
+		var kafkaStep = (KafkaConsumeStep)scenario.CurrentStep!;
 		kafkaStep.Topic.ShouldBe("test-topic");
 		kafkaStep.SchemaType.ShouldBe(typeof(string));
 		kafkaStep.Timeout.ShouldBe(TimeSpan.FromSeconds(45));

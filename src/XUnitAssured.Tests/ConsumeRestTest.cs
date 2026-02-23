@@ -105,6 +105,7 @@ public class ConsumeRestTest
 		// .ValidateMessage<T>(msg => ...)      - Validate typed message
 
 		// Example combining everything:
+#pragma warning disable CS0162 // Unreachable code detected
 		if (false) // Documentation only
 		{
 			Given()
@@ -117,7 +118,7 @@ public class ConsumeRestTest
 				.Validate(response =>
 				{
 					response.StatusCode.ShouldBe(201);
-					response.ContentType.ShouldContain("json");
+						response.ContentType!.ShouldContain("json");
 				})
 				.And()
 				.On()
@@ -132,6 +133,7 @@ public class ConsumeRestTest
 					msg.Id.ShouldNotBeEmpty();
 				});
 		}
+#pragma warning restore CS0162
 	}
 
 	// Test DTOs

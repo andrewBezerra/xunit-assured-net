@@ -73,7 +73,7 @@ public class HttpSamplesRemoteFixture : IHttpClientProvider, IHttpClientAuthProv
 		}
 
 		// Get HTTP settings
-		_httpSettings = settings.GetHttpSettings();
+		_httpSettings = settings.GetHttpSettings()!;
 		if (_httpSettings == null)
 		{
 			throw new InvalidOperationException(
