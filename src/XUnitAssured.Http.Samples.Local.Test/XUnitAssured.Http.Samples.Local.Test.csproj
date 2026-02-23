@@ -22,10 +22,10 @@
 			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
 			<PrivateAssets>all</PrivateAssets>
 		</PackageReference>
+		<PackageReference Include="XUnitAssured.Http" Version="5.0.0" />
 	</ItemGroup>
 
 	<ItemGroup>
-		<ProjectReference Include="..\XUnitAssured.Http\XUnitAssured.Http.csproj" />
 		<ProjectReference Include="..\SampleWebApi\SampleWebApi.csproj" />
 	</ItemGroup>
 
