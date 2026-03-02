@@ -148,4 +148,94 @@ public class HttpValidationBuilder : ValidationBuilder<HttpStepResult>
 	{
 		return Result;
 	}
+
+	/// <summary>
+	/// Captures the full HTTP step result into a local variable while continuing the fluent chain.
+	/// Use this to store results for later comparison between different API calls.
+	/// </summary>
+	/// <param name="result">The variable that will receive the HTTP step result</param>
+	/// <returns>The same HTTP validation builder for method chaining</returns>
+	/// <example>
+	/// <code>
+	/// Given()
+	///     .ApiResource("/api/products")
+	///     .Post(newProduct)
+	///     .When().Execute()
+	///     .Then()
+	///         .AssertStatusCode(201)
+	///         .Extract(out var createResult);
+	///
+	/// // Later, use createResult to compare with another call
+	/// var createdId = createResult.JsonPath&lt;int&gt;("$.id");
+	/// </code>
+	/// </example>
+	public new HttpValidationBuilder Extract(out HttpStepResult result)
+	{
+		result = Result;
+		return this;
+	}
+
+	/// <summary>
+	/// Captures the HTTP step result via callback while continuing the fluent chain.
+	/// Useful when you need to extract multiple values or perform complex capture logic.
+	/// </summary>
+	/// <param name="extractor">Action that receives the HTTP step result for extraction</param>
+	/// <returns>The same HTTP validation builder for method chaining</returns>
+	/// <example>
+	/// <code>
+	/// int statusCode = 0;
+	/// Given()
+	///     .ApiResource("/api/products/1")
+	///     .Get()
+	///     .When().Execute()
+	///     .Then()
+	///         .Extract(result => statusCode = result.StatusCode)
+	///         .AssertStatusCode(200);
+	/// </code>
+	/// </example>
+	public new HttpValidationBuilder Extract(Action<HttpStepResult> extractor)
+	{
+		if (extractor == null)
+			throw new ArgumentNullException(nameof(extractor));
+
+		extractor(Result);
+		return this;
+	}
+
+	/// <summary>
+	/// Extracts a value from the JSON response using a JSON path into a local variable,
+	/// while continuing the fluent chain.
+	/// Use this to capture specific response values for comparison between API calls.
+	/// </summary>
+	/// <typeparam name="T">The expected type of the value (e.g., int, string, decimal)</typeparam>
+	/// <param name="jsonPath">JSON path expression (e.g., "$.id", "$.items[0].price")</param>
+	/// <param name="value">The variable that will receive the extracted value</param>
+	/// <returns>The same HTTP validation builder for method chaining</returns>
+	/// <example>
+	/// <code>
+	/// // Create a product and capture its ID
+	/// Given()
+	///     .ApiResource("/api/products")
+	///     .Post(newProduct)
+	///     .When().Execute()
+	///     .Then()
+	///         .AssertStatusCode(201)
+	///         .ExtractJsonPath&lt;int&gt;("$.id", out var createdId)
+	///         .ExtractJsonPath&lt;string&gt;("$.name", out var createdName);
+	///
+	/// // Use captured values in subsequent calls
+	/// Given()
+	///     .ApiResource($"/api/products/{createdId}")
+	///     .Get()
+	///     .When().Execute()
+	///     .Then()
+	///         .AssertStatusCode(200)
+	///         .AssertJsonPath&lt;string&gt;("$.name", name =&gt; name == createdName);
+	/// </code>
+	/// </example>
+	public HttpValidationBuilder ExtractJsonPath<T>(string jsonPath, out T value)
+	{
+		value = Result.JsonPath<T>(jsonPath);
+		return this;
+	}
 }

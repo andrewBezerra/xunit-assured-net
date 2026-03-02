@@ -443,6 +443,6 @@ public static class RouteMappingExtensions
 		return app;
 	}
 
-	public record ResponseError(string nome, string endereco);
+	public record ResponseError(string name, string Address);
 
 }

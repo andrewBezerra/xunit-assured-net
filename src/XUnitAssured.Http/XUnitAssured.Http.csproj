@@ -7,8 +7,7 @@
 		<SuppressTfmSupportBuildWarnings>true</SuppressTfmSupportBuildWarnings>
 		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
 		<Version>5.0.0</Version>
-		<Authors>Carlos Andrew Costa Bezerra</Authors>
-		<Company>R2A Sistemas</Company>
+		<Authors>Carlos Andrew Costa Bezerra</Authors>		
 		<Description>HTTP/REST testing extensions for XUnitAssured. Provides fluent DSL for testing REST APIs with support for HTTP methods, headers, authentication (OAuth2, Bearer, Basic, Certificate), and response validation. v4.0: Added HttpValidationBuilder and BDD extensions (consolidated from XUnitAssured.Extensions). v5.0: Added .NET 10 support.</Description>
 		<PackageProjectUrl>https://github.com/andrewBezerra/xunit-assured-net</PackageProjectUrl>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
@@ -42,7 +41,7 @@
 			<Pack>True</Pack>
 			<PackagePath>\</PackagePath>
 		</None>
-		<None Include="..\..\README.md">
+		<None Include="README.md">
 			<Pack>True</Pack>
 			<PackagePath>\</PackagePath>
 		</None>

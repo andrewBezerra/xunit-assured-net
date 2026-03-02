@@ -1,3 +1,5 @@
+using XUnitAssured.Kafka.Results;
+
 namespace XUnitAssured.Tests;
 
 [Trait("Category", "Integration Rest + Kafka")]
@@ -37,7 +39,7 @@ public class ConsumeRestTest
 			.ApiResource("http://minhaapi.com.br/api/v1/estudante")
 			.Post(new EstudanteRequestBody
 			{
-				Nome = "Carlos Bezerra",
+				name = "Carlos Bezerra",
 				DataNascimento = "1985-03-02",
 				NomeMae = "Terezinha Bezerra"
 			})
@@ -57,12 +59,14 @@ public class ConsumeRestTest
 			.Validate(message =>
 			{
 				message.ShouldNotBeNull();
-				message.Topic.ShouldBe("Estudante_ECST");
+				var kafkaResult = message as Kafka.Results.KafkaStepResult;
+				kafkaResult.ShouldNotBeNull();
+				kafkaResult!.Topic.ShouldBe("Estudante_ECST");
 
 				// Validate message content
-				var kafkaData = message.GetMessage<EstudanteECST>();
+				var kafkaData = kafkaResult.GetMessage<EstudanteECST>();
 				kafkaData.ShouldNotBeNull();
-				kafkaData.Nome.ShouldBe("Carlos Bezerra");
+				kafkaData!.name.ShouldBe("Carlos Bezerra");
 			});
 	}
 

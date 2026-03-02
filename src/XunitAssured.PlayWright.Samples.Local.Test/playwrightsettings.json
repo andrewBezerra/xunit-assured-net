@@ -1,0 +1,25 @@
+{
+  "Headless": false,
+  "SlowMo": 0,
+  "Browser": "Chromium",
+  "DefaultTimeout": 30000,
+  "NavigationTimeout": 30000,
+  "ViewportWidth": 1280,
+  "ViewportHeight": 720,
+  "IgnoreHttpsErrors": true,
+  "EnableInspector": true,
+
+  "RecordTrace": true,
+  "TracePath": "test-results/traces",
+  "TraceOnFailureOnly": false,
+  "TraceSnapshots": true,
+  "TraceScreenshots": true,
+
+  "RecordVideo": false,
+  "VideoPath": "test-results/videos",
+
+  "ScreenshotOnFailure": true,
+  "ScreenshotPath": "test-results/screenshots",
+
+  "TestIdAttribute": "data-testid"
+}

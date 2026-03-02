@@ -1,0 +1,14 @@
+{
+  "servers": {
+    "xunitassured": {
+      "type": "stdio",
+      "command": "dotnet",
+      "args": [
+        "run",
+        "--no-build",
+        "--project",
+        "src/XunitAssured.MCP/XunitAssured.MCP.csproj"
+      ]
+    }
+  }
+}

@@ -157,6 +157,56 @@ public class ValidationBuilder<TResult> where TResult : class, ITestStepResult
 	}
 
 	/// <summary>
+	/// Captures the full step result into a local variable while continuing the fluent chain.
+	/// Use this to store results for later comparison between different API calls.
+	/// </summary>
+	/// <param name="result">The variable that will receive the step result</param>
+	/// <returns>The same validation builder for method chaining</returns>
+	/// <example>
+	/// <code>
+	/// Given()
+	///     .ApiResource("/api/products")
+	///     .Post(newProduct)
+	///     .When().Execute()
+	///     .Then()
+	///         .AssertStatusCode(201)
+	///         .Extract(out var createResult);
+	/// </code>
+	/// </example>
+	public ValidationBuilder<TResult> Extract(out TResult result)
+	{
+		result = Result;
+		return this;
+	}
+
+	/// <summary>
+	/// Captures the step result via callback while continuing the fluent chain.
+	/// Useful when you need to extract multiple values or perform complex capture logic.
+	/// </summary>
+	/// <param name="extractor">Action that receives the step result for extraction</param>
+	/// <returns>The same validation builder for method chaining</returns>
+	/// <example>
+	/// <code>
+	/// int id = 0;
+	/// Given()
+	///     .ApiResource("/api/products")
+	///     .Post(newProduct)
+	///     .When().Execute()
+	///     .Then()
+	///         .AssertStatusCode(201)
+	///         .Extract(result => id = result.GetProperty&lt;int&gt;("StatusCode"));
+	/// </code>
+	/// </example>
+	public ValidationBuilder<TResult> Extract(Action<TResult> extractor)
+	{
+		if (extractor == null)
+			throw new ArgumentNullException(nameof(extractor));
+
+		extractor(Result);
+		return this;
+	}
+
+	/// <summary>
 	/// Gets the underlying result for advanced scenarios.
 	/// Use this when you need direct access to the result beyond the fluent API.
 	/// </summary>

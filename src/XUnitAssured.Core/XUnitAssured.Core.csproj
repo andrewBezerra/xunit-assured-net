@@ -6,8 +6,7 @@
 		<Nullable>enable</Nullable>
 		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
 		<Version>5.0.0</Version>
-		<Authors>Carlos Andrew Costa Bezerra</Authors>
-		<Company>R2A Sistemas</Company>
+		<Authors>Carlos Andrew Costa Bezerra</Authors>		
 		<Description>Core abstractions and DSL infrastructure for XUnitAssured testing framework. Provides technology-agnostic interfaces, result types, and exceptions for building fluent test scenarios. Includes Dependency Injection support with DITestFixture base class. v4.0: Added ValidationBuilder and BDD extensions (consolidated from XUnitAssured.Extensions). v4.2: Consolidated DI support from XUnitAssured.DependencyInjection. v5.0: Added .NET 10 support.</Description>
 		<PackageProjectUrl>https://github.com/andrewBezerra/xunit-assured-net</PackageProjectUrl>
 		<PackageReadmeFile>README.md</PackageReadmeFile>

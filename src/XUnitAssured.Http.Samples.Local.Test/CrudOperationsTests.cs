@@ -221,17 +221,15 @@ public class CrudOperationsTests : HttpTestBase<HttpSamplesFixture>, IClassFixtu
 			price = 50.0m
 		};
 
-		var createResponse = Given()
+		// Create product and extract its ID using ExtractJsonPath
+		Given()
 			.ApiResource("/api/products")
 			.Post(productToDelete)
 			.When()
 				.Execute()
 			.Then()
 				.AssertStatusCode(201)
-				.GetResult();
-
-		// Extract the created product ID
-		var createdProductId = createResponse.JsonPath<int>("$.id");
+				.ExtractJsonPath<int>("$.id", out var createdProductId);
 
 		// Act & Assert - Delete the product
 		Given().ApiResource($"/api/products/{createdProductId}")
@@ -278,16 +276,14 @@ public class CrudOperationsTests : HttpTestBase<HttpSamplesFixture>, IClassFixtu
 			price = 199.99m
 		};
 
-		var createResult = Given()
+		Given()
 			.ApiResource("/api/products")
 			.Post(newProduct)
 		.When()
 				.Execute()
 			.Then()
 				.AssertStatusCode(201)
-				.GetResult();
-
-		var productId = createResult.JsonPath<int>("$.id");
+				.ExtractJsonPath<int>("$.id", out var productId);
 
 		// Step 2: Read the created product
 		Given()

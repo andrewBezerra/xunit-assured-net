@@ -10,6 +10,7 @@ namespace SampleWebApi.Controllers;
 [Route("api/[controller]")]
 public class ProductsController : ControllerBase
 {
+	private static readonly object _lock = new();
 	private static readonly List<Product> _products = new()
 	{
 		new Product { Id = 1, Name = "Laptop", Description = "High-performance laptop", Price = 1299.99m, CreatedAt = DateTime.UtcNow },
@@ -33,8 +34,11 @@ public class ProductsController : ControllerBase
 	[ProducesResponseType(typeof(IEnumerable<Product>), StatusCodes.Status200OK)]
 	public ActionResult<IEnumerable<Product>> GetAll()
 	{
-		_logger.LogInformation("Fetching all products. Count: {Count}", _products.Count);
-		return Ok(_products);
+		lock (_lock)
+		{
+			_logger.LogInformation("Fetching all products. Count: {Count}", _products.Count);
+			return Ok(_products.ToList());
+		}
 	}
 
 	/// <summary>
@@ -47,17 +51,20 @@ public class ProductsController : ControllerBase
 	[ProducesResponseType(StatusCodes.Status404NotFound)]
 	public ActionResult<Product> GetById(int id)
 	{
-		_logger.LogInformation("Fetching product with ID: {Id}", id);
-		
-		var product = _products.FirstOrDefault(p => p.Id == id);
-		
-		if (product == null)
+		lock (_lock)
 		{
-			_logger.LogWarning("Product with ID {Id} not found", id);
-			return NotFound(new { message = $"Product with ID {id} not found" });
-		}
+			_logger.LogInformation("Fetching product with ID: {Id}", id);
 
-		return Ok(product);
+			var product = _products.FirstOrDefault(p => p.Id == id);
+
+			if (product == null)
+			{
+				_logger.LogWarning("Product with ID {Id} not found", id);
+				return NotFound(new { message = $"Product with ID {id} not found" });
+			}
+
+			return Ok(product);
+		}
 	}
 
 	/// <summary>
@@ -82,15 +89,18 @@ public class ProductsController : ControllerBase
 			return BadRequest(new { message = "Product price must be non-negative" });
 		}
 
-		product.Id = _nextId++;
-		product.CreatedAt = DateTime.UtcNow;
-		product.UpdatedAt = null;
+		lock (_lock)
+		{
+			product.Id = _nextId++;
+			product.CreatedAt = DateTime.UtcNow;
+			product.UpdatedAt = null;
 
-		_products.Add(product);
+			_products.Add(product);
 
-		_logger.LogInformation("Created product with ID: {Id}, Name: {Name}", product.Id, product.Name);
+			_logger.LogInformation("Created product with ID: {Id}, Name: {Name}", product.Id, product.Name);
 
-		return CreatedAtAction(nameof(GetById), new { id = product.Id }, product);
+			return CreatedAtAction(nameof(GetById), new { id = product.Id }, product);
+		}
 	}
 
 	/// <summary>
@@ -107,14 +117,6 @@ public class ProductsController : ControllerBase
 	{
 		_logger.LogInformation("Updating product with ID: {Id}", id);
 
-		var product = _products.FirstOrDefault(p => p.Id == id);
-
-		if (product == null)
-		{
-			_logger.LogWarning("Product with ID {Id} not found for update", id);
-			return NotFound(new { message = $"Product with ID {id} not found" });
-		}
-
 		if (string.IsNullOrWhiteSpace(updatedProduct.Name))
 		{
 			_logger.LogWarning("Attempted to update product {Id} with empty name", id);
@@ -127,15 +129,26 @@ public class ProductsController : ControllerBase
 			return BadRequest(new { message = "Product price must be non-negative" });
 		}
 
-		// Update properties
-		product.Name = updatedProduct.Name;
-		product.Description = updatedProduct.Description;
-		product.Price = updatedProduct.Price;
-		product.UpdatedAt = DateTime.UtcNow;
+		lock (_lock)
+		{
+			var product = _products.FirstOrDefault(p => p.Id == id);
 
-		_logger.LogInformation("Updated product ID: {Id}, Name: {Name}", product.Id, product.Name);
+			if (product == null)
+			{
+				_logger.LogWarning("Product with ID {Id} not found for update", id);
+				return NotFound(new { message = $"Product with ID {id} not found" });
+			}
 
-		return Ok(product);
+			// Update properties
+			product.Name = updatedProduct.Name;
+			product.Description = updatedProduct.Description;
+			product.Price = updatedProduct.Price;
+			product.UpdatedAt = DateTime.UtcNow;
+
+			_logger.LogInformation("Updated product ID: {Id}, Name: {Name}", product.Id, product.Name);
+
+			return Ok(product);
+		}
 	}
 
 	/// <summary>
@@ -148,21 +161,24 @@ public class ProductsController : ControllerBase
 	[ProducesResponseType(StatusCodes.Status404NotFound)]
 	public IActionResult Delete(int id)
 	{
-		_logger.LogInformation("Deleting product with ID: {Id}", id);
-
-		var product = _products.FirstOrDefault(p => p.Id == id);
-
-		if (product == null)
+		lock (_lock)
 		{
-			_logger.LogWarning("Product with ID {Id} not found for deletion", id);
-			return NotFound(new { message = $"Product with ID {id} not found" });
+			_logger.LogInformation("Deleting product with ID: {Id}", id);
+
+			var product = _products.FirstOrDefault(p => p.Id == id);
+
+			if (product == null)
+			{
+				_logger.LogWarning("Product with ID {Id} not found for deletion", id);
+				return NotFound(new { message = $"Product with ID {id} not found" });
+			}
+
+			_products.Remove(product);
+
+			_logger.LogInformation("Deleted product with ID: {Id}", id);
+
+			return NoContent();
 		}
-
-		_products.Remove(product);
-
-		_logger.LogInformation("Deleted product with ID: {Id}", id);
-
-		return NoContent();
 	}
 
 	/// <summary>
@@ -172,18 +188,21 @@ public class ProductsController : ControllerBase
 	[ProducesResponseType(StatusCodes.Status200OK)]
 	public IActionResult Reset()
 	{
-		_logger.LogInformation("Resetting products to initial state");
-
-		_products.Clear();
-		_products.AddRange(new[]
+		lock (_lock)
 		{
-			new Product { Id = 1, Name = "Laptop", Description = "High-performance laptop", Price = 1299.99m, CreatedAt = DateTime.UtcNow },
-			new Product { Id = 2, Name = "Mouse", Description = "Wireless mouse", Price = 29.99m, CreatedAt = DateTime.UtcNow },
-			new Product { Id = 3, Name = "Keyboard", Description = "Mechanical keyboard", Price = 89.99m, CreatedAt = DateTime.UtcNow }
-		});
+			_logger.LogInformation("Resetting products to initial state");
 
-		_nextId = 4;
+			_products.Clear();
+			_products.AddRange(new[]
+			{
+				new Product { Id = 1, Name = "Laptop", Description = "High-performance laptop", Price = 1299.99m, CreatedAt = DateTime.UtcNow },
+				new Product { Id = 2, Name = "Mouse", Description = "Wireless mouse", Price = 29.99m, CreatedAt = DateTime.UtcNow },
+				new Product { Id = 3, Name = "Keyboard", Description = "Mechanical keyboard", Price = 89.99m, CreatedAt = DateTime.UtcNow }
+			});
 
-		return Ok(new { message = "Products reset successfully", count = _products.Count });
+			_nextId = 4;
+
+			return Ok(new { message = "Products reset successfully", count = _products.Count });
+		}
 	}
 }
