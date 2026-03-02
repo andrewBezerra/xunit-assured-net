@@ -1,0 +1,52 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFrameworks>net7.0;net8.0;net9.0;net10.0</TargetFrameworks>
+    <LangVersion>12</LangVersion>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <SuppressTfmSupportBuildWarnings>true</SuppressTfmSupportBuildWarnings>
+    <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+    <Version>5.0.0</Version>
+    <Authors>Carlos Andrew Costa Bezerra</Authors>    
+    <Description>Playwright UI testing extensions for XUnitAssured. Provides fluent DSL for browser-based UI testing with support for multiple locator strategies (CSS, ARIA roles, labels, test IDs, placeholders, text), page interactions, screenshots, and rich assertions. Built on Microsoft.Playwright.</Description>
+    <PackageProjectUrl>https://github.com/andrewBezerra/xunit-assured-net</PackageProjectUrl>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <RepositoryUrl>https://github.com/andrewBezerra/xunit-assured-net</RepositoryUrl>
+    <PackageId>XUnitAssured.Playwright</PackageId>
+    <PackageTags>xunit;playwright;ui-testing;browser-testing;e2e;integration-testing;bdd</PackageTags>
+    <RootNamespace>XUnitAssured.Playwright</RootNamespace>
+    <IsPackable>true</IsPackable>
+    <PackageIcon>package-icon.png</PackageIcon>
+    <PackageLicenseFile>LICENSE.md</PackageLicenseFile>
+  </PropertyGroup>
+
+  <!-- Common Dependencies (all frameworks) -->
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Playwright" Version="1.52.0" />
+    <PackageReference Include="Shouldly" Version="4.3.0" />
+    <PackageReference Include="xunit.abstractions" Version="2.0.3" />
+    <PackageReference Include="xunit.extensibility.core" Version="2.9.3" />
+  </ItemGroup>
+
+  <!-- Package Files -->
+  <ItemGroup>
+    <None Include="..\..\package-icon.png">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
+    <None Include="README.md">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
+    <None Include="..\..\LICENSE.md">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
+  </ItemGroup>
+
+  <!-- Project References -->
+  <ItemGroup>
+    <ProjectReference Include="..\XUnitAssured.Core\XUnitAssured.Core.csproj" />
+  </ItemGroup>
+
+</Project>

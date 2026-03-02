@@ -1,6 +1,6 @@
 # XUnitAssured.Kafka
 
-Kafka testing utilities for XUnitAssured using Confluent.Kafka. Provides settings, fixtures, and helpers for integration testing with Apache Kafka.
+Apache Kafka integration testing extensions for the [XUnitAssured.Net](https://github.com/andrewBezerra/XUnitAssured.Net) framework. Write expressive Kafka tests using a fluent `Given().When().Then()` DSL with full support for produce/consume operations, batch messaging, authentication (SASL, SSL, mTLS), and Schema Registry.
 
 ## Installation
 
@@ -8,75 +8,274 @@ Kafka testing utilities for XUnitAssured using Confluent.Kafka. Provides setting
 dotnet add package XUnitAssured.Kafka
 ```
 
-## Features
+## Quick Start
 
-- **KafkaSettings**: Strongly-typed configuration using Confluent.Kafka native types
-- **KafkaTestFixture**: Base test fixture for Kafka integration tests
-- **KafkaProducerHelper**: Helper methods for producing test messages
-- **KafkaConsumerHelper**: Helper methods for consuming test messages
-- **Schema Registry Support**: Built-in support for Avro serialization with Schema Registry
-- **Validation**: Automatic settings validation using IValidateOptions pattern
+```csharp
+using XUnitAssured.Kafka.Extensions;
+using XUnitAssured.Kafka.Testing;
 
-## Configuration
+public class OrderTests : KafkaTestBase<KafkaClassFixture>, IClassFixture<KafkaClassFixture>
+{
+    public OrderTests(KafkaClassFixture fixture) : base(fixture) { }
 
-Add Kafka settings to your `appsettings.json`:
+    [Fact]
+    public void Produce_And_Consume_Order()
+    {
+        var topic = GenerateUniqueTopic("orders");
+        var groupId = $"test-{Guid.NewGuid():N}";
+
+        // Produce
+        Given()
+            .Topic(topic)
+            .Produce(new { id = 1, product = "Laptop", price = 999.99m })
+        .When()
+            .Execute()
+        .Then()
+            .AssertSuccess();
+
+        // Consume
+        Given()
+            .Topic(topic)
+            .Consume()
+            .WithGroupId(groupId)
+        .When()
+            .Execute()
+        .Then()
+            .AssertSuccess()
+            .AssertMessage<string>(msg => msg.ShouldNotBeNullOrEmpty());
+    }
+}
+```
+
+## Fluent DSL Reference
+
+### Produce
+
+```csharp
+Given()
+    .Topic("my-topic")
+    .Produce("Hello, Kafka!")                          // Produce string message
+    .Produce(new { id = 1, name = "Test" })            // Produce JSON object
+    .WithKey("my-key")                                 // Set message key
+    .WithHeader("correlation-id", "abc-123")           // Add message header
+    .WithBootstrapServers("localhost:9092")             // Override bootstrap servers
+```
+
+### Produce Batch
+
+```csharp
+Given()
+    .Topic("my-topic")
+    .ProduceBatch(new[] { "msg1", "msg2", "msg3" })    // Produce multiple messages
+```
+
+### Consume
+
+```csharp
+Given()
+    .Topic("my-topic")
+    .Consume()                                         // Consume single message
+    .WithGroupId("my-group")                           // Set consumer group
+    .WithTimeout(30)                                   // Set timeout in seconds
+    .WithBootstrapServers("localhost:9092")             // Override bootstrap servers
+```
+
+### Consume Batch
+
+```csharp
+Given()
+    .Topic("my-topic")
+    .ConsumeBatch(5)                                   // Consume up to 5 messages
+    .WithGroupId("my-group")
+```
+
+### Assertions
+
+```csharp
+.When()
+    .Execute()
+.Then()
+    .AssertSuccess()                                   // Assert operation succeeded
+    .AssertMessage<string>(msg => msg.ShouldBe("expected"))  // Assert message content
+    .AssertBatchCount(5)                               // Assert batch message count
+```
+
+## Authentication
+
+### SASL/PLAIN
+
+```csharp
+Given()
+    .Topic("my-topic")
+    .Produce("message")
+    .WithBootstrapServers("localhost:29093")
+    .WithAuth(auth => auth.UseSaslPlain("user", "password", useSsl: false))
+.When().Execute()
+.Then().AssertSuccess();
+```
+
+### SASL/SCRAM-SHA-256
+
+```csharp
+Given()
+    .Topic("my-topic")
+    .Produce("message")
+    .WithBootstrapServers("localhost:29094")
+    .WithAuth(auth => auth.UseSaslScram256("user", "password"))
+.When().Execute()
+.Then().AssertSuccess();
+```
+
+### SASL/SCRAM-SHA-512
+
+```csharp
+Given()
+    .Topic("my-topic")
+    .Produce("message")
+    .WithBootstrapServers("localhost:29095")
+    .WithAuth(auth => auth.UseSaslScram512("user", "password"))
+.When().Execute()
+.Then().AssertSuccess();
+```
+
+### SSL (One-Way)
+
+```csharp
+Given()
+    .Topic("my-topic")
+    .Produce("message")
+    .WithBootstrapServers("localhost:29096")
+    .WithAuth(auth => auth.UseSsl("certs/ca-cert.pem"))
+.When().Execute()
+.Then().AssertSuccess();
+```
+
+### Mutual TLS (mTLS)
+
+```csharp
+Given()
+    .Topic("my-topic")
+    .Produce("message")
+    .WithBootstrapServers("localhost:29097")
+    .WithAuth(auth => auth.UseMutualTls("client-cert.pem", "client-key.pem", "ca-cert.pem"))
+.When().Execute()
+.Then().AssertSuccess();
+```
+
+### Automatic Authentication via testsettings.json
 
 ```json
 {
-  "Kafka": {
-    "BootstrapServers": "localhost:9092",
-    "GroupId": "test-consumer-group",
-    "SecurityProtocol": "Plaintext",
-    "SchemaRegistry": {
-      "Url": "https://schema-registry:8081"
+  "kafka": {
+    "bootstrapServers": "localhost:9092",
+    "authentication": {
+      "type": "SaslPlain",
+      "sasl": {
+        "username": "user",
+        "password": "password"
+      }
     }
   }
 }
 ```
 
-## Usage
-
-Create a test fixture by inheriting from `KafkaTestFixture`:
+## Batch Operations
 
 ```csharp
-using XUnitAssured.Kafka;
-using Xunit;
+// Produce batch
+var messages = new[] { "order-1", "order-2", "order-3", "order-4", "order-5" };
 
-public class MyKafkaTestFixture : KafkaTestFixture
+Given()
+    .Topic("orders")
+    .ProduceBatch(messages)
+.When()
+    .Execute()
+.Then()
+    .AssertSuccess()
+    .AssertBatchCount(5);
+
+// Consume batch
+Given()
+    .Topic("orders")
+    .ConsumeBatch(5)
+    .WithGroupId("batch-consumer")
+.When()
+    .Execute()
+.Then()
+    .AssertSuccess()
+    .AssertBatchCount(5);
+```
+
+## Message Keys and Headers
+
+```csharp
+// Produce with key
+Given()
+    .Topic("user-events")
+    .Produce(new { action = "login", userId = 42 })
+    .WithKey("user-42")
+.When().Execute()
+.Then().AssertSuccess();
+
+// Produce with headers
+Given()
+    .Topic("user-events")
+    .Produce("event-data")
+    .WithHeader("correlation-id", "abc-123")
+    .WithHeader("source", "test-suite")
+.When().Execute()
+.Then().AssertSuccess();
+```
+
+## Round-Trip Example (Produce → Consume)
+
+```csharp
+[Fact]
+public void RoundTrip_ProduceAndConsume()
 {
-    public MyKafkaTestFixture() : base()
-    {
-    }
-}
+    var topic = GenerateUniqueTopic("roundtrip");
+    var groupId = $"test-{Guid.NewGuid():N}";
 
-public class MyKafkaTests : IClassFixture<MyKafkaTestFixture>
-{
-    private readonly MyKafkaTestFixture _fixture;
+    // Produce
+    Given()
+        .Topic(topic)
+        .Produce("Hello, Kafka!")
+    .When().Execute()
+    .Then().AssertSuccess();
 
-    public MyKafkaTests(MyKafkaTestFixture fixture)
-    {
-        _fixture = fixture;
-    }
-
-    [Fact]
-    public async Task Should_Produce_And_Consume_Message()
-    {
-        // Produce
-        await _fixture.ProduceAsync("test-topic", "key", "value");
-
-        // Consume
-        var result = _fixture.ConsumeOne<string, string>("test-topic");
-        
-        Assert.NotNull(result);
-        Assert.Equal("value", result.Message.Value);
-    }
+    // Consume and validate
+    Given()
+        .Topic(topic)
+        .Consume()
+        .WithGroupId(groupId)
+    .When().Execute()
+    .Then()
+        .AssertSuccess()
+        .AssertMessage<string>(msg => msg.ShouldBe("Hello, Kafka!"));
 }
 ```
 
-## Documentation
+## Supported Frameworks
 
-For more information, visit the [GitHub repository](https://github.com/andrewBezerra/xunit-assured-net).
+- .NET 7
+- .NET 8
+- .NET 9
+- .NET 10
+
+## Dependencies
+
+- [XUnitAssured.Core](https://www.nuget.org/packages/XUnitAssured.Core) — DSL infrastructure and abstractions
+- [Confluent.Kafka](https://www.nuget.org/packages/Confluent.Kafka) — Apache Kafka .NET client
+- [Confluent.SchemaRegistry](https://www.nuget.org/packages/Confluent.SchemaRegistry) — Schema Registry client
+- [Confluent.SchemaRegistry.Serdes.Avro](https://www.nuget.org/packages/Confluent.SchemaRegistry.Serdes.Avro) — Avro serialization
+
+## Links
+
+- [GitHub Repository](https://github.com/andrewBezerra/XUnitAssured.Net)
+- [Full Documentation](https://github.com/andrewBezerra/XUnitAssured.Net#readme)
+- [Report Issues](https://github.com/andrewBezerra/XUnitAssured.Net/issues)
+- [NuGet Package](https://www.nuget.org/packages/XUnitAssured.Kafka)
 
 ## License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+MIT — see [LICENSE.md](https://github.com/andrewBezerra/XUnitAssured.Net/blob/main/LICENSE.md)

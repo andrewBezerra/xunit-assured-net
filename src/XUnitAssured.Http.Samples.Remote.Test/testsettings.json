@@ -14,7 +14,7 @@
     // Base URL of the remote API
     // Can use environment variable: "${ENV:REMOTE_API_URL}"
     // Example: "https://api.staging.example.com"
-    "baseUrl": "https://localhost:7005",
+    "baseUrl": "https://localhost:7057",
     
     // Request timeout in seconds
     "timeout": 60,

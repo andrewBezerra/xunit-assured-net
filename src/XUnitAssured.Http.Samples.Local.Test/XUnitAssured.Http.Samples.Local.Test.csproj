@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 	<PropertyGroup>
 		<TargetFramework>net8.0</TargetFramework>
 		<LangVersion>12</LangVersion>
@@ -22,11 +22,11 @@
 			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
 			<PrivateAssets>all</PrivateAssets>
 		</PackageReference>
-		<PackageReference Include="XUnitAssured.Http" Version="5.0.0" />
 	</ItemGroup>
 
 	<ItemGroup>
 		<ProjectReference Include="..\SampleWebApi\SampleWebApi.csproj" />
+		<ProjectReference Include="..\XUnitAssured.Http\XUnitAssured.Http.csproj" />
 	</ItemGroup>
 
 	<ItemGroup>
