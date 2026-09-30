@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/andrewBezerra/xunit-assured-net/actions/workflows/ci.yml/badge.svg)](https://github.com/andrewBezerra/xunit-assured-net/actions/workflows/ci.yml)
 [![NuGet](https://img.shields.io/nuget/v/XUnitAssured.Core.svg?label=nuget)](https://www.nuget.org/packages/XUnitAssured.Core)
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE.md)
+[![License: Apache-2.0](https://img.shields.io/badge/License-Apache--2.0-blue.svg)](LICENSE.md)
 
 XUnitAssured.Net is a fluent testing framework for .NET that helps developers create and maintain test collections with the goal of promoting the development of quality software products. Write expressive integration tests using a natural `Given().When().Then()` DSL for HTTP/REST APIs, Apache Kafka, and browser-based UI testing with Playwright. Includes an MCP (Model Context Protocol) server for AI-assisted test generation.
 
@@ -492,7 +492,7 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 ## 📄 License
 
-This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md) file for details.
+This project is licensed under the Apache License 2.0 - see the [LICENSE.md](LICENSE.md) file for details.
 
 ## 👤 Author
 

@@ -278,4 +278,4 @@ public void RoundTrip_ProduceAndConsume()
 
 ## License
 
-MIT — see [LICENSE.md](https://github.com/andrewBezerra/XUnitAssured.Net/blob/main/LICENSE.md)
+Apache-2.0 — see [LICENSE.md](https://github.com/andrewBezerra/XUnitAssured.Net/blob/main/LICENSE.md)
