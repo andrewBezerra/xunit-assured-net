@@ -346,6 +346,8 @@ Comments are allowed. The full set of keys, with every authentication variant sp
 
 **Per-environment files.** With `TEST_ENV=staging` (or `"environment": "staging"`), `testsettings.staging.json` is loaded instead of `testsettings.json`. Keep secrets out of the file with `${ENV:...}`.
 
+**Kafka on Windows with Docker or Podman.** Prefer `"bootstrapServers": "127.0.0.1:9092"` over `localhost:9092`. On Windows, `localhost` resolves to IPv6 `::1` first, the container only forwards IPv4, and the Kafka client gives up on each attempt only after ~20 s — a test that should fail instantly hangs, and one that should pass may time out. The broker must also advertise the same address: with the official image, set `KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://127.0.0.1:9092`, otherwise its metadata sends the client back to `localhost`. The compose files under `src/XUnitAssured.Kafka.Samples.Remote.Test/docker` are set up this way.
+
 **How it reaches your tests.** A fixture loads the file once and hands it to the DSL:
 
 ```csharp
