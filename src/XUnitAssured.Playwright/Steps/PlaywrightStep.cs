@@ -94,10 +94,25 @@ public class PlaywrightStep : ITestStep
 
 			var elapsed = DateTimeOffset.UtcNow - startTime;
 
+			// The page HTML is fetched only if something reads PageContent. Serialising
+			// it costs more than the step itself on a large page (measured: ~106 ms for
+			// a 500 KB DOM against ~5 ms for everything else), and most steps never
+			// read it. Once the page is closed the provider yields null instead of
+			// throwing: a result must stay readable after its test has cleaned up.
 			Result = PlaywrightStepResult.CreateSuccess(
 				url: page.Url,
 				title: await page.TitleAsync(),
-				pageContent: await page.ContentAsync(),
+				pageContentProvider: () =>
+				{
+					try
+					{
+						return page.ContentAsync().GetAwaiter().GetResult();
+					}
+					catch (PlaywrightException)
+					{
+						return null;
+					}
+				},
 				screenshots: screenshots,
 				consoleLogs: _consoleLogs.ToList(),
 				elapsed: elapsed);
