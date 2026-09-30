@@ -79,6 +79,7 @@ In order of intent, not of promise:
 2. **A first-class asynchronous API** (`ExecuteAsync`, `CancellationToken` end to end) — the current `Execute()` blocks, which is the most common objection to the DSL. This is the v6 line.
 3. **More messaging systems** — RabbitMQ and Azure Service Bus are the natural next ones behind Kafka.
 4. **gRPC** alongside HTTP.
+5. **One configuration file** — bring Playwright into `testsettings.json` and retire the per-package files, so a cross-boundary project is configured in one place.
 
 ## 📦 Packages
 
@@ -305,6 +306,69 @@ Given().Topic("my-topic")
 .When().Execute()
 .Then().AssertSuccess();
 ```
+
+## ⚙️ Configuration: `testsettings.json`
+
+Every protocol package reads its connection details and credentials from one file at the root of your test project, so tests never hard-code URLs, brokers or tokens:
+
+```jsonc
+{
+  // "Local": in-process services (WebApplicationFactory, a Kafka in Docker).
+  // "Remote": deployed services (staging, production).
+  "testMode": "Remote",
+
+  // Optional. Also settable with the TEST_ENV environment variable.
+  "environment": "staging",
+
+  "http": {
+    "baseUrl": "${ENV:API_URL}",          // ${ENV:NAME} is replaced by the variable's value
+    "timeout": 60,
+    "defaultHeaders": { "Accept": "application/json" },
+    "authentication": {
+      "type": "Bearer",                     // None | Basic | Bearer | ApiKey | OAuth2 | CustomHeader | Certificate
+      "bearer": { "token": "${ENV:API_TOKEN}" }
+    }
+  },
+
+  "kafka": {
+    "bootstrapServers": "localhost:9092",
+    "groupId": "my-tests",
+    "securityProtocol": "Plaintext",       // Plaintext | Ssl | SaslPlaintext | SaslSsl
+    "authentication": { "type": "None" }   // None | SaslPlain | SaslScram256 | SaslScram512 | Ssl | MutualTls
+  }
+}
+```
+
+Comments are allowed. The full set of keys, with every authentication variant spelled out, is in the samples: [`testsettings.json` for HTTP](src/XUnitAssured.Http.Samples.Remote.Test/testsettings.json) and [for Kafka](src/XUnitAssured.Kafka.Samples.Remote.Test/testsettings.json).
+
+**Where it is looked for.** The current directory and up to three parents — which reaches your project folder from `bin/<Configuration>/<tfm>`, so no `CopyToOutputDirectory` is needed. To point somewhere else, set `TESTSETTINGS_PATH=/path/to/file.json`.
+
+**Per-environment files.** With `TEST_ENV=staging` (or `"environment": "staging"`), `testsettings.staging.json` is loaded instead of `testsettings.json`. Keep secrets out of the file with `${ENV:...}`.
+
+**How it reaches your tests.** A fixture loads the file once and hands it to the DSL:
+
+```csharp
+// HTTP: a fixture that implements IHttpClientProvider (and IHttpClientAuthProvider
+// to have the configured authentication applied to every request).
+public class ApiFixture : IHttpClientProvider, IHttpClientAuthProvider
+{
+    private readonly HttpSettings _http = TestSettings.Load().GetHttpSettings()!;
+    public HttpClient CreateClient() => new() { BaseAddress = new Uri(_http.BaseUrl!) };
+    public HttpAuthConfig? GetAuthenticationConfig() => _http.Authentication;
+}
+
+// Then in a test:
+Given(fixture).ApiResource("/api/orders").Get() ...
+
+// Kafka: KafkaClassFixture already does this for the "kafka" section.
+public class OrderTests : KafkaTestBase<KafkaClassFixture>, IClassFixture<KafkaClassFixture> { ... }
+```
+
+The reference implementation of an HTTP fixture is [`HttpSamplesRemoteFixture.cs`](src/XUnitAssured.Http.Samples.Remote.Test/HttpSamplesRemoteFixture.cs).
+
+**The exception: Playwright.** Browser settings live in their own file, `playwrightsettings.json`, with PascalCase keys (`Headless`, `Browser`, `DefaultTimeout`, `ScreenshotOnFailure`, `RecordTrace`, …), found the same way or via `XUNITASSURED_PLAYWRIGHT_SETTINGS_PATH`. Unlike `testsettings.json`, it must be copied to the output directory — see the [Playwright sample](src/XunitAssured.PlayWright.Samples.Local.Test/playwrightsettings.json) and its `.csproj`. Folding it into `testsettings.json` is on the roadmap.
+
+> **Two names you may meet in the code and can ignore.** `httpsettings.json` is a fallback read only when an `HttpRequestStep` runs without a fixture or explicit authentication; `kafkasettings.json` is referenced in comments but its loader is not implemented — Kafka settings come from `testsettings.json` through the fixture.
 
 ## 🏗️ Architecture
 
