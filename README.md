@@ -4,23 +4,81 @@
 [![NuGet](https://img.shields.io/nuget/v/XUnitAssured.Core.svg?label=nuget)](https://www.nuget.org/packages/XUnitAssured.Core)
 [![License: Apache-2.0](https://img.shields.io/badge/License-Apache--2.0-blue.svg)](LICENSE.md)
 
-XUnitAssured.Net is a fluent testing framework for .NET that helps developers create and maintain test collections with the goal of promoting the development of quality software products. Write expressive integration tests using a natural `Given().When().Then()` DSL for HTTP/REST APIs, Apache Kafka, and browser-based UI testing with Playwright. Includes an MCP (Model Context Protocol) server for AI-assisted test generation.
+XUnitAssured is a .NET integration testing framework for describing and validating end-to-end scenarios that span HTTP APIs, messaging systems and browser workflows in distributed applications.
 
-## 🎯 Features
+Built on xUnit and Playwright, with AI-assisted test generation through the Model Context Protocol (MCP), so Copilot, Claude and other assistants can scaffold tests for you.
 
-- **Fluent BDD DSL**: Write tests in a natural, readable way using `Given().When().Then()` syntax
-- **HTTP Testing**: Comprehensive HTTP/REST API testing with full CRUD support, JSON path assertions, and schema validation
-- **Kafka Testing**: Integration testing with Apache Kafka — produce/consume single and batch messages with header and key support
-- **Playwright UI Testing**: Browser-based UI testing with fluent DSL for clicks, fills, checks, navigation, screenshots, and rich assertions — built on Microsoft Playwright
-- **MCP Server**: AI-assisted test generation via Model Context Protocol — translate Playwright code, scaffold HTTP/Kafka tests directly from Copilot Chat
-- **Modular Architecture**: Install only what you need (Core, Http, Kafka, Playwright)
-- **Multiple HTTP Auth Types**: Bearer, BearerWithAutoRefresh, Basic, OAuth2 (Client Credentials, Password, Authorization Code), API Key (Header/Query), Certificate (mTLS), Custom Headers
-- **Multiple Kafka Auth Types**: SASL/PLAIN, SASL/SCRAM-SHA-256, SASL/SCRAM-SHA-512, SSL, Mutual TLS (mTLS)
-- **Automatic Authentication**: Configure auth once in `testsettings.json` and have it applied automatically to every request
-- **Dependency Injection**: Built-in DI support via `DITestFixture` base class
-- **Validation & BDD Extensions**: `ValidationBuilder` and BDD scenario extensions consolidated in Core
-- **Multi-target Support**: Targets `net7.0`, `net8.0`, `net9.0`, and `net10.0`
-- **xUnit Integration**: Seamless integration with xUnit's fixtures and dependency injection
+## What a scenario looks like
+
+Most integration tests check one boundary at a time. The interesting bugs live between them: the API answered `201`, but did the event reach the topic, and did the user actually see the result? XUnitAssured describes that whole path as one scenario:
+
+```csharp
+var orderId = 0;
+var scenario = Given();
+
+scenario
+    // HTTP: create the order through the API
+    .WithHttpClient(api)
+    .ApiResource("/api/orders")
+    .Post(new { customerId = 42, total = 99.90m })
+    .Validate(response =>
+    {
+        response.StatusCode.ShouldBe(201);
+        orderId = response.JsonPath<int>("$.id");
+    })
+
+    // Kafka: the API must have published the event
+    .And().On()
+    .Topic("orders.created")
+    .Consume()
+    .ValidateMessage<OrderCreated>(message =>
+    {
+        message.OrderId.ShouldBe(orderId);
+        message.Status.ShouldBe("Created");
+    })
+
+    // Browser: and the order must be visible to the user
+    .And()
+    .NavigateTo($"/orders/{orderId}");
+
+PlaywrightBddExtensions.Execute(scenario)
+    .Then()
+    .AssertUrlContains($"/orders/{orderId}")
+    .AssertTextContainsByTestId("order-status", "Created");
+```
+
+One rough edge, stated plainly: when the Http, Kafka and Playwright packages are all referenced, `Execute()` is ambiguous — each package defines its own — so the last leg names the package. A single entry point is the first item on the roadmap.
+
+Each leg is a *step*; steps share one context, so a value extracted from the API response drives the Kafka assertion and the page the browser opens. This exact scenario is compiled against the DSL on every build ([`CrossScenarioExampleTests.cs`](src/XUnitAssured.Tests/CrossScenarioExampleTests.cs)), so the README cannot drift from the API.
+
+## What it does
+
+- **One DSL across boundaries** — `Given().When().Then()` over HTTP, Kafka and the browser, with steps that share state (`SaveStep`, `Steps["name"]`, extracted values).
+- **HTTP** — full CRUD, JSON path assertions, contract validation, and authentication applied once from `testsettings.json`: Bearer, Basic, OAuth2, API key, client certificate (mTLS), custom headers.
+- **Kafka** — produce and consume single messages and batches, headers and keys, SASL/PLAIN, SCRAM, SSL and mTLS, Schema Registry. Consume steps skip the consumer-group join, so a consume costs milliseconds instead of seconds.
+- **Browser** — clicks, fills, checks, navigation and screenshots on Playwright, with locators by role, label, test id, text and CSS, and assertions that read like the DSL.
+- **AI-assisted authoring** — an MCP server with 10 tools that translate Playwright Inspector recordings into the DSL and scaffold HTTP and Kafka tests from your editor.
+- **Diagnostics when things fail** — status codes, broker logs, exception detail and, for browser steps, a screenshot at the moment of failure.
+- **Modular** — install only the packages you need; each targets `net7.0` through `net10.0`.
+
+## Supported today
+
+The definition above is where the project is going. This is what it ships now:
+
+| Boundary | Supported | Test runner |
+|---|---|---|
+| HTTP APIs | Any REST/JSON API (`HttpClient`/Flurl, `WebApplicationFactory` for in-process tests) | xUnit |
+| Messaging systems | Apache Kafka (Confluent client) | xUnit |
+| Browser workflows | Microsoft Playwright (Chromium, Firefox, WebKit) | xUnit |
+
+## Roadmap
+
+In order of intent, not of promise:
+
+1. **A unified fixture and a single `Execute()`** so a cross-boundary scenario gets its `HttpClient`, broker and page from one place and ends the same way regardless of which packages are referenced — today the page is wired into the context by hand and the last leg has to name its package.
+2. **A first-class asynchronous API** (`ExecuteAsync`, `CancellationToken` end to end) — the current `Execute()` blocks, which is the most common objection to the DSL. This is the v6 line.
+3. **More messaging systems** — RabbitMQ and Azure Service Bus are the natural next ones behind Kafka.
+4. **gRPC** alongside HTTP.
 
 ## 📦 Packages
 
