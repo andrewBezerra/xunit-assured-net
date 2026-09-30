@@ -28,21 +28,21 @@ XUnitAssured.Net is a fluent testing framework for .NET that helps developers cr
 
 | Package | Version | Description |
 |---------|---------|-------------|
-| **XUnitAssured.Core** | 5.0.1 | Core abstractions, DSL infrastructure, DI support (`DITestFixture`), `ValidationBuilder`, and BDD extensions |
+| **XUnitAssured.Core** | 5.0.2 | Core abstractions, DSL infrastructure, DI support (`DITestFixture`), `ValidationBuilder`, and BDD extensions |
 
 ### Protocol Packages
 
 | Package | Version | Description |
 |---------|---------|-------------|
-| **XUnitAssured.Http** | 5.0.1 | HTTP/REST API testing — fluent DSL, authentication handlers, JSON path assertions, schema validation |
-| **XUnitAssured.Kafka** | 5.0.1 | Apache Kafka integration testing — produce/consume, batch operations, authentication, Schema Registry support |
-| **XUnitAssured.Playwright** | 5.0.1 | Playwright UI testing — fluent DSL for browser interactions, multiple locator strategies, screenshots, and assertions |
+| **XUnitAssured.Http** | 5.0.2 | HTTP/REST API testing — fluent DSL, authentication handlers, JSON path assertions, schema validation |
+| **XUnitAssured.Kafka** | 5.0.2 | Apache Kafka integration testing — produce/consume, batch operations, authentication, Schema Registry support |
+| **XUnitAssured.Playwright** | 5.0.2 | Playwright UI testing — fluent DSL for browser interactions, multiple locator strategies, screenshots, and assertions |
 
 ### Tooling
 
 | Package | Version | Description |
 |---------|---------|-------------|
-| **XUnitAssured.Mcp** | 5.0.1 | MCP server for AI-assisted test generation — install via `dnx XUnitAssured.Mcp` or `dotnet tool install XUnitAssured.Mcp` |
+| **XUnitAssured.Mcp** | 5.0.2 | MCP server for AI-assisted test generation — install via `dnx XUnitAssured.Mcp` or `dotnet tool install XUnitAssured.Mcp` |
 
 ## 🚀 Quick Start
 
@@ -346,7 +346,7 @@ Add to your `.mcp.json` (repo root, `~/.mcp.json`, or `.vscode/mcp.json`):
     "xunitassured": {
       "type": "stdio",
       "command": "dnx",
-      "args": ["XUnitAssured.Mcp@5.0.1", "--yes"]
+      "args": ["XUnitAssured.Mcp@5.0.2", "--yes"]
     }
   }
 }
@@ -415,7 +415,24 @@ In GitHub Copilot Chat, the XUnitAssured tools should appear as available. Try:
 
 ## 🔄 Version History
 
-### v5.0.1 (Current — reliability fixes, fully compatible with 5.0.0)
+### v5.0.2 (Current — Kafka performance, fully compatible with 5.0.1)
+
+No API changed; upgrading requires no code changes.
+
+- **Kafka — consume steps are ~14× faster.** A consume step no longer joins a
+  consumer group. Joining cost a coordinator lookup, a rebalance and, on a
+  default broker, a three-second `group.initial.rebalance.delay.ms` wait — paid
+  on every step, for nothing, since steps never commit offsets. Partitions are
+  now assigned directly, starting from the same offsets a subscription would
+  use (a committed offset for the group wins; otherwise `AutoOffsetReset`).
+  Measured against a local broker, one message per fresh topic and group:
+  median **3 220 ms → 236 ms** per consume.
+- **Kafka — `Produce` without a key works again.** A keyless message is valid
+  Kafka (the broker picks the partition) and is what the quick start does, but
+  since 5.0.0 the step rejected it before reaching the broker. Producing with a
+  `null` key now goes through; the value is still required.
+
+### v5.0.1 (Reliability fixes, fully compatible with 5.0.0)
 
 No API changed; upgrading requires no code changes.
 
