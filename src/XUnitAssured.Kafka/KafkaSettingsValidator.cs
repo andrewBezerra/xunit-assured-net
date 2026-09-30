@@ -14,6 +14,15 @@ namespace XUnitAssured.Kafka;
 /// </summary>
 public class KafkaSettingsValidator : IValidateOptions<KafkaSettings>
 {
+	/// <summary>
+	/// Checks that the settings can actually reach a broker before any test runs:
+	/// every bootstrap server is <c>host:port</c>, and the credentials the chosen
+	/// security protocol needs are present. Reporting all problems at once, at
+	/// start-up, beats discovering them one timeout at a time inside the tests.
+	/// </summary>
+	/// <param name="name">The options instance name; unused, the settings are not named.</param>
+	/// <param name="options">The settings bound from configuration.</param>
+	/// <returns>Success, or every validation failure found, joined for the exception message.</returns>
 	public ValidateOptionsResult Validate(string? name, KafkaSettings options)
 	{
 		var errors = new List<string>();

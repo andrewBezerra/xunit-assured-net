@@ -20,8 +20,22 @@ namespace XUnitAssured.Kafka;
 /// </summary>
 public abstract class KafkaTestFixture : TestBedFixture
 {
+	/// <summary>
+	/// The settings bound and validated from the <c>Kafka</c> configuration section:
+	/// bootstrap servers, group id, security protocol and credentials.
+	/// Null until <see cref="AddServices"/> has run.
+	/// </summary>
 	protected KafkaSettings? KafkaSettings { get; private set; }
 
+	/// <summary>
+	/// Binds <see cref="KafkaSettings"/> from configuration, validates it at start-up so
+	/// a bad broker address fails the fixture rather than the first test, and registers
+	/// the producer and consumer helpers. Derived fixtures add their own services in
+	/// the extension point this class provides rather than overriding this.
+	/// </summary>
+	/// <param name="services">The container being assembled for the test class.</param>
+	/// <param name="configuration">Configuration loaded from the files named by <see cref="GetTestAppSettings"/>.</param>
+	/// <exception cref="InvalidOperationException">Thrown when no configuration is available.</exception>
 	protected override void AddServices(IServiceCollection services, IConfiguration? configuration)
 	{
 		if (configuration == null)
@@ -156,12 +170,22 @@ public abstract class KafkaTestFixture : TestBedFixture
 		}
 	}
 
+	/// <summary>
+	/// Releases Kafka resources when the test class finishes. Producers and consumers
+	/// created through the helpers are owned by their callers, so there is nothing to
+	/// close here by default; derived fixtures that cache clients override this.
+	/// </summary>
 	protected override ValueTask DisposeAsyncCore()
 	{
 		// Clean up any Kafka resources
 		return ValueTask.CompletedTask;
 	}
 
+	/// <summary>
+	/// Names the configuration file this fixture binds <see cref="KafkaSettings"/> from:
+	/// <c>testsettings.json</c>, which must exist. Override to read from another file
+	/// or to make it optional.
+	/// </summary>
 	protected override IEnumerable<TestAppSettings> GetTestAppSettings()
 	{
 		yield return new() { Filename = "testsettings.json", IsOptional = false };

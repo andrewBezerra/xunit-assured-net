@@ -31,13 +31,53 @@ public class HttpAuthConfig
 	/// </summary>
 	public TokenExtractionConfig TokenExtraction { get; set; } = new();
 
-	// Specific authentication configurations
+	// Specific authentication configurations. Exactly one is read, chosen by Type;
+	// the others are ignored, which lets a settings file keep several variants
+	// side by side and switch between them by changing Type alone.
+
+	/// <summary>
+	/// Username and password sent as an HTTP Basic <c>Authorization</c> header.
+	/// Read when <see cref="Type"/> is <see cref="AuthenticationType.Basic"/>.
+	/// </summary>
 	public BasicAuthConfig? Basic { get; set; }
+
+	/// <summary>
+	/// A fixed token sent as <c>Authorization: Bearer …</c> (the prefix is configurable).
+	/// Read when <see cref="Type"/> is <see cref="AuthenticationType.Bearer"/>.
+	/// </summary>
 	public BearerAuthConfig? Bearer { get; set; }
+
+	/// <summary>
+	/// A bearer token obtained from <see cref="TokenEndpoint"/> and refreshed before it
+	/// expires, so long test runs do not fail on a stale token.
+	/// Read when <see cref="Type"/> is <see cref="AuthenticationType.BearerWithAutoRefresh"/>.
+	/// </summary>
 	public BearerWithAutoRefreshConfig? BearerWithAutoRefresh { get; set; }
+
+	/// <summary>
+	/// A key sent in a header or a query-string parameter, as the API expects.
+	/// Read when <see cref="Type"/> is <see cref="AuthenticationType.ApiKey"/>.
+	/// </summary>
 	public ApiKeyAuthConfig? ApiKey { get; set; }
+
+	/// <summary>
+	/// OAuth 2.0 client credentials, password or authorization-code flow; the access
+	/// token is requested from the token endpoint and cached per <see cref="TokenCache"/>.
+	/// Read when <see cref="Type"/> is <see cref="AuthenticationType.OAuth2"/>.
+	/// </summary>
 	public OAuth2Config? OAuth2 { get; set; }
+
+	/// <summary>
+	/// Arbitrary headers added to every request, for APIs with a bespoke scheme
+	/// such as <c>X-Auth-Token</c> plus <c>X-User-Id</c>.
+	/// Read when <see cref="Type"/> is <see cref="AuthenticationType.CustomHeader"/>.
+	/// </summary>
 	public CustomHeaderAuthConfig? CustomHeader { get; set; }
+
+	/// <summary>
+	/// A client certificate for mutual TLS, loaded from a file or a certificate store.
+	/// Read when <see cref="Type"/> is <see cref="AuthenticationType.Certificate"/>.
+	/// </summary>
 	public CertificateAuthConfig? Certificate { get; set; }
 
 	/// <summary>

@@ -166,6 +166,11 @@ public class KafkaConsumerHelper<TKey, TValue> : IDisposable
 		_consumer.Close();
 	}
 
+	/// <summary>
+	/// Releases the underlying consumer. Unlike <see cref="Close"/>, this does not
+	/// leave the consumer group cleanly or commit offsets — call <see cref="Close"/>
+	/// first when that matters. Safe to call more than once.
+	/// </summary>
 	public void Dispose()
 	{
 		if (_disposed)
