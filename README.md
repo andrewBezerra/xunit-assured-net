@@ -28,21 +28,21 @@ XUnitAssured.Net is a fluent testing framework for .NET that helps developers cr
 
 | Package | Version | Description |
 |---------|---------|-------------|
-| **XUnitAssured.Core** | 5.0.0 | Core abstractions, DSL infrastructure, DI support (`DITestFixture`), `ValidationBuilder`, and BDD extensions |
+| **XUnitAssured.Core** | 5.0.1 | Core abstractions, DSL infrastructure, DI support (`DITestFixture`), `ValidationBuilder`, and BDD extensions |
 
 ### Protocol Packages
 
 | Package | Version | Description |
 |---------|---------|-------------|
-| **XUnitAssured.Http** | 5.0.0 | HTTP/REST API testing — fluent DSL, authentication handlers, JSON path assertions, schema validation |
-| **XUnitAssured.Kafka** | 5.0.0 | Apache Kafka integration testing — produce/consume, batch operations, authentication, Schema Registry support |
-| **XUnitAssured.Playwright** | 5.0.0 | Playwright UI testing — fluent DSL for browser interactions, multiple locator strategies, screenshots, and assertions |
+| **XUnitAssured.Http** | 5.0.1 | HTTP/REST API testing — fluent DSL, authentication handlers, JSON path assertions, schema validation |
+| **XUnitAssured.Kafka** | 5.0.1 | Apache Kafka integration testing — produce/consume, batch operations, authentication, Schema Registry support |
+| **XUnitAssured.Playwright** | 5.0.1 | Playwright UI testing — fluent DSL for browser interactions, multiple locator strategies, screenshots, and assertions |
 
 ### Tooling
 
 | Package | Version | Description |
 |---------|---------|-------------|
-| **XUnitAssured.Mcp** | 5.0.0 | MCP server for AI-assisted test generation — install via `dnx XUnitAssured.Mcp` or `dotnet tool install XUnitAssured.Mcp` |
+| **XUnitAssured.Mcp** | 5.0.1 | MCP server for AI-assisted test generation — install via `dnx XUnitAssured.Mcp` or `dotnet tool install XUnitAssured.Mcp` |
 
 ## 🚀 Quick Start
 
@@ -346,7 +346,7 @@ Add to your `.mcp.json` (repo root, `~/.mcp.json`, or `.vscode/mcp.json`):
     "xunitassured": {
       "type": "stdio",
       "command": "dnx",
-      "args": ["XUnitAssured.Mcp@5.0.0", "--yes"]
+      "args": ["XUnitAssured.Mcp@5.0.1", "--yes"]
     }
   }
 }
@@ -415,7 +415,32 @@ In GitHub Copilot Chat, the XUnitAssured tools should appear as available. Try:
 
 ## 🔄 Version History
 
-### v5.0.0 (Current — Core, Http, Kafka, Playwright, MCP)
+### v5.0.1 (Current — reliability fixes, fully compatible with 5.0.0)
+
+No API changed; upgrading requires no code changes.
+
+- **HTTP — configuration was silently dropped when a step was reconfigured.**
+  `WithTimeout()` discarded the authentication and the custom `HttpClient`, so a
+  call chain that set a timeout lost its credentials and simply received 401.
+  Every fluent method now copies the step through a single constructor instead
+  of rebuilding it field by field.
+- **Kafka — verbose broker tracing is no longer forced on.** `Consume` enabled
+  librdkafka's `Debug` output on its own and then reported the resulting broker
+  chatter as errors. Tracing is opt-in again, and broker logs moved to the
+  `BrokerLogs` diagnostic property.
+- **HTTP — response headers are no longer split on commas**, which corrupted
+  `Date`, `Set-Cookie` and any header whose value legitimately contains one.
+- **Results — value conversion now understands** `Guid`, `DateTime`,
+  `DateTimeOffset`, `TimeSpan`, enums and `Nullable<T>`, which previously
+  returned `default` without explanation.
+- **Failures carry diagnostics.** HTTP and Playwright failures keep the
+  exception type and stack trace, and a failing Playwright step captures a
+  screenshot when `ScreenshotOnFailure` is enabled.
+- Removed debug output that printed on every `WebApplicationFactory` test.
+- Packages now ship XML documentation, symbol packages (`.snupkg`) and
+  SourceLink, so you can step into the framework while debugging.
+
+### v5.0.0 (Core, Http, Kafka, Playwright, MCP)
 - Added .NET 10 support across all packages
 - Multi-target support: `net7.0`, `net8.0`, `net9.0`, `net10.0`
 - Unified version across all packages (Core, Http, Kafka, Playwright)
