@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 
 namespace XUnitAssured.Core.Results;
@@ -39,55 +40,71 @@ public class TestStepResult : ITestStepResult
 		if (!Properties.TryGetValue(key, out var value))
 			return default;
 
-		if (value == null)
-			return default;
-
-		try
-		{
-			// Try direct cast first
-			if (value is T typedValue)
-				return typedValue;
-
-			// Try conversion for compatible types
-			if (typeof(T).IsAssignableFrom(value.GetType()))
-				return (T)value;
-
-			// Try Convert.ChangeType for primitives
-			if (typeof(T).IsPrimitive || typeof(T) == typeof(string) || typeof(T) == typeof(decimal))
-				return (T)Convert.ChangeType(value, typeof(T));
-
-			return default;
-		}
-		catch
-		{
-			return default;
-		}
+		return Coerce<T>(value);
 	}
 
 	/// <inheritdoc />
 	public virtual T? GetData<T>()
 	{
-		if (Data == null)
+		return Coerce<T>(Data);
+	}
+
+	/// <summary>
+	/// Converts a loosely-typed value to <typeparamref name="T"/>, returning
+	/// <c>default</c> when the value is absent or genuinely not convertible.
+	/// </summary>
+	/// <remarks>
+	/// Only conversion failures are absorbed. Any other exception — for example one
+	/// thrown by a custom <see cref="IConvertible"/> implementation — propagates, so a
+	/// real defect is not disguised as a missing value.
+	/// </remarks>
+	private static T? Coerce<T>(object? value)
+	{
+		if (value == null)
 			return default;
+
+		// Direct cast covers the common case, including T being the exact type.
+		if (value is T typedValue)
+			return typedValue;
+
+		// Unwrap Nullable<T> so "int?" behaves the same as "int".
+		var targetType = Nullable.GetUnderlyingType(typeof(T)) ?? typeof(T);
 
 		try
 		{
-			// Try direct cast first
-			if (Data is T typedData)
-				return typedData;
+			if (targetType.IsEnum)
+			{
+				return value is string enumText
+					? (T)Enum.Parse(targetType, enumText, ignoreCase: true)
+					: (T)Enum.ToObject(targetType, value);
+			}
 
-			// Try conversion for compatible types
-			if (typeof(T).IsAssignableFrom(Data.GetType()))
-				return (T)Data;
+			// Guid, DateTime, DateTimeOffset and TimeSpan are common in step results
+			// but are not IConvertible-compatible, so they need explicit parsing.
+			if (value is string text)
+			{
+				if (targetType == typeof(Guid))
+					return (T)(object)Guid.Parse(text);
+				if (targetType == typeof(DateTimeOffset))
+					return (T)(object)DateTimeOffset.Parse(text, CultureInfo.InvariantCulture);
+				if (targetType == typeof(DateTime))
+					return (T)(object)DateTime.Parse(text, CultureInfo.InvariantCulture);
+				if (targetType == typeof(TimeSpan))
+					return (T)(object)TimeSpan.Parse(text, CultureInfo.InvariantCulture);
+			}
 
-			// Try Convert.ChangeType for primitives
-			if (typeof(T).IsPrimitive || typeof(T) == typeof(string) || typeof(T) == typeof(decimal))
-				return (T)Convert.ChangeType(Data, typeof(T));
+			if (value is IConvertible && typeof(IConvertible).IsAssignableFrom(targetType))
+				return (T)Convert.ChangeType(value, targetType, CultureInfo.InvariantCulture);
 
 			return default;
 		}
-		catch
+		catch (Exception ex) when (
+			ex is InvalidCastException
+			or FormatException
+			or OverflowException
+			or ArgumentException)
 		{
+			// The value exists but does not represent a T.
 			return default;
 		}
 	}

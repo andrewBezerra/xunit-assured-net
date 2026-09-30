@@ -110,6 +110,9 @@ public class HttpStepResult : TestStepResult
 	/// </summary>
 	public static new HttpStepResult CreateFailure(Exception exception)
 	{
+		if (exception == null)
+			throw new ArgumentNullException(nameof(exception));
+
 		return new HttpStepResult
 		{
 			Metadata = new StepMetadata
@@ -122,7 +125,13 @@ public class HttpStepResult : TestStepResult
 			Errors = new List<string> { exception.Message },
 			Properties = new Dictionary<string, object?>
 			{
-				["StatusCode"] = 0 // Indicates no response received
+				["StatusCode"] = 0, // Indicates no response received
+				// Without these, a transport failure reports only its message and the
+				// original call site is lost — the hardest kind of test failure to diagnose.
+				["ExceptionType"] = exception.GetType().FullName,
+				["ExceptionMessage"] = exception.Message,
+				["ExceptionStackTrace"] = exception.StackTrace,
+				["ExceptionDetail"] = exception.ToString()
 			}
 		};
 	}

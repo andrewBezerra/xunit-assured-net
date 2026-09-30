@@ -202,6 +202,56 @@ public class KafkaStepResult : TestStepResult
 	}
 
 	/// <summary>
+	/// Creates a failed result from an exception, preserving the diagnostics
+	/// gathered before the failure.
+	/// </summary>
+	/// <remarks>
+	/// The parameterless overload keeps only the exception. Connection details and
+	/// broker logs are exactly what identifies why a consume or produce failed, so
+	/// prefer this overload wherever that context has been collected.
+	/// </remarks>
+	/// <param name="exception">The exception that ended the step.</param>
+	/// <param name="details">Error details accumulated during execution.</param>
+	/// <param name="properties">Diagnostic properties, such as connection settings and broker logs.</param>
+	public static KafkaStepResult CreateFailure(
+		Exception exception,
+		IEnumerable<string>? details,
+		Dictionary<string, object?>? properties)
+	{
+		if (exception == null)
+			throw new ArgumentNullException(nameof(exception));
+
+		var merged = properties != null
+			? new Dictionary<string, object?>(properties)
+			: new Dictionary<string, object?>();
+
+		// Exception details win: they describe the failure itself.
+		merged["ExceptionType"] = exception.GetType().FullName;
+		merged["ExceptionMessage"] = exception.Message;
+		merged["ExceptionStackTrace"] = exception.StackTrace;
+
+		var errors = details != null
+			? new List<string>(details)
+			: new List<string>();
+
+		if (errors.Count == 0 || !errors.Contains(exception.ToString()))
+			errors.Add(exception.ToString());
+
+		return new KafkaStepResult
+		{
+			Metadata = new StepMetadata
+			{
+				StartedAt = DateTimeOffset.UtcNow,
+				CompletedAt = DateTimeOffset.UtcNow,
+				Status = StepStatus.Failed
+			},
+			Success = false,
+			Errors = errors,
+			Properties = merged
+		};
+	}
+
+	/// <summary>
 	/// Creates a timeout result (no message consumed within timeout period).
 	/// </summary>
 	public static KafkaStepResult CreateTimeout(string topic, TimeSpan timeout, IEnumerable<string>? details = null, Dictionary<string, object?>? properties = null)

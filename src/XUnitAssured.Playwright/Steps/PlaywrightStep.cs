@@ -108,13 +108,24 @@ public class PlaywrightStep : ITestStep
 		catch (Exception ex)
 		{
 			var elapsed = DateTimeOffset.UtcNow - startTime;
+			var failedPage = Page ?? context.GetProperty<IPage>("_PlaywrightPage");
+
+			// Capture the state of the page at the moment of failure. Reconstructing
+			// what the browser looked like after the fact is usually impossible.
+			if (Settings.ScreenshotOnFailure && failedPage != null)
+			{
+				var failureShot = await TryCaptureFailureScreenshotAsync(failedPage);
+				if (failureShot != null)
+					screenshots.Add(failureShot);
+			}
 
 			Result = PlaywrightStepResult.CreateFailure(
 				error: ex.Message,
-				url: null,
+				url: TryGetUrl(failedPage),
 				screenshots: screenshots,
 				consoleLogs: _consoleLogs.ToList(),
-				elapsed: elapsed);
+				elapsed: elapsed,
+				exception: ex);
 
 			IsValid = false;
 			return Result;
@@ -334,6 +345,49 @@ public class PlaywrightStep : ITestStep
 
 			default:
 				throw new NotSupportedException($"Action type '{action.ActionType}' is not supported.");
+		}
+	}
+
+	/// <summary>
+	/// Reads the page URL, tolerating a page that has already been closed.
+	/// </summary>
+	private static string? TryGetUrl(IPage? page)
+	{
+		if (page == null)
+			return null;
+
+		try
+		{
+			return page.Url;
+		}
+		catch (PlaywrightException)
+		{
+			return null;
+		}
+	}
+
+	/// <summary>
+	/// Captures a screenshot of the failing page, returning its path.
+	/// Returns null if the screenshot itself cannot be taken — losing the original
+	/// failure to a secondary screenshot error would hide the real problem.
+	/// </summary>
+	private async Task<string?> TryCaptureFailureScreenshotAsync(IPage page)
+	{
+		try
+		{
+			var screenshotDir = Settings.ScreenshotPath;
+			if (!Directory.Exists(screenshotDir))
+				Directory.CreateDirectory(screenshotDir);
+
+			var fileName = $"failure_{DateTimeOffset.UtcNow:yyyyMMdd_HHmmss_fff}.png";
+			var filePath = Path.Combine(screenshotDir, fileName);
+
+			await page.ScreenshotAsync(new PageScreenshotOptions { Path = filePath, FullPage = true });
+			return filePath;
+		}
+		catch (Exception ex) when (ex is PlaywrightException or IOException or UnauthorizedAccessException)
+		{
+			return null;
 		}
 	}
 

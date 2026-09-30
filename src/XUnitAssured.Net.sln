@@ -33,7 +33,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "XunitAssured.PlayWright.Sam
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "XUnitAssured.Playwright.Samples.Remote.Test", "XUnitAssured.Playwright.Samples.Remote.Test\XUnitAssured.Playwright.Samples.Remote.Test.csproj", "{DA0F2354-4940-49AC-B54B-CA2F13A3BA86}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "XunitAssured.MCP", "XunitAssured.MCP\XunitAssured.MCP.csproj", "{06BC2895-E38C-4BB0-B99A-F193ADE2AC43}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "XUnitAssured.MCP", "XunitAssured.MCP\XUnitAssured.MCP.csproj", "{06BC2895-E38C-4BB0-B99A-F193ADE2AC43}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Itens de Solução", "Itens de Solução", "{6092F8D3-E1B2-4D21-9029-8B8CC92CA601}"
 	ProjectSection(SolutionItems) = preProject

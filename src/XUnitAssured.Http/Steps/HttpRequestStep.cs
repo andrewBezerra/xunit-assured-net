@@ -81,11 +81,44 @@ public class HttpRequestStep : ITestStep
 	/// </summary>
 	public HttpClient? CustomHttpClient { get; init; }
 
+	/// <summary>
+	/// Creates a new, empty HTTP request step.
+	/// </summary>
+	public HttpRequestStep()
+	{
+	}
+
+	/// <summary>
+	/// Creates a copy of an existing step, carrying over every configured value.
+	/// Use an object initializer to override only the values that change:
+	/// <c>new HttpRequestStep(previous) { TimeoutSeconds = 60 }</c>.
+	/// </summary>
+	/// <remarks>
+	/// Rebuilding a step field-by-field is how configuration such as
+	/// <see cref="AuthConfig"/> or <see cref="CustomHttpClient"/> silently gets dropped.
+	/// Always copy through this constructor so new properties are carried over by default.
+	/// </remarks>
+	/// <param name="source">The step to copy configuration from.</param>
+	/// <exception cref="ArgumentNullException">Thrown when <paramref name="source"/> is null.</exception>
+	public HttpRequestStep(HttpRequestStep source)
+	{
+		if (source == null)
+			throw new ArgumentNullException(nameof(source));
+
+		Name = source.Name;
+		Url = source.Url;
+		Method = source.Method;
+		Body = source.Body;
+		Headers = source.Headers;
+		QueryParams = source.QueryParams;
+		TimeoutSeconds = source.TimeoutSeconds;
+		AuthConfig = source.AuthConfig;
+		CustomHttpClient = source.CustomHttpClient;
+	}
+
 	/// <inheritdoc />
 	public async Task<ITestStepResult> ExecuteAsync(ITestContext context)
 	{
-		var startTime = DateTimeOffset.UtcNow;
-
 		try
 		{
 			// If custom HttpClient is provided, use it directly (bypass Flurl for better compatibility)
@@ -95,50 +128,28 @@ public class HttpRequestStep : ITestStep
 			}
 
 			IFlurlRequest request;
-			
-		// If custom HttpClient is provided, use it (for integration tests with WebApplicationFactory)
-		if (CustomHttpClient != null)
-		{
-			// Combine BaseAddress with relative URL if needed
-			var requestUrl = Url;
-			if (CustomHttpClient.BaseAddress != null && !Uri.IsWellFormedUriString(Url, UriKind.Absolute))
-			{
-				// Url is relative, combine with BaseAddress
-				var baseUri = CustomHttpClient.BaseAddress;
-				var combinedUri = new Uri(baseUri, Url);
-				requestUrl = combinedUri.ToString();
-			}
 
-			var flurlClient = new FlurlClient(CustomHttpClient);
-			request = flurlClient
-				.Request(requestUrl)
-				.WithTimeout(TimeSpan.FromSeconds(TimeoutSeconds));
-			
-			// Apply authentication for custom HttpClient scenarios (integration tests)
-			ApplyAuthentication(request);
-		}
+			// Check if certificate authentication is configured
+			var certificate = GetCertificateIfConfigured();
+
+			if (certificate != null)
+			{
+				// Certificate authentication: create request with custom FlurlClient.
+				// The certificate itself is attached to the client's handler; the
+				// CertificateAuthHandler has no per-request work to do.
+				var flurlClient = FlurlClientFactory.GetOrCreateClient(certificate);
+				request = flurlClient
+					.Request(Url)
+					.WithTimeout(TimeSpan.FromSeconds(TimeoutSeconds));
+			}
 			else
 			{
-				// Check if certificate authentication is configured
-				var certificate = GetCertificateIfConfigured();
-				
-				if (certificate != null)
-				{
-					// Certificate authentication: create request with custom FlurlClient
-					var flurlClient = FlurlClientFactory.GetOrCreateClient(certificate);
-					request = flurlClient
-						.Request(Url)
-						.WithTimeout(TimeSpan.FromSeconds(TimeoutSeconds));
-				}
-				else
-				{
-					// Normal request without certificate
-					request = Url
-						.WithTimeout(TimeSpan.FromSeconds(TimeoutSeconds));
-					
-					// Apply other authentication types (Basic, Bearer, ApiKey, etc.)
-					ApplyAuthentication(request);
-				}
+				// Normal request without certificate
+				request = Url
+					.WithTimeout(TimeSpan.FromSeconds(TimeoutSeconds));
+
+				// Apply other authentication types (Basic, Bearer, ApiKey, etc.)
+				ApplyAuthentication(request);
 			}
 
 			// Add headers
@@ -222,7 +233,7 @@ public class HttpRequestStep : ITestStep
 				.GroupBy(h => h.Name)
 				.ToDictionary(
 					g => g.Key,
-					g => g.SelectMany(h => h.Value.Split(',').Select(v => v.Trim())).AsEnumerable()
+					g => g.Select(h => h.Value).AsEnumerable()
 				);
 
 			var contentType = response.ResponseMessage.Content?.Headers?.ContentType?.ToString();
@@ -250,7 +261,7 @@ public class HttpRequestStep : ITestStep
 				.GroupBy(h => h.Name)
 				.ToDictionary(
 					g => g.Key,
-					g => g.SelectMany(h => h.Value.Split(',').Select(v => v.Trim())).AsEnumerable()
+					g => g.Select(h => h.Value).AsEnumerable()
 				);
 
 			// HTTP errors (4xx, 5xx) should still create an HttpStepResult with the status code
@@ -322,12 +333,8 @@ public class HttpRequestStep : ITestStep
 	/// </summary>
 	private async Task<ITestStepResult> ExecuteWithCustomHttpClient()
 	{
-		Console.WriteLine("DEBUG: ExecuteWithCustomHttpClient CALLED");
-		
 		if (CustomHttpClient == null)
 			throw new InvalidOperationException("CustomHttpClient is null");
-			
-		Console.WriteLine($"DEBUG: AuthConfig is null? {AuthConfig == null}");
 
 		// Combine BaseAddress with relative URL if needed
 		var requestUrl = Url;

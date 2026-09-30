@@ -1,0 +1,144 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
+  SOLUTION: src/XUnitAssured.Net.sln
+  UNIT_TESTS: src/XUnitAssured.Tests/XUnitAssured.Tests.csproj
+
+jobs:
+  # The gating job: builds every project and runs the deterministic test suite on
+  # each target framework. Nothing here depends on a network service, a broker or a
+  # browser, so a red result always means the code is broken.
+  build-test:
+    name: Build & test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # All four targeted runtimes are needed: building net7.0 only needs the
+      # targeting pack, but running its tests needs the matching runtime.
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            7.0.x
+            8.0.x
+            9.0.x
+            10.0.x
+
+      - name: Restore
+        run: dotnet restore ${{ env.SOLUTION }}
+
+      # Builds the whole solution, samples included, so a compile break in a sample
+      # project is caught here rather than by whoever opens it next.
+      - name: Build
+        id: build
+        run: dotnet build ${{ env.SOLUTION }} --configuration Release --no-restore
+
+      # Only the unit test project runs. The sample test projects need a live API,
+      # a Kafka broker or a browser, so they are not gating material.
+      - name: Test (net7.0)
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
+        run: dotnet test ${{ env.UNIT_TESTS }} --configuration Release --no-build --framework net7.0 --filter "Requires!=Network" --logger "trx;LogFileName=net7.0.trx" --results-directory TestResults
+
+      - name: Test (net8.0)
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
+        run: dotnet test ${{ env.UNIT_TESTS }} --configuration Release --no-build --framework net8.0 --filter "Requires!=Network" --logger "trx;LogFileName=net8.0.trx" --results-directory TestResults
+
+      - name: Test (net9.0)
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
+        run: dotnet test ${{ env.UNIT_TESTS }} --configuration Release --no-build --framework net9.0 --filter "Requires!=Network" --logger "trx;LogFileName=net9.0.trx" --results-directory TestResults
+
+      - name: Test (net10.0)
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
+        run: dotnet test ${{ env.UNIT_TESTS }} --configuration Release --no-build --framework net10.0 --filter "Requires!=Network" --logger "trx;LogFileName=net10.0.trx" --results-directory TestResults
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-${{ matrix.os }}
+          path: TestResults/*.trx
+          if-no-files-found: warn
+
+  # Tests that call public internet services (jsonplaceholder.typicode.com,
+  # httpbin.org). They exercise real behaviour worth keeping, but an outage of
+  # someone else's service must never block a pull request — hence a separate,
+  # non-blocking job.
+  network-tests:
+    name: Network-dependent tests (non-blocking)
+    runs-on: ubuntu-latest
+    continue-on-error: true
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Test against live services
+        run: dotnet test ${{ env.UNIT_TESTS }} --configuration Release --framework net10.0 --filter "Requires=Network"
+
+  # Proves the five packages actually pack, and keeps the artifacts so a release
+  # candidate can be inspected before any tag is cut.
+  pack:
+    name: Pack
+    runs-on: ubuntu-latest
+    needs: build-test
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # SourceLink embeds commit information, which needs full history.
+          fetch-depth: 0
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            7.0.x
+            8.0.x
+            9.0.x
+            10.0.x
+
+      - name: Restore
+        run: dotnet restore ${{ env.SOLUTION }}
+
+      # The projects set GeneratePackageOnBuild, so the build itself produces the
+      # packages. Running `dotnet pack` without building first makes pack collect
+      # outputs that do not exist yet and fail with NU5026 — invisible on a machine
+      # whose bin/ is still populated from an earlier build, but fatal on a clean
+      # checkout. Build explicitly, then pack what was built.
+      - name: Build
+        run: dotnet build ${{ env.SOLUTION }} --configuration Release --no-restore
+
+      - name: Pack
+        run: dotnet pack ${{ env.SOLUTION }} --configuration Release --no-build --output artifacts
+
+      - name: List produced packages
+        run: ls -la artifacts
+
+      - name: Upload packages
+        uses: actions/upload-artifact@v4
+        with:
+          name: nuget-packages
+          path: |
+            artifacts/*.nupkg
+            artifacts/*.snupkg
+          if-no-files-found: error

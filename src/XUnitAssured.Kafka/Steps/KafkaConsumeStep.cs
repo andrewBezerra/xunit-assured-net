@@ -20,6 +20,11 @@ namespace XUnitAssured.Kafka.Steps;
 /// </summary>
 public class KafkaConsumeStep : ITestStep
 {
+	/// <summary>
+	/// Upper bound on broker log entries retained for diagnostics on a single step.
+	/// </summary>
+	private const int MaxBrokerLogEntries = 200;
+
 	/// <inheritdoc />
 	public string? Name { get; internal set; }
 
@@ -82,6 +87,11 @@ public class KafkaConsumeStep : ITestStep
 		var diagnosticProperties = new Dictionary<string, object?>();
 		var errorDetails = new List<string>();
 
+		// Broker log messages are diagnostics, not failures. They are kept apart from
+		// errorDetails so a successful consume does not report informational chatter
+		// as errors, and capped so a chatty broker cannot grow this unbounded.
+		var brokerLogs = new List<string>();
+
 		try
 		{
 			// Resolve bootstrap servers: explicit > context > default
@@ -110,10 +120,9 @@ public class KafkaConsumeStep : ITestStep
 			// Apply authentication
 			ApplyAuthentication(config, context);
 
-			if (string.IsNullOrWhiteSpace(config.Debug))
-			{
-				config.Debug = "cgrp,protocol,security,broker,fetch";
-			}
+			// NOTE: librdkafka's Debug option is deliberately left untouched here.
+			// Enabling it by default costs measurable CPU and floods the result with
+			// broker chatter. Set ConsumerConfig.Debug explicitly when troubleshooting.
 
 			diagnosticProperties["BootstrapServers"] = config.BootstrapServers;
 			diagnosticProperties["GroupId"] = config.GroupId;
@@ -126,8 +135,8 @@ public class KafkaConsumeStep : ITestStep
 				.SetErrorHandler((_, error) => errorDetails.Add(error.ToString()))
 				.SetLogHandler((_, log) =>
 				{
-					if (errorDetails.Count < 200)
-						errorDetails.Add($"{log.Level}: {log.Message}");
+					if (brokerLogs.Count < MaxBrokerLogEntries)
+						brokerLogs.Add($"{log.Level}: {log.Message}");
 				})
 				.SetPartitionsAssignedHandler((_, partitions) =>
 				{
@@ -152,7 +161,10 @@ public class KafkaConsumeStep : ITestStep
 				}
 			}
 
-			if (errorDetails.Any(detail => detail.Contains("COORDINATOR_NOT_AVAILABLE", StringComparison.OrdinalIgnoreCase)))
+			// The coordinator warning may arrive through either channel depending on
+			// whether librdkafka surfaces it as an error or as a log entry.
+			if (errorDetails.Concat(brokerLogs)
+				.Any(detail => detail.Contains("COORDINATOR_NOT_AVAILABLE", StringComparison.OrdinalIgnoreCase)))
 			{
 				diagnosticProperties["Fallback"] = "DirectPartitionAssign";
 
@@ -208,16 +220,25 @@ public class KafkaConsumeStep : ITestStep
 				}
 			}
 
-			// No message received
+			// No message received. Surface the broker chatter here, where it is
+			// actually useful for diagnosing why nothing arrived.
+			//
+			// The key is always present, even with nothing to report: whether
+			// librdkafka emits anything within the timeout varies by platform and
+			// client version, and a caller should not have to distinguish "no logs"
+			// from "no such property".
+			diagnosticProperties["BrokerLogs"] = brokerLogs;
+
 			Result = KafkaStepResult.CreateTimeout(Topic, Timeout, errorDetails, diagnosticProperties);
 			return Result;
 		}
 		catch (Exception ex)
 		{
-			// Network error, Kafka error, etc.
-			errorDetails.Add(ex.ToString());
-			diagnosticProperties["ExceptionMessage"] = ex.Message;
-			Result = KafkaStepResult.CreateFailure(ex);
+			// Network error, Kafka error, etc. The connection settings and broker
+			// logs collected above are what explain such a failure, so they are
+			// carried into the result rather than discarded with the exception.
+			diagnosticProperties["BrokerLogs"] = brokerLogs;
+			Result = KafkaStepResult.CreateFailure(ex, errorDetails, diagnosticProperties);
 			return Result;
 		}
 	}

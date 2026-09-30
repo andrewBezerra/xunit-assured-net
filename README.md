@@ -1,5 +1,9 @@
 # XUnitAssured.Net
 
+[![CI](https://github.com/andrewBezerra/xunit-assured-net/actions/workflows/ci.yml/badge.svg)](https://github.com/andrewBezerra/xunit-assured-net/actions/workflows/ci.yml)
+[![NuGet](https://img.shields.io/nuget/v/XUnitAssured.Core.svg?label=nuget)](https://www.nuget.org/packages/XUnitAssured.Core)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE.md)
+
 XUnitAssured.Net is a fluent testing framework for .NET that helps developers create and maintain test collections with the goal of promoting the development of quality software products. Write expressive integration tests using a natural `Given().When().Then()` DSL for HTTP/REST APIs, Apache Kafka, and browser-based UI testing with Playwright. Includes an MCP (Model Context Protocol) server for AI-assisted test generation.
 
 ## 🎯 Features
@@ -24,21 +28,21 @@ XUnitAssured.Net is a fluent testing framework for .NET that helps developers cr
 
 | Package | Version | Description |
 |---------|---------|-------------|
-| **XUnitAssured.Core** | 5.0.0 | Core abstractions, DSL infrastructure, DI support (`DITestFixture`), `ValidationBuilder`, and BDD extensions |
+| **XUnitAssured.Core** | 5.0.1 | Core abstractions, DSL infrastructure, DI support (`DITestFixture`), `ValidationBuilder`, and BDD extensions |
 
 ### Protocol Packages
 
 | Package | Version | Description |
 |---------|---------|-------------|
-| **XUnitAssured.Http** | 5.0.0 | HTTP/REST API testing — fluent DSL, authentication handlers, JSON path assertions, schema validation |
-| **XUnitAssured.Kafka** | 5.0.0 | Apache Kafka integration testing — produce/consume, batch operations, authentication, Schema Registry support |
-| **XUnitAssured.Playwright** | 5.0.0 | Playwright UI testing — fluent DSL for browser interactions, multiple locator strategies, screenshots, and assertions |
+| **XUnitAssured.Http** | 5.0.1 | HTTP/REST API testing — fluent DSL, authentication handlers, JSON path assertions, schema validation |
+| **XUnitAssured.Kafka** | 5.0.1 | Apache Kafka integration testing — produce/consume, batch operations, authentication, Schema Registry support |
+| **XUnitAssured.Playwright** | 5.0.1 | Playwright UI testing — fluent DSL for browser interactions, multiple locator strategies, screenshots, and assertions |
 
 ### Tooling
 
-| Package | Description |
-|---------|-------------|
-| **XUnitAssured.Mcp** | MCP server for AI-assisted test generation — integrates with GitHub Copilot Chat, VS Code, and any MCP-compatible client |
+| Package | Version | Description |
+|---------|---------|-------------|
+| **XUnitAssured.Mcp** | 5.0.1 | MCP server for AI-assisted test generation — install via `dnx XUnitAssured.Mcp` or `dotnet tool install XUnitAssured.Mcp` |
 
 ## 🚀 Quick Start
 
@@ -330,20 +334,38 @@ XUnitAssured includes an MCP (Model Context Protocol) server that integrates wit
 
 ### Setup
 
-#### 1. Build the MCP server
+#### Option A — Install from NuGet (recommended)
+
+Requires [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0) or later (`dnx` command).
+
+Add to your `.mcp.json` (repo root, `~/.mcp.json`, or `.vscode/mcp.json`):
+
+```json
+{
+  "servers": {
+    "xunitassured": {
+      "type": "stdio",
+      "command": "dnx",
+      "args": ["XUnitAssured.Mcp@5.0.1", "--yes"]
+    }
+  }
+}
+```
+
+That's it — `dnx` downloads and runs the MCP server automatically. No build needed.
+
+#### Option B — From source (for contributors)
+
+##### 1. Build the MCP server
 
 ```bash
 cd src/XunitAssured.MCP
 dotnet build -c Debug
 ```
 
-#### 2. Configure `.mcp.json`
+##### 2. Configure `.mcp.json`
 
-The MCP server uses **stdio** transport. You can configure it at the **repo level** (`.mcp.json` at the repo root) or **globally** (`~/.mcp.json` in your home directory).
-
-**Option A — Repo-level** (relative path, recommended for team use):
-
-Create a `.mcp.json` file at the repository root:
+**Repo-level** (relative path, recommended for team use):
 
 ```json
 {
@@ -357,29 +379,27 @@ Create a `.mcp.json` file at the repository root:
 }
 ```
 
-**Option B — Global** (absolute path, recommended for personal use):
-
-Create or edit `~/.mcp.json` (e.g., `C:\Users\<you>\.mcp.json` on Windows):
+**Global** (absolute path to compiled `.exe`, faster):
 
 ```json
 {
   "servers": {
     "xunitassured": {
       "type": "stdio",
-      "command": "<full-path-to-repo>/XUnitAssured.Mcp.exe",
+      "command": "<full-path-to-repo>/src/XunitAssured.MCP/bin/Debug/net10.0/XUnitAssured.Mcp.exe",
       "args": []
     }
   }
 }
 ```
 
-> **Tip:** Pointing directly to the compiled `.exe` is faster than `dotnet run` because it skips project resolution. Use forward slashes or escaped backslashes (`\\`) on Windows.
+> **Tip:** Pointing directly to the `.exe` is faster than `dotnet run` because it skips project resolution.
 
-#### 3. Restart your IDE
+#### Restart your IDE
 
 Visual Studio / VS Code must be **restarted** after creating or editing `.mcp.json` for the MCP server to be detected.
 
-#### 4. Verify
+#### Verify
 
 In GitHub Copilot Chat, the XUnitAssured tools should appear as available. Try:
 
@@ -395,7 +415,32 @@ In GitHub Copilot Chat, the XUnitAssured tools should appear as available. Try:
 
 ## 🔄 Version History
 
-### v5.0.0 (Current — Core, Http, Kafka, Playwright, MCP)
+### v5.0.1 (Current — reliability fixes, fully compatible with 5.0.0)
+
+No API changed; upgrading requires no code changes.
+
+- **HTTP — configuration was silently dropped when a step was reconfigured.**
+  `WithTimeout()` discarded the authentication and the custom `HttpClient`, so a
+  call chain that set a timeout lost its credentials and simply received 401.
+  Every fluent method now copies the step through a single constructor instead
+  of rebuilding it field by field.
+- **Kafka — verbose broker tracing is no longer forced on.** `Consume` enabled
+  librdkafka's `Debug` output on its own and then reported the resulting broker
+  chatter as errors. Tracing is opt-in again, and broker logs moved to the
+  `BrokerLogs` diagnostic property.
+- **HTTP — response headers are no longer split on commas**, which corrupted
+  `Date`, `Set-Cookie` and any header whose value legitimately contains one.
+- **Results — value conversion now understands** `Guid`, `DateTime`,
+  `DateTimeOffset`, `TimeSpan`, enums and `Nullable<T>`, which previously
+  returned `default` without explanation.
+- **Failures carry diagnostics.** HTTP and Playwright failures keep the
+  exception type and stack trace, and a failing Playwright step captures a
+  screenshot when `ScreenshotOnFailure` is enabled.
+- Removed debug output that printed on every `WebApplicationFactory` test.
+- Packages now ship XML documentation, symbol packages (`.snupkg`) and
+  SourceLink, so you can step into the framework while debugging.
+
+### v5.0.0 (Core, Http, Kafka, Playwright, MCP)
 - Added .NET 10 support across all packages
 - Multi-target support: `net7.0`, `net8.0`, `net9.0`, `net10.0`
 - Unified version across all packages (Core, Http, Kafka, Playwright)
@@ -439,6 +484,6 @@ This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md
 
 ## 🔗 Links
 
-- [GitHub Repository](https://github.com/andrewBezerra/XUnitAssured.Net)
+- [GitHub Repository](https://github.com/andrewBezerra/xunit-assured-net)
 - [NuGet Packages](https://www.nuget.org/packages?q=XUnitAssured)
-- [Report Issues](https://github.com/andrewBezerra/XUnitAssured.Net/issues)
+- [Report Issues](https://github.com/andrewBezerra/xunit-assured-net/issues)

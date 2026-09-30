@@ -1,0 +1,75 @@
+<Project>
+
+  <!--
+    Settings shared by every project in the solution.
+    Package metadata that is identical across packages lives here so it cannot
+    drift between the individual .csproj files; anything package-specific
+    (PackageId, Description, PackageTags) stays in the project itself.
+
+    This file is imported before the project body, so it cannot read properties
+    the .csproj sets (IsPackable, GeneratePackageOnBuild). IsShippingLibrary below
+    identifies the shipping packages from the project name instead — several SDK
+    defaults, GenerateDocumentationFile among them, are already locked in by the
+    time Directory.Build.targets runs, so they have to be decided here.
+  -->
+
+  <PropertyGroup>
+    <!--
+      True for the five published packages (Core, Http, Kafka, Playwright, Mcp)
+      and false for test and sample projects. Set it explicitly in a .csproj to
+      override this inference.
+    -->
+    <IsShippingLibrary Condition="'$(IsShippingLibrary)' == '' AND !$(MSBuildProjectName.Contains('Test')) AND !$(MSBuildProjectName.Contains('Sample'))">true</IsShippingLibrary>
+    <IsShippingLibrary Condition="'$(IsShippingLibrary)' == ''">false</IsShippingLibrary>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <Version>5.0.1</Version>
+    <Authors>Carlos Andrew Costa Bezerra</Authors>
+    <Company>Carlos Andrew Costa Bezerra</Company>
+    <Copyright>Copyright (c) Carlos Andrew Costa Bezerra</Copyright>
+    <PackageProjectUrl>https://github.com/andrewBezerra/xunit-assured-net</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/andrewBezerra/xunit-assured-net</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageIcon>package-icon.png</PackageIcon>
+    <PackageLicenseFile>LICENSE.md</PackageLicenseFile>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <LangVersion>12</LangVersion>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <!--
+    Reproducible builds. ContinuousIntegrationBuild normalises the source paths
+    embedded in the assembly so a package built from a given commit on CI is
+    reproducible. It is only set on CI, where the sources genuinely come from
+    the repository root.
+  -->
+  <PropertyGroup>
+    <Deterministic>true</Deterministic>
+    <ContinuousIntegrationBuild Condition="'$(GITHUB_ACTIONS)' == 'true'">true</ContinuousIntegrationBuild>
+  </PropertyGroup>
+
+  <!-- Packaging concerns, for the shipping libraries only. -->
+  <PropertyGroup Condition="'$(IsShippingLibrary)' == 'true'">
+    <!--
+      Ship debugging symbols and link them back to the source on GitHub, so a
+      consumer can step into the framework when a test fails inside it.
+    -->
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+
+    <!-- The public API is documented with XML comments; publish them with the package. -->
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+  </PropertyGroup>
+
+  <ItemGroup Condition="'$(IsShippingLibrary)' == 'true'">
+    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="All" />
+  </ItemGroup>
+
+</Project>
