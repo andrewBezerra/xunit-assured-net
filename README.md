@@ -1,6 +1,6 @@
 # XUnitAssured.Net
 
-[![CI](https://github.com/andrewBezerra/XUnitAssured.Net/actions/workflows/ci.yml/badge.svg)](https://github.com/andrewBezerra/XUnitAssured.Net/actions/workflows/ci.yml)
+[![CI](https://github.com/andrewBezerra/xunit-assured-net/actions/workflows/ci.yml/badge.svg)](https://github.com/andrewBezerra/xunit-assured-net/actions/workflows/ci.yml)
 [![NuGet](https://img.shields.io/nuget/v/XUnitAssured.Core.svg?label=nuget)](https://www.nuget.org/packages/XUnitAssured.Core)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE.md)
 
@@ -459,6 +459,6 @@ This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md
 
 ## 🔗 Links
 
-- [GitHub Repository](https://github.com/andrewBezerra/XUnitAssured.Net)
+- [GitHub Repository](https://github.com/andrewBezerra/xunit-assured-net)
 - [NuGet Packages](https://www.nuget.org/packages?q=XUnitAssured)
-- [Report Issues](https://github.com/andrewBezerra/XUnitAssured.Net/issues)
+- [Report Issues](https://github.com/andrewBezerra/xunit-assured-net/issues)

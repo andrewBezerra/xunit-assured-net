@@ -28,8 +28,8 @@
     <Authors>Carlos Andrew Costa Bezerra</Authors>
     <Company>Carlos Andrew Costa Bezerra</Company>
     <Copyright>Copyright (c) Carlos Andrew Costa Bezerra</Copyright>
-    <PackageProjectUrl>https://github.com/andrewBezerra/XUnitAssured.Net</PackageProjectUrl>
-    <RepositoryUrl>https://github.com/andrewBezerra/XUnitAssured.Net</RepositoryUrl>
+    <PackageProjectUrl>https://github.com/andrewBezerra/xunit-assured-net</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/andrewBezerra/xunit-assured-net</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <PackageIcon>package-icon.png</PackageIcon>
     <PackageLicenseFile>LICENSE.md</PackageLicenseFile>
