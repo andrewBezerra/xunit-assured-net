@@ -81,6 +81,30 @@ public class HttpRequestStep : ITestStep
 	/// </summary>
 	public HttpClient? CustomHttpClient { get; init; }
 
+	private HttpAuthConfig? _effectiveAuthConfig;
+	private bool _authConfigResolved;
+
+	/// <summary>
+	/// The authentication that applies to this request: <see cref="AuthConfig"/> when
+	/// set, otherwise whatever the settings file provides. Resolved once per step —
+	/// the step is immutable and runs once — rather than on each of the several
+	/// places that need it during execution, each of which used to take the
+	/// settings loader's lock.
+	/// </summary>
+	private HttpAuthConfig? EffectiveAuthConfig
+	{
+		get
+		{
+			if (!_authConfigResolved)
+			{
+				_effectiveAuthConfig = AuthConfig ?? HttpSettings.Load().Authentication;
+				_authConfigResolved = true;
+			}
+
+			return _effectiveAuthConfig;
+		}
+	}
+
 	/// <summary>
 	/// Creates a new, empty HTTP request step.
 	/// </summary>
@@ -308,14 +332,7 @@ public class HttpRequestStep : ITestStep
 	/// </summary>
 	private X509Certificate2? GetCertificateIfConfigured()
 	{
-		var authConfig = AuthConfig;
-
-		// If no config provided, try to load from settings
-		if (authConfig == null)
-		{
-			var settings = HttpSettings.Load();
-			authConfig = settings.Authentication;
-		}
+		var authConfig = EffectiveAuthConfig;
 
 		// Check if certificate authentication is configured
 		if (authConfig?.Type == AuthenticationType.Certificate && authConfig.Certificate != null)
@@ -433,14 +450,7 @@ public class HttpRequestStep : ITestStep
 		var headers = new Dictionary<string, string>();
 		
 		// Get authentication config
-		var authConfig = AuthConfig;
-
-		// If no config provided, try to load from settings
-		if (authConfig == null)
-		{
-			var settings = HttpSettings.Load();
-			authConfig = settings.Authentication;
-		}
+		var authConfig = EffectiveAuthConfig;
 
 		// Skip if no authentication configured
 		if (authConfig == null || authConfig.Type == AuthenticationType.None)
@@ -497,14 +507,7 @@ public class HttpRequestStep : ITestStep
 	private void ApplyAuthentication(IFlurlRequest request)
 	{
 		// Get authentication config
-		var authConfig = AuthConfig;
-
-		// If no config provided, try to load from settings
-		if (authConfig == null)
-		{
-			var settings = HttpSettings.Load();
-			authConfig = settings.Authentication;
-		}
+		var authConfig = EffectiveAuthConfig;
 
 		// Skip if no authentication configured
 		if (authConfig == null || authConfig.Type == AuthenticationType.None)
