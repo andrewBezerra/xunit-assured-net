@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
@@ -164,6 +164,6 @@ public abstract class KafkaTestFixture : TestBedFixture
 
 	protected override IEnumerable<TestAppSettings> GetTestAppSettings()
 	{
-		yield return new() { Filename = "kafkasettings.json", IsOptional = false };
+		yield return new() { Filename = "testsettings.json", IsOptional = false };
 	}
 }

@@ -76,19 +76,34 @@ public class KafkaBatchConsumeStep : ITestStep
 
 	/// <summary>
 	/// Authentication configuration for this Kafka connection.
-	/// If null, will try to load from kafkasettings.json.
+	/// If null, will try to load from the "kafka" section of testsettings.json.
 	/// </summary>
 	public KafkaAuthConfig? AuthConfig { get; init; }
+
+	/// <summary>
+	/// Upper bound on broker log entries retained for diagnostics on a single step.
+	/// </summary>
+	private const int MaxBrokerLogEntries = 200;
 
 	/// <inheritdoc />
 	public async Task<ITestStepResult> ExecuteAsync(ITestContext context)
 	{
+		// Collected as the step runs so that a failure can explain itself: which
+		// broker, which group, what the broker said. Broker logs are diagnostics,
+		// not failures, and are capped so a chatty broker cannot grow them unbounded.
+		var diagnosticProperties = new Dictionary<string, object?>();
+		var errorDetails = new List<string>();
+		var brokerLogs = new List<string>();
+
 		try
 		{
-			// Resolve bootstrap servers: explicit > context > default
+			// Resolve bootstrap servers: explicit > context > testsettings.json > default.
+			// The last fallback returns "localhost:9092" when nothing is configured, so
+			// a project without a settings file behaves exactly as before.
 			var resolvedBootstrapServers = BootstrapServers != "localhost:9092"
 				? BootstrapServers
-				: context.GetProperty<string>("_KafkaBootstrapServers") ?? BootstrapServers;
+				: context.GetProperty<string>("_KafkaBootstrapServers")
+					?? KafkaSettings.Load().BootstrapServers;
 
 			var resolvedGroupId = GroupId;
 			if (string.Equals(GroupId, "xunitassured-consumer", StringComparison.OrdinalIgnoreCase))
@@ -111,14 +126,30 @@ public class KafkaBatchConsumeStep : ITestStep
 			// Apply authentication
 			ApplyAuthentication(config);
 
+			diagnosticProperties["BootstrapServers"] = config.BootstrapServers;
+			diagnosticProperties["GroupId"] = config.GroupId;
+			diagnosticProperties["SecurityProtocol"] = config.SecurityProtocol.ToString();
+			diagnosticProperties["SaslMechanism"] = config.SaslMechanism?.ToString();
+			diagnosticProperties["SaslUsername"] = config.SaslUsername;
+
 			// Create a single consumer for the entire batch
-			using var consumer = new ConsumerBuilder<string, string>(config).Build();
+			using var consumer = new ConsumerBuilder<string, string>(config)
+				.SetErrorHandler((_, error) => errorDetails.Add(error.ToString()))
+				.SetLogHandler((_, log) =>
+				{
+					if (brokerLogs.Count < MaxBrokerLogEntries)
+						brokerLogs.Add($"{log.Level}: {log.Message}");
+				})
+				.Build();
 
 			// Assign partitions directly rather than subscribing: a subscription joins
 			// the consumer group and, on a default broker, waits out a three-second
 			// initial rebalance delay before the first message. Starting offsets are
 			// resolved the way a subscription would (committed, else AutoOffsetReset).
-			ConsumerAssignment.AssignAllPartitions(consumer, config, Topic, TimeSpan.FromSeconds(5));
+			// Bounded by the step's own timeout: a step given one second must not wait
+			// five for metadata from a broker that is not answering.
+			var metadataTimeout = Timeout < TimeSpan.FromSeconds(5) ? Timeout : TimeSpan.FromSeconds(5);
+			ConsumerAssignment.AssignAllPartitions(consumer, config, Topic, metadataTimeout);
 
 			using var cts = new CancellationTokenSource(Timeout);
 
@@ -150,7 +181,11 @@ public class KafkaBatchConsumeStep : ITestStep
 		}
 		catch (Exception ex)
 		{
-			Result = KafkaStepResult.CreateFailure(ex);
+			// The connection settings and broker logs collected above are what
+			// explain a failed batch consume, so they travel with the exception
+			// instead of being discarded — the same fix the single consume got.
+			diagnosticProperties["BrokerLogs"] = brokerLogs;
+			Result = KafkaStepResult.CreateFailure(ex, errorDetails, diagnosticProperties);
 			return Result;
 		}
 	}

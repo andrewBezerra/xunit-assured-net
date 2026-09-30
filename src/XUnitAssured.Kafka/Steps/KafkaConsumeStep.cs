@@ -77,7 +77,7 @@ public class KafkaConsumeStep : ITestStep
 
 	/// <summary>
 	/// Authentication configuration for this Kafka connection.
-	/// If null, will try to load from kafkasettings.json.
+	/// If null, will try to load from the "kafka" section of testsettings.json.
 	/// </summary>
 	public KafkaAuthConfig? AuthConfig { get; init; }
 
@@ -95,10 +95,13 @@ public class KafkaConsumeStep : ITestStep
 
 		try
 		{
-			// Resolve bootstrap servers: explicit > context > default
+			// Resolve bootstrap servers: explicit > context > testsettings.json > default.
+			// The last fallback returns "localhost:9092" when nothing is configured, so
+			// a project without a settings file behaves exactly as before.
 			var resolvedBootstrapServers = BootstrapServers != "localhost:9092"
 				? BootstrapServers
-				: context.GetProperty<string>("_KafkaBootstrapServers") ?? BootstrapServers;
+				: context.GetProperty<string>("_KafkaBootstrapServers")
+					?? KafkaSettings.Load().BootstrapServers;
 
 			var resolvedGroupId = GroupId;
 			if (string.Equals(GroupId, "xunitassured-consumer", StringComparison.OrdinalIgnoreCase))
@@ -149,8 +152,12 @@ public class KafkaConsumeStep : ITestStep
 			// subscription would use (committed, else AutoOffsetReset) without the join.
 			// This is also what the previous code fell back to when the coordinator
 			// was unavailable, so that fallback is now simply the only path.
+			// Metadata never needs more than a few seconds against a live broker, and
+			// a step that was given a shorter timeout should not wait longer than that
+			// for a broker that is not answering at all.
+			var metadataTimeout = Timeout < TimeSpan.FromSeconds(5) ? Timeout : TimeSpan.FromSeconds(5);
 			var assignment = ConsumerAssignment.AssignAllPartitions(
-				consumer, config, Topic, TimeSpan.FromSeconds(5));
+				consumer, config, Topic, metadataTimeout);
 			diagnosticProperties["AssignedPartitions"] = string.Join(",", assignment.Select(a => a.TopicPartition));
 
 			var deadline = DateTime.UtcNow.Add(Timeout);
@@ -210,7 +217,7 @@ public class KafkaConsumeStep : ITestStep
 
 	/// <summary>
 	/// Applies authentication to the consumer configuration.
-	/// Uses AuthConfig if provided, otherwise resolves from context or loads from kafkasettings.json.
+	/// Uses AuthConfig if provided, otherwise resolves from context or loads from testsettings.json.
 	/// </summary>
 	private void ApplyAuthentication(ConsumerConfig config, ITestContext context)
 	{
