@@ -18,7 +18,7 @@ namespace XUnitAssured.Playwright.Testing;
 ///   pwsh bin/Debug/net10.0/playwright.ps1 show-trace traces/TestClassName.MethodName.zip
 /// </summary>
 /// <typeparam name="TFixture">The fixture type, must extend PlaywrightTestFixture.</typeparam>
-public abstract class PlaywrightTestBase<TFixture> : IAsyncLifetime
+public abstract class PlaywrightTestBase<TFixture> : IAsyncLifetime, ITestContextSeeder
 	where TFixture : PlaywrightTestFixture
 {
 	private IBrowserContext? _context;
@@ -129,12 +129,24 @@ public abstract class PlaywrightTestBase<TFixture> : IAsyncLifetime
 	protected ITestScenario Given()
 	{
 		var scenario = ScenarioDsl.Given();
-
-		// Store page and settings in context for steps and validation to use
-		scenario.Context.SetProperty("_PlaywrightPage", Page);
-		scenario.Context.SetProperty("_PlaywrightSettings", Settings);
-
+		Seed(scenario.Context);
 		return scenario;
+	}
+
+	/// <summary>
+	/// Puts the current test's page and the fixture's settings into a scenario's
+	/// context, so browser steps in that scenario drive this page. This is what
+	/// <see cref="Given()"/> does; exposing it lets the test be combined with other
+	/// providers in <c>ScenarioDsl.Given(api, kafka, this)</c>.
+	/// </summary>
+	/// <param name="context">The context of the scenario being started.</param>
+	public void Seed(ITestContext context)
+	{
+		if (context == null)
+			throw new ArgumentNullException(nameof(context));
+
+		context.SetProperty("_PlaywrightPage", Page);
+		context.SetProperty("_PlaywrightSettings", Settings);
 	}
 
 	/// <summary>

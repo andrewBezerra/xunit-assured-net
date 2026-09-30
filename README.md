@@ -14,11 +14,12 @@ Most integration tests check one boundary at a time. The interesting bugs live b
 
 ```csharp
 var orderId = 0;
-var scenario = Given();
+await using var browser = await ui.OpenPageAsync();
+
+var scenario = Given(api, kafka, browser);
 
 scenario
     // HTTP: create the order through the API
-    .WithHttpClient(api)
     .ApiResource("/api/orders")
     .Post(new { customerId = 42, total = 99.90m })
     .Validate(response =>
@@ -49,7 +50,7 @@ PlaywrightBddExtensions.Execute(scenario)
 
 One rough edge, stated plainly: when the Http, Kafka and Playwright packages are all referenced, `Execute()` is ambiguous — each package defines its own — so the last leg names the package. A single entry point is the first item on the roadmap.
 
-Each leg is a *step*; steps share one context, so a value extracted from the API response drives the Kafka assertion and the page the browser opens. This exact scenario is compiled against the DSL on every build ([`CrossScenarioExampleTests.cs`](src/XUnitAssured.Tests/CrossScenarioExampleTests.cs)), so the README cannot drift from the API.
+`api`, `kafka` and `ui` are ordinary xUnit fixtures; `Given(api, kafka, browser)` hands everything they provide to one scenario. Each leg is a *step*; steps share one context, so a value extracted from the API response drives the Kafka assertion and the page the browser opens. This exact scenario is compiled against the DSL on every build ([`CrossScenarioExampleTests.cs`](src/XUnitAssured.Tests/CrossScenarioExampleTests.cs)), so the README cannot drift from the API.
 
 ## What it does
 
@@ -75,7 +76,7 @@ The definition above is where the project is going. This is what it ships now:
 
 In order of intent, not of promise:
 
-1. **A unified fixture and a single `Execute()`** so a cross-boundary scenario gets its `HttpClient`, broker and page from one place and ends the same way regardless of which packages are referenced — today the page is wired into the context by hand and the last leg has to name its package.
+1. **A single `Execute()`** so a cross-boundary scenario ends the same way regardless of which packages are referenced — today the last leg has to name its package. (Getting `HttpClient`, broker and page from one `Given(api, kafka, browser)` call already works.)
 2. **A first-class asynchronous API** (`ExecuteAsync`, `CancellationToken` end to end) — the current `Execute()` blocks, which is the most common objection to the DSL. This is the v6 line.
 3. **More messaging systems** — RabbitMQ and Azure Service Bus are the natural next ones behind Kafka.
 4. **gRPC** alongside HTTP.
@@ -365,6 +366,8 @@ public class OrderTests : KafkaTestBase<KafkaClassFixture>, IClassFixture<KafkaC
 ```
 
 The reference implementation of an HTTP fixture is [`HttpSamplesRemoteFixture.cs`](src/XUnitAssured.Http.Samples.Remote.Test/HttpSamplesRemoteFixture.cs).
+
+**Combining providers.** Anything that implements `ITestContextSeeder` can be passed to `Given(...)`, alone or together: an HTTP fixture (every `IHttpClientProvider` is one), `KafkaClassFixture`, a `PlaywrightTestBase` test, or the page session returned by `PlaywrightTestFixture.OpenPageAsync()`. `Given(api, kafka, browser)` is how the scenario at the top of this README gets all three.
 
 **The exception: Playwright.** Browser settings live in their own file, `playwrightsettings.json`, with PascalCase keys (`Headless`, `Browser`, `DefaultTimeout`, `ScreenshotOnFailure`, `RecordTrace`, …), found the same way or via `XUNITASSURED_PLAYWRIGHT_SETTINGS_PATH`. Unlike `testsettings.json`, it must be copied to the output directory — see the [Playwright sample](src/XunitAssured.PlayWright.Samples.Local.Test/playwrightsettings.json) and its `.csproj`. Folding it into `testsettings.json` is on the roadmap.
 

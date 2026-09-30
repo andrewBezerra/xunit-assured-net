@@ -55,10 +55,60 @@ public static class ScenarioDsl
 			throw new System.ArgumentNullException(nameof(httpClientProvider));
 
 		var scenario = new TestScenario();
-		
+
 		// Store the HttpClient provider in the context for later use
 		scenario.Context.SetProperty("HttpClientProvider", httpClientProvider);
-		
+
+		// A fixture that also provides other things (a broker, a page) seeds them too,
+		// so a single object can configure a scenario that crosses boundaries.
+		if (httpClientProvider is ITestContextSeeder seeder)
+			seeder.Seed(scenario.Context);
+
+		return scenario;
+	}
+
+	/// <summary>
+	/// Starts a new test scenario whose context is populated by every provider given,
+	/// so one call configures a scenario that spans several boundaries.
+	/// </summary>
+	/// <param name="seeders">
+	/// Fixtures or per-test objects that put what they provide into the context —
+	/// for example a Kafka fixture, a browser page session and an HTTP fixture.
+	/// An <see cref="IHttpClientProvider"/> among them is also registered as the
+	/// scenario's HttpClient source, exactly as <see cref="Given(IHttpClientProvider)"/> does.
+	/// </param>
+	/// <returns>A new test scenario with every provider's values in its context.</returns>
+	/// <example>
+	/// <code>
+	/// Given(api, kafka, browser)
+	///     .ApiResource("/api/orders").Post(order).Validate(r =&gt; r.StatusCode.ShouldBe(201))
+	///     .And().On().Topic("orders.created").Consume().ValidateMessage&lt;OrderCreated&gt;(m =&gt; ...)
+	///     .And().NavigateTo("/orders/1");
+	/// </code>
+	/// </example>
+	/// <exception cref="System.ArgumentNullException">Thrown when the array or any element is null.</exception>
+	public static ITestScenario Given(params ITestContextSeeder[] seeders)
+	{
+		if (seeders == null)
+			throw new System.ArgumentNullException(nameof(seeders));
+
+		var scenario = new TestScenario();
+
+		foreach (var seeder in seeders)
+		{
+			if (seeder == null)
+				throw new System.ArgumentNullException(nameof(seeders), "One of the providers is null.");
+
+			// The first HttpClient provider wins, matching the single-argument overload.
+			if (seeder is IHttpClientProvider httpProvider
+				&& scenario.Context.GetProperty<IHttpClientProvider>("HttpClientProvider") == null)
+			{
+				scenario.Context.SetProperty("HttpClientProvider", httpProvider);
+			}
+
+			seeder.Seed(scenario.Context);
+		}
+
 		return scenario;
 	}
 }

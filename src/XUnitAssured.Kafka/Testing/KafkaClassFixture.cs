@@ -4,6 +4,7 @@ using System.Collections.Concurrent;
 
 using Confluent.Kafka;
 
+using XUnitAssured.Core.Abstractions;
 using XUnitAssured.Core.Configuration;
 using XUnitAssured.Kafka.Configuration;
 using XUnitAssured.Kafka.Handlers;
@@ -26,7 +27,7 @@ namespace XUnitAssured.Kafka.Testing;
 /// }
 /// </code>
 /// </remarks>
-public class KafkaClassFixture : IDisposable
+public class KafkaClassFixture : ITestContextSeeder, IDisposable
 {
 	private readonly Lazy<IProducer<string, string>> _cachedProducer;
 	private readonly ConcurrentQueue<string> _sharedProducerErrors = new();
@@ -75,6 +76,25 @@ public class KafkaClassFixture : IDisposable
 	/// Created lazily on first access and disposed with the fixture.
 	/// </summary>
 	public IProducer<string, string> SharedProducer => _cachedProducer.Value;
+
+	/// <summary>
+	/// Puts this fixture's broker, group, credentials and shared producer into a
+	/// scenario's context, so Kafka steps in that scenario use them. This is what
+	/// <c>KafkaTestBase.Given()</c> does; exposing it lets the fixture be combined
+	/// with others in <c>Given(api, kafka, browser)</c>.
+	/// </summary>
+	/// <param name="context">The context of the scenario being started.</param>
+	public void Seed(ITestContext context)
+	{
+		if (context == null)
+			throw new ArgumentNullException(nameof(context));
+
+		context.SetProperty("_KafkaSharedProducer", SharedProducer);
+		context.SetProperty("_KafkaSharedProducerErrors", SharedProducerErrors);
+		context.SetProperty("_KafkaBootstrapServers", BootstrapServers);
+		context.SetProperty("_KafkaGroupId", DefaultGroupId);
+		context.SetProperty("_KafkaAuthConfig", KafkaSettings.Authentication);
+	}
 
 	internal ConcurrentQueue<string> SharedProducerErrors => _sharedProducerErrors;
 
