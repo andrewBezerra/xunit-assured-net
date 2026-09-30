@@ -117,8 +117,19 @@ jobs:
             9.0.x
             10.0.x
 
+      - name: Restore
+        run: dotnet restore ${{ env.SOLUTION }}
+
+      # The projects set GeneratePackageOnBuild, so the build itself produces the
+      # packages. Running `dotnet pack` without building first makes pack collect
+      # outputs that do not exist yet and fail with NU5026 — invisible on a machine
+      # whose bin/ is still populated from an earlier build, but fatal on a clean
+      # checkout. Build explicitly, then pack what was built.
+      - name: Build
+        run: dotnet build ${{ env.SOLUTION }} --configuration Release --no-restore
+
       - name: Pack
-        run: dotnet pack ${{ env.SOLUTION }} --configuration Release --output artifacts
+        run: dotnet pack ${{ env.SOLUTION }} --configuration Release --no-build --output artifacts
 
       - name: List produced packages
         run: ls -la artifacts

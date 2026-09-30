@@ -63,11 +63,22 @@ jobs:
             9.0.x
             10.0.x
 
+      # A dispatched version has to reach the build as well as the pack: the
+      # packages are produced from the compiled output, so overriding it only at
+      # pack time would stamp a version the assemblies do not carry.
+      - name: Resolve version
+        run: |
+          if [ -n "${{ inputs.version }}" ]; then
+            echo "VERSION_ARG=-p:Version=${{ inputs.version }}" >> "$GITHUB_ENV"
+          else
+            echo "VERSION_ARG=" >> "$GITHUB_ENV"
+          fi
+
       - name: Restore
         run: dotnet restore ${{ env.SOLUTION }}
 
       - name: Build
-        run: dotnet build ${{ env.SOLUTION }} --configuration Release --no-restore
+        run: dotnet build ${{ env.SOLUTION }} --configuration Release --no-restore $VERSION_ARG
 
       - name: Test (net7.0)
         run: dotnet test ${{ env.UNIT_TESTS }} --configuration Release --no-build --framework net7.0 --filter "Requires!=Network"
@@ -81,13 +92,11 @@ jobs:
       - name: Test (net10.0)
         run: dotnet test ${{ env.UNIT_TESTS }} --configuration Release --no-build --framework net10.0 --filter "Requires!=Network"
 
+      # --no-build packs exactly what was compiled and tested above. Without it,
+      # pack races the build it would trigger and fails with NU5026 on a clean
+      # checkout, where nothing is in bin/ yet.
       - name: Pack
-        run: |
-          if [ -n "${{ inputs.version }}" ]; then
-            dotnet pack ${{ env.SOLUTION }} --configuration Release --output artifacts -p:Version=${{ inputs.version }}
-          else
-            dotnet pack ${{ env.SOLUTION }} --configuration Release --output artifacts
-          fi
+        run: dotnet pack ${{ env.SOLUTION }} --configuration Release --no-build --output artifacts $VERSION_ARG
 
       # A tag that disagrees with the version in the build is almost always a
       # mistake, and it would publish under a version nobody intended.
