@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json;
@@ -71,7 +71,7 @@ public class KafkaBatchProduceStep : ITestStep
 
 	/// <summary>
 	/// Authentication configuration for this Kafka connection.
-	/// If null, will try to load from kafkasettings.json.
+	/// If null, will try to load from the "kafka" section of testsettings.json.
 	/// </summary>
 	public KafkaAuthConfig? AuthConfig { get; init; }
 
@@ -99,10 +99,13 @@ public class KafkaBatchProduceStep : ITestStep
 			}
 			else
 			{
-				// Resolve bootstrap servers: explicit > context > default
+				// Resolve bootstrap servers: explicit > context > testsettings.json > default.
+				// The last fallback returns "localhost:9092" when nothing is configured, so
+				// a project without a settings file behaves exactly as before.
 				var resolvedBootstrapServers = BootstrapServers != "localhost:9092"
 					? BootstrapServers
-					: context.GetProperty<string>("_KafkaBootstrapServers") ?? BootstrapServers;
+					: context.GetProperty<string>("_KafkaBootstrapServers")
+						?? KafkaSettings.Load().BootstrapServers;
 
 				// Build producer config
 				var config = ProducerConfig ?? new ProducerConfig

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 
 using Confluent.Kafka;
+using XUnitAssured.Core.Configuration;
 using XUnitAssured.Kafka.Configuration;
 
 namespace XUnitAssured.Kafka;
@@ -91,16 +92,34 @@ public class KafkaSettings
 	}
 
 	/// <summary>
-	/// Loads Kafka settings from kafkasettings.json.
-	/// Searches in current directory and parent directories.
+	/// Loads Kafka settings from the <c>kafka</c> section of <c>testsettings.json</c> —
+	/// the same file and section the fixtures use — so a step run without a fixture
+	/// sees the same broker and credentials.
 	/// </summary>
-	/// <param name="environment">Optional environment name (e.g., "dev", "staging", "prod")</param>
-	/// <returns>Loaded Kafka settings</returns>
+	/// <remarks>
+	/// <para>
+	/// The file is located like the rest of the configuration: <c>TESTSETTINGS_PATH</c>
+	/// if set, otherwise <c>testsettings.json</c> in the current directory and its
+	/// parents. <c>${ENV:NAME}</c> placeholders are replaced. The result is cached;
+	/// call <see cref="TestSettingsKafkaExtensions.ClearKafkaSettingsCache"/>
+	/// to force a reload.
+	/// </para>
+	/// <para>
+	/// When no file or no <c>kafka</c> section is found, defaults are returned:
+	/// <c>localhost:9092</c>, plaintext, no authentication.
+	/// </para>
+	/// <para>
+	/// <paramref name="environment"/> selects <c>testsettings.{environment}.json</c>
+	/// for the core settings, but the <c>kafka</c> section is currently read from the
+	/// base file regardless. Folding per-environment files into the section loaders
+	/// is tracked with the configuration unification work.
+	/// </para>
+	/// </remarks>
+	/// <param name="environment">Optional environment name (e.g., "dev", "staging", "prod"). See remarks.</param>
+	/// <returns>The configured settings, or defaults when nothing is configured.</returns>
 	public static KafkaSettings Load(string? environment = null)
 	{
-		// TODO: Implement settings loader similar to HttpSettingsLoader
-		// For now, return default settings
-		return new KafkaSettings();
+		return TestSettings.Load(environment).GetKafkaSettings() ?? new KafkaSettings();
 	}
 
 	/// <summary>

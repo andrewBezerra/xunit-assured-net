@@ -368,7 +368,7 @@ The reference implementation of an HTTP fixture is [`HttpSamplesRemoteFixture.cs
 
 **The exception: Playwright.** Browser settings live in their own file, `playwrightsettings.json`, with PascalCase keys (`Headless`, `Browser`, `DefaultTimeout`, `ScreenshotOnFailure`, `RecordTrace`, …), found the same way or via `XUNITASSURED_PLAYWRIGHT_SETTINGS_PATH`. Unlike `testsettings.json`, it must be copied to the output directory — see the [Playwright sample](src/XunitAssured.PlayWright.Samples.Local.Test/playwrightsettings.json) and its `.csproj`. Folding it into `testsettings.json` is on the roadmap.
 
-> **Two names you may meet in the code and can ignore.** `httpsettings.json` is a fallback read only when an `HttpRequestStep` runs without a fixture or explicit authentication; `kafkasettings.json` is referenced in comments but its loader is not implemented — Kafka settings come from `testsettings.json` through the fixture.
+> **One more name you may meet in the code.** `httpsettings.json` is a fallback read only when an `HttpRequestStep` runs without a fixture or explicit authentication. Kafka has no such file: a Kafka step run without a fixture reads the same `kafka` section of `testsettings.json` the fixture does.
 
 ## 🏗️ Architecture
 

@@ -76,7 +76,7 @@ public class KafkaBatchConsumeStep : ITestStep
 
 	/// <summary>
 	/// Authentication configuration for this Kafka connection.
-	/// If null, will try to load from kafkasettings.json.
+	/// If null, will try to load from the "kafka" section of testsettings.json.
 	/// </summary>
 	public KafkaAuthConfig? AuthConfig { get; init; }
 
@@ -85,10 +85,13 @@ public class KafkaBatchConsumeStep : ITestStep
 	{
 		try
 		{
-			// Resolve bootstrap servers: explicit > context > default
+			// Resolve bootstrap servers: explicit > context > testsettings.json > default.
+			// The last fallback returns "localhost:9092" when nothing is configured, so
+			// a project without a settings file behaves exactly as before.
 			var resolvedBootstrapServers = BootstrapServers != "localhost:9092"
 				? BootstrapServers
-				: context.GetProperty<string>("_KafkaBootstrapServers") ?? BootstrapServers;
+				: context.GetProperty<string>("_KafkaBootstrapServers")
+					?? KafkaSettings.Load().BootstrapServers;
 
 			var resolvedGroupId = GroupId;
 			if (string.Equals(GroupId, "xunitassured-consumer", StringComparison.OrdinalIgnoreCase))

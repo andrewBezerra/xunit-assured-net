@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using XUnitAssured.Core.Abstractions;
 using XUnitAssured.Kafka.Configuration;
 using XUnitAssured.Kafka.Steps;
@@ -56,7 +56,7 @@ public static class KafkaAuthenticationExtensions
 	}
 
 	/// <summary>
-	/// Configures SASL/PLAIN authentication from kafkasettings.json.
+	/// Configures SASL/PLAIN authentication from testsettings.json.
 	/// Automatically loads username and password from settings.
 	/// Usage: .WithSaslPlain()
 	/// </summary>
@@ -77,7 +77,7 @@ public static class KafkaAuthenticationExtensions
 		// Validate authentication configuration
 		if (settings.Authentication?.SaslPlain == null)
 			throw new InvalidOperationException(
-				"SASL/PLAIN authentication is not configured in kafkasettings.json. " +
+				"SASL/PLAIN authentication is not configured in the 'kafka' section of testsettings.json. " +
 				"Please add 'authentication.saslPlain' section with 'username' and 'password'.");
 
 		// Create auth config from settings
@@ -134,7 +134,7 @@ public static class KafkaAuthenticationExtensions
 	}
 
 	/// <summary>
-	/// Configures SASL/SCRAM authentication from kafkasettings.json.
+	/// Configures SASL/SCRAM authentication from testsettings.json.
 	/// Automatically detects SHA-256 or SHA-512 from settings.
 	/// Usage: .WithSaslScram()
 	/// </summary>
@@ -155,7 +155,7 @@ public static class KafkaAuthenticationExtensions
 		// Validate authentication configuration
 		if (settings.Authentication?.SaslScram == null)
 			throw new InvalidOperationException(
-				"SASL/SCRAM authentication is not configured in kafkasettings.json. " +
+				"SASL/SCRAM authentication is not configured in the 'kafka' section of testsettings.json. " +
 				"Please add 'authentication.saslScram' section with 'username', 'password', and 'mechanism'.");
 
 		// Create auth config from settings
@@ -211,7 +211,7 @@ public static class KafkaAuthenticationExtensions
 	}
 
 	/// <summary>
-	/// Configures SSL/TLS authentication from kafkasettings.json.
+	/// Configures SSL/TLS authentication from testsettings.json.
 	/// Automatically loads SSL configuration from settings.
 	/// Usage: .WithSsl()
 	/// </summary>
@@ -232,7 +232,7 @@ public static class KafkaAuthenticationExtensions
 		// Validate authentication configuration
 		if (settings.Authentication?.Ssl == null)
 			throw new InvalidOperationException(
-				"SSL authentication is not configured in kafkasettings.json. " +
+				"SSL authentication is not configured in the 'kafka' section of testsettings.json. " +
 				"Please add 'authentication.ssl' section with SSL configuration.");
 
 		// Create auth config from settings
@@ -289,7 +289,7 @@ public static class KafkaAuthenticationExtensions
 
 	/// <summary>
 	/// Disables authentication for this Kafka connection.
-	/// Useful to override global authentication from kafkasettings.json.
+	/// Useful to override global authentication from testsettings.json.
 	/// Usage: .WithNoKafkaAuth()
 	/// </summary>
 	/// <param name="scenario">Test scenario</param>
