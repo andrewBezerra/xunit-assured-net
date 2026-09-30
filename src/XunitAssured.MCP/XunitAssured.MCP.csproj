@@ -1,20 +1,49 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>net10.0</TargetFramework>
+    <!-- Overrides the solution-wide default: this project is written against implicit usings. -->
     <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>enable</Nullable>
     <RootNamespace>XUnitAssured.Mcp</RootNamespace>
     <AssemblyName>XUnitAssured.Mcp</AssemblyName>
-    <IsPackable>false</IsPackable>
-    <Version>5.0.0</Version>
-    <Authors>Carlos Andrew Costa Bezerra</Authors>
+    <Description>MCP (Model Context Protocol) server for AI-assisted test generation with XUnitAssured. Provides 10 tools for translating Playwright Inspector code to fluent DSL, scaffolding HTTP/REST CRUD tests, and generating Kafka produce/consume tests. Integrates with GitHub Copilot Chat, VS Code, Visual Studio, and any MCP-compatible client via stdio transport.</Description>
+
+    <!-- .NET Tool / NuGet packaging -->
+    <PackAsTool>true</PackAsTool>
+    <ToolCommandName>xunitassured-mcp</ToolCommandName>
+    <PackageId>XUnitAssured.Mcp</PackageId>
+    <PackageType>McpServer</PackageType>
+    <IsPackable>true</IsPackable>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+
+    <!-- NuGet metadata -->
+    <PackageTags>mcp;model-context-protocol;xunit;test-generation;copilot;playwright;http;kafka;ai</PackageTags>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.3" />
     <PackageReference Include="ModelContextProtocol" Version="1.0.0" />
+  </ItemGroup>
+
+  <!-- Package Files -->
+  <ItemGroup>
+    <None Include="..\..\package-icon.png">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
+    <None Include="README.md">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
+    <None Include="..\..\LICENSE.md">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
+    <None Include=".mcp\server.json">
+      <Pack>True</Pack>
+      <PackagePath>.mcp\</PackagePath>
+    </None>
   </ItemGroup>
 
   <ItemGroup>

@@ -40,9 +40,9 @@ XUnitAssured.Net is a fluent testing framework for .NET that helps developers cr
 
 ### Tooling
 
-| Package | Description |
-|---------|-------------|
-| **XUnitAssured.Mcp** | MCP server for AI-assisted test generation — integrates with GitHub Copilot Chat, VS Code, and any MCP-compatible client |
+| Package | Version | Description |
+|---------|---------|-------------|
+| **XUnitAssured.Mcp** | 5.0.0 | MCP server for AI-assisted test generation — install via `dnx XUnitAssured.Mcp` or `dotnet tool install XUnitAssured.Mcp` |
 
 ## 🚀 Quick Start
 
@@ -334,20 +334,38 @@ XUnitAssured includes an MCP (Model Context Protocol) server that integrates wit
 
 ### Setup
 
-#### 1. Build the MCP server
+#### Option A — Install from NuGet (recommended)
+
+Requires [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0) or later (`dnx` command).
+
+Add to your `.mcp.json` (repo root, `~/.mcp.json`, or `.vscode/mcp.json`):
+
+```json
+{
+  "servers": {
+    "xunitassured": {
+      "type": "stdio",
+      "command": "dnx",
+      "args": ["XUnitAssured.Mcp@5.0.0", "--yes"]
+    }
+  }
+}
+```
+
+That's it — `dnx` downloads and runs the MCP server automatically. No build needed.
+
+#### Option B — From source (for contributors)
+
+##### 1. Build the MCP server
 
 ```bash
 cd src/XunitAssured.MCP
 dotnet build -c Debug
 ```
 
-#### 2. Configure `.mcp.json`
+##### 2. Configure `.mcp.json`
 
-The MCP server uses **stdio** transport. You can configure it at the **repo level** (`.mcp.json` at the repo root) or **globally** (`~/.mcp.json` in your home directory).
-
-**Option A — Repo-level** (relative path, recommended for team use):
-
-Create a `.mcp.json` file at the repository root:
+**Repo-level** (relative path, recommended for team use):
 
 ```json
 {
@@ -361,29 +379,27 @@ Create a `.mcp.json` file at the repository root:
 }
 ```
 
-**Option B — Global** (absolute path, recommended for personal use):
-
-Create or edit `~/.mcp.json` (e.g., `C:\Users\<you>\.mcp.json` on Windows):
+**Global** (absolute path to compiled `.exe`, faster):
 
 ```json
 {
   "servers": {
     "xunitassured": {
       "type": "stdio",
-      "command": "<full-path-to-repo>/XUnitAssured.Mcp.exe",
+      "command": "<full-path-to-repo>/src/XunitAssured.MCP/bin/Debug/net10.0/XUnitAssured.Mcp.exe",
       "args": []
     }
   }
 }
 ```
 
-> **Tip:** Pointing directly to the compiled `.exe` is faster than `dotnet run` because it skips project resolution. Use forward slashes or escaped backslashes (`\\`) on Windows.
+> **Tip:** Pointing directly to the `.exe` is faster than `dotnet run` because it skips project resolution.
 
-#### 3. Restart your IDE
+#### Restart your IDE
 
 Visual Studio / VS Code must be **restarted** after creating or editing `.mcp.json` for the MCP server to be detected.
 
-#### 4. Verify
+#### Verify
 
 In GitHub Copilot Chat, the XUnitAssured tools should appear as available. Try:
 

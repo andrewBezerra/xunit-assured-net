@@ -16,7 +16,7 @@ builder.Services
 		options.ServerInfo = new()
 		{
 			Name = "XUnitAssured",
-			Version = "1.0.0"
+			Version = "5.0.0"
 		};
 	})
 	.WithStdioServerTransport()
