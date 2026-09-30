@@ -46,23 +46,25 @@ jobs:
       # Builds the whole solution, samples included, so a compile break in a sample
       # project is caught here rather than by whoever opens it next.
       - name: Build
+        id: build
         run: dotnet build ${{ env.SOLUTION }} --configuration Release --no-restore
 
       # Only the unit test project runs. The sample test projects need a live API,
       # a Kafka broker or a browser, so they are not gating material.
       - name: Test (net7.0)
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
         run: dotnet test ${{ env.UNIT_TESTS }} --configuration Release --no-build --framework net7.0 --filter "Requires!=Network" --logger "trx;LogFileName=net7.0.trx" --results-directory TestResults
 
       - name: Test (net8.0)
-        if: always()
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
         run: dotnet test ${{ env.UNIT_TESTS }} --configuration Release --no-build --framework net8.0 --filter "Requires!=Network" --logger "trx;LogFileName=net8.0.trx" --results-directory TestResults
 
       - name: Test (net9.0)
-        if: always()
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
         run: dotnet test ${{ env.UNIT_TESTS }} --configuration Release --no-build --framework net9.0 --filter "Requires!=Network" --logger "trx;LogFileName=net9.0.trx" --results-directory TestResults
 
       - name: Test (net10.0)
-        if: always()
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
         run: dotnet test ${{ env.UNIT_TESTS }} --configuration Release --no-build --framework net10.0 --filter "Requires!=Network" --logger "trx;LogFileName=net10.0.trx" --results-directory TestResults
 
       - name: Upload test results
