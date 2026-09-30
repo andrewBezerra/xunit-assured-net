@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Security.Cryptography.X509Certificates;
@@ -34,15 +34,8 @@ public static class AuthenticationExtensions
 		var authConfig = new HttpAuthConfig();
 		authConfig.UseBasicAuth(username, password);
 
-		var newStep = new HttpRequestStep
+		var newStep = new HttpRequestStep(httpStep)
 		{
-			Url = httpStep.Url,
-			Method = httpStep.Method,
-			Body = httpStep.Body,
-			Headers = httpStep.Headers,
-			QueryParams = httpStep.QueryParams,
-			TimeoutSeconds = httpStep.TimeoutSeconds,
-			CustomHttpClient = httpStep.CustomHttpClient,  // Preserve CustomHttpClient
 			AuthConfig = authConfig
 		};
 
@@ -74,15 +67,8 @@ public static class AuthenticationExtensions
 			authConfig.Bearer.Prefix = prefix;
 		}
 
-		var newStep = new HttpRequestStep
+		var newStep = new HttpRequestStep(httpStep)
 		{
-			Url = httpStep.Url,
-			Method = httpStep.Method,
-			Body = httpStep.Body,
-			Headers = httpStep.Headers,
-			QueryParams = httpStep.QueryParams,
-			TimeoutSeconds = httpStep.TimeoutSeconds,
-			CustomHttpClient = httpStep.CustomHttpClient,  // Preserve CustomHttpClient
 			AuthConfig = authConfig
 		};
 
@@ -113,15 +99,8 @@ public static class AuthenticationExtensions
 		configure(authConfig);
 
 		// Create new step with auth configuration
-		var newStep = new HttpRequestStep
+		var newStep = new HttpRequestStep(httpStep)
 		{
-			Url = httpStep.Url,
-			Method = httpStep.Method,
-			Body = httpStep.Body,
-			Headers = httpStep.Headers,
-			QueryParams = httpStep.QueryParams,
-			TimeoutSeconds = httpStep.TimeoutSeconds,
-			CustomHttpClient = httpStep.CustomHttpClient,  // Preserve CustomHttpClient
 			AuthConfig = authConfig
 		};
 
@@ -162,15 +141,8 @@ public static class AuthenticationExtensions
 		var authConfig = new HttpAuthConfig();
 		authConfig.UseApiKey(keyName, keyValue, location);
 
-		var newStep = new HttpRequestStep
+		var newStep = new HttpRequestStep(httpStep)
 		{
-			Url = httpStep.Url,
-			Method = httpStep.Method,
-			Body = httpStep.Body,
-			Headers = httpStep.Headers,
-			QueryParams = httpStep.QueryParams,
-			TimeoutSeconds = httpStep.TimeoutSeconds,
-			CustomHttpClient = httpStep.CustomHttpClient,  // Preserve CustomHttpClient
 			AuthConfig = authConfig
 		};
 
@@ -203,15 +175,8 @@ public static class AuthenticationExtensions
 			authConfig.OAuth2.Scopes = scopes.ToList();
 		}
 
-		var newStep = new HttpRequestStep
+		var newStep = new HttpRequestStep(httpStep)
 		{
-			Url = httpStep.Url,
-			Method = httpStep.Method,
-			Body = httpStep.Body,
-			Headers = httpStep.Headers,
-			QueryParams = httpStep.QueryParams,
-			TimeoutSeconds = httpStep.TimeoutSeconds,
-			CustomHttpClient = httpStep.CustomHttpClient,  // Preserve CustomHttpClient
 			AuthConfig = authConfig
 		};
 
@@ -246,15 +211,8 @@ public static class AuthenticationExtensions
 			OAuth2 = oauth2Config
 		};
 
-		var newStep = new HttpRequestStep
+		var newStep = new HttpRequestStep(httpStep)
 		{
-			Url = httpStep.Url,
-			Method = httpStep.Method,
-			Body = httpStep.Body,
-			Headers = httpStep.Headers,
-			QueryParams = httpStep.QueryParams,
-			TimeoutSeconds = httpStep.TimeoutSeconds,
-			CustomHttpClient = httpStep.CustomHttpClient,  // Preserve CustomHttpClient
 			AuthConfig = authConfig
 		};
 
@@ -281,15 +239,8 @@ public static class AuthenticationExtensions
 		var authConfig = new HttpAuthConfig();
 		authConfig.UseCustomHeader(headerName, headerValue);
 
-		var newStep = new HttpRequestStep
+		var newStep = new HttpRequestStep(httpStep)
 		{
-			Url = httpStep.Url,
-			Method = httpStep.Method,
-			Body = httpStep.Body,
-			Headers = httpStep.Headers,
-			QueryParams = httpStep.QueryParams,
-			TimeoutSeconds = httpStep.TimeoutSeconds,
-			CustomHttpClient = httpStep.CustomHttpClient,  // Preserve CustomHttpClient
 			AuthConfig = authConfig
 		};
 
@@ -324,15 +275,8 @@ public static class AuthenticationExtensions
 			}
 		};
 
-		var newStep = new HttpRequestStep
+		var newStep = new HttpRequestStep(httpStep)
 		{
-			Url = httpStep.Url,
-			Method = httpStep.Method,
-			Body = httpStep.Body,
-			Headers = httpStep.Headers,
-			QueryParams = httpStep.QueryParams,
-			TimeoutSeconds = httpStep.TimeoutSeconds,
-			CustomHttpClient = httpStep.CustomHttpClient,  // Preserve CustomHttpClient
 			AuthConfig = authConfig
 		};
 
@@ -383,15 +327,8 @@ public static class AuthenticationExtensions
 			Certificate = certConfig
 		};
 
-		var newStep = new HttpRequestStep
+		var newStep = new HttpRequestStep(httpStep)
 		{
-			Url = httpStep.Url,
-			Method = httpStep.Method,
-			Body = httpStep.Body,
-			Headers = httpStep.Headers,
-			QueryParams = httpStep.QueryParams,
-			TimeoutSeconds = httpStep.TimeoutSeconds,
-			CustomHttpClient = httpStep.CustomHttpClient,  // Preserve CustomHttpClient
 			AuthConfig = authConfig
 		};
 
@@ -418,15 +355,8 @@ public static class AuthenticationExtensions
 		var authConfig = new HttpAuthConfig();
 		authConfig.UseCertificate(certificatePath, password);
 
-		var newStep = new HttpRequestStep
+		var newStep = new HttpRequestStep(httpStep)
 		{
-			Url = httpStep.Url,
-			Method = httpStep.Method,
-			Body = httpStep.Body,
-			Headers = httpStep.Headers,
-			QueryParams = httpStep.QueryParams,
-			TimeoutSeconds = httpStep.TimeoutSeconds,
-			CustomHttpClient = httpStep.CustomHttpClient,  // Preserve CustomHttpClient
 			AuthConfig = authConfig
 		};
 
@@ -454,15 +384,8 @@ public static class AuthenticationExtensions
 		var authConfig = new HttpAuthConfig();
 		authConfig.UseCertificateFromStore(thumbprint, storeLocation, storeName);
 
-		var newStep = new HttpRequestStep
+		var newStep = new HttpRequestStep(httpStep)
 		{
-			Url = httpStep.Url,
-			Method = httpStep.Method,
-			Body = httpStep.Body,
-			Headers = httpStep.Headers,
-			QueryParams = httpStep.QueryParams,
-			TimeoutSeconds = httpStep.TimeoutSeconds,
-			CustomHttpClient = httpStep.CustomHttpClient,  // Preserve CustomHttpClient
 			AuthConfig = authConfig
 		};
 
@@ -497,15 +420,8 @@ public static class AuthenticationExtensions
 			}
 		};
 
-		var newStep = new HttpRequestStep
+		var newStep = new HttpRequestStep(httpStep)
 		{
-			Url = httpStep.Url,
-			Method = httpStep.Method,
-			Body = httpStep.Body,
-			Headers = httpStep.Headers,
-			QueryParams = httpStep.QueryParams,
-			TimeoutSeconds = httpStep.TimeoutSeconds,
-			CustomHttpClient = httpStep.CustomHttpClient,  // Preserve CustomHttpClient
 			AuthConfig = authConfig
 		};
 
@@ -534,15 +450,8 @@ public static class AuthenticationExtensions
 			Type = AuthenticationType.None
 		};
 
-		var newStep = new HttpRequestStep
+		var newStep = new HttpRequestStep(httpStep)
 		{
-			Url = httpStep.Url,
-			Method = httpStep.Method,
-			Body = httpStep.Body,
-			Headers = httpStep.Headers,
-			QueryParams = httpStep.QueryParams,
-			TimeoutSeconds = httpStep.TimeoutSeconds,
-			CustomHttpClient = httpStep.CustomHttpClient,  // Preserve CustomHttpClient
 			AuthConfig = authConfig
 		};
 

@@ -119,17 +119,11 @@ public static class HttpScenarioExtensions
 		// Create FormUrlEncodedContent from the dictionary
 		var formContent = new FormUrlEncodedContent(formData);
 
-		// Create new step with updated method and body
-		var newStep = new HttpRequestStep
+		// Copy the step, overriding only method and body
+		var newStep = new HttpRequestStep(currentHttpStep)
 		{
-			Url = currentHttpStep.Url,
 			Method = HttpMethod.Post,
-			Body = formContent,  // Store the HttpContent directly
-			Headers = currentHttpStep.Headers,
-			QueryParams = currentHttpStep.QueryParams,
-			TimeoutSeconds = currentHttpStep.TimeoutSeconds,
-			CustomHttpClient = currentHttpStep.CustomHttpClient,
-			AuthConfig = currentHttpStep.AuthConfig
+			Body = formContent  // Store the HttpContent directly
 		};
 
 		scenario.SetCurrentStep(newStep);
@@ -196,14 +190,9 @@ public static class HttpScenarioExtensions
 	{
 		if (scenario.CurrentStep is HttpRequestStep httpStep)
 		{
-			// Create new step with updated timeout (immutable pattern)
-			var newStep = new HttpRequestStep
+			// Copy the step, overriding only the timeout (immutable pattern)
+			var newStep = new HttpRequestStep(httpStep)
 			{
-				Url = httpStep.Url,
-				Method = httpStep.Method,
-				Body = httpStep.Body,
-				Headers = httpStep.Headers,
-				QueryParams = httpStep.QueryParams,
 				TimeoutSeconds = seconds
 			};
 
@@ -244,14 +233,8 @@ public static class HttpScenarioExtensions
 		if (scenario.CurrentStep is HttpRequestStep httpStep)
 		{
 			// There's already an HTTP step, update it with CustomHttpClient
-			var newStep = new HttpRequestStep
+			var newStep = new HttpRequestStep(httpStep)
 			{
-				Url = httpStep.Url,
-				Method = httpStep.Method,
-				Body = httpStep.Body,
-				Headers = httpStep.Headers,
-				QueryParams = httpStep.QueryParams,
-				TimeoutSeconds = httpStep.TimeoutSeconds,
 				CustomHttpClient = httpClient
 			};
 
@@ -280,17 +263,11 @@ public static class HttpScenarioExtensions
 		if (scenario.CurrentStep is not HttpRequestStep currentHttpStep)
 			throw new InvalidOperationException("Current step is not an HTTP step.");
 
-		// Create new step with updated method/body (immutable pattern)
-		var newStep = new HttpRequestStep
+		// Copy the step, overriding only method and body (immutable pattern)
+		var newStep = new HttpRequestStep(currentHttpStep)
 		{
-			Url = currentHttpStep.Url,
 			Method = method,
-			Body = body,
-			Headers = currentHttpStep.Headers,
-			QueryParams = currentHttpStep.QueryParams,
-			TimeoutSeconds = currentHttpStep.TimeoutSeconds,
-			CustomHttpClient = currentHttpStep.CustomHttpClient,  // Preserve custom HttpClient
-			AuthConfig = currentHttpStep.AuthConfig  // Preserve authentication configuration
+			Body = body
 		};
 
 		scenario.SetCurrentStep(newStep);

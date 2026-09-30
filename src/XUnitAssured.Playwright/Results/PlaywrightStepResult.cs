@@ -78,8 +78,26 @@ public class PlaywrightStepResult : TestStepResult
 		string? url = null,
 		List<string>? screenshots = null,
 		List<string>? consoleLogs = null,
-		TimeSpan? elapsed = null)
+		TimeSpan? elapsed = null,
+		Exception? exception = null)
 	{
+		var properties = new Dictionary<string, object?>
+		{
+			["Url"] = url,
+			["Title"] = null,
+			["Screenshots"] = (IReadOnlyList<string>)(screenshots ?? new List<string>()),
+			["ConsoleLogs"] = (IReadOnlyList<string>)(consoleLogs ?? new List<string>())
+		};
+
+		// A UI failure message on its own rarely says which action broke. Keeping the
+		// exception detail makes the failing step traceable back to its call site.
+		if (exception != null)
+		{
+			properties["ExceptionType"] = exception.GetType().FullName;
+			properties["ExceptionStackTrace"] = exception.StackTrace;
+			properties["ExceptionDetail"] = exception.ToString();
+		}
+
 		return new PlaywrightStepResult
 		{
 			Success = false,
@@ -92,13 +110,7 @@ public class PlaywrightStepResult : TestStepResult
 				CompletedAt = DateTimeOffset.UtcNow,
 				Status = StepStatus.Failed
 			},
-			Properties = new Dictionary<string, object?>
-			{
-				["Url"] = url,
-				["Title"] = null,
-				["Screenshots"] = (IReadOnlyList<string>)(screenshots ?? new List<string>()),
-				["ConsoleLogs"] = (IReadOnlyList<string>)(consoleLogs ?? new List<string>())
-			}
+			Properties = properties
 		};
 	}
 }
