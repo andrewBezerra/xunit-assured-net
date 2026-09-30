@@ -543,11 +543,16 @@ public class KafkaProduceStepTests
 	public void Kafka_DSL_Should_Support_Produce_And_Consume()
 	{
 		// Act
+		//
+		// This asserts the shape of the chain, not its execution. And() would execute
+		// the produce step — against a broker that does not exist here — and wait out
+		// its full 30 s timeout before moving on, which made this the slowest test in
+		// the suite for a structural assertion. Topic()/Consume() do not require the
+		// previous step to have run.
 		var scenario = Given()
 			.Topic("orders")
 			.Produce(new { OrderId = "123" })
 		.When()
-			.And()
 		.Then()
 			.Topic("order-confirmations")
 			.Consume();

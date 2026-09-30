@@ -152,8 +152,12 @@ public class KafkaConsumeStep : ITestStep
 			// subscription would use (committed, else AutoOffsetReset) without the join.
 			// This is also what the previous code fell back to when the coordinator
 			// was unavailable, so that fallback is now simply the only path.
+			// Metadata never needs more than a few seconds against a live broker, and
+			// a step that was given a shorter timeout should not wait longer than that
+			// for a broker that is not answering at all.
+			var metadataTimeout = Timeout < TimeSpan.FromSeconds(5) ? Timeout : TimeSpan.FromSeconds(5);
 			var assignment = ConsumerAssignment.AssignAllPartitions(
-				consumer, config, Topic, TimeSpan.FromSeconds(5));
+				consumer, config, Topic, metadataTimeout);
 			diagnosticProperties["AssignedPartitions"] = string.Join(",", assignment.Select(a => a.TopicPartition));
 
 			var deadline = DateTime.UtcNow.Add(Timeout);

@@ -146,7 +146,10 @@ public class KafkaBatchConsumeStep : ITestStep
 			// the consumer group and, on a default broker, waits out a three-second
 			// initial rebalance delay before the first message. Starting offsets are
 			// resolved the way a subscription would (committed, else AutoOffsetReset).
-			ConsumerAssignment.AssignAllPartitions(consumer, config, Topic, TimeSpan.FromSeconds(5));
+			// Bounded by the step's own timeout: a step given one second must not wait
+			// five for metadata from a broker that is not answering.
+			var metadataTimeout = Timeout < TimeSpan.FromSeconds(5) ? Timeout : TimeSpan.FromSeconds(5);
+			ConsumerAssignment.AssignAllPartitions(consumer, config, Topic, metadataTimeout);
 
 			using var cts = new CancellationTokenSource(Timeout);
 
