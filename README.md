@@ -88,21 +88,21 @@ In order of intent, not of promise:
 
 | Package | Version | Description |
 |---------|---------|-------------|
-| **XUnitAssured.Core** | 5.0.2 | Core abstractions, DSL infrastructure, DI support (`DITestFixture`), `ValidationBuilder`, and BDD extensions |
+| **XUnitAssured.Core** | 5.1.0 | Core abstractions, DSL infrastructure, DI support (`DITestFixture`), `ValidationBuilder`, and BDD extensions |
 
 ### Protocol Packages
 
 | Package | Version | Description |
 |---------|---------|-------------|
-| **XUnitAssured.Http** | 5.0.2 | HTTP/REST API testing — fluent DSL, authentication handlers, JSON path assertions, schema validation |
-| **XUnitAssured.Kafka** | 5.0.2 | Apache Kafka integration testing — produce/consume, batch operations, authentication, Schema Registry support |
-| **XUnitAssured.Playwright** | 5.0.2 | Playwright UI testing — fluent DSL for browser interactions, multiple locator strategies, screenshots, and assertions |
+| **XUnitAssured.Http** | 5.1.0 | HTTP/REST API testing — fluent DSL, authentication handlers, JSON path assertions, schema validation |
+| **XUnitAssured.Kafka** | 5.1.0 | Apache Kafka integration testing — produce/consume, batch operations, authentication, Schema Registry support |
+| **XUnitAssured.Playwright** | 5.1.0 | Playwright UI testing — fluent DSL for browser interactions, multiple locator strategies, screenshots, and assertions |
 
 ### Tooling
 
 | Package | Version | Description |
 |---------|---------|-------------|
-| **XUnitAssured.Mcp** | 5.0.2 | MCP server for AI-assisted test generation — install via `dnx XUnitAssured.Mcp` or `dotnet tool install XUnitAssured.Mcp` |
+| **XUnitAssured.Mcp** | 5.1.0 | MCP server for AI-assisted test generation — install via `dnx XUnitAssured.Mcp` or `dotnet tool install XUnitAssured.Mcp` |
 
 ## 🚀 Quick Start
 
@@ -473,7 +473,7 @@ Add to your `.mcp.json` (repo root, `~/.mcp.json`, or `.vscode/mcp.json`):
     "xunitassured": {
       "type": "stdio",
       "command": "dnx",
-      "args": ["XUnitAssured.Mcp@5.0.2", "--yes"]
+      "args": ["XUnitAssured.Mcp@5.1.0", "--yes"]
     }
   }
 }
@@ -542,7 +542,26 @@ In GitHub Copilot Chat, the XUnitAssured tools should appear as available. Try:
 
 ## 🔄 Version History
 
-### v5.0.2 (Current — Kafka performance, fully compatible with 5.0.1)
+### v5.1.0 (Current — cross-boundary scenarios from one call, fully compatible with 5.0.x)
+
+Additive release; upgrading requires no code changes.
+
+- **`Given(api, kafka, browser)`** — any fixture or per-test object that implements
+  the new `ITestContextSeeder` can be passed to `Given(...)`, alone or combined, so a
+  scenario spanning HTTP, Kafka and the browser is configured in one place.
+  `KafkaClassFixture`, `PlaywrightTestBase` and the new
+  `PlaywrightTestFixture.OpenPageAsync()` session implement it; every
+  `IHttpClientProvider` is one automatically.
+- **Kafka steps read `testsettings.json` without a fixture.** `KafkaSettings.Load()`
+  used to return defaults regardless of configuration, which also meant the
+  parameterless `WithSaslPlain()`, `WithSaslScram()` and `WithSsl()` always threw.
+- **Playwright steps stop serialising the page on every step.** `PageContent` is
+  fetched on first read; a step on a 500 KB page went from ~105 ms to ~6 ms.
+- **Batch consume keeps its diagnostics on failure**, as the single consume already did.
+- Every public member ships XML documentation; the packages build warning-free.
+- Configuration guidance for Kafka in Docker/Podman on Windows (`127.0.0.1`, not `localhost`).
+
+### v5.0.2 (Kafka performance, fully compatible with 5.0.1)
 
 No API changed; upgrading requires no code changes.
 
