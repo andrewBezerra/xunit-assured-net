@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
@@ -9,6 +9,7 @@ using XUnitAssured.Core.Abstractions;
 using XUnitAssured.Core.Results;
 using XUnitAssured.Kafka.Configuration;
 using XUnitAssured.Kafka.Handlers;
+using XUnitAssured.Kafka.Helpers;
 using XUnitAssured.Kafka.Results;
 
 namespace XUnitAssured.Kafka.Steps;
@@ -113,7 +114,11 @@ public class KafkaBatchConsumeStep : ITestStep
 			// Create a single consumer for the entire batch
 			using var consumer = new ConsumerBuilder<string, string>(config).Build();
 
-			consumer.Subscribe(Topic);
+			// Assign partitions directly rather than subscribing: a subscription joins
+			// the consumer group and, on a default broker, waits out a three-second
+			// initial rebalance delay before the first message. Starting offsets are
+			// resolved the way a subscription would (committed, else AutoOffsetReset).
+			ConsumerAssignment.AssignAllPartitions(consumer, config, Topic, TimeSpan.FromSeconds(5));
 
 			using var cts = new CancellationTokenSource(Timeout);
 
