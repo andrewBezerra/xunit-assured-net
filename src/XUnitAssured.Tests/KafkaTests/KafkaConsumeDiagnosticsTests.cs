@@ -7,6 +7,7 @@ using Confluent.Kafka;
 
 using XUnitAssured.Core.Abstractions;
 using XUnitAssured.Core.Storage;
+using XUnitAssured.Kafka.Results;
 using XUnitAssured.Kafka.Steps;
 
 namespace XUnitAssured.Tests.KafkaTests;
@@ -118,6 +119,59 @@ public class KafkaConsumeDiagnosticsTests
 		// fail for reasons unrelated to the behaviour it covers.
 		result.Properties.ContainsKey("BrokerLogs").ShouldBeTrue();
 		result.GetProperty<List<string>>("BrokerLogs").ShouldNotBeNull();
+	}
+
+	[Fact(DisplayName = "A failure result should preserve the diagnostics gathered before the exception")]
+	public void Failure_Should_Preserve_Collected_Diagnostics()
+	{
+		// The connection settings and broker logs are what explain a failed consume,
+		// and they used to be discarded along with everything except the exception.
+		// Built directly from the factory so the behaviour is asserted without a
+		// broker, a timeout or anything else the environment can influence.
+		var collected = new Dictionary<string, object?>
+		{
+			["BootstrapServers"] = UnreachableBroker,
+			["GroupId"] = "diag-group",
+			["BrokerLogs"] = new List<string> { "Error: connection refused" }
+		};
+
+		var result = KafkaStepResult.CreateFailure(
+			ThrownException(),
+			new[] { "Error: connection refused" },
+			collected);
+
+		result.Success.ShouldBeFalse();
+		result.GetProperty<string>("BootstrapServers").ShouldBe(UnreachableBroker);
+		result.GetProperty<string>("GroupId").ShouldBe("diag-group");
+		result.GetProperty<List<string>>("BrokerLogs").ShouldNotBeNull();
+		result.GetProperty<string>("ExceptionType").ShouldBe(typeof(InvalidOperationException).FullName);
+		result.GetProperty<string>("ExceptionStackTrace").ShouldNotBeNullOrWhiteSpace();
+		result.Errors.ShouldNotBeEmpty();
+	}
+
+	/// <summary>
+	/// An exception that was actually thrown, and therefore carries a stack trace.
+	/// A constructed-but-never-thrown exception has none, which would make an
+	/// assertion about the trace describe how the test built its input rather than
+	/// what the code under test preserves.
+	/// </summary>
+	private static Exception ThrownException()
+	{
+		try
+		{
+			throw new InvalidOperationException("broker unreachable");
+		}
+		catch (InvalidOperationException ex)
+		{
+			return ex;
+		}
+	}
+
+	[Fact(DisplayName = "A failure result should reject a null exception")]
+	public void Failure_Should_Reject_Null_Exception()
+	{
+		Should.Throw<ArgumentNullException>(
+			() => KafkaStepResult.CreateFailure(null!, null, null));
 	}
 
 	private sealed class MockKafkaContext : ITestContext

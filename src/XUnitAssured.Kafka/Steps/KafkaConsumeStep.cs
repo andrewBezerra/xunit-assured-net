@@ -234,10 +234,11 @@ public class KafkaConsumeStep : ITestStep
 		}
 		catch (Exception ex)
 		{
-			// Network error, Kafka error, etc.
-			errorDetails.Add(ex.ToString());
-			diagnosticProperties["ExceptionMessage"] = ex.Message;
-			Result = KafkaStepResult.CreateFailure(ex);
+			// Network error, Kafka error, etc. The connection settings and broker
+			// logs collected above are what explain such a failure, so they are
+			// carried into the result rather than discarded with the exception.
+			diagnosticProperties["BrokerLogs"] = brokerLogs;
+			Result = KafkaStepResult.CreateFailure(ex, errorDetails, diagnosticProperties);
 			return Result;
 		}
 	}
