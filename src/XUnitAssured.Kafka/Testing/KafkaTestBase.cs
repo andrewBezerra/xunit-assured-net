@@ -31,8 +31,18 @@ namespace XUnitAssured.Kafka.Testing;
 /// </example>
 public abstract class KafkaTestBase<TFixture> where TFixture : KafkaClassFixture
 {
+	/// <summary>
+	/// The class fixture shared by every test in the class: it holds the broker
+	/// address, credentials and the shared producer that <see cref="Given"/> hands
+	/// to each scenario.
+	/// </summary>
 	protected readonly TFixture Fixture;
 
+	/// <summary>
+	/// Receives the fixture xUnit injects for the test class.
+	/// </summary>
+	/// <param name="fixture">The class fixture; xUnit supplies it through <c>IClassFixture&lt;TFixture&gt;</c>.</param>
+	/// <exception cref="ArgumentNullException">Thrown when <paramref name="fixture"/> is null.</exception>
 	protected KafkaTestBase(TFixture fixture)
 	{
 		Fixture = fixture ?? throw new ArgumentNullException(nameof(fixture));
@@ -80,6 +90,10 @@ public abstract class KafkaTestBase<TFixture> where TFixture : KafkaClassFixture
 /// </example>
 public abstract class KafkaTestBase : KafkaTestBase<KafkaClassFixture>
 {
+	/// <summary>
+	/// Receives the <see cref="KafkaClassFixture"/> xUnit injects for the test class.
+	/// </summary>
+	/// <param name="fixture">The class fixture; xUnit supplies it through <c>IClassFixture&lt;KafkaClassFixture&gt;</c>.</param>
 	protected KafkaTestBase(KafkaClassFixture fixture) : base(fixture)
 	{
 	}

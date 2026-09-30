@@ -45,7 +45,7 @@ public class PlaywrightFailureDiagnosticsTests
 		result.Url.ShouldBe("https://example.test/login");
 		result.GetProperty<string>("ExceptionType").ShouldBe(typeof(TimeoutException).FullName);
 		result.GetProperty<string>("ExceptionStackTrace").ShouldNotBeNullOrWhiteSpace();
-		result.GetProperty<string>("ExceptionDetail").ShouldContain(nameof(TimeoutException));
+		result.GetProperty<string>("ExceptionDetail").ShouldNotBeNull().ShouldContain(nameof(TimeoutException));
 	}
 
 	[Fact(DisplayName = "Failure result should omit exception properties when no exception is supplied")]

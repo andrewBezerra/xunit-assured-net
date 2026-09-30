@@ -25,9 +25,28 @@ namespace XUnitAssured.Http;
 /// </summary>
 public abstract class HttpTestFixture : TestBedFixture
 {
+	/// <summary>
+	/// The settings bound from the <c>Http</c> configuration section: base URL, timeout,
+	/// default headers and authentication. Null until <see cref="AddServices"/> has run.
+	/// </summary>
 	protected HttpSettings? HttpSettings { get; private set; }
+
+	/// <summary>
+	/// The Flurl client built from <see cref="HttpSettings"/>, with the base address,
+	/// timeout, default headers and — for certificate authentication — the client
+	/// certificate already applied. Registered in the container as
+	/// <see cref="IFlurlClient"/>. Null until <see cref="AddServices"/> has run.
+	/// </summary>
 	protected IFlurlClient? FlurlClient { get; private set; }
 
+	/// <summary>
+	/// Binds <see cref="HttpSettings"/> from configuration, builds the HTTP and Flurl
+	/// clients from it, and registers the authentication handlers. Derived fixtures add
+	/// their own services in <see cref="AddHttpServices"/> rather than overriding this.
+	/// </summary>
+	/// <param name="services">The container being assembled for the test class.</param>
+	/// <param name="configuration">Configuration loaded from the files named by <see cref="GetTestAppSettings"/>.</param>
+	/// <exception cref="InvalidOperationException">Thrown when no configuration is available.</exception>
 	protected override void AddServices(IServiceCollection services, IConfiguration? configuration)
 	{
 		if (configuration == null)
@@ -198,6 +217,10 @@ public abstract class HttpTestFixture : TestBedFixture
 		return HttpSettings;
 	}
 
+	/// <summary>
+	/// Releases the Flurl client (and with it the underlying HttpClient) when the
+	/// test class finishes.
+	/// </summary>
 	protected override ValueTask DisposeAsyncCore()
 	{
 		// Dispose FlurlClient
@@ -207,6 +230,11 @@ public abstract class HttpTestFixture : TestBedFixture
 		return ValueTask.CompletedTask;
 	}
 
+	/// <summary>
+	/// Names the configuration file this fixture binds <see cref="HttpSettings"/> from:
+	/// <c>httpsettings.json</c>, which must exist. Override to read from another file
+	/// or to make it optional.
+	/// </summary>
 	protected override IEnumerable<TestAppSettings> GetTestAppSettings()
 	{
 		yield return new() { Filename = "httpsettings.json", IsOptional = false };

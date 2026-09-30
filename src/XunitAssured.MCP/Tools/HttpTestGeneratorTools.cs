@@ -1,4 +1,4 @@
-using System.ComponentModel;
+﻿using System.ComponentModel;
 using System.Text;
 
 using ModelContextProtocol.Server;
@@ -13,6 +13,12 @@ namespace XUnitAssured.Mcp.Tools;
 [McpServerToolType]
 public static class HttpTestGeneratorTools
 {
+	/// <summary>
+	/// Writes a ready-to-paste xUnit test method that calls one REST endpoint through the
+	/// XUnitAssured.Http DSL and asserts the status code and, optionally, JSON-path values.
+	/// Meant to be invoked by an AI assistant from a prompt such as
+	/// "generate a test for GET /api/products/1 expecting 200".
+	/// </summary>
 	[McpServerTool(Name = "generate_http_test"),
 	 Description("Generates a complete XUnitAssured.Http test method for a REST API endpoint. " +
 	             "Produces a ready-to-paste [Fact] method with Given/When/Then structure. " +
@@ -119,6 +125,11 @@ public static class HttpTestGeneratorTools
 		return sb.ToString();
 	}
 
+	/// <summary>
+	/// Writes the body of a test class covering the full CRUD cycle of a REST resource —
+	/// list, get by id, create, update, delete — so a new API gets a baseline suite in one
+	/// step instead of five prompts.
+	/// </summary>
 	[McpServerTool(Name = "generate_http_crud_tests"),
 	 Description("Generates a complete set of CRUD test methods (GET all, GET by id, POST create, PUT update, DELETE) " +
 	             "for a REST API resource. Produces a full test class body with 5-6 test methods.")]
@@ -171,6 +182,11 @@ public static class HttpTestGeneratorTools
 		return sb.ToString();
 	}
 
+	/// <summary>
+	/// Returns the HTTP DSL surface (request builders, authentication, assertions) as text
+	/// an assistant can consult before writing or translating an HTTP test, so it uses
+	/// methods that exist rather than guessing names.
+	/// </summary>
 	[McpServerTool(Name = "list_http_dsl_methods", ReadOnly = true),
 	 Description("Lists all available XUnitAssured.Http DSL methods for REST API testing. " +
 	             "Use this as a reference when writing HTTP integration tests.")]

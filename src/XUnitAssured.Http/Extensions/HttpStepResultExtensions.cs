@@ -26,7 +26,7 @@ public static class HttpStepResultExtensions
 	/// </code>
 	/// </example>
 	/// <exception cref="InvalidOperationException">Thrown when response body is empty</exception>
-	/// <exception cref="KeyNotFoundException">Thrown when the JSON path doesn't exist</exception>
+	/// <exception cref="System.Collections.Generic.KeyNotFoundException">Thrown when the JSON path doesn't exist</exception>
 	public static T JsonPath<T>(this HttpStepResult result, string path)
 	{
 		var responseBody = result.ResponseBody?.ToString() ?? string.Empty;

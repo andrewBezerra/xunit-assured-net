@@ -116,6 +116,10 @@ public class KafkaProducerHelper<TKey, TValue> : IDisposable
 		_producer.Flush(timeout ?? TimeSpan.FromSeconds(30));
 	}
 
+	/// <summary>
+	/// Releases the underlying producer. Messages still queued are dropped — call
+	/// <see cref="Flush"/> first if delivery matters. Safe to call more than once.
+	/// </summary>
 	public void Dispose()
 	{
 		if (_disposed)

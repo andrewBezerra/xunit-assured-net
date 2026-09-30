@@ -33,6 +33,12 @@ public class KafkaClassFixture : ITestContextSeeder, IDisposable
 	private readonly ConcurrentQueue<string> _sharedProducerErrors = new();
 	private bool _disposed;
 
+	/// <summary>
+	/// Loads the <c>kafka</c> section of <c>testsettings.json</c> and prepares a shared
+	/// producer, created on first use and reused by every test in the class — creating
+	/// a producer per test would cost a broker handshake each time.
+	/// </summary>
+	/// <exception cref="InvalidOperationException">Thrown when no bootstrap servers are configured.</exception>
 	public KafkaClassFixture()
 	{
 		var settings = TestSettings.Load();
@@ -267,6 +273,11 @@ public class KafkaClassFixture : ITestContextSeeder, IDisposable
 		}
 	}
 
+	/// <summary>
+	/// Flushes and closes the shared producer, if one was ever created, when the test
+	/// class finishes. Flushing first makes sure the last test's messages reach the
+	/// broker before the connection goes away.
+	/// </summary>
 	public void Dispose()
 	{
 		if (_disposed) return;

@@ -1,4 +1,4 @@
-using System.ComponentModel;
+﻿using System.ComponentModel;
 
 using ModelContextProtocol.Server;
 
@@ -13,6 +13,11 @@ namespace XUnitAssured.Mcp.Tools;
 [McpServerToolType]
 public static class PlaywrightTranslatorTools
 {
+	/// <summary>
+	/// Converts code recorded by the Playwright Inspector into the equivalent XUnitAssured
+	/// DSL calls, dropping the browser/context/page boilerplate. Lets a tester record a
+	/// flow in the browser and paste it into a scenario without hand-translating locators.
+	/// </summary>
 	[McpServerTool(Name = "translate_playwright_to_dsl"),
 	 Description("Translates Playwright C# Library code (from the Inspector/Codegen) into XUnitAssured fluent DSL method calls. " +
 	             "Strips boilerplate (using statements, browser/context/page creation) and converts locator+action patterns. " +
@@ -31,6 +36,10 @@ public static class PlaywrightTranslatorTools
 			: result;
 	}
 
+	/// <summary>
+	/// Same translation as the DSL tool, wrapped in a complete Given/When/Then test method
+	/// body, for when the recording should become a whole test rather than a fragment.
+	/// </summary>
 	[McpServerTool(Name = "translate_playwright_to_test"),
 	 Description("Translates Playwright C# Library code into a complete XUnitAssured test block with Given/When/Then structure. " +
 	             "Wraps the translated DSL calls in a ready-to-paste test method body.")]
@@ -43,6 +52,10 @@ public static class PlaywrightTranslatorTools
 		return PlaywrightCodeTranslator.TranslateToGivenBlock(playwrightCode);
 	}
 
+	/// <summary>
+	/// Returns the Playwright DSL surface next to each method's Playwright C# equivalent,
+	/// so an assistant — or a person converting code by hand — can map one to the other.
+	/// </summary>
 	[McpServerTool(Name = "list_xunitassured_dsl_methods", ReadOnly = true),
 	 Description("Lists all available XUnitAssured Playwright DSL methods with their Playwright C# equivalents. " +
 	             "Use this as a reference when manually converting code or understanding the DSL API surface.")]

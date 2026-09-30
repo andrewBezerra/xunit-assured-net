@@ -1,4 +1,4 @@
-using System.ComponentModel;
+﻿using System.ComponentModel;
 using System.Text;
 
 using ModelContextProtocol.Server;
@@ -13,6 +13,11 @@ namespace XUnitAssured.Mcp.Tools;
 [McpServerToolType]
 public static class KafkaTestGeneratorTools
 {
+	/// <summary>
+	/// Writes a ready-to-paste xUnit test method that publishes a message to a topic
+	/// through the XUnitAssured.Kafka DSL and asserts delivery, with the message body
+	/// and authentication scaffolded from the arguments.
+	/// </summary>
 	[McpServerTool(Name = "generate_kafka_produce_test"),
 	 Description("Generates a complete XUnitAssured.Kafka test method that produces a message to a Kafka topic. " +
 	             "Produces a ready-to-paste [Fact] method with Given/When/Then structure.")]
@@ -73,6 +78,10 @@ public static class KafkaTestGeneratorTools
 		return sb.ToString();
 	}
 
+	/// <summary>
+	/// Writes a ready-to-paste xUnit test method that consumes from a topic through the
+	/// XUnitAssured.Kafka DSL and asserts on the message, with JSON-path checks when given.
+	/// </summary>
 	[McpServerTool(Name = "generate_kafka_consume_test"),
 	 Description("Generates a complete XUnitAssured.Kafka test method that consumes a message from a Kafka topic. " +
 	             "Produces a ready-to-paste [Fact] method with Given/When/Then structure and message assertions.")]
@@ -123,6 +132,11 @@ public static class KafkaTestGeneratorTools
 		return sb.ToString();
 	}
 
+	/// <summary>
+	/// Writes a produce-then-consume round-trip test for one topic: publish a message,
+	/// read it back, assert its content. The quickest proof that a topic and its
+	/// serialisation work end to end.
+	/// </summary>
 	[McpServerTool(Name = "generate_kafka_produce_consume_test"),
 	 Description("Generates a complete produce-then-consume round-trip test for a Kafka topic. " +
 	             "First produces a message, then consumes it and validates the content. " +
@@ -192,6 +206,10 @@ public static class KafkaTestGeneratorTools
 		return sb.ToString();
 	}
 
+	/// <summary>
+	/// Returns the Kafka DSL surface (produce, consume, authentication, assertions,
+	/// configuration) as text an assistant can consult before writing a Kafka test.
+	/// </summary>
 	[McpServerTool(Name = "list_kafka_dsl_methods", ReadOnly = true),
 	 Description("Lists all available XUnitAssured.Kafka DSL methods for Kafka integration testing. " +
 	             "Use this as a reference when writing Kafka produce/consume tests.")]
