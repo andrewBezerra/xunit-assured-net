@@ -48,7 +48,7 @@ public class HttpStepResultDiagnosticsTests
 		result.GetProperty<string>("ExceptionType").ShouldBe(typeof(HttpRequestException).FullName);
 		result.GetProperty<string>("ExceptionMessage").ShouldBe("No such host is known.");
 		result.GetProperty<string>("ExceptionStackTrace").ShouldNotBeNullOrWhiteSpace();
-		result.GetProperty<string>("ExceptionDetail").ShouldContain(nameof(HttpRequestException));
+		result.GetProperty<string>("ExceptionDetail").ShouldNotBeNull().ShouldContain(nameof(HttpRequestException));
 	}
 
 	[Fact(DisplayName = "CreateFailure should report status code zero for a transport failure")]
