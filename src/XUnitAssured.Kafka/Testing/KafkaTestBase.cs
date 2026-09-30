@@ -47,11 +47,8 @@ public abstract class KafkaTestBase<TFixture> where TFixture : KafkaClassFixture
 		var scenario = ScenarioDsl.Given();
 
 		// Store shared producer and config in context for steps to use
-		scenario.Context.SetProperty("_KafkaSharedProducer", Fixture.SharedProducer);
-		scenario.Context.SetProperty("_KafkaSharedProducerErrors", Fixture.SharedProducerErrors);
-		scenario.Context.SetProperty("_KafkaBootstrapServers", Fixture.BootstrapServers);
-		scenario.Context.SetProperty("_KafkaGroupId", Fixture.DefaultGroupId);
-		scenario.Context.SetProperty("_KafkaAuthConfig", Fixture.KafkaSettings.Authentication);
+		// The fixture knows what it provides; one place defines the context keys.
+		Fixture.Seed(scenario.Context);
 
 		return scenario;
 	}

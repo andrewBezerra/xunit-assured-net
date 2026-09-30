@@ -142,6 +142,18 @@ public class PlaywrightTestFixture : IAsyncLifetime, IDisposable
 	}
 
 	/// <summary>
+	/// Opens a page for one test and returns it as a session that can be handed to a
+	/// scenario — <c>Given(api, kafka, session)</c> — and disposed when the test ends.
+	/// Use this from tests that do not derive from <see cref="PlaywrightTestBase{TFixture}"/>.
+	/// </summary>
+	/// <returns>A session owning a new browser context and page.</returns>
+	public async Task<PlaywrightPageSession> OpenPageAsync()
+	{
+		var (context, page) = await CreatePageAsync();
+		return new PlaywrightPageSession(context, page, Settings);
+	}
+
+	/// <summary>
 	/// Closes the browser and disposes Playwright.
 	/// Called once after all tests in the class have run.
 	/// </summary>

@@ -1,9 +1,8 @@
-using System;
-using System.Net.Http;
+using System.Threading.Tasks;
 
-using Microsoft.Playwright;
-
+using XUnitAssured.Kafka.Testing;
 using XUnitAssured.Playwright.Extensions;
+using XUnitAssured.Playwright.Testing;
 
 namespace XUnitAssured.Tests;
 
@@ -22,20 +21,20 @@ public class CrossScenarioExampleTests
 	private sealed record OrderCreated(int OrderId, string Status);
 
 	[Fact(Skip = "README example - requires the API, a Kafka broker and a browser", DisplayName = "Placing an order should be reflected in the API, the topic and the UI")]
-	public void Placing_An_Order_Is_Reflected_Across_Api_Topic_And_Ui()
+	public async Task Placing_An_Order_Is_Reflected_Across_Api_Topic_And_Ui()
 	{
-		// In a real test these come from fixtures; see the sample projects.
-		var api = new HttpClient { BaseAddress = new Uri("https://localhost:5001") };
-		IPage browser = null!;
+		// In a real test these are xUnit class fixtures; see the sample projects.
+		var api = new ApiFixture();
+		var kafka = new KafkaClassFixture();
+		var ui = new PlaywrightTestFixture();
 
 		var orderId = 0;
+		await using var browser = await ui.OpenPageAsync();
 
-		var scenario = Given();
-		scenario.Context.SetProperty("_PlaywrightPage", browser);
+		var scenario = Given(api, kafka, browser);
 
 		scenario
 			// HTTP: create the order through the API
-			.WithHttpClient(api)
 			.ApiResource("/api/orders")
 			.Post(new { customerId = 42, total = 99.90m })
 			.Validate(response =>
