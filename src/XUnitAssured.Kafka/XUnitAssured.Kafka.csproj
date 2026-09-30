@@ -55,6 +55,11 @@
 
 	</ItemGroup>
 
+	<!-- Lets the unit tests reach internal helpers such as ConsumerAssignment. -->
+	<ItemGroup>
+		<InternalsVisibleTo Include="XUnitAssured.Tests" />
+	</ItemGroup>
+
 	<!-- Project References -->
 	<ItemGroup>
 		<ProjectReference Include="..\XUnitAssured.Core\XUnitAssured.Core.csproj" />

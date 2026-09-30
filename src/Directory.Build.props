@@ -1,4 +1,4 @@
-<Project>
+﻿<Project>
 
   <!--
     Settings shared by every project in the solution.
@@ -24,7 +24,7 @@
   </PropertyGroup>
 
   <PropertyGroup>
-    <Version>5.0.1</Version>
+    <Version>5.0.2</Version>
     <Authors>Carlos Andrew Costa Bezerra</Authors>
     <Company>Carlos Andrew Costa Bezerra</Company>
     <Copyright>Copyright (c) Carlos Andrew Costa Bezerra</Copyright>

@@ -169,15 +169,17 @@ public class KafkaProduceStep : ITestStep
 				var keyString = SerializeToString(Key);
 				var valueString = SerializeToString(Value);
 
-				if (keyString is null)
-					throw new InvalidOperationException($"Message key for topic '{Topic}' is null or its serialization returned null. Provide a non-null key value.");
+				// A null key is a valid Kafka message: the broker assigns the partition
+				// round-robin. Rejecting it here broke every produce that did not set a
+				// key, including the README's own quick-start example.
 				if (valueString is null)
 					throw new InvalidOperationException($"Message value for topic '{Topic}' is null or its serialization returned null. Provide a non-null value.");
 
 				// Build message
 				var message = new Message<string, string>
 				{
-					Key = keyString,
+					// Null is a legitimate key (see above); the string serializer accepts it.
+					Key = keyString!,
 					Value = valueString,
 					Headers = Headers,
 					Timestamp = Timestamp.HasValue 

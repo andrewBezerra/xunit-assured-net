@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -10,6 +10,7 @@ using XUnitAssured.Core.Abstractions;
 using XUnitAssured.Core.Results;
 using XUnitAssured.Kafka.Configuration;
 using XUnitAssured.Kafka.Handlers;
+using XUnitAssured.Kafka.Helpers;
 using XUnitAssured.Kafka.Results;
 
 namespace XUnitAssured.Kafka.Steps;
@@ -138,14 +139,19 @@ public class KafkaConsumeStep : ITestStep
 					if (brokerLogs.Count < MaxBrokerLogEntries)
 						brokerLogs.Add($"{log.Level}: {log.Message}");
 				})
-				.SetPartitionsAssignedHandler((_, partitions) =>
-				{
-					diagnosticProperties["AssignedPartitions"] = string.Join(",", partitions);
-				})
 				.Build();
 
-			// Subscribe to topic
-			consumer.Subscribe(Topic);
+			// Assign the partitions directly instead of subscribing. A subscription
+			// joins the consumer group, which on a default broker waits out
+			// group.initial.rebalance.delay.ms (three seconds) before the first
+			// message can be read — paid by every consume step, since each one is a
+			// fresh consumer. Manual assignment keeps the same starting offsets a
+			// subscription would use (committed, else AutoOffsetReset) without the join.
+			// This is also what the previous code fell back to when the coordinator
+			// was unavailable, so that fallback is now simply the only path.
+			var assignment = ConsumerAssignment.AssignAllPartitions(
+				consumer, config, Topic, TimeSpan.FromSeconds(5));
+			diagnosticProperties["AssignedPartitions"] = string.Join(",", assignment.Select(a => a.TopicPartition));
 
 			var deadline = DateTime.UtcNow.Add(Timeout);
 
@@ -158,65 +164,6 @@ public class KafkaConsumeStep : ITestStep
 					// Create success result
 					Result = KafkaStepResult.CreateKafkaConsumeSuccess(consumeResult);
 					return Result;
-				}
-			}
-
-			// The coordinator warning may arrive through either channel depending on
-			// whether librdkafka surfaces it as an error or as a log entry.
-			if (errorDetails.Concat(brokerLogs)
-				.Any(detail => detail.Contains("COORDINATOR_NOT_AVAILABLE", StringComparison.OrdinalIgnoreCase)))
-			{
-				diagnosticProperties["Fallback"] = "DirectPartitionAssign";
-
-				consumer.Unsubscribe();
-
-				var adminConfig = new AdminClientConfig
-				{
-					BootstrapServers = config.BootstrapServers,
-					SecurityProtocol = config.SecurityProtocol,
-					SaslMechanism = config.SaslMechanism,
-					SaslUsername = config.SaslUsername,
-					SaslPassword = config.SaslPassword,
-					SslCaLocation = config.SslCaLocation,
-					EnableSslCertificateVerification = config.EnableSslCertificateVerification
-				};
-
-				using var adminClient = new AdminClientBuilder(adminConfig).Build();
-				var metadata = adminClient.GetMetadata(Topic, TimeSpan.FromSeconds(5));
-				var topicMetadata = metadata.Topics.Find(t => t.Topic == Topic);
-				if (topicMetadata != null)
-				{
-					var partitions = topicMetadata.Partitions
-						.Select(p => new TopicPartition(Topic, new Partition(p.PartitionId)))
-						.ToList();
-
-					if (partitions.Count > 0)
-					{
-						try
-						{
-							var partitionOffsets = partitions
-								.Select(partition => new TopicPartitionOffset(partition, Offset.Beginning))
-								.ToList();
-
-							consumer.Assign(partitionOffsets);
-
-							var fallbackDeadline = DateTime.UtcNow.Add(Timeout);
-							while (DateTime.UtcNow <= fallbackDeadline)
-							{
-								var consumeResult = consumer.Consume(TimeSpan.FromMilliseconds(250));
-
-								if (consumeResult?.Message != null)
-								{
-									Result = KafkaStepResult.CreateKafkaConsumeSuccess(consumeResult);
-									return Result;
-								}
-							}
-						}
-						catch (Exception ex)
-						{
-							errorDetails.Add(ex.ToString());
-						}
-					}
 				}
 			}
 
