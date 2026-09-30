@@ -110,7 +110,12 @@ public class KafkaConsumeDiagnosticsTests
 		// Act
 		var result = await BuildStep(config).ExecuteAsync(new MockKafkaContext());
 
-		// Assert — the chatter is still available, just in the right place.
+		// Assert — the chatter is reported, just in the right place.
+		//
+		// Only the presence and shape of the property are asserted, never how many
+		// entries it holds: how much librdkafka emits within the timeout varies by
+		// platform and client version, so asserting a count would make this test
+		// fail for reasons unrelated to the behaviour it covers.
 		result.Properties.ContainsKey("BrokerLogs").ShouldBeTrue();
 		result.GetProperty<List<string>>("BrokerLogs").ShouldNotBeNull();
 	}

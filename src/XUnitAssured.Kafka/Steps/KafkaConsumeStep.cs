@@ -222,8 +222,12 @@ public class KafkaConsumeStep : ITestStep
 
 			// No message received. Surface the broker chatter here, where it is
 			// actually useful for diagnosing why nothing arrived.
-			if (brokerLogs.Count > 0)
-				diagnosticProperties["BrokerLogs"] = brokerLogs;
+			//
+			// The key is always present, even with nothing to report: whether
+			// librdkafka emits anything within the timeout varies by platform and
+			// client version, and a caller should not have to distinguish "no logs"
+			// from "no such property".
+			diagnosticProperties["BrokerLogs"] = brokerLogs;
 
 			Result = KafkaStepResult.CreateTimeout(Topic, Timeout, errorDetails, diagnosticProperties);
 			return Result;
