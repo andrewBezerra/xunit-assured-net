@@ -2,14 +2,28 @@ name: Release
 
 # Cutting a tag builds and verifies the packages, but publishing waits for a human.
 #
-# One-time setup required before the publish step can run:
-#   1. Settings > Secrets and variables > Actions > New repository secret
-#      Name: NUGET_API_KEY   Value: an api key from nuget.org
-#   2. Settings > Environments > New environment, named exactly: nuget-release
-#      Enable "Required reviewers" and add yourself.
+# Authentication uses Trusted Publishing, so no nuget.org API key is stored here.
+# The job proves its identity with a short-lived OIDC token issued by GitHub, which
+# nuget.org exchanges for an API key valid for one hour. Nothing long-lived exists
+# to leak or rotate.
 #
-# Without step 2 the publish job runs unattended — the environment protection rule
-# is what turns this into an approval gate, not anything in this file.
+# One-time setup, already in place for this repository:
+#
+#   1. nuget.org > your username > Trusted Publishing > add a policy:
+#        Repository Owner: andrewBezerra
+#        Repository:       xunit-assured-net
+#        Workflow File:    release.yml        (file name only, no path)
+#        Environment:      nuget-release
+#      The Environment field must match the `environment:` of the publish job
+#      below, or nuget.org rejects the token.
+#
+#   2. Settings > Environments > nuget-release, with "Required reviewers".
+#      This, not anything in this file, is what makes publishing wait for a human.
+#      "Allow administrators to bypass" is off, so the approval cannot be skipped.
+#
+#   3. Repository secret NUGET_USER — the nuget.org profile name, not an email
+#      address. It is an identifier rather than a credential, but nuget.org
+#      recommends keeping it out of the logs.
 
 on:
   push:
@@ -110,6 +124,12 @@ jobs:
     needs: verify
     environment: nuget-release
 
+    permissions:
+      # Lets this job request the OIDC token that nuget.org exchanges for a
+      # short-lived API key. Nothing else needs write access.
+      contents: read
+      id-token: write
+
     steps:
       - name: Download packages
         uses: actions/download-artifact@v4
@@ -122,11 +142,19 @@ jobs:
         with:
           dotnet-version: 10.0.x
 
+      # The issued key lasts one hour, so it is requested immediately before the
+      # push rather than at the start of the job.
+      - name: Exchange the OIDC token for a short-lived NuGet key
+        id: nuget-login
+        uses: NuGet/login@v1
+        with:
+          user: ${{ secrets.NUGET_USER }}
+
       # --skip-duplicate keeps a partial re-run from failing on packages that
       # already went out in an earlier attempt.
       - name: Push to NuGet
         run: |
           dotnet nuget push "artifacts/*.nupkg" \
-            --api-key "${{ secrets.NUGET_API_KEY }}" \
+            --api-key "${{ steps.nuget-login.outputs.NUGET_API_KEY }}" \
             --source https://api.nuget.org/v3/index.json \
             --skip-duplicate
