@@ -1,0 +1,132 @@
+name: Release
+
+# Cutting a tag builds and verifies the packages, but publishing waits for a human.
+#
+# One-time setup required before the publish step can run:
+#   1. Settings > Secrets and variables > Actions > New repository secret
+#      Name: NUGET_API_KEY   Value: an api key from nuget.org
+#   2. Settings > Environments > New environment, named exactly: nuget-release
+#      Enable "Required reviewers" and add yourself.
+#
+# Without step 2 the publish job runs unattended — the environment protection rule
+# is what turns this into an approval gate, not anything in this file.
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to build (e.g. 5.0.1). Defaults to the version in Directory.Build.props.'
+        required: false
+        type: string
+
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+  SOLUTION: src/XUnitAssured.Net.sln
+  UNIT_TESTS: src/XUnitAssured.Tests/XUnitAssured.Tests.csproj
+
+jobs:
+  # A tag must not be publishable unless it passes the same bar as a pull request.
+  verify:
+    name: Build, test & pack
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # SourceLink embeds commit information, which needs full history.
+          fetch-depth: 0
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            7.0.x
+            8.0.x
+            9.0.x
+            10.0.x
+
+      - name: Restore
+        run: dotnet restore ${{ env.SOLUTION }}
+
+      - name: Build
+        run: dotnet build ${{ env.SOLUTION }} --configuration Release --no-restore
+
+      - name: Test (net7.0)
+        run: dotnet test ${{ env.UNIT_TESTS }} --configuration Release --no-build --framework net7.0 --filter "Requires!=Network"
+
+      - name: Test (net8.0)
+        run: dotnet test ${{ env.UNIT_TESTS }} --configuration Release --no-build --framework net8.0 --filter "Requires!=Network"
+
+      - name: Test (net9.0)
+        run: dotnet test ${{ env.UNIT_TESTS }} --configuration Release --no-build --framework net9.0 --filter "Requires!=Network"
+
+      - name: Test (net10.0)
+        run: dotnet test ${{ env.UNIT_TESTS }} --configuration Release --no-build --framework net10.0 --filter "Requires!=Network"
+
+      - name: Pack
+        run: |
+          if [ -n "${{ inputs.version }}" ]; then
+            dotnet pack ${{ env.SOLUTION }} --configuration Release --output artifacts -p:Version=${{ inputs.version }}
+          else
+            dotnet pack ${{ env.SOLUTION }} --configuration Release --output artifacts
+          fi
+
+      # A tag that disagrees with the version in the build is almost always a
+      # mistake, and it would publish under a version nobody intended.
+      - name: Check the tag matches the package version
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          tag_version="${GITHUB_REF_NAME#v}"
+          package=$(ls artifacts/XUnitAssured.Core.*.nupkg | head -1)
+          package_version=$(basename "$package" .nupkg | sed 's/^XUnitAssured\.Core\.//')
+
+          echo "Tag version:     $tag_version"
+          echo "Package version: $package_version"
+
+          if [ "$tag_version" != "$package_version" ]; then
+            echo "::error::Tag '$GITHUB_REF_NAME' does not match packaged version '$package_version'. Update <Version> in src/Directory.Build.props, or retag."
+            exit 1
+          fi
+
+      - name: Upload packages
+        uses: actions/upload-artifact@v4
+        with:
+          name: nuget-packages
+          path: |
+            artifacts/*.nupkg
+            artifacts/*.snupkg
+          if-no-files-found: error
+
+  # Gated by the 'nuget-release' environment. Publishing to nuget.org cannot be
+  # undone — a package version is permanent once listed — so this waits for an
+  # explicit approval in the GitHub UI.
+  publish:
+    name: Publish to NuGet
+    runs-on: ubuntu-latest
+    needs: verify
+    environment: nuget-release
+
+    steps:
+      - name: Download packages
+        uses: actions/download-artifact@v4
+        with:
+          name: nuget-packages
+          path: artifacts
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      # --skip-duplicate keeps a partial re-run from failing on packages that
+      # already went out in an earlier attempt.
+      - name: Push to NuGet
+        run: |
+          dotnet nuget push "artifacts/*.nupkg" \
+            --api-key "${{ secrets.NUGET_API_KEY }}" \
+            --source https://api.nuget.org/v3/index.json \
+            --skip-duplicate

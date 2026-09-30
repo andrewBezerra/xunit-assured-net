@@ -1,4 +1,4 @@
-using System.Net;
+﻿using System.Net;
 using Shouldly;
 using Xunit;
 using XUnitAssured.Core.Storage;
@@ -15,6 +15,7 @@ namespace XUnitAssured.Tests.HttpTests;
 /// </summary>
 public class HttpRequestStepTests
 {
+	[Trait("Requires", "Network")]
 	[Fact(DisplayName = "HttpRequestStep should execute GET request successfully")]
 	public async Task HttpRequestStep_Should_Execute_Get_Request()
 	{
@@ -41,6 +42,7 @@ public class HttpRequestStepTests
 		httpResult.ResponseBody.ShouldNotBeNull();
 	}
 
+	[Trait("Requires", "Network")]
 	[Fact(DisplayName = "HttpRequestStep should execute POST request successfully")]
 	public async Task HttpRequestStep_Should_Execute_Post_Request()
 	{
@@ -67,6 +69,7 @@ public class HttpRequestStepTests
 		httpResult.IsSuccessStatusCode.ShouldBeTrue();
 	}
 
+	[Trait("Requires", "Network")]
 	[Fact(DisplayName = "HttpRequestStep should handle 404 Not Found error correctly")]
 	public async Task HttpRequestStep_Should_Handle_404_Error()
 	{
@@ -91,6 +94,7 @@ public class HttpRequestStepTests
 		httpResult.IsClientError.ShouldBeTrue();
 	}
 
+	[Trait("Requires", "Network")]
 	[Fact(DisplayName = "HttpRequestStep should add custom headers to request")]
 	public async Task HttpRequestStep_Should_Add_Custom_Headers()
 	{
@@ -118,6 +122,7 @@ public class HttpRequestStepTests
 		httpResult.StatusCode.ShouldBe(200);
 	}
 
+	[Trait("Requires", "Network")]
 	[Fact(DisplayName = "HttpRequestStep should add query parameters to request")]
 	public async Task HttpRequestStep_Should_Add_Query_Parameters()
 	{
@@ -146,6 +151,7 @@ public class HttpRequestStepTests
 		httpResult.ResponseBody.ShouldNotBeNull();
 	}
 
+	[Trait("Requires", "Network")]
 	[Fact(DisplayName = "HttpRequestStep should set IsExecuted flag after execution")]
 	public async Task HttpRequestStep_Should_Set_IsExecuted_After_Execution()
 	{
@@ -167,6 +173,7 @@ public class HttpRequestStepTests
 		step.Result.ShouldNotBeNull();
 	}
 
+	[Trait("Requires", "Network")]
 	[Fact(DisplayName = "HttpRequestStep should validate result successfully")]
 	public async Task HttpRequestStep_Should_Validate_Successfully()
 	{
@@ -219,6 +226,7 @@ public class HttpRequestStepTests
 		step.StepType.ShouldBe("Http");
 	}
 
+	[Trait("Requires", "Network")]
 	[Fact(DisplayName = "HttpRequestStep should handle timeout errors correctly", Skip = "Timeout behavior is unreliable with external public APIs")]
 	public async Task HttpRequestStep_Should_Handle_Timeout()
 	{

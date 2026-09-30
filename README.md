@@ -1,5 +1,9 @@
 # XUnitAssured.Net
 
+[![CI](https://github.com/andrewBezerra/XUnitAssured.Net/actions/workflows/ci.yml/badge.svg)](https://github.com/andrewBezerra/XUnitAssured.Net/actions/workflows/ci.yml)
+[![NuGet](https://img.shields.io/nuget/v/XUnitAssured.Core.svg?label=nuget)](https://www.nuget.org/packages/XUnitAssured.Core)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE.md)
+
 XUnitAssured.Net is a fluent testing framework for .NET that helps developers create and maintain test collections with the goal of promoting the development of quality software products. Write expressive integration tests using a natural `Given().When().Then()` DSL for HTTP/REST APIs, Apache Kafka, and browser-based UI testing with Playwright. Includes an MCP (Model Context Protocol) server for AI-assisted test generation.
 
 ## 🎯 Features

@@ -1,23 +1,13 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFrameworks>net7.0;net8.0;net9.0;net10.0</TargetFrameworks>
-    <LangVersion>12</LangVersion>
-    <ImplicitUsings>disable</ImplicitUsings>
-    <Nullable>enable</Nullable>
     <SuppressTfmSupportBuildWarnings>true</SuppressTfmSupportBuildWarnings>
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
-    <Version>5.0.0</Version>
-    <Authors>Carlos Andrew Costa Bezerra</Authors>    
     <Description>Playwright UI testing extensions for XUnitAssured. Provides fluent DSL for browser-based UI testing with support for multiple locator strategies (CSS, ARIA roles, labels, test IDs, placeholders, text), page interactions, screenshots, and rich assertions. Built on Microsoft.Playwright.</Description>
-    <PackageProjectUrl>https://github.com/andrewBezerra/xunit-assured-net</PackageProjectUrl>
-    <PackageReadmeFile>README.md</PackageReadmeFile>
-    <RepositoryUrl>https://github.com/andrewBezerra/xunit-assured-net</RepositoryUrl>
     <PackageId>XUnitAssured.Playwright</PackageId>
     <PackageTags>xunit;playwright;ui-testing;browser-testing;e2e;integration-testing;bdd</PackageTags>
     <RootNamespace>XUnitAssured.Playwright</RootNamespace>
     <IsPackable>true</IsPackable>
-    <PackageIcon>package-icon.png</PackageIcon>
-    <PackageLicenseFile>LICENSE.md</PackageLicenseFile>
   </PropertyGroup>
 
   <!-- Common Dependencies (all frameworks) -->
