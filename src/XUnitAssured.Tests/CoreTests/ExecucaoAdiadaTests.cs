@@ -12,8 +12,6 @@ using XUnitAssured.Core.Results;
 
 namespace XUnitAssured.Tests.CoreTests;
 
-[Trait("Category", "Core")]
-[Trait("Component", "DSL")]
 /// <summary>
 /// A chain describes; executing carries it out.
 ///
@@ -30,6 +28,8 @@ namespace XUnitAssured.Tests.CoreTests;
 /// an assertion that was never reached.
 /// </para>
 /// </summary>
+[Trait("Category", "Core")]
+[Trait("Component", "DSL")]
 public class ExecucaoAdiadaTests
 {
 	[Fact(DisplayName = "Describing a chain should not run anything")]
