@@ -25,6 +25,13 @@
 
   <PropertyGroup>
     <Version>6.0.0</Version>
+
+    <!--
+      O que a página do pacote no nuget.org mostra. Sem isto ela fica muda, e quem atualiza
+      por `dotnet add package` não recebe nenhum aviso de que a major quebra coisas.
+      Trocar a cada versão, junto do número acima.
+    -->
+    <PackageReleaseNotes>Breaking. A chain now describes and runs on ExecuteAsync(): And(), On() and Validate() no longer run anything where they are written, so a chain without a final Execute call does nothing. A value interpolated into a string from an earlier step needs the Func overload. ITestStep.ExecuteAsync takes a CancellationToken. Configuration is consolidated into testsettings.json. net7.0 dropped; targets are net8.0, net9.0 and net10.0. Upgrade guide: https://github.com/andrewBezerra/xunit-assured-net/blob/main/UPGRADING.md</PackageReleaseNotes>
     <Authors>Carlos Andrew Costa Bezerra</Authors>
     <Company>Carlos Andrew Costa Bezerra</Company>
     <Copyright>Copyright (c) Carlos Andrew Costa Bezerra</Copyright>

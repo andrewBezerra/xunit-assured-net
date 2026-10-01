@@ -559,6 +559,9 @@ In GitHub Copilot Chat, the XUnitAssured tools should appear as available. Try:
 
 ### v6.0.0 (Current — one `Execute()`, one configuration file)
 
+> Upgrading from 5.1.x? **[UPGRADING.md](UPGRADING.md)** says what to change in your code, with
+> the one silent change first. Its examples are compiled as part of the test suite.
+
 Breaking. Source-compatible for a chain written the usual way; the changes bite where a
 scenario was stored in a variable, a custom step was implemented, or an old file name was
 relied on.
