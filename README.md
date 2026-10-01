@@ -557,6 +557,23 @@ In GitHub Copilot Chat, the XUnitAssured tools should appear as available. Try:
 
 ## 🔄 Version History
 
+### Unreleased
+
+Merged and not published yet. Correctness fixes only; no API changes.
+
+- **Authentication survives the consume verbs.** The Kafka steps are `init`-only, so each verb
+  that changes one value rebuilt the whole step by hand, and five of them left `AuthConfig`
+  out: `WithTimeout`, `WithGroupId`, `WithBootstrapServers`, `WithSchema` and
+  `WithConsumerConfig`. Authenticating and then adjusting any of those replaced the explicit
+  credential with the fixture's, or connected with none at all. The four steps now have a copy
+  constructor and the verbs use it, so a property added later is carried over by default.
+- **The result-type error message names the cause.** It used to say to pick the right
+  `Execute<T>()`, which stopped being the mechanism in 6.0.0. It now names both result types
+  and points at the usual cause, a lambda with no parameter type binding to another package's
+  overload.
+- **Fragments in the authentication guides are marked as such**, by ending without a semicolon,
+  so copying one does not compile instead of becoming a test that asserts nothing.
+
 ### v6.0.0 (Current — one `Execute()`, one configuration file)
 
 > Upgrading from 5.1.x? **[UPGRADING.md](UPGRADING.md)** says what to change in your code, with

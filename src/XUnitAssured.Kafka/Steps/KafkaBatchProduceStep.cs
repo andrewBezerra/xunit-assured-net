@@ -81,6 +81,42 @@ public class KafkaBatchProduceStep : ITestStep
 	/// </summary>
 	public JsonSerializerOptions? JsonOptions { get; init; }
 
+	/// <summary>
+	/// Cria um passo com os valores padrão, para ser preenchido por um inicializador.
+	/// </summary>
+	public KafkaBatchProduceStep()
+	{
+	}
+
+	/// <summary>
+	/// Cria uma cópia do passo, carregando tudo o que estava configurado. Use um
+	/// inicializador para trocar só o que muda:
+	/// <c>new KafkaBatchProduceStep(anterior) { Timeout = novoPrazo }</c>.
+	/// </summary>
+	/// <remarks>
+	/// Reconstruir o passo campo por campo é como configuração se perde em silêncio. Foi
+	/// assim que cinco verbos do lado do consumo descartaram o <see cref="AuthConfig"/>:
+	/// autenticar e depois ajustar o prazo trocava a credencial explícita pela da fixture.
+	/// Copiar por aqui faz uma propriedade nova ser carregada por padrão, em vez de
+	/// depender de alguém lembrar de cada verbo.
+	/// </remarks>
+	/// <param name="source">O passo de onde copiar a configuração.</param>
+	/// <exception cref="ArgumentNullException">Quando <paramref name="source"/> é nulo.</exception>
+	public KafkaBatchProduceStep(KafkaBatchProduceStep source)
+	{
+		if (source == null)
+			throw new ArgumentNullException(nameof(source));
+
+		Name = source.Name;
+		Topic = source.Topic;
+		Headers = source.Headers;
+		Timeout = source.Timeout;
+		ProducerConfig = source.ProducerConfig;
+		BootstrapServers = source.BootstrapServers;
+		AuthConfig = source.AuthConfig;
+		JsonOptions = source.JsonOptions;
+	}
+
 	/// <inheritdoc />
 	public async Task<ITestStepResult> ExecuteAsync(ITestContext context, CancellationToken cancellationToken = default)
 	{
