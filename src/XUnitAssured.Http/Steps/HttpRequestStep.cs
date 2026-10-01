@@ -149,7 +149,7 @@ public class HttpRequestStep : ITestStep
 			// If custom HttpClient is provided, use it directly (bypass Flurl for better compatibility)
 			if (CustomHttpClient != null)
 			{
-				return await ExecuteWithCustomHttpClient();
+				return await ExecuteWithCustomHttpClient(cancellationToken);
 			}
 
 			IFlurlRequest request;
@@ -194,18 +194,18 @@ public class HttpRequestStep : ITestStep
 
 			if (Method == HttpMethod.Get)
 			{
-				response = await request.GetAsync();
+				response = await request.GetAsync(cancellationToken: cancellationToken);
 			}
 			else if (Method == HttpMethod.Post)
 			{
 				// Check if Body is HttpContent (e.g., FormUrlEncodedContent)
 				if (Body is HttpContent httpContent)
 				{
-					response = await request.SendAsync(HttpMethod.Post, httpContent);
+					response = await request.SendAsync(HttpMethod.Post, httpContent, cancellationToken: cancellationToken);
 				}
 				else
 				{
-					response = await request.PostJsonAsync(Body);
+					response = await request.PostJsonAsync(Body, cancellationToken: cancellationToken);
 				}
 			}
 			else if (Method == HttpMethod.Put)
@@ -213,36 +213,36 @@ public class HttpRequestStep : ITestStep
 				// Check if Body is HttpContent
 				if (Body is HttpContent httpContentPut)
 				{
-					response = await request.SendAsync(HttpMethod.Put, httpContentPut);
+					response = await request.SendAsync(HttpMethod.Put, httpContentPut, cancellationToken: cancellationToken);
 				}
 				else
 				{
-					response = await request.PutJsonAsync(Body);
+					response = await request.PutJsonAsync(Body, cancellationToken: cancellationToken);
 				}
 			}
 			else if (Method == HttpMethod.Delete)
 			{
-				response = await request.DeleteAsync();
+				response = await request.DeleteAsync(cancellationToken: cancellationToken);
 			}
 			else if (Method == HttpMethod.Patch)
 			{
 				// Check if Body is HttpContent
 				if (Body is HttpContent httpContentPatch)
 				{
-					response = await request.SendAsync(HttpMethod.Patch, httpContentPatch);
+					response = await request.SendAsync(HttpMethod.Patch, httpContentPatch, cancellationToken: cancellationToken);
 				}
 				else
 				{
-					response = await request.PatchJsonAsync(Body);
+					response = await request.PatchJsonAsync(Body, cancellationToken: cancellationToken);
 				}
 			}
 			else if (Method == HttpMethod.Head)
 			{
-				response = await request.HeadAsync();
+				response = await request.HeadAsync(cancellationToken: cancellationToken);
 			}
 			else if (Method == HttpMethod.Options)
 			{
-				response = await request.OptionsAsync();
+				response = await request.OptionsAsync(cancellationToken: cancellationToken);
 			}
 			else
 			{
@@ -277,6 +277,18 @@ public class HttpRequestStep : ITestStep
 		}
 		catch (FlurlHttpException ex)
 		{
+			// Sem código de status não houve resposta nenhuma: prazo esgotado, cancelamento,
+			// DNS que não resolveu, conexão recusada. O caminho abaixo existe para resposta de
+			// erro do servidor, e tratar "não respondeu" como tal produzia o pior resultado
+			// possível de ler: status 0, Success falso, lista de erros VAZIA e o passo marcado
+			// como Succeeded. Um timeout chega aqui porque FlurlHttpTimeoutException herda
+			// desta exceção.
+			if (ex.StatusCode is null)
+			{
+				Result = HttpStepResult.CreateFailure(ex);
+				return Result;
+			}
+
 			// HTTP error (4xx, 5xx)
 			var statusCode = ex.StatusCode ?? 0;
 			var responseBody = await ex.GetResponseStringAsync();
@@ -349,7 +361,7 @@ public class HttpRequestStep : ITestStep
 	/// Executes HTTP request using CustomHttpClient directly (bypasses Flurl).
 	/// This ensures proper header propagation for integration tests with WebApplicationFactory.
 	/// </summary>
-	private async Task<ITestStepResult> ExecuteWithCustomHttpClient()
+	private async Task<ITestStepResult> ExecuteWithCustomHttpClient(CancellationToken cancellationToken)
 	{
 		if (CustomHttpClient == null)
 			throw new InvalidOperationException("CustomHttpClient is null");
@@ -413,8 +425,14 @@ public class HttpRequestStep : ITestStep
 		try
 		{
 			// Execute request
-			var httpResponse = await CustomHttpClient.SendAsync(httpRequest);
-			var responseBody = await httpResponse.Content.ReadAsStringAsync();
+			// O HttpClient próprio desvia do Flurl, e com ele de todo o WithTimeout. Sem isto,
+			// TimeoutSeconds ficava guardado e sem efeito: a espera passava a ser a do cliente,
+			// cem segundos por padrão, ou nenhuma se alguém o tivesse posto como infinito.
+			using var prazo = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+			prazo.CancelAfter(TimeSpan.FromSeconds(TimeoutSeconds));
+
+			var httpResponse = await CustomHttpClient.SendAsync(httpRequest, prazo.Token);
+			var responseBody = await httpResponse.Content.ReadAsStringAsync(prazo.Token);
 
 			// Parse headers
 			var headers = httpResponse.Headers
@@ -433,6 +451,13 @@ public class HttpRequestStep : ITestStep
 				reasonPhrase: httpResponse.ReasonPhrase
 			);
 
+			return Result;
+		}
+		// Desistir por prazo e desistir por cancelamento chegam aqui como a mesma exceção. As
+		// duas são falha do passo, e a mensagem é o que distingue uma da outra para quem lê.
+		catch (OperationCanceledException ex)
+		{
+			Result = HttpStepResult.CreateFailure(ex);
 			return Result;
 		}
 		catch (HttpRequestException ex)

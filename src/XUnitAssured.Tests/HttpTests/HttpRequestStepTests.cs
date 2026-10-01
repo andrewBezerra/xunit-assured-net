@@ -226,28 +226,10 @@ public class HttpRequestStepTests
 		step.StepType.ShouldBe("Http");
 	}
 
-	[Trait("Requires", "Network")]
-	[Fact(DisplayName = "HttpRequestStep should handle timeout errors correctly", Skip = "Timeout behavior is unreliable with external public APIs")]
-	public async Task HttpRequestStep_Should_Handle_Timeout()
-	{
-		// Arrange
-		var step = new HttpRequestStep
-		{
-			Url = "https://httpbin.org/delay/10", // Delays 10 seconds
-			Method = HttpMethod.Get,
-			TimeoutSeconds = 1 // 1 second timeout
-		};
-
-		var context = new MockTestContext();
-
-		// Act
-		var result = await step.ExecuteAsync(context);
-
-		// Assert
-		result.ShouldNotBeNull();
-		result.Success.ShouldBeFalse();
-		result.Errors.ShouldNotBeEmpty();
-	}
+	// O comportamento de prazo esgotado é verificado em TempoEsgotadoTests, contra um socket
+	// na interface local que aceita a conexão e não responde. O teste que havia aqui apontava
+	// para um serviço público de atraso e estava ignorado como "instável"; o que o impedia de
+	// passar não era o serviço, e sim o passo não relatar erro nenhum ao desistir.
 
 	// Mock test context for testing
 	private class MockTestContext : Core.Abstractions.ITestContext
