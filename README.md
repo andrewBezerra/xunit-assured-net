@@ -552,7 +552,29 @@ In GitHub Copilot Chat, the XUnitAssured tools should appear as available. Try:
 
 ## 🔄 Version History
 
-### v5.1.0 (Current — cross-boundary scenarios from one call, fully compatible with 5.0.x)
+### v6.0.0 (Current — one `Execute()`, one configuration file)
+
+Breaking. Source-compatible for a chain written the usual way; the changes bite where a
+scenario was stored in a variable, a custom step was implemented, or an old file name was
+relied on.
+
+- **A cross-boundary chain ends with a plain `.Execute()`.** Each package's chain methods
+  return their own scenario type — `IHttpScenario`, `IKafkaScenario`, `IBrowserScenario` —
+  and `Execute()` is an instance method on it, so the compiler picks the builder from the
+  receiver. The scenario at the top of this README used to end with
+  `PlaywrightBddExtensions.Execute(scenario)` spelled out.
+  *Binary-breaking:* 157 extension methods changed their return type.
+- **Browser settings moved into `testsettings.json`**, under a `playwright` section next to
+  `http` and `kafka`. `playwrightsettings.json` is still read, and says once where its
+  contents should move to; it will be removed in a future major.
+- **`net7.0` dropped** — out of support since May 2024. Targets are now `net8.0`, `net9.0`
+  and `net10.0`. This also retires the Confluent.Kafka 2.3.0 pin that only that target used.
+- **Browser-state verbs** — `ClearCookies`, `SetLocalStorage`, `ClearLocalStorage`, and the
+  assertions `AssertCookie`, `AssertNoCookie`, `AssertCookieIsHttpOnly`, `AssertLocalStorage`,
+  `AssertNoLocalStorage`. The last ones read the browser context rather than
+  `document.cookie`, which is the only way to assert about a cookie the page cannot see.
+
+### v5.1.0 (cross-boundary scenarios from one call, fully compatible with 5.0.x)
 
 Additive release; upgrading requires no code changes.
 
