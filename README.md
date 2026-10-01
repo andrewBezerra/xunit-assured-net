@@ -599,6 +599,16 @@ Merged and not published yet. Correctness fixes only; no API changes.
   `WithConsumerConfig`. Authenticating and then adjusting any of those replaced the explicit
   credential with the fixture's, or connected with none at all. The four steps now have a copy
   constructor and the verbs use it, so a property added later is carried over by default.
+- **An explicitly configured broker or group is no longer discarded.** The Kafka steps decided
+  "not configured" by comparing the value against the default, so a project that set
+  `localhost:9092` on purpose had its value replaced by the fixture's. Absence is now recorded
+  on the step instead of inferred, and `localhost:9092` is exactly the address a local broker
+  uses, so it was the value most likely to be written by hand.
+- **The MCP server's reference tables name methods that exist.** `list_http_dsl_methods`
+  advertised `WithApiKeyInQuery`, `WithOAuth2ClientCredentials` and `WithCustomHeaderAuth`, none
+  of which are in the API, while its own description says to use it as a reference. The tables
+  also now cover the 6.0.0 surface, and each tool description says when not to use it and what
+  it does not return.
 - **The result-type error message names the cause.** It used to say to pick the right
   `Execute<T>()`, which stopped being the mechanism in 6.0.0. It now names both result types
   and points at the usual cause, a lambda with no parameter type binding to another package's
