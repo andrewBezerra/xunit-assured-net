@@ -42,10 +42,19 @@ public class ValidationBuilder<TResult> where TResult : class, ITestStepResult
 				var stepResult = step.Result 
 					?? throw new InvalidOperationException("Step has not been executed. Call Execute() before validating.");
 				
-				_result = stepResult as TResult 
+				// A sugestão antiga mandava escolher o Execute<T>() certo, e desde a 6.0.0 não é mais
+				// assim que o construtor de asserções é escolhido: quem escolhe é o tipo que a cadeia
+				// carrega. Quando os dois não batem, a causa quase sempre está num verbo anterior, e é
+				// isso que a mensagem precisa dizer.
+				_result = stepResult as TResult
 					?? throw new InvalidOperationException(
-						$"Expected result type {typeof(TResult).Name} but got {stepResult.GetType().Name}. " +
-						$"Ensure you're using the correct Execute<T>() method for your step type.");
+						$"Expected result type {typeof(TResult).Name} but the step produced a " +
+						$"{stepResult.GetType().Name}. The chain is typed for {typeof(TResult).Name}, so a " +
+						$"verb before this point put it there. The usual cause is a lambda with no " +
+						$"parameter type: Validate(r => ...) binds to whichever referenced package has an " +
+						$"overload accepting any result, and types the rest of the chain for that package. " +
+						$"Naming the type, as in Validate(({stepResult.GetType().Name} r) => ...), picks the " +
+						$"intended one.");
 			}
 			return _result;
 		}

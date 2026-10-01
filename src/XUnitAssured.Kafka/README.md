@@ -255,6 +255,28 @@ public void RoundTrip_ProduceAndConsume()
 }
 ```
 
+## One sharp edge: `Validate` with an untyped lambda
+
+In a test project that references **both** this package and `XUnitAssured.Http`, a lambda with
+no parameter type binds to the HTTP overload, because that one accepts any result. The chain is
+then typed for HTTP, and the failure only shows up at the end, when the assertions are read:
+
+```csharp
+// Binds to the Http overload, and types the chain for HTTP
+Given(kafka).Topic("orders").Consume().Validate(r => r.Success.ShouldBeTrue())
+
+// Names the type, and stays a Kafka chain
+Given(kafka).Topic("orders").Consume().Validate((KafkaStepResult r) => r.Success.ShouldBeTrue())
+```
+
+`ValidateMessage<T>`, `ValidateOffset`, `ValidatePartition` and the rest are unaffected: no other
+package declares them, so there is nothing to compete with. Only the bare name `Validate` is
+shared.
+
+The error message names both result types and suggests the typed form, so a run that hits this
+says what to change. Moving the protocol-agnostic overload out of the HTTP package would remove
+the ambiguity altogether, and that is a breaking change held for the next major.
+
 ## Supported Frameworks
 
 - .NET 8
