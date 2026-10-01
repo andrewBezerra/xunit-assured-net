@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using XUnitAssured.Core.Abstractions;
 
 namespace XUnitAssured.Core.Extensions;
@@ -24,8 +24,8 @@ public static class ScenarioExtensions
 		if (scenario.CurrentStep == null)
 			throw new InvalidOperationException("No current step to save. Create a step first.");
 
-		// Execute the step
-		scenario.ExecuteCurrentStepAsync().GetAwaiter().GetResult();
+		// Saving a step means saving its result, so what is pending has to run first.
+		scenario.ExecutePendingAsync().GetAwaiter().GetResult();
 
 		// Save to storage
 		scenario.Context.Steps.Save(name, scenario.CurrentStep);

@@ -1,4 +1,4 @@
-using Shouldly;
+﻿using Shouldly;
 using XUnitAssured.Http.Extensions;
 
 namespace XUnitAssured.Http.Samples.Remote.Test;
@@ -49,7 +49,7 @@ public class SimpleIntegrationTests : HttpSamplesRemoteTestBase, IClassFixture<H
 			.ApiResource("/api/products/1")           // ← Relative URL works with BaseAddress
 			.Get();
 
-		await scenario.ExecuteCurrentStepAsync();
+		await scenario.ExecutePendingAsync();
 
 		var step = scenario.CurrentStep;
 		var result = step?.Result as XUnitAssured.Http.Results.HttpStepResult;

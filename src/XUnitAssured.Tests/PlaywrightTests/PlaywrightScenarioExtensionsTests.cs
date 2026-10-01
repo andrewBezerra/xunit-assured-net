@@ -1,4 +1,4 @@
-using Microsoft.Playwright;
+﻿using Microsoft.Playwright;
 using XUnitAssured.Core.DSL;
 using XUnitAssured.Playwright.Extensions;
 using XUnitAssured.Playwright.Locators;
@@ -42,7 +42,7 @@ public class PlaywrightScenarioExtensionsTests
 		var scenario = ScenarioDsl.Given();
 
 		// Act & Assert
-		Should.Throw<ArgumentException>(() => scenario.NavigateTo(null!));
+		Should.Throw<ArgumentException>(() => scenario.NavigateTo((string)null!));
 	}
 
 	[Fact(DisplayName = "NavigateTo should throw on empty URL")]

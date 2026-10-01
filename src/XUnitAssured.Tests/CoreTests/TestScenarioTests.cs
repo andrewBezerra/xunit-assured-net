@@ -1,3 +1,4 @@
+﻿using System.Threading;
 using Shouldly;
 using Xunit;
 using XUnitAssured.Core.Abstractions;
@@ -88,7 +89,7 @@ public class TestScenarioTests
 		scenario.SetCurrentStep(mockStep);
 
 		// Act
-		await scenario.ExecuteCurrentStepAsync();
+		await scenario.ExecutePendingAsync();
 
 		// Assert
 		mockStep.IsExecuted.ShouldBeTrue();
@@ -103,10 +104,10 @@ public class TestScenarioTests
 		scenario.SetCurrentStep(mockStep);
 
 		// Act
-		await scenario.ExecuteCurrentStepAsync();
+		await scenario.ExecutePendingAsync();
 		mockStep.ExecutionCount.ShouldBe(1);
 
-		await scenario.ExecuteCurrentStepAsync();
+		await scenario.ExecutePendingAsync();
 
 		// Assert
 		mockStep.ExecutionCount.ShouldBe(1); // Still 1, not 2
@@ -150,7 +151,7 @@ public class TestScenarioTests
 		public bool IsValid { get; private set; }
 		public int ExecutionCount { get; private set; }
 
-		public async System.Threading.Tasks.Task<ITestStepResult> ExecuteAsync(ITestContext context)
+		public async System.Threading.Tasks.Task<ITestStepResult> ExecuteAsync(ITestContext context, CancellationToken cancellationToken = default)
 		{
 			ExecutionCount++;
 			Result = TestStepResult.CreateSuccess();

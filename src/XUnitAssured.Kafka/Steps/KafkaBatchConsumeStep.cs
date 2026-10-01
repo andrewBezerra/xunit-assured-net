@@ -86,7 +86,10 @@ public class KafkaBatchConsumeStep : ITestStep
 	private const int MaxBrokerLogEntries = 200;
 
 	/// <inheritdoc />
-	public async Task<ITestStepResult> ExecuteAsync(ITestContext context)
+	/// <summary>Quanto se espera entre duas olhadas no que chegou.</summary>
+	private static readonly TimeSpan IntervaloEntreTentativas = TimeSpan.FromMilliseconds(50);
+
+	public async Task<ITestStepResult> ExecuteAsync(ITestContext context, CancellationToken cancellationToken = default)
 	{
 		// Collected as the step runs so that a failure can explain itself: which
 		// broker, which group, what the broker said. Broker logs are diagnostics,
@@ -151,7 +154,10 @@ public class KafkaBatchConsumeStep : ITestStep
 			var metadataTimeout = Timeout < TimeSpan.FromSeconds(5) ? Timeout : TimeSpan.FromSeconds(5);
 			ConsumerAssignment.AssignAllPartitions(consumer, config, Topic, metadataTimeout);
 
-			using var cts = new CancellationTokenSource(Timeout);
+			// O prazo do passo e o cancelamento de quem chamou valem os dois: o que vier
+			// primeiro encerra a espera.
+			using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+			cts.CancelAfter(Timeout);
 
 			var consumedResults = new List<ConsumeResult<string, string>>(MessageCount);
 
@@ -159,12 +165,18 @@ public class KafkaBatchConsumeStep : ITestStep
 			{
 				while (consumedResults.Count < MessageCount)
 				{
-					var consumeResult = consumer.Consume(cts.Token);
+					// Mesma troca do consumo de uma mensagem so: olhar o que ja chegou e
+					// devolver a thread entre as olhadas, em vez de prende-la esperando. Ver
+					// o comentario em KafkaConsumeStep.
+					var consumeResult = consumer.Consume(TimeSpan.Zero);
 
 					if (consumeResult?.Message != null)
 					{
 						consumedResults.Add(consumeResult);
+						continue;
 					}
+
+					await Task.Delay(IntervaloEntreTentativas, cts.Token).ConfigureAwait(false);
 				}
 
 				// All N messages received

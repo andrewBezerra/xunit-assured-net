@@ -1,3 +1,4 @@
+﻿using System.Threading;
 using System.Text.RegularExpressions;
 using Microsoft.Playwright;
 using XUnitAssured.Core.Abstractions;
@@ -1271,7 +1272,7 @@ public class PlaywrightValidationBuilderTests
 			Result = result;
 		}
 
-		public Task<ITestStepResult> ExecuteAsync(ITestContext context)
+		public Task<ITestStepResult> ExecuteAsync(ITestContext context, CancellationToken cancellationToken = default)
 		{
 			return Task.FromResult<ITestStepResult>(Result!);
 		}

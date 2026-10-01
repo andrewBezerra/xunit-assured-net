@@ -1,3 +1,5 @@
+﻿using System.Threading.Tasks;
+using System.Threading;
 using XUnitAssured.Core.Abstractions;
 using XUnitAssured.Http.Extensions;
 
@@ -41,7 +43,17 @@ public interface IHttpScenario : ITestScenario
 	new IHttpScenario Then();
 
 	/// <summary>
-	/// Runs the HTTP call and hands back the HTTP assertions.
+	/// Runs the chain and hands back the assertions.
 	/// </summary>
+	Task<HttpValidationBuilder> ExecuteAsync(CancellationToken cancellationToken = default);
+
+	/// <summary>
+	/// Runs the chain and waits for it.
+	/// </summary>
+	/// <remarks>
+	/// A thin wrapper over <see cref="ExecuteAsync"/>, kept so a suite written against the
+	/// synchronous DSL keeps working. It blocks the calling thread, which in a test runner
+	/// is the thread that would be waiting anyway.
+	/// </remarks>
 	HttpValidationBuilder Execute();
 }

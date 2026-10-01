@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using XUnitAssured.Playwright.Locators;
 
 namespace XUnitAssured.Playwright.Steps;
@@ -98,6 +99,22 @@ public class PageAction
 	/// For SetChecked: "true" or "false".
 	/// </summary>
 	public string? Value { get; init; }
+
+	/// <summary>
+	/// A value that is only known once the chain runs.
+	///
+	/// <para>
+	/// A chain describes the scenario before any of it has run, so an id produced by an
+	/// earlier step is not in hand while the chain is being written —
+	/// <c>$"/orders/{orderId}"</c> would be built with whatever <c>orderId</c> held at that
+	/// moment, which is nothing. Handing in a function instead moves the reading to execution
+	/// time, when the earlier step has already produced it.
+	/// </para>
+	/// </summary>
+	public Func<string>? ValueProvider { get; init; }
+
+	/// <summary>The value to act on: the deferred one when there is one.</summary>
+	public string? ResolveValue() => ValueProvider is null ? Value : ValueProvider();
 
 	/// <summary>
 	/// The second half of a pair, for the actions that need two strings.

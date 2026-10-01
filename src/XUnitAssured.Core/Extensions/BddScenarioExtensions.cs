@@ -1,3 +1,5 @@
+﻿using System.Threading.Tasks;
+using System.Threading;
 using System;
 using XUnitAssured.Core.Abstractions;
 using XUnitAssured.Core.Results;
@@ -29,13 +31,26 @@ public static class BddScenarioExtensions
 	///     .AssertSuccess();
 	/// </code>
 	/// </example>
-	public static ValidationBuilder<TResult> Execute<TResult>(this ITestScenario scenario) 
+	public static async Task<ValidationBuilder<TResult>> ExecuteAsync<TResult>(
+		this ITestScenario scenario,
+		CancellationToken cancellationToken = default)
 		where TResult : class, ITestStepResult
 	{
-		// Execute the step asynchronously and block until completion
-		scenario.ExecuteCurrentStepAsync().GetAwaiter().GetResult();
-		
-		// Return a validation builder for the result
+		await scenario.ExecutePendingAsync(cancellationToken).ConfigureAwait(false);
+
 		return new ValidationBuilder<TResult>(scenario);
 	}
+
+	/// <summary>
+	/// Runs the chain and waits for it.
+	/// </summary>
+	/// <remarks>
+	/// A thin wrapper over <see cref="ExecuteAsync{TResult}"/>, so that a suite written
+	/// against the synchronous DSL keeps working. It blocks the calling thread, which in a
+	/// test runner is the thread that would be waiting anyway; xUnit sets no synchronization
+	/// context, so the usual deadlock does not apply.
+	/// </remarks>
+	public static ValidationBuilder<TResult> Execute<TResult>(this ITestScenario scenario)
+		where TResult : class, ITestStepResult
+		=> scenario.ExecuteAsync<TResult>().GetAwaiter().GetResult();
 }

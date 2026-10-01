@@ -98,7 +98,7 @@ public class KafkaProduceStep : ITestStep
 	public JsonSerializerOptions? JsonOptions { get; init; }
 
 	/// <inheritdoc />
-	public async Task<ITestStepResult> ExecuteAsync(ITestContext context)
+	public async Task<ITestStepResult> ExecuteAsync(ITestContext context, CancellationToken cancellationToken = default)
 	{
 		var startTime = DateTimeOffset.UtcNow;
 		var diagnosticProperties = new Dictionary<string, object?>();

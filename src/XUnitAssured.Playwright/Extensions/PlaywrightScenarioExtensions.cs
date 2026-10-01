@@ -23,6 +23,38 @@ public static class PlaywrightScenarioExtensions
 	/// If a BaseUrl is configured, relative paths are resolved against it.
 	/// Usage: Given().NavigateTo("/login") or Given().NavigateTo("https://example.com")
 	/// </summary>
+	/// <summary>
+	/// Navigates to a URL that is only known once the chain runs.
+	/// </summary>
+	/// <remarks>
+	/// For a URL built from something an earlier step produced. Written as a string, it would
+	/// be built while the chain is being described — before that step has run, and therefore
+	/// with nothing in it.
+	/// <code>
+	/// var orderId = 0;
+	///
+	/// await Given(api, browser)
+	///     .ApiResource("/api/orders").Post(novoPedido)
+	///     .Validate(r =&gt; orderId = r.JsonPath&lt;int&gt;("$.id"))
+	///     .And()
+	///     .NavigateTo(() =&gt; $"/orders/{orderId}")
+	///     .ExecuteAsync();
+	/// </code>
+	/// </remarks>
+	public static IBrowserScenario NavigateTo(this ITestScenario scenario, Func<string> url)
+	{
+		if (scenario == null) throw new ArgumentNullException(nameof(scenario));
+		if (url == null) throw new ArgumentNullException(nameof(url));
+
+		GetOrCreateStep(scenario).AddAction(new PageAction
+		{
+			ActionType = PageActionType.Navigate,
+			ValueProvider = url
+		});
+
+		return BrowserScenario.De(scenario);
+	}
+
 	public static IBrowserScenario NavigateTo(this ITestScenario scenario, string url)
 	{
 		if (scenario == null) throw new ArgumentNullException(nameof(scenario));

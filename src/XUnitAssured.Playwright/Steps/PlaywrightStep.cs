@@ -1,4 +1,5 @@
-﻿using System;
+﻿using System.Threading;
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
@@ -64,7 +65,7 @@ public class PlaywrightStep : ITestStep
 	}
 
 	/// <inheritdoc />
-	public async Task<ITestStepResult> ExecuteAsync(ITestContext context)
+	public async Task<ITestStepResult> ExecuteAsync(ITestContext context, CancellationToken cancellationToken = default)
 	{
 		var startTime = DateTimeOffset.UtcNow;
 		var screenshots = new List<string>();
@@ -188,7 +189,7 @@ public class PlaywrightStep : ITestStep
 				break;
 
 			case PageActionType.Navigate:
-				var url = ResolveUrl(action.Value!);
+				var url = ResolveUrl(action.ResolveValue()!);
 				await page.GotoAsync(url, new PageGotoOptions
 				{
 					Timeout = Settings.NavigationTimeout

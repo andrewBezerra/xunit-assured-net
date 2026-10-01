@@ -25,14 +25,11 @@ public static class HttpValidationExtensions
 		if (validation == null)
 			throw new ArgumentNullException(nameof(validation));
 
-		// Execute current step if not already executed
-		scenario.ExecuteCurrentStepAsync().GetAwaiter().GetResult();
-
-		if (scenario.CurrentStep == null)
-			throw new InvalidOperationException("No step to validate. Create a step first.");
+		// Registered, not run: the step has not run yet when the chain is being written.
+		// The lambda closes over whatever it needs and is called once the result exists.
 
 		// Validate with the generic ITestStepResult, then cast to HttpStepResult
-		scenario.CurrentStep.Validate(result =>
+		scenario.AddValidation(result =>
 		{
 			if (result is not HttpStepResult httpResult)
 				throw new InvalidOperationException($"Expected HttpStepResult but got {result.GetType().Name}");
@@ -55,13 +52,10 @@ public static class HttpValidationExtensions
 		if (validation == null)
 			throw new ArgumentNullException(nameof(validation));
 
-		// Execute current step if not already executed
-		scenario.ExecuteCurrentStepAsync().GetAwaiter().GetResult();
+		// Registered, not run: the step has not run yet when the chain is being written.
+		// The lambda closes over whatever it needs and is called once the result exists.
 
-		if (scenario.CurrentStep == null)
-			throw new InvalidOperationException("No step to validate. Create a step first.");
-
-		scenario.CurrentStep.Validate(validation);
+		scenario.AddValidation(validation);
 
 		return HttpScenario.De(scenario);
 	}
