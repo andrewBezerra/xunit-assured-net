@@ -590,6 +590,13 @@ relied on.
   assertions `AssertCookie`, `AssertNoCookie`, `AssertCookieIsHttpOnly`, `AssertLocalStorage`,
   `AssertNoLocalStorage`. The last ones read the browser context rather than
   `document.cookie`, which is the only way to assert about a cookie the page cannot see.
+- **A request that gets no answer now says so.** A timeout, a cancellation, a refused
+  connection or a name that does not resolve were reported as an HTTP error response with
+  status `0`, an empty error list and the step marked `Succeeded`. They are now failures,
+  with the reason in `Errors`. The rule is that no status code means no response arrived.
+- **`CancellationToken` reaches the HTTP call**, instead of stopping at the step's signature,
+  and `TimeoutSeconds` is applied on the custom-`HttpClient` path, where it used to be stored
+  and ignored while the client's own 100-second default did the waiting.
 - **Observed requests** — `AssertRequested(urlPattern)` and `AssertRequestedOnce(urlPattern)`
   assert about what the page asked for while the step ran, with `*` standing for any run of
   characters. The second one is the point: a renewal that fires twice still leaves the user
