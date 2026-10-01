@@ -55,6 +55,17 @@ public static class PlaywrightScenarioExtensions
 		return BrowserScenario.De(scenario);
 	}
 
+	/// <summary>
+	/// Navigates to an address that is known while the chain is being written.
+	/// </summary>
+	/// <remarks>
+	/// For an address that depends on a value an earlier step produces, use the overload
+	/// taking a <see cref="Func{TResult}"/>: a string is built as the chain is written, and
+	/// at that point no step has run yet.
+	/// </remarks>
+	/// <param name="scenario">The test scenario to add the navigation to</param>
+	/// <param name="url">The address to open</param>
+	/// <returns>The scenario, typed as a browser scenario</returns>
 	public static IBrowserScenario NavigateTo(this ITestScenario scenario, string url)
 	{
 		if (scenario == null) throw new ArgumentNullException(nameof(scenario));

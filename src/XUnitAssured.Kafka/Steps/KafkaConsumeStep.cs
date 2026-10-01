@@ -81,15 +81,15 @@ public class KafkaConsumeStep : ITestStep
 	/// </summary>
 	public KafkaAuthConfig? AuthConfig { get; init; }
 
-	/// <inheritdoc />
 	/// <summary>
 	/// Quanto se espera entre duas olhadas no que chegou.
 	///
-	/// Cinquenta milissegundos e menos do que os duzentos e cinquenta que a espera bloqueante
-	/// usava, entao uma mensagem e notada mais cedo, e nao mais tarde.
+	/// Cinquenta milissegundos é menos do que os duzentos e cinquenta que a espera bloqueante
+	/// usava, então uma mensagem é notada mais cedo, e não mais tarde.
 	/// </summary>
 	private static readonly TimeSpan IntervaloEntreTentativas = TimeSpan.FromMilliseconds(50);
 
+	/// <inheritdoc />
 	public async Task<ITestStepResult> ExecuteAsync(ITestContext context, CancellationToken cancellationToken = default)
 	{
 		var startTime = DateTimeOffset.UtcNow;

@@ -13,22 +13,23 @@ namespace XUnitAssured.Core.Extensions;
 public static class BddScenarioExtensions
 {
 	/// <summary>
-	/// Executes the current step synchronously and returns a generic validation builder.
-	/// This method bridges the async step execution with the fluent validation API.
+	/// Runs everything the chain has described, in order, and hands back the assertions.
+	/// A chain only describes until this point, so this is where the I/O happens.
 	/// </summary>
 	/// <typeparam name="TResult">The type of ITestStepResult to validate (e.g., HttpStepResult, KafkaStepResult)</typeparam>
-	/// <param name="scenario">The test scenario containing the step to execute</param>
+	/// <param name="scenario">The test scenario holding the steps to run</param>
+	/// <param name="cancellationToken">Stops the run between steps and reaches the step itself</param>
 	/// <returns>A ValidationBuilder for fluent validation/assertion chains</returns>
-	/// <exception cref="InvalidOperationException">Thrown when no step exists or step hasn't been executed</exception>
+	/// <exception cref="InvalidOperationException">Thrown when there is no step to run</exception>
 	/// <example>
 	/// <code>
-	/// Given()
+	/// var assertions = await Given()
 	///     .ApiResource("/api/products")
 	///     .Get()
 	/// .When()
-	///     .Execute&lt;HttpStepResult&gt;()
-	/// .Then()
-	///     .AssertSuccess();
+	///     .ExecuteAsync&lt;HttpStepResult&gt;();
+	///
+	/// assertions.Then().AssertSuccess();
 	/// </code>
 	/// </example>
 	public static async Task<ValidationBuilder<TResult>> ExecuteAsync<TResult>(
@@ -50,6 +51,9 @@ public static class BddScenarioExtensions
 	/// test runner is the thread that would be waiting anyway; xUnit sets no synchronization
 	/// context, so the usual deadlock does not apply.
 	/// </remarks>
+	/// <typeparam name="TResult">The type of ITestStepResult to validate</typeparam>
+	/// <param name="scenario">The test scenario holding the steps to run</param>
+	/// <returns>A ValidationBuilder for fluent validation/assertion chains</returns>
 	public static ValidationBuilder<TResult> Execute<TResult>(this ITestScenario scenario)
 		where TResult : class, ITestStepResult
 		=> scenario.ExecuteAsync<TResult>().GetAwaiter().GetResult();

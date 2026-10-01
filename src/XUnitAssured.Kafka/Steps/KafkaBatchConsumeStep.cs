@@ -85,10 +85,10 @@ public class KafkaBatchConsumeStep : ITestStep
 	/// </summary>
 	private const int MaxBrokerLogEntries = 200;
 
-	/// <inheritdoc />
 	/// <summary>Quanto se espera entre duas olhadas no que chegou.</summary>
 	private static readonly TimeSpan IntervaloEntreTentativas = TimeSpan.FromMilliseconds(50);
 
+	/// <inheritdoc />
 	public async Task<ITestStepResult> ExecuteAsync(ITestContext context, CancellationToken cancellationToken = default)
 	{
 		// Collected as the step runs so that a failure can explain itself: which
