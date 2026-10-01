@@ -1,0 +1,43 @@
+<Project Sdk="Microsoft.NET.Sdk">
+	<PropertyGroup>
+		<TargetFrameworks>net8.0;net9.0;net10.0</TargetFrameworks>
+		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+		<Description>RabbitMQ testing utilities for XUnitAssured using the official RabbitMQ.Client. Publish and consume steps for the fluent DSL, configured from the rabbitmq section of testsettings.json, for integration testing against AMQP brokers.</Description>
+		<PackageId>XUnitAssured.RabbitMq</PackageId>
+		<PackageTags>xunit;rabbitmq;amqp;messaging;integration-testing;quality-assurance</PackageTags>
+		<RootNamespace>XUnitAssured.RabbitMq</RootNamespace>
+		<IsPackable>true</IsPackable>
+	</PropertyGroup>
+
+	<!--
+		O cliente oficial. A versao 7 e assincrona de ponta a ponta, o que e a diferenca que
+		importa em relacao ao Kafka: lá o IConsumer nao tem consumo assincrono e o passo precisa
+		devolver a thread num laco; aqui o await e de verdade.
+	-->
+	<ItemGroup>
+		<PackageReference Include="RabbitMQ.Client" Version="7.2.2" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<None Include="..\..\package-icon.png">
+			<Pack>True</Pack>
+			<PackagePath>\</PackagePath>
+		</None>
+		<None Include="README.md">
+			<Pack>True</Pack>
+			<PackagePath>\</PackagePath>
+		</None>
+		<None Include="..\..\LICENSE.md">
+			<Pack>True</Pack>
+			<PackagePath>\</PackagePath>
+		</None>
+	</ItemGroup>
+
+	<ItemGroup>
+		<InternalsVisibleTo Include="XUnitAssured.Tests" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\XUnitAssured.Core\XUnitAssured.Core.csproj" />
+	</ItemGroup>
+</Project>

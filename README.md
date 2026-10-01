@@ -73,15 +73,15 @@ The definition above is where the project is going. This is what it ships now:
 | Boundary | Supported | Test runner |
 |---|---|---|
 | HTTP APIs | Any REST/JSON API (`HttpClient`/Flurl, `WebApplicationFactory` for in-process tests) | xUnit |
-| Messaging systems | Apache Kafka (Confluent client) | xUnit |
+| Messaging systems | Apache Kafka (Confluent client), RabbitMQ (official AMQP client) | xUnit |
 | Browser workflows | Microsoft Playwright (Chromium, Firefox, WebKit) | xUnit |
 
 ## Roadmap
 
 In order of intent, not of promise:
 
-1. **More messaging systems** — RabbitMQ and Azure Service Bus are the natural next ones behind Kafka.
-2. **gRPC** alongside HTTP.
+1. **Azure Service Bus**, the next messaging system behind Kafka and RabbitMQ.
+2. **gRPC** alongside HTTP.
 
 ## 📦 Packages
 
@@ -97,6 +97,7 @@ In order of intent, not of promise:
 |---------|---------|-------------|
 | **XUnitAssured.Http** | 6.0.0 | HTTP/REST API testing — fluent DSL, authentication handlers, JSON path assertions, schema validation |
 | **XUnitAssured.Kafka** | 6.0.0 | Apache Kafka integration testing — produce/consume, batch operations, authentication, Schema Registry support |
+| **XUnitAssured.RabbitMq** | 6.0.0 | RabbitMQ integration testing — publish/consume steps on the official async client, queues and exchanges, AMQP headers |
 | **XUnitAssured.Playwright** | 6.0.0 | Playwright UI testing — fluent DSL for browser interactions, multiple locator strategies, screenshots, and assertions |
 
 ### Tooling
@@ -591,8 +592,14 @@ In GitHub Copilot Chat, the XUnitAssured tools should appear as available. Try:
 
 ### Unreleased
 
-Merged and not published yet. Correctness fixes only; no API changes.
+Merged and not published yet. One new package; the rest are correctness fixes with no API changes.
 
+- **New package: `XUnitAssured.RabbitMq`.** Publish and consume steps for RabbitMQ on the
+  official client, configured from a `rabbitmq` section of `testsettings.json`. Its verbs are
+  members of `IRabbitMqScenario` rather than extensions on `ITestScenario`, which is what lets a
+  test project reference it alongside Kafka and write both chains in one file: `Consume`,
+  `WithTimeout` and `ValidateMessage` are the vocabulary of messaging, not of one broker.
+  `RabbitMQ.Client` 7 is asynchronous end to end, so the steps await real I/O.
 - **Authentication survives the consume verbs.** The Kafka steps are `init`-only, so each verb
   that changes one value rebuilt the whole step by hand, and five of them left `AuthConfig`
   out: `WithTimeout`, `WithGroupId`, `WithBootstrapServers`, `WithSchema` and

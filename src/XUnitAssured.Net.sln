@@ -40,6 +40,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Itens de Solução", "Itens
 		..\README.md = ..\README.md
 	EndProjectSection
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "XUnitAssured.RabbitMq", "XUnitAssured.RabbitMq\XUnitAssured.RabbitMq.csproj", "{F8FCFA64-AD77-4668-9362-382D999854CF}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -206,6 +208,18 @@ Global
 		{06BC2895-E38C-4BB0-B99A-F193ADE2AC43}.Release|x64.Build.0 = Release|Any CPU
 		{06BC2895-E38C-4BB0-B99A-F193ADE2AC43}.Release|x86.ActiveCfg = Release|Any CPU
 		{06BC2895-E38C-4BB0-B99A-F193ADE2AC43}.Release|x86.Build.0 = Release|Any CPU
+		{F8FCFA64-AD77-4668-9362-382D999854CF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F8FCFA64-AD77-4668-9362-382D999854CF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F8FCFA64-AD77-4668-9362-382D999854CF}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{F8FCFA64-AD77-4668-9362-382D999854CF}.Debug|x64.Build.0 = Debug|Any CPU
+		{F8FCFA64-AD77-4668-9362-382D999854CF}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{F8FCFA64-AD77-4668-9362-382D999854CF}.Debug|x86.Build.0 = Debug|Any CPU
+		{F8FCFA64-AD77-4668-9362-382D999854CF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F8FCFA64-AD77-4668-9362-382D999854CF}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F8FCFA64-AD77-4668-9362-382D999854CF}.Release|x64.ActiveCfg = Release|Any CPU
+		{F8FCFA64-AD77-4668-9362-382D999854CF}.Release|x64.Build.0 = Release|Any CPU
+		{F8FCFA64-AD77-4668-9362-382D999854CF}.Release|x86.ActiveCfg = Release|Any CPU
+		{F8FCFA64-AD77-4668-9362-382D999854CF}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
