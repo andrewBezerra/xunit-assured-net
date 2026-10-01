@@ -10,6 +10,17 @@
 	</PropertyGroup>
 
 	<!-- Common Dependencies (all frameworks) -->
+	<!--
+		Os pacotes de protocolo compartilham detalhes de implementação do Core, como o
+		JsonPathNavigator, sem que eles virem superfície pública. Nenhum assembly é assinado,
+		então o nome simples basta.
+	-->
+	<ItemGroup>
+		<InternalsVisibleTo Include="XUnitAssured.Http" />
+		<InternalsVisibleTo Include="XUnitAssured.Kafka" />
+		<InternalsVisibleTo Include="XUnitAssured.Tests" />
+	</ItemGroup>
+
 	<ItemGroup>
 		<PackageReference Include="Shouldly" Version="4.3.0" />
 	</ItemGroup>

@@ -1,3 +1,4 @@
+using XUnitAssured.Core.Extensions;
 using System;
 using System.Text.Json;
 using XUnitAssured.Kafka.Results;

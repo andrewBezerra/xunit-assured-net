@@ -1,11 +1,22 @@
 using System;
 using System.Text.Json;
 
-namespace XUnitAssured.Kafka.Extensions;
+namespace XUnitAssured.Core.Extensions;
 
 /// <summary>
-/// Internal helper class for navigating and deserializing JSON paths.
-/// Provides a simplified JSON path implementation for common scenarios.
+/// Percorre um caminho JSON sobre um <see cref="JsonElement"/> e devolve o valor no tipo pedido.
+///
+/// <para>
+/// Mora no Core porque mais de um pacote de protocolo precisa dele. Antes existiam três cópias:
+/// uma no Http, uma no Kafka idêntica a menos do namespace, e uma terceira no próprio Kafka com a
+/// classe renomeada. Uma correção de interpretação de caminho tinha de ser aplicada três vezes, e
+/// nada avisava se uma fosse esquecida.
+/// </para>
+///
+/// <para>
+/// Continua <c>internal</c>: é detalhe de implementação, e os pacotes de protocolo o alcançam por
+/// <c>InternalsVisibleTo</c> em vez de virar superfície pública.
+/// </para>
 /// </summary>
 internal static class JsonPathNavigator
 {
@@ -60,13 +71,9 @@ internal static class JsonPathNavigator
 	}
 
 	/// <summary>
-	/// Deserializes a JSON element to the specified type.
-	/// Handles common primitive types directly for performance.
+	/// Converte o elemento no tipo pedido, tratando os tipos comuns direto por desempenho.
 	/// </summary>
-	/// <typeparam name="T">The target type</typeparam>
-	/// <param name="element">The JSON element to deserialize</param>
-	/// <returns>The deserialized value</returns>
-	public static T Deserialize<T>(JsonElement element)
+	private static T Deserialize<T>(JsonElement element)
 	{
 		// Handle common types directly for performance
 		if (typeof(T) == typeof(string))
