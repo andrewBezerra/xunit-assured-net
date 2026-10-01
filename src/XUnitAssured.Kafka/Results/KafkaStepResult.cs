@@ -1,3 +1,4 @@
+using XUnitAssured.Core.Extensions;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -95,7 +96,7 @@ public class KafkaStepResult : TestStepResult
 		if (path.StartsWith("$."))
 			path = path.Substring(2);
 
-		return KafkaJsonPathNavigator.Navigate<T>(root, path);
+		return JsonPathNavigator.Navigate<T>(root, path);
 	}
 
 	/// <summary>
