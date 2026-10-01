@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -2051,4 +2051,105 @@ public class PlaywrightValidationBuilder : ValidationBuilder<PlaywrightStepResul
 		actualText!.ShouldMatch(pattern);
 		return this;
 	}
+
+	// ──────────────────────────────────────────────
+	// Browser state
+	// ──────────────────────────────────────────────
+
+	/// <summary>
+	/// Asserts that a cookie with this name exists.
+	/// </summary>
+	/// <remarks>
+	/// Read from the browser context, not from <c>document.cookie</c> — a cookie marked
+	/// <c>HttpOnly</c> is absent from the latter by definition, and those are exactly the ones
+	/// worth asserting about.
+	/// </remarks>
+	public PlaywrightValidationBuilder AssertCookie(string name)
+	{
+		EstadoDoCookie(name).Existe.ShouldBeTrue($"No cookie named '{name}' in the browser context");
+		return this;
+	}
+
+	/// <summary>
+	/// Asserts that no cookie with this name exists — after signing out, for instance.
+	/// </summary>
+	public PlaywrightValidationBuilder AssertNoCookie(string name)
+	{
+		EstadoDoCookie(name).Existe.ShouldBeFalse($"A cookie named '{name}' is still in the browser context");
+		return this;
+	}
+
+	/// <summary>
+	/// Asserts that a cookie exists and is out of reach of the page's JavaScript.
+	/// </summary>
+	/// <remarks>
+	/// This is the one with no workaround. A session secret in <c>localStorage</c> is readable
+	/// by any script that reaches the page; the same secret in an <c>HttpOnly</c> cookie is
+	/// not. Asserting it otherwise means inspecting a <c>Set-Cookie</c> header by hand, which
+	/// is both tedious and easy to get subtly wrong.
+	/// </remarks>
+	public PlaywrightValidationBuilder AssertCookieIsHttpOnly(string name)
+	{
+		var (existe, httpOnly) = EstadoDoCookie(name);
+
+		existe.ShouldBeTrue($"No cookie named '{name}' in the browser context");
+		httpOnly.ShouldBeTrue($"Cookie '{name}' is readable from page JavaScript");
+
+		return this;
+	}
+
+	/// <summary>
+	/// Asserts the value stored in the page's local storage under this key.
+	/// </summary>
+	public PlaywrightValidationBuilder AssertLocalStorage(string key, string expectedValue)
+	{
+		LerLocalStorage(key).ShouldBe(expectedValue,
+			$"Local storage key '{key}' does not hold the expected value");
+
+		return this;
+	}
+
+	/// <summary>
+	/// Asserts that nothing is stored under this key.
+	/// </summary>
+	public PlaywrightValidationBuilder AssertNoLocalStorage(string key)
+	{
+		LerLocalStorage(key).ShouldBeNull($"Local storage key '{key}' still holds a value");
+		return this;
+	}
+
+	/// <summary>
+	/// Whether the cookie is there, and whether the page's JavaScript can read it.
+	/// </summary>
+	/// <remarks>
+	/// Reads the browser context rather than <c>document.cookie</c>: a cookie marked
+	/// <c>HttpOnly</c> is absent from the latter by definition.
+	/// </remarks>
+	private (bool Existe, bool HttpOnly) EstadoDoCookie(string name)
+	{
+		var cookies = PaginaEmUso().Context.CookiesAsync().GetAwaiter().GetResult();
+
+		foreach (var cookie in cookies)
+		{
+			if (cookie.Name == name)
+				return (true, cookie.HttpOnly);
+		}
+
+		return (false, false);
+	}
+
+	private string? LerLocalStorage(string key) =>
+		PaginaEmUso().EvaluateAsync<string?>("chave => localStorage.getItem(chave)", key)
+			.GetAwaiter().GetResult();
+
+	/// <summary>
+	/// The page the step ran against. These assertions read live browser state rather than the
+	/// step result, which is why they need it.
+	/// </summary>
+	private IPage PaginaEmUso() =>
+		_scenario.Context.GetProperty<IPage>("_PlaywrightPage")
+			?? throw new InvalidOperationException(
+				"No browser page in this scenario. Browser state assertions need one — " +
+				"pass a PlaywrightTestBase test or a PlaywrightPageSession to Given(...).");
+
 }

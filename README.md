@@ -16,9 +16,7 @@ Most integration tests check one boundary at a time. The interesting bugs live b
 var orderId = 0;
 await using var browser = await ui.OpenPageAsync();
 
-var scenario = Given(api, kafka, browser);
-
-scenario
+Given(api, kafka, browser)
     // HTTP: create the order through the API
     .ApiResource("/api/orders")
     .Post(new { customerId = 42, total = 99.90m })
@@ -40,15 +38,15 @@ scenario
 
     // Browser: and the order must be visible to the user
     .And()
-    .NavigateTo($"/orders/{orderId}");
+    .NavigateTo($"/orders/{orderId}")
 
-PlaywrightBddExtensions.Execute(scenario)
+    .Execute()
     .Then()
     .AssertUrlContains($"/orders/{orderId}")
     .AssertTextContainsByTestId("order-status", "Created");
 ```
 
-One rough edge, stated plainly: when the Http, Kafka and Playwright packages are all referenced, `Execute()` is ambiguous — each package defines its own — so the last leg names the package. A single entry point is the first item on the roadmap.
+The chain ends where it is: the last step was a browser step, so `Execute()` is the browser one. Each package's chain methods return their own scenario type, so the compiler picks the builder from the receiver — three packages referenced, and nothing to disambiguate.
 
 `api`, `kafka` and `ui` are ordinary xUnit fixtures; `Given(api, kafka, browser)` hands everything they provide to one scenario. Each leg is a *step*; steps share one context, so a value extracted from the API response drives the Kafka assertion and the page the browser opens. This exact scenario is compiled against the DSL on every build ([`CrossScenarioExampleTests.cs`](src/XUnitAssured.Tests/CrossScenarioExampleTests.cs)), so the README cannot drift from the API.
 
@@ -60,7 +58,7 @@ One rough edge, stated plainly: when the Http, Kafka and Playwright packages are
 - **Browser** — clicks, fills, checks, navigation and screenshots on Playwright, with locators by role, label, test id, text and CSS, and assertions that read like the DSL.
 - **AI-assisted authoring** — an MCP server with 10 tools that translate Playwright Inspector recordings into the DSL and scaffold HTTP and Kafka tests from your editor.
 - **Diagnostics when things fail** — status codes, broker logs, exception detail and, for browser steps, a screenshot at the moment of failure.
-- **Modular** — install only the packages you need; each targets `net7.0` through `net10.0`.
+- **Modular** — install only the packages you need; each targets `net8.0` through `net10.0`.
 
 ## Supported today
 
@@ -76,11 +74,9 @@ The definition above is where the project is going. This is what it ships now:
 
 In order of intent, not of promise:
 
-1. **A single `Execute()`** so a cross-boundary scenario ends the same way regardless of which packages are referenced — today the last leg has to name its package. (Getting `HttpClient`, broker and page from one `Given(api, kafka, browser)` call already works.)
-2. **A first-class asynchronous API** (`ExecuteAsync`, `CancellationToken` end to end) — the current `Execute()` blocks, which is the most common objection to the DSL. This is the v6 line.
-3. **More messaging systems** — RabbitMQ and Azure Service Bus are the natural next ones behind Kafka.
-4. **gRPC** alongside HTTP.
-5. **One configuration file** — bring Playwright into `testsettings.json` and retire the per-package files, so a cross-boundary project is configured in one place.
+1. **A first-class asynchronous API** (`ExecuteAsync`, `CancellationToken` end to end) — the current `Execute()` blocks, which is the most common objection to the DSL. This is the v6 line.
+2. **More messaging systems** — RabbitMQ and Azure Service Bus are the natural next ones behind Kafka.
+3. **gRPC** alongside HTTP.
 
 ## 📦 Packages
 
@@ -371,7 +367,21 @@ The reference implementation of an HTTP fixture is [`HttpSamplesRemoteFixture.cs
 
 **Combining providers.** Anything that implements `ITestContextSeeder` can be passed to `Given(...)`, alone or together: an HTTP fixture (every `IHttpClientProvider` is one), `KafkaClassFixture`, a `PlaywrightTestBase` test, or the page session returned by `PlaywrightTestFixture.OpenPageAsync()`. `Given(api, kafka, browser)` is how the scenario at the top of this README gets all three.
 
-**The exception: Playwright.** Browser settings live in their own file, `playwrightsettings.json`, with PascalCase keys (`Headless`, `Browser`, `DefaultTimeout`, `ScreenshotOnFailure`, `RecordTrace`, …), found the same way or via `XUNITASSURED_PLAYWRIGHT_SETTINGS_PATH`. Unlike `testsettings.json`, it must be copied to the output directory — see the [Playwright sample](src/XunitAssured.PlayWright.Samples.Local.Test/playwrightsettings.json) and its `.csproj`. Folding it into `testsettings.json` is on the roadmap.
+**Browser settings too.** They live in a `playwright` section of the same file, alongside `http` and `kafka`:
+
+```json
+{
+  "playwright": {
+    "baseUrl": "https://app.example.com",
+    "headless": true,
+    "browser": "Chromium",
+    "defaultTimeout": 30000,
+    "screenshotOnFailure": true
+  }
+}
+```
+
+> **If your project still has `playwrightsettings.json`,** it is still read, and the run prints once where its contents should move to. It will be removed in a future major. The old file also required `CopyToOutputDirectory`; the section does not.
 
 > **One more name you may meet in the code.** `httpsettings.json` is a fallback read only when an `HttpRequestStep` runs without a fixture or explicit authentication. Kafka has no such file: a Kafka step run without a fixture reads the same `kafka` section of `testsettings.json` the fixture does.
 
@@ -542,7 +552,29 @@ In GitHub Copilot Chat, the XUnitAssured tools should appear as available. Try:
 
 ## 🔄 Version History
 
-### v5.1.0 (Current — cross-boundary scenarios from one call, fully compatible with 5.0.x)
+### v6.0.0 (Current — one `Execute()`, one configuration file)
+
+Breaking. Source-compatible for a chain written the usual way; the changes bite where a
+scenario was stored in a variable, a custom step was implemented, or an old file name was
+relied on.
+
+- **A cross-boundary chain ends with a plain `.Execute()`.** Each package's chain methods
+  return their own scenario type — `IHttpScenario`, `IKafkaScenario`, `IBrowserScenario` —
+  and `Execute()` is an instance method on it, so the compiler picks the builder from the
+  receiver. The scenario at the top of this README used to end with
+  `PlaywrightBddExtensions.Execute(scenario)` spelled out.
+  *Binary-breaking:* 157 extension methods changed their return type.
+- **Browser settings moved into `testsettings.json`**, under a `playwright` section next to
+  `http` and `kafka`. `playwrightsettings.json` is still read, and says once where its
+  contents should move to; it will be removed in a future major.
+- **`net7.0` dropped** — out of support since May 2024. Targets are now `net8.0`, `net9.0`
+  and `net10.0`. This also retires the Confluent.Kafka 2.3.0 pin that only that target used.
+- **Browser-state verbs** — `ClearCookies`, `SetLocalStorage`, `ClearLocalStorage`, and the
+  assertions `AssertCookie`, `AssertNoCookie`, `AssertCookieIsHttpOnly`, `AssertLocalStorage`,
+  `AssertNoLocalStorage`. The last ones read the browser context rather than
+  `document.cookie`, which is the only way to assert about a cookie the page cannot see.
+
+### v5.1.0 (cross-boundary scenarios from one call, fully compatible with 5.0.x)
 
 Additive release; upgrading requires no code changes.
 

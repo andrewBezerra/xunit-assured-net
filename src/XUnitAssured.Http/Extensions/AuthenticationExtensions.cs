@@ -1,4 +1,6 @@
-﻿using System;
+﻿using XUnitAssured.Http.Abstractions;
+using XUnitAssured.Http.DSL;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Security.Cryptography.X509Certificates;
@@ -22,7 +24,7 @@ public static class AuthenticationExtensions
 	/// <param name="username">Username</param>
 	/// <param name="password">Password</param>
 	/// <returns>Test scenario for chaining</returns>
-	public static ITestScenario WithBasicAuth(this ITestScenario scenario, string username, string password)
+	public static IHttpScenario WithBasicAuth(this ITestScenario scenario, string username, string password)
 	{
 		if (scenario == null)
 			throw new ArgumentNullException(nameof(scenario));
@@ -40,7 +42,7 @@ public static class AuthenticationExtensions
 		};
 
 		scenario.SetCurrentStep(newStep);
-		return scenario;
+		return HttpScenario.De(scenario);
 	}
 
 	/// <summary>
@@ -51,7 +53,7 @@ public static class AuthenticationExtensions
 	/// <param name="token">Bearer token</param>
 	/// <param name="prefix">Token prefix (default: "Bearer")</param>
 	/// <returns>Test scenario for chaining</returns>
-	public static ITestScenario WithBearerToken(this ITestScenario scenario, string token, string prefix = "Bearer")
+	public static IHttpScenario WithBearerToken(this ITestScenario scenario, string token, string prefix = "Bearer")
 	{
 		if (scenario == null)
 			throw new ArgumentNullException(nameof(scenario));
@@ -73,7 +75,7 @@ public static class AuthenticationExtensions
 		};
 
 		scenario.SetCurrentStep(newStep);
-		return scenario;
+		return HttpScenario.De(scenario);
 	}
 
 	/// <summary>
@@ -83,7 +85,7 @@ public static class AuthenticationExtensions
 	/// <param name="scenario">Test scenario</param>
 	/// <param name="configure">Configuration action</param>
 	/// <returns>Test scenario for chaining</returns>
-	public static ITestScenario WithAuthConfig(this ITestScenario scenario, Action<HttpAuthConfig> configure)
+	public static IHttpScenario WithAuthConfig(this ITestScenario scenario, Action<HttpAuthConfig> configure)
 	{
 		if (scenario == null)
 			throw new ArgumentNullException(nameof(scenario));
@@ -105,7 +107,7 @@ public static class AuthenticationExtensions
 		};
 
 		scenario.SetCurrentStep(newStep);
-		return scenario;
+		return HttpScenario.De(scenario);
 	}
 
 	/// <summary>
@@ -116,7 +118,7 @@ public static class AuthenticationExtensions
 	/// <param name="keyName">Name of the header</param>
 	/// <param name="keyValue">API key value</param>
 	/// <returns>Test scenario for chaining</returns>
-	public static ITestScenario WithApiKey(this ITestScenario scenario, string keyName, string keyValue)
+	public static IHttpScenario WithApiKey(this ITestScenario scenario, string keyName, string keyValue)
 	{
 		return WithApiKey(scenario, keyName, keyValue, ApiKeyLocation.Header);
 	}
@@ -130,7 +132,7 @@ public static class AuthenticationExtensions
 	/// <param name="keyValue">API key value</param>
 	/// <param name="location">Where to send the key</param>
 	/// <returns>Test scenario for chaining</returns>
-	public static ITestScenario WithApiKey(this ITestScenario scenario, string keyName, string keyValue, ApiKeyLocation location)
+	public static IHttpScenario WithApiKey(this ITestScenario scenario, string keyName, string keyValue, ApiKeyLocation location)
 	{
 		if (scenario == null)
 			throw new ArgumentNullException(nameof(scenario));
@@ -147,7 +149,7 @@ public static class AuthenticationExtensions
 		};
 
 		scenario.SetCurrentStep(newStep);
-		return scenario;
+		return HttpScenario.De(scenario);
 	}
 
 	/// <summary>
@@ -160,7 +162,7 @@ public static class AuthenticationExtensions
 	/// <param name="clientSecret">Client Secret</param>
 	/// <param name="scopes">Optional scopes</param>
 	/// <returns>Test scenario for chaining</returns>
-	public static ITestScenario WithOAuth2(this ITestScenario scenario, string tokenUrl, string clientId, string clientSecret, params string[] scopes)
+	public static IHttpScenario WithOAuth2(this ITestScenario scenario, string tokenUrl, string clientId, string clientSecret, params string[] scopes)
 	{
 		if (scenario == null)
 			throw new ArgumentNullException(nameof(scenario));
@@ -181,7 +183,7 @@ public static class AuthenticationExtensions
 		};
 
 		scenario.SetCurrentStep(newStep);
-		return scenario;
+		return HttpScenario.De(scenario);
 	}
 
 	/// <summary>
@@ -191,7 +193,7 @@ public static class AuthenticationExtensions
 	/// <param name="scenario">Test scenario</param>
 	/// <param name="configure">Configuration action</param>
 	/// <returns>Test scenario for chaining</returns>
-	public static ITestScenario WithOAuth2Config(this ITestScenario scenario, Action<OAuth2Config> configure)
+	public static IHttpScenario WithOAuth2Config(this ITestScenario scenario, Action<OAuth2Config> configure)
 	{
 		if (scenario == null)
 			throw new ArgumentNullException(nameof(scenario));
@@ -217,7 +219,7 @@ public static class AuthenticationExtensions
 		};
 
 		scenario.SetCurrentStep(newStep);
-		return scenario;
+		return HttpScenario.De(scenario);
 	}
 
 	/// <summary>
@@ -228,7 +230,7 @@ public static class AuthenticationExtensions
 	/// <param name="headerName">Header name</param>
 	/// <param name="headerValue">Header value</param>
 	/// <returns>Test scenario for chaining</returns>
-	public static ITestScenario WithCustomHeader(this ITestScenario scenario, string headerName, string headerValue)
+	public static IHttpScenario WithCustomHeader(this ITestScenario scenario, string headerName, string headerValue)
 	{
 		if (scenario == null)
 			throw new ArgumentNullException(nameof(scenario));
@@ -245,7 +247,7 @@ public static class AuthenticationExtensions
 		};
 
 		scenario.SetCurrentStep(newStep);
-		return scenario;
+		return HttpScenario.De(scenario);
 	}
 
 	/// <summary>
@@ -255,7 +257,7 @@ public static class AuthenticationExtensions
 	/// <param name="scenario">Test scenario</param>
 	/// <param name="headers">Dictionary of headers</param>
 	/// <returns>Test scenario for chaining</returns>
-	public static ITestScenario WithCustomHeaders(this ITestScenario scenario, Dictionary<string, string> headers)
+	public static IHttpScenario WithCustomHeaders(this ITestScenario scenario, Dictionary<string, string> headers)
 	{
 		if (scenario == null)
 			throw new ArgumentNullException(nameof(scenario));
@@ -281,7 +283,7 @@ public static class AuthenticationExtensions
 		};
 
 		scenario.SetCurrentStep(newStep);
-		return scenario;
+		return HttpScenario.De(scenario);
 	}
 
 	/// <summary>
@@ -292,7 +294,7 @@ public static class AuthenticationExtensions
 	/// <param name="scenario">Test scenario</param>
 	/// <returns>Test scenario for chaining</returns>
 	/// <exception cref="InvalidOperationException">When certificate configuration is not found in settings</exception>
-	public static ITestScenario WithCertificate(this ITestScenario scenario)
+	public static IHttpScenario WithCertificate(this ITestScenario scenario)
 	{
 		if (scenario == null)
 			throw new ArgumentNullException(nameof(scenario));
@@ -333,7 +335,7 @@ public static class AuthenticationExtensions
 		};
 
 		scenario.SetCurrentStep(newStep);
-		return scenario;
+		return HttpScenario.De(scenario);
 	}
 
 	/// <summary>
@@ -344,7 +346,7 @@ public static class AuthenticationExtensions
 	/// <param name="certificatePath">Path to certificate file</param>
 	/// <param name="password">Certificate password (optional)</param>
 	/// <returns>Test scenario for chaining</returns>
-	public static ITestScenario WithCertificate(this ITestScenario scenario, string certificatePath, string? password = null)
+	public static IHttpScenario WithCertificate(this ITestScenario scenario, string certificatePath, string? password = null)
 	{
 		if (scenario == null)
 			throw new ArgumentNullException(nameof(scenario));
@@ -361,7 +363,7 @@ public static class AuthenticationExtensions
 		};
 
 		scenario.SetCurrentStep(newStep);
-		return scenario;
+		return HttpScenario.De(scenario);
 	}
 
 	/// <summary>
@@ -373,7 +375,7 @@ public static class AuthenticationExtensions
 	/// <param name="storeLocation">Store location (default: CurrentUser)</param>
 	/// <param name="storeName">Store name (default: My)</param>
 	/// <returns>Test scenario for chaining</returns>
-	public static ITestScenario WithCertificateFromStore(this ITestScenario scenario, string thumbprint, StoreLocation storeLocation = StoreLocation.CurrentUser, StoreName storeName = StoreName.My)
+	public static IHttpScenario WithCertificateFromStore(this ITestScenario scenario, string thumbprint, StoreLocation storeLocation = StoreLocation.CurrentUser, StoreName storeName = StoreName.My)
 	{
 		if (scenario == null)
 			throw new ArgumentNullException(nameof(scenario));
@@ -390,7 +392,7 @@ public static class AuthenticationExtensions
 		};
 
 		scenario.SetCurrentStep(newStep);
-		return scenario;
+		return HttpScenario.De(scenario);
 	}
 
 	/// <summary>
@@ -400,7 +402,7 @@ public static class AuthenticationExtensions
 	/// <param name="scenario">Test scenario</param>
 	/// <param name="certificate">Certificate instance</param>
 	/// <returns>Test scenario for chaining</returns>
-	public static ITestScenario WithCertificateInstance(this ITestScenario scenario, X509Certificate2 certificate)
+	public static IHttpScenario WithCertificateInstance(this ITestScenario scenario, X509Certificate2 certificate)
 	{
 		if (scenario == null)
 			throw new ArgumentNullException(nameof(scenario));
@@ -426,7 +428,7 @@ public static class AuthenticationExtensions
 		};
 
 		scenario.SetCurrentStep(newStep);
-		return scenario;
+		return HttpScenario.De(scenario);
 	}
 
 	/// <summary>
@@ -436,7 +438,7 @@ public static class AuthenticationExtensions
 	/// </summary>
 	/// <param name="scenario">Test scenario</param>
 	/// <returns>Test scenario for chaining</returns>
-	public static ITestScenario WithNoAuth(this ITestScenario scenario)
+	public static IHttpScenario WithNoAuth(this ITestScenario scenario)
 	{
 		if (scenario == null)
 			throw new ArgumentNullException(nameof(scenario));
@@ -456,6 +458,6 @@ public static class AuthenticationExtensions
 		};
 
 		scenario.SetCurrentStep(newStep);
-		return scenario;
+		return HttpScenario.De(scenario);
 	}
 }

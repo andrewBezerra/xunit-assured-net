@@ -1,3 +1,5 @@
+﻿using XUnitAssured.Http.Abstractions;
+using XUnitAssured.Http.DSL;
 using System;
 using XUnitAssured.Core.Abstractions;
 using XUnitAssured.Core.Results;
@@ -15,7 +17,7 @@ public static class HttpValidationExtensions
 	/// The validation function receives an HttpStepResult with typed access to HTTP-specific properties.
 	/// Usage: .Validate(response => response.StatusCode.ShouldBe(200))
 	/// </summary>
-	public static ITestScenario Validate(this ITestScenario scenario, Action<HttpStepResult> validation)
+	public static IHttpScenario Validate(this ITestScenario scenario, Action<HttpStepResult> validation)
 	{
 		if (scenario == null)
 			throw new ArgumentNullException(nameof(scenario));
@@ -38,14 +40,14 @@ public static class HttpValidationExtensions
 			validation(httpResult);
 		});
 
-		return scenario;
+		return HttpScenario.De(scenario);
 	}
 
 	/// <summary>
 	/// Validates the HTTP response using a generic validation function.
 	/// The validation function receives the base ITestStepResult.
 	/// </summary>
-	public static ITestScenario Validate(this ITestScenario scenario, Action<ITestStepResult> validation)
+	public static IHttpScenario Validate(this ITestScenario scenario, Action<ITestStepResult> validation)
 	{
 		if (scenario == null)
 			throw new ArgumentNullException(nameof(scenario));
@@ -61,6 +63,6 @@ public static class HttpValidationExtensions
 
 		scenario.CurrentStep.Validate(validation);
 
-		return scenario;
+		return HttpScenario.De(scenario);
 	}
 }

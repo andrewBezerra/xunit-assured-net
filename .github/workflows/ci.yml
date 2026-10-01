@@ -29,13 +29,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # All four targeted runtimes are needed: building net7.0 only needs the
-      # targeting pack, but running its tests needs the matching runtime.
+      # Every targeted runtime, not just the newest: building a target only needs its
+      # targeting pack, but running its tests needs the matching runtime installed.
       - name: Set up .NET
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: |
-            7.0.x
             8.0.x
             9.0.x
             10.0.x
@@ -51,10 +50,6 @@ jobs:
 
       # Only the unit test project runs. The sample test projects need a live API,
       # a Kafka broker or a browser, so they are not gating material.
-      - name: Test (net7.0)
-        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
-        run: dotnet test ${{ env.UNIT_TESTS }} --configuration Release --no-build --framework net7.0 --filter "Requires!=Network" --logger "trx;LogFileName=net7.0.trx" --results-directory TestResults
-
       - name: Test (net8.0)
         if: ${{ !cancelled() && steps.build.outcome == 'success' }}
         run: dotnet test ${{ env.UNIT_TESTS }} --configuration Release --no-build --framework net8.0 --filter "Requires!=Network" --logger "trx;LogFileName=net8.0.trx" --results-directory TestResults
@@ -112,7 +107,6 @@ jobs:
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: |
-            7.0.x
             8.0.x
             9.0.x
             10.0.x

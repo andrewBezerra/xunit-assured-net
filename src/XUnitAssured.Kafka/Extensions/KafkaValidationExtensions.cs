@@ -1,3 +1,5 @@
+﻿using XUnitAssured.Kafka.DSL;
+using XUnitAssured.Kafka.Abstractions;
 using System;
 using XUnitAssured.Core.Abstractions;
 using XUnitAssured.Kafka.Results;
@@ -14,7 +16,7 @@ public static class KafkaValidationExtensions
 	/// The validation function receives a KafkaStepResult with typed access to Kafka-specific properties.
 	/// Usage: .Validate(message => message.Topic.ShouldBe("my-topic"))
 	/// </summary>
-	public static ITestScenario Validate(this ITestScenario scenario, Action<KafkaStepResult> validation)
+	public static IKafkaScenario Validate(this ITestScenario scenario, Action<KafkaStepResult> validation)
 	{
 		if (scenario == null)
 			throw new ArgumentNullException(nameof(scenario));
@@ -37,7 +39,7 @@ public static class KafkaValidationExtensions
 			validation(kafkaResult);
 		});
 
-		return scenario;
+		return KafkaScenario.De(scenario);
 	}
 
 	/// <summary>
@@ -82,7 +84,7 @@ public static class KafkaValidationExtensions
 	/// Checks that Status == Persisted.
 	/// Usage: Produce(value).Then().ValidateProduceSuccess()
 	/// </summary>
-	public static ITestScenario ValidateProduceSuccess(this ITestScenario scenario)
+	public static IKafkaScenario ValidateProduceSuccess(this ITestScenario scenario)
 	{
 		return Validate(scenario, result =>
 		{
@@ -98,7 +100,7 @@ public static class KafkaValidationExtensions
 	/// Validates the partition where the message was produced.
 	/// Usage: Produce(value).Then().ValidatePartition(0)
 	/// </summary>
-	public static ITestScenario ValidatePartition(this ITestScenario scenario, int expectedPartition)
+	public static IKafkaScenario ValidatePartition(this ITestScenario scenario, int expectedPartition)
 	{
 		return Validate(scenario, result =>
 		{
@@ -114,7 +116,7 @@ public static class KafkaValidationExtensions
 	/// Validates the offset where the message was produced.
 	/// Usage: Produce(value).Then().ValidateOffset(offset => offset > 0)
 	/// </summary>
-	public static ITestScenario ValidateOffset(this ITestScenario scenario, Func<long, bool> validation)
+	public static IKafkaScenario ValidateOffset(this ITestScenario scenario, Func<long, bool> validation)
 	{
 		if (validation == null)
 			throw new ArgumentNullException(nameof(validation));
@@ -133,7 +135,7 @@ public static class KafkaValidationExtensions
 	/// Validates the delivery status of the produced message.
 	/// Usage: Produce(value).Then().ValidateDeliveryStatus(PersistenceStatus.Persisted)
 	/// </summary>
-	public static ITestScenario ValidateDeliveryStatus(this ITestScenario scenario, Confluent.Kafka.PersistenceStatus expectedStatus)
+	public static IKafkaScenario ValidateDeliveryStatus(this ITestScenario scenario, Confluent.Kafka.PersistenceStatus expectedStatus)
 	{
 		return Validate(scenario, result =>
 		{

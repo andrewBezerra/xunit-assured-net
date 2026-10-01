@@ -1,4 +1,6 @@
-﻿using System;
+﻿using XUnitAssured.Kafka.DSL;
+using XUnitAssured.Kafka.Abstractions;
+using System;
 using XUnitAssured.Core.Abstractions;
 using XUnitAssured.Kafka.Configuration;
 using XUnitAssured.Kafka.Steps;
@@ -63,7 +65,7 @@ public static class KafkaAuthenticationExtensions
 	/// <param name="scenario">Test scenario</param>
 	/// <returns>Test scenario for chaining</returns>
 	/// <exception cref="InvalidOperationException">When SASL/PLAIN is not configured in settings</exception>
-	public static ITestScenario WithSaslPlain(this ITestScenario scenario)
+	public static IKafkaScenario WithSaslPlain(this ITestScenario scenario)
 	{
 		if (scenario == null)
 			throw new ArgumentNullException(nameof(scenario));
@@ -87,7 +89,7 @@ public static class KafkaAuthenticationExtensions
 			SaslPlain = settings.Authentication.SaslPlain
 		};
 
-		return ApplyAuthConfig(scenario, authConfig);
+		return KafkaScenario.De(ApplyAuthConfig(scenario, authConfig));
 	}
 
 	/// <summary>
@@ -99,7 +101,7 @@ public static class KafkaAuthenticationExtensions
 	/// <param name="password">SASL password</param>
 	/// <param name="useSsl">Use SSL/TLS (default: true, recommended)</param>
 	/// <returns>Test scenario for chaining</returns>
-	public static ITestScenario WithSaslPlain(this ITestScenario scenario, string username, string password, bool useSsl = true)
+	public static IKafkaScenario WithSaslPlain(this ITestScenario scenario, string username, string password, bool useSsl = true)
 	{
 		if (scenario == null)
 			throw new ArgumentNullException(nameof(scenario));
@@ -108,7 +110,7 @@ public static class KafkaAuthenticationExtensions
 		var authConfig = new KafkaAuthConfig();
 		authConfig.UseSaslPlain(username, password, useSsl);
 
-		return ApplyAuthConfig(scenario, authConfig);
+		return KafkaScenario.De(ApplyAuthConfig(scenario, authConfig));
 	}
 
 	/// <summary>
@@ -118,7 +120,7 @@ public static class KafkaAuthenticationExtensions
 	/// <param name="scenario">Test scenario</param>
 	/// <param name="configure">Configuration action</param>
 	/// <returns>Test scenario for chaining</returns>
-	public static ITestScenario WithKafkaAuth(this ITestScenario scenario, Action<KafkaAuthConfig> configure)
+	public static IKafkaScenario WithKafkaAuth(this ITestScenario scenario, Action<KafkaAuthConfig> configure)
 	{
 		if (scenario == null)
 			throw new ArgumentNullException(nameof(scenario));
@@ -130,7 +132,7 @@ public static class KafkaAuthenticationExtensions
 		var authConfig = new KafkaAuthConfig();
 		configure(authConfig);
 
-		return ApplyAuthConfig(scenario, authConfig);
+		return KafkaScenario.De(ApplyAuthConfig(scenario, authConfig));
 	}
 
 	/// <summary>
@@ -141,7 +143,7 @@ public static class KafkaAuthenticationExtensions
 	/// <param name="scenario">Test scenario</param>
 	/// <returns>Test scenario for chaining</returns>
 	/// <exception cref="InvalidOperationException">When SASL/SCRAM is not configured in settings</exception>
-	public static ITestScenario WithSaslScram(this ITestScenario scenario)
+	public static IKafkaScenario WithSaslScram(this ITestScenario scenario)
 	{
 		if (scenario == null)
 			throw new ArgumentNullException(nameof(scenario));
@@ -165,7 +167,7 @@ public static class KafkaAuthenticationExtensions
 			SaslScram = settings.Authentication.SaslScram
 		};
 
-		return ApplyAuthConfig(scenario, authConfig);
+		return KafkaScenario.De(ApplyAuthConfig(scenario, authConfig));
 	}
 
 	/// <summary>
@@ -177,7 +179,7 @@ public static class KafkaAuthenticationExtensions
 	/// <param name="password">SASL password</param>
 	/// <param name="useSsl">Use SSL/TLS (default: true, recommended)</param>
 	/// <returns>Test scenario for chaining</returns>
-	public static ITestScenario WithSaslScram256(this ITestScenario scenario, string username, string password, bool useSsl = true)
+	public static IKafkaScenario WithSaslScram256(this ITestScenario scenario, string username, string password, bool useSsl = true)
 	{
 		if (scenario == null)
 			throw new ArgumentNullException(nameof(scenario));
@@ -186,7 +188,7 @@ public static class KafkaAuthenticationExtensions
 		var authConfig = new KafkaAuthConfig();
 		authConfig.UseSaslScram256(username, password, useSsl);
 
-		return ApplyAuthConfig(scenario, authConfig);
+		return KafkaScenario.De(ApplyAuthConfig(scenario, authConfig));
 	}
 
 	/// <summary>
@@ -198,7 +200,7 @@ public static class KafkaAuthenticationExtensions
 	/// <param name="password">SASL password</param>
 	/// <param name="useSsl">Use SSL/TLS (default: true, recommended)</param>
 	/// <returns>Test scenario for chaining</returns>
-	public static ITestScenario WithSaslScram512(this ITestScenario scenario, string username, string password, bool useSsl = true)
+	public static IKafkaScenario WithSaslScram512(this ITestScenario scenario, string username, string password, bool useSsl = true)
 	{
 		if (scenario == null)
 			throw new ArgumentNullException(nameof(scenario));
@@ -207,7 +209,7 @@ public static class KafkaAuthenticationExtensions
 		var authConfig = new KafkaAuthConfig();
 		authConfig.UseSaslScram512(username, password, useSsl);
 
-		return ApplyAuthConfig(scenario, authConfig);
+		return KafkaScenario.De(ApplyAuthConfig(scenario, authConfig));
 	}
 
 	/// <summary>
@@ -218,7 +220,7 @@ public static class KafkaAuthenticationExtensions
 	/// <param name="scenario">Test scenario</param>
 	/// <returns>Test scenario for chaining</returns>
 	/// <exception cref="InvalidOperationException">When SSL is not configured in settings</exception>
-	public static ITestScenario WithSsl(this ITestScenario scenario)
+	public static IKafkaScenario WithSsl(this ITestScenario scenario)
 	{
 		if (scenario == null)
 			throw new ArgumentNullException(nameof(scenario));
@@ -242,7 +244,7 @@ public static class KafkaAuthenticationExtensions
 			Ssl = settings.Authentication.Ssl
 		};
 
-		return ApplyAuthConfig(scenario, authConfig);
+		return KafkaScenario.De(ApplyAuthConfig(scenario, authConfig));
 	}
 
 	/// <summary>
@@ -253,7 +255,7 @@ public static class KafkaAuthenticationExtensions
 	/// <param name="caLocation">Path to CA certificate file (optional)</param>
 	/// <param name="enableCertificateVerification">Enable certificate verification (default: true)</param>
 	/// <returns>Test scenario for chaining</returns>
-	public static ITestScenario WithSsl(this ITestScenario scenario, string? caLocation, bool enableCertificateVerification = true)
+	public static IKafkaScenario WithSsl(this ITestScenario scenario, string? caLocation, bool enableCertificateVerification = true)
 	{
 		if (scenario == null)
 			throw new ArgumentNullException(nameof(scenario));
@@ -262,7 +264,7 @@ public static class KafkaAuthenticationExtensions
 		var authConfig = new KafkaAuthConfig();
 		authConfig.UseSsl(caLocation, enableCertificateVerification);
 
-		return ApplyAuthConfig(scenario, authConfig);
+		return KafkaScenario.De(ApplyAuthConfig(scenario, authConfig));
 	}
 
 	/// <summary>
@@ -275,7 +277,7 @@ public static class KafkaAuthenticationExtensions
 	/// <param name="caLocation">Path to CA certificate file (optional)</param>
 	/// <param name="keyPassword">Password for private key (optional)</param>
 	/// <returns>Test scenario for chaining</returns>
-	public static ITestScenario WithMutualTls(this ITestScenario scenario, string certificateLocation, string keyLocation, string? caLocation = null, string? keyPassword = null)
+	public static IKafkaScenario WithMutualTls(this ITestScenario scenario, string certificateLocation, string keyLocation, string? caLocation = null, string? keyPassword = null)
 	{
 		if (scenario == null)
 			throw new ArgumentNullException(nameof(scenario));
@@ -284,7 +286,7 @@ public static class KafkaAuthenticationExtensions
 		var authConfig = new KafkaAuthConfig();
 		authConfig.UseMutualTls(certificateLocation, keyLocation, caLocation, keyPassword);
 
-		return ApplyAuthConfig(scenario, authConfig);
+		return KafkaScenario.De(ApplyAuthConfig(scenario, authConfig));
 	}
 
 	/// <summary>
@@ -294,7 +296,7 @@ public static class KafkaAuthenticationExtensions
 	/// </summary>
 	/// <param name="scenario">Test scenario</param>
 	/// <returns>Test scenario for chaining</returns>
-	public static ITestScenario WithNoKafkaAuth(this ITestScenario scenario)
+	public static IKafkaScenario WithNoKafkaAuth(this ITestScenario scenario)
 	{
 		if (scenario == null)
 			throw new ArgumentNullException(nameof(scenario));
@@ -303,7 +305,7 @@ public static class KafkaAuthenticationExtensions
 		var authConfig = new KafkaAuthConfig();
 		authConfig.UseNoAuth();
 
-		return ApplyAuthConfig(scenario, authConfig);
+		return KafkaScenario.De(ApplyAuthConfig(scenario, authConfig));
 	}
 }
 

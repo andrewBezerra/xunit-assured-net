@@ -1,4 +1,4 @@
-using System.Threading.Tasks;
+﻿using System.Threading.Tasks;
 
 using XUnitAssured.Kafka.Testing;
 using XUnitAssured.Playwright.Extensions;
@@ -31,9 +31,7 @@ public class CrossScenarioExampleTests
 		var orderId = 0;
 		await using var browser = await ui.OpenPageAsync();
 
-		var scenario = Given(api, kafka, browser);
-
-		scenario
+		Given(api, kafka, browser)
 			// HTTP: create the order through the API
 			.ApiResource("/api/orders")
 			.Post(new { customerId = 42, total = 99.90m })
@@ -55,12 +53,11 @@ public class CrossScenarioExampleTests
 
 			// Browser: and the order must be visible to the user
 			.And()
-			.NavigateTo($"/orders/{orderId}");
+			.NavigateTo($"/orders/{orderId}")
 
-		// With Http, Kafka and Playwright all referenced, `Execute()` is ambiguous —
-		// each package defines its own. Naming the package resolves it; a single
-		// entry point is on the roadmap.
-		PlaywrightBddExtensions.Execute(scenario)
+			// The chain ends where it is: the last step was a browser step, so `Execute()`
+			// is the browser one. Three packages referenced, and nothing to disambiguate.
+			.Execute()
 			.Then()
 			.AssertUrlContains($"/orders/{orderId}")
 			.AssertTextContainsByTestId("order-status", "Created");

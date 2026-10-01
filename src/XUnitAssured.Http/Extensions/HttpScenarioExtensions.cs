@@ -1,3 +1,5 @@
+﻿using XUnitAssured.Http.Abstractions;
+using XUnitAssured.Http.DSL;
 using System;
 using System.Collections.Generic;
 using System.Net.Http;
@@ -18,7 +20,7 @@ public static class HttpScenarioExtensions
 	/// Automatically detects and applies authentication from IHttpClientAuthProvider if available.
 	/// Usage: Given().ApiResource("http://api.com/endpoint")
 	/// </summary>
-	public static ITestScenario ApiResource(this ITestScenario scenario, string url)
+	public static IHttpScenario ApiResource(this ITestScenario scenario, string url)
 	{
 		if (scenario == null)
 			throw new ArgumentNullException(nameof(scenario));
@@ -58,34 +60,34 @@ public static class HttpScenarioExtensions
 		};
 
 		scenario.SetCurrentStep(step);
-		return scenario;
+		return HttpScenario.De(scenario);
 	}
 
 	/// <summary>
 	/// Sets the HTTP method to GET.
 	/// </summary>
-	public static ITestScenario Get(this ITestScenario scenario)
+	public static IHttpScenario Get(this ITestScenario scenario)
 	{
 		UpdateHttpMethod(scenario, HttpMethod.Get);
-		return scenario;
+		return HttpScenario.De(scenario);
 	}
 
 	/// <summary>
 	/// Sets the HTTP method to POST with the specified body.
 	/// </summary>
-	public static ITestScenario Post(this ITestScenario scenario, object body)
+	public static IHttpScenario Post(this ITestScenario scenario, object body)
 	{
 		UpdateHttpMethod(scenario, HttpMethod.Post, body);
-		return scenario;
+		return HttpScenario.De(scenario);
 	}
 
 	/// <summary>
 	/// Sets the HTTP method to POST without a body (for endpoints that don't require one).
 	/// </summary>
-	public static ITestScenario Post(this ITestScenario scenario)
+	public static IHttpScenario Post(this ITestScenario scenario)
 	{
 		UpdateHttpMethod(scenario, HttpMethod.Post);
-		return scenario;
+		return HttpScenario.De(scenario);
 	}
 
 	/// <summary>
@@ -108,7 +110,7 @@ public static class HttpScenarioExtensions
 	///     })
 	/// </code>
 	/// </example>
-	public static ITestScenario PostFormData(this ITestScenario scenario, Dictionary<string, string> formData)
+	public static IHttpScenario PostFormData(this ITestScenario scenario, Dictionary<string, string> formData)
 	{
 		if (formData == null)
 			throw new ArgumentNullException(nameof(formData));
@@ -127,66 +129,66 @@ public static class HttpScenarioExtensions
 		};
 
 		scenario.SetCurrentStep(newStep);
-		return scenario;
+		return HttpScenario.De(scenario);
 	}
 
 	/// <summary>
 	/// Sets the HTTP method to PUT with the specified body.
 	/// </summary>
-	public static ITestScenario Put(this ITestScenario scenario, object body)
+	public static IHttpScenario Put(this ITestScenario scenario, object body)
 	{
 		UpdateHttpMethod(scenario, HttpMethod.Put, body);
-		return scenario;
+		return HttpScenario.De(scenario);
 	}
 
 	/// <summary>
 	/// Sets the HTTP method to DELETE.
 	/// </summary>
-	public static ITestScenario Delete(this ITestScenario scenario)
+	public static IHttpScenario Delete(this ITestScenario scenario)
 	{
 		UpdateHttpMethod(scenario, HttpMethod.Delete);
-		return scenario;
+		return HttpScenario.De(scenario);
 	}
 
 	/// <summary>
 	/// Sets the HTTP method to PATCH with the specified body.
 	/// </summary>
-	public static ITestScenario Patch(this ITestScenario scenario, object body)
+	public static IHttpScenario Patch(this ITestScenario scenario, object body)
 	{
 		UpdateHttpMethod(scenario, HttpMethod.Patch, body);
-		return scenario;
+		return HttpScenario.De(scenario);
 	}
 
 	/// <summary>
 	/// Adds a custom header to the HTTP request.
 	/// </summary>
-	public static ITestScenario WithHeader(this ITestScenario scenario, string name, string value)
+	public static IHttpScenario WithHeader(this ITestScenario scenario, string name, string value)
 	{
 		if (scenario.CurrentStep is HttpRequestStep httpStep)
 		{
 			httpStep.Headers[name] = value;
 		}
 
-		return scenario;
+		return HttpScenario.De(scenario);
 	}
 
 	/// <summary>
 	/// Adds a query parameter to the HTTP request.
 	/// </summary>
-	public static ITestScenario WithQueryParam(this ITestScenario scenario, string name, object? value)
+	public static IHttpScenario WithQueryParam(this ITestScenario scenario, string name, object? value)
 	{
 		if (scenario.CurrentStep is HttpRequestStep httpStep)
 		{
 			httpStep.QueryParams[name] = value;
 		}
 
-		return scenario;
+		return HttpScenario.De(scenario);
 	}
 
 	/// <summary>
 	/// Sets the timeout for the HTTP request.
 	/// </summary>
-	public static ITestScenario WithTimeout(this ITestScenario scenario, int seconds)
+	public static IHttpScenario WithTimeout(this ITestScenario scenario, int seconds)
 	{
 		if (scenario.CurrentStep is HttpRequestStep httpStep)
 		{
@@ -199,7 +201,7 @@ public static class HttpScenarioExtensions
 			scenario.SetCurrentStep(newStep);
 		}
 
-		return scenario;
+		return HttpScenario.De(scenario);
 	}
 
 	/// <summary>
@@ -225,7 +227,7 @@ public static class HttpScenarioExtensions
 	///     .Get()
 	/// </code>
 	/// </example>
-	public static ITestScenario WithHttpClient(this ITestScenario scenario, HttpClient httpClient)
+	public static IHttpScenario WithHttpClient(this ITestScenario scenario, HttpClient httpClient)
 	{
 		if (httpClient == null)
 			throw new ArgumentNullException(nameof(httpClient));
@@ -254,7 +256,7 @@ public static class HttpScenarioExtensions
 			scenario.SetCurrentStep(step);
 		}
 
-		return scenario;
+		return HttpScenario.De(scenario);
 	}
 
 	// Helper method to update HTTP method

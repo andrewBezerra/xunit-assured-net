@@ -1,39 +1,23 @@
-using XUnitAssured.Core.Abstractions;
+﻿using XUnitAssured.Core.Abstractions;
+using XUnitAssured.Playwright.Abstractions;
 
 namespace XUnitAssured.Playwright.Extensions;
 
 /// <summary>
-/// Playwright-specific BDD extension methods for ITestScenario.
-/// Provides convenient Execute() method that returns PlaywrightValidationBuilder for UI testing scenarios.
+/// Where <c>Execute()</c> used to live.
+///
+/// <para>
+/// It was an extension on <see cref="ITestScenario"/>, and so were the ones in the other
+/// packages. Referencing two of them made the call ambiguous — and referencing two of them is
+/// the point of this framework. A scenario crossing an API, a topic and a screen had to end
+/// with this class spelled out.
+/// </para>
+///
+/// <para>
+/// It is now an instance method on <see cref="IBrowserScenario"/>, which the chain methods return.
+/// The compiler picks the builder from the receiver, and the chain ends as it reads.
+/// </para>
 /// </summary>
 public static class PlaywrightBddExtensions
 {
-	/// <summary>
-	/// Executes the Playwright step synchronously and returns a Playwright-specific validation builder.
-	/// This is a convenience method that automatically casts to PlaywrightStepResult.
-	/// </summary>
-	/// <param name="scenario">The test scenario containing the Playwright step to execute</param>
-	/// <returns>A PlaywrightValidationBuilder for fluent UI-specific validation/assertion chains</returns>
-	/// <example>
-	/// <code>
-	/// Given()
-	///     .NavigateTo("/login")
-	///     .FillByLabel("Email", "user@test.com")
-	///     .FillByPlaceholder("Password", "secret")
-	///     .ClickByRole(AriaRole.Button, "Sign In")
-	/// .When()
-	///     .Execute()
-	/// .Then()
-	///     .AssertUrl("/dashboard")
-	///     .AssertVisibleByTestId("welcome-banner");
-	/// </code>
-	/// </example>
-	public static PlaywrightValidationBuilder Execute(this ITestScenario scenario)
-	{
-		// Execute the Playwright step asynchronously and block until completion
-		scenario.ExecuteCurrentStepAsync().GetAwaiter().GetResult();
-
-		// Return a Playwright-specific validation builder
-		return new PlaywrightValidationBuilder(scenario);
-	}
 }
