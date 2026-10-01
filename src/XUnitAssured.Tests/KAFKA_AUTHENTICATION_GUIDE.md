@@ -15,6 +15,14 @@ XUnitAssured.Kafka supports **6 authentication types** covering **90% of real-wo
 
 ## Quick Start
 
+> **Some snippets here are fragments**, and they are the ones that end without a semicolon.
+> Each shows only the authentication part and stops where the configuration stops. Copying one
+> will not compile, and that is deliberate: since 6.0.0 a chain with no final execute call
+> compiles, runs, asserts nothing and passes, so a fragment that looked finished would become a
+> green test that never tested. Close the chain with `.ExecuteAsync()` and read the assertions,
+> as the complete examples do.
+
+
 ### 1. SASL/PLAIN (Confluent Cloud, Azure Event Hubs)
 
 ```csharp
@@ -28,7 +36,7 @@ Given()
 Given()
     .Topic("my-topic")
     .WithSaslPlain("username", "password")
-    .Consume();
+    .Consume()
 ```
 
 ### 2. SASL/SCRAM-SHA-256 (AWS MSK)
@@ -50,7 +58,7 @@ Given()
 Given()
     .Topic("my-topic")
     .WithSaslScram512("username", "password")
-    .Consume();
+    .Consume()
 ```
 
 ### 3. SSL/TLS (Enterprise)
@@ -66,7 +74,7 @@ Given()
 Given()
     .Topic("my-topic")
     .WithSsl("/path/to/ca-cert.pem")
-    .Consume();
+    .Consume()
 ```
 
 ### 4. Mutual TLS (High Security)
@@ -79,7 +87,7 @@ Given()
         keyLocation: "/path/to/client-key.pem",
         caLocation: "/path/to/ca-cert.pem"
     )
-    .Consume();
+    .Consume()
 ```
 
 ---
@@ -202,7 +210,7 @@ await Given()
 Given()
     .Topic("transactions")
     .WithSaslScram()  // Uses settings
-    .Consume();
+    .Consume()
 ```
 
 ### Azure Event Hubs (Kafka API)
@@ -211,7 +219,7 @@ Given()
 Given()
     .Topic("my-event-hub")
     .WithSaslPlain("$ConnectionString", "Endpoint=sb://...")
-    .Consume();
+    .Consume()
 ```
 
 ### Enterprise On-Premise (SSL)
@@ -220,7 +228,7 @@ Given()
 Given()
     .Topic("customer-data")
     .WithSsl("/etc/kafka/certs/ca-cert.pem")
-    .Consume();
+    .Consume()
 ```
 
 ### High Security (Mutual TLS)
@@ -234,7 +242,7 @@ Given()
         caLocation: "/etc/kafka/certs/ca-cert.pem",
         keyPassword: "secure-password"
     )
-    .Consume();
+    .Consume()
 ```
 
 ---
@@ -254,7 +262,7 @@ Given()
         // or
         config.UseSsl("/path/to/ca-cert.pem");
     })
-    .Consume();
+    .Consume()
 ```
 
 ### Override Settings
@@ -267,7 +275,7 @@ Given().Topic("topic1").WithSaslPlain().Consume();
 Given()
     .Topic("topic2")
     .WithSaslPlain("different-user", "different-pass")
-    .Consume();
+    .Consume()
 ```
 
 ### Disable Authentication
@@ -277,7 +285,7 @@ Given()
 Given()
     .Topic("local-topic")
     .WithNoKafkaAuth()
-    .Consume();
+    .Consume()
 ```
 
 ---
@@ -298,7 +306,7 @@ Given()
 Given()
     .Topic("test-topic")
     .WithSsl("/path/to/ca-cert.pem", enableCertificateVerification: false)
-    .Consume();
+    .Consume()
 ```
 
 ### SASL Authentication Failed

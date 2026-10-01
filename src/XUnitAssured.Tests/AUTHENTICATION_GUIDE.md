@@ -12,6 +12,14 @@ XUnitAssured.Http now supports multiple authentication methods:
 
 ## Quick Start
 
+> **Some snippets here are fragments**, and they are the ones that end without a semicolon.
+> Each shows only the authentication part and stops where the configuration stops. Copying one
+> will not compile, and that is deliberate: since 6.0.0 a chain with no final execute call
+> compiles, runs, asserts nothing and passes, so a fragment that looked finished would become a
+> green test that never tested. Close the chain with `.ExecuteAsync()` and read the assertions,
+> as the complete examples do.
+
+
 ### 1. Basic Authentication
 
 ```csharp
@@ -40,7 +48,7 @@ await Given()
 Given()
     .ApiResource("https://api.example.com/resource")
     .WithBearerToken("token-value", prefix: "JWT")
-    .Get();
+    .Get()
 ```
 
 ---
@@ -125,7 +133,7 @@ await Given()
 Given()
     .ApiResource("/users")
     .WithBearerToken("test-specific-token")  // Overrides httpsettings.json
-    .Get();
+    .Get()
 ```
 
 ### No Authentication
@@ -135,7 +143,7 @@ Given()
 Given()
     .ApiResource("/public-endpoint")
     .WithNoAuth()  // Ignores httpsettings.json
-    .Get();
+    .Get()
 ```
 
 ### Custom Configuration
@@ -149,7 +157,7 @@ Given()
         // or
         config.UseBearerToken("token");
     })
-    .Get();
+    .Get()
 ```
 
 ---
@@ -176,7 +184,7 @@ Given()
 Given()
     .ApiResource("/secure-endpoint")
     .WithCertificate()  // No parameters needed!
-    .Get();
+    .Get()
 ```
 
 **Settings configuration:**
@@ -197,7 +205,7 @@ Given()
 Given()
     .ApiResource("/secure-endpoint")
     .WithCertificate("path/to/cert.pfx", "password")
-    .Get();
+    .Get()
 ```
 
 ### From Windows Certificate Store
@@ -205,7 +213,7 @@ Given()
 Given()
     .ApiResource("/secure-endpoint")
     .WithCertificateFromStore("THUMBPRINT123")
-    .Get();
+    .Get()
 ```
 
 **Note**: Certificates are automatically cached by thumbprint for performance. The framework handles FlurlClient configuration transparently
