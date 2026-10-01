@@ -88,6 +88,43 @@ public class KafkaBatchConsumeStep : ITestStep
 	/// <summary>Quanto se espera entre duas olhadas no que chegou.</summary>
 	private static readonly TimeSpan IntervaloEntreTentativas = TimeSpan.FromMilliseconds(50);
 
+	/// <summary>
+	/// Cria um passo com os valores padrão, para ser preenchido por um inicializador.
+	/// </summary>
+	public KafkaBatchConsumeStep()
+	{
+	}
+
+	/// <summary>
+	/// Cria uma cópia do passo, carregando tudo o que estava configurado. Use um
+	/// inicializador para trocar só o que muda:
+	/// <c>new KafkaBatchConsumeStep(anterior) { Timeout = novoPrazo }</c>.
+	/// </summary>
+	/// <remarks>
+	/// Reconstruir o passo campo por campo é como configuração se perde em silêncio. Foi
+	/// assim que cinco verbos do lado do consumo descartaram o <see cref="AuthConfig"/>:
+	/// autenticar e depois ajustar o prazo trocava a credencial explícita pela da fixture.
+	/// Copiar por aqui faz uma propriedade nova ser carregada por padrão, em vez de
+	/// depender de alguém lembrar de cada verbo.
+	/// </remarks>
+	/// <param name="source">O passo de onde copiar a configuração.</param>
+	/// <exception cref="ArgumentNullException">Quando <paramref name="source"/> é nulo.</exception>
+	public KafkaBatchConsumeStep(KafkaBatchConsumeStep source)
+	{
+		if (source == null)
+			throw new ArgumentNullException(nameof(source));
+
+		Name = source.Name;
+		Topic = source.Topic;
+		MessageCount = source.MessageCount;
+		SchemaType = source.SchemaType;
+		Timeout = source.Timeout;
+		ConsumerConfig = source.ConsumerConfig;
+		GroupId = source.GroupId;
+		BootstrapServers = source.BootstrapServers;
+		AuthConfig = source.AuthConfig;
+	}
+
 	/// <inheritdoc />
 	public async Task<ITestStepResult> ExecuteAsync(ITestContext context, CancellationToken cancellationToken = default)
 	{
