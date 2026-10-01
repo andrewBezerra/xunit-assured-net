@@ -176,7 +176,7 @@ Given()
     .AssertText("#msg", "Success!")                      // Assert element text
     .AssertTextByRole(AriaRole.Alert, "Saved")          // Assert text by role
     .AssertTextByTestId("status", "OK")                 // Assert text by test ID
-    .AssertScreenshot("login-page")                     // Capture assertion screenshot
+    .TakeScreenshot("login-page")                       // Capture a screenshot
 ```
 
 ## Playwright Codegen Integration
@@ -197,7 +197,7 @@ await page.GetByPlaceholder("Search").FillAsync("test");
 
 ## Configuration
 
-Create a `playwrightsettings.json` in your test project:
+Put a `playwright` section in the `testsettings.json` of your test project:
 
 ```json
 {
@@ -216,6 +216,10 @@ Create a `playwrightsettings.json` in your test project:
   }
 }
 ```
+
+> **If your project still has `playwrightsettings.json`,** it is still read, and the run prints
+> once where its contents should move to. It will be removed in a future major. The old file
+> also required `CopyToOutputDirectory`; the section does not.
 
 ### Configuration Options
 
@@ -275,9 +279,9 @@ public class BlazorFixture : PlaywrightTestFixture, IAsyncLifetime
 
 ## Supported Frameworks
 
-- .NET 7
 - .NET 8
 - .NET 9
+- .NET 10
 - .NET 10
 
 ## Dependencies

@@ -89,21 +89,21 @@ In order of intent, not of promise:
 
 | Package | Version | Description |
 |---------|---------|-------------|
-| **XUnitAssured.Core** | 5.1.0 | Core abstractions, DSL infrastructure, DI support (`DITestFixture`), `ValidationBuilder`, and BDD extensions |
+| **XUnitAssured.Core** | 6.0.0 | Core abstractions, DSL infrastructure, DI support (`DITestFixture`), `ValidationBuilder`, and BDD extensions |
 
 ### Protocol Packages
 
 | Package | Version | Description |
 |---------|---------|-------------|
-| **XUnitAssured.Http** | 5.1.0 | HTTP/REST API testing — fluent DSL, authentication handlers, JSON path assertions, schema validation |
-| **XUnitAssured.Kafka** | 5.1.0 | Apache Kafka integration testing — produce/consume, batch operations, authentication, Schema Registry support |
-| **XUnitAssured.Playwright** | 5.1.0 | Playwright UI testing — fluent DSL for browser interactions, multiple locator strategies, screenshots, and assertions |
+| **XUnitAssured.Http** | 6.0.0 | HTTP/REST API testing — fluent DSL, authentication handlers, JSON path assertions, schema validation |
+| **XUnitAssured.Kafka** | 6.0.0 | Apache Kafka integration testing — produce/consume, batch operations, authentication, Schema Registry support |
+| **XUnitAssured.Playwright** | 6.0.0 | Playwright UI testing — fluent DSL for browser interactions, multiple locator strategies, screenshots, and assertions |
 
 ### Tooling
 
 | Package | Version | Description |
 |---------|---------|-------------|
-| **XUnitAssured.Mcp** | 5.1.0 | MCP server for AI-assisted test generation — install via `dnx XUnitAssured.Mcp` or `dotnet tool install XUnitAssured.Mcp` |
+| **XUnitAssured.Mcp** | 6.0.0 | MCP server for AI-assisted test generation — install via `dnx XUnitAssured.Mcp` or `dotnet tool install XUnitAssured.Mcp` |
 
 ## 🚀 Quick Start
 
@@ -162,7 +162,7 @@ Given().ApiResource("/api/secure")
 
 // OAuth2 Client Credentials
 Given().ApiResource("/api/secure")
-    .WithOAuth2ClientCredentials("https://auth.example.com/token", "client-id", "client-secret")
+    .WithOAuth2("https://auth.example.com/token", "client-id", "client-secret")
     .Get()
 .When().Execute()
 .Then().AssertStatusCode(200);
@@ -488,7 +488,7 @@ Add to your `.mcp.json` (repo root, `~/.mcp.json`, or `.vscode/mcp.json`):
     "xunitassured": {
       "type": "stdio",
       "command": "dnx",
-      "args": ["XUnitAssured.Mcp@5.1.0", "--yes"]
+      "args": ["XUnitAssured.Mcp@6.0.0", "--yes"]
     }
   }
 }

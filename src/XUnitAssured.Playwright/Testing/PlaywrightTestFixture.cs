@@ -45,7 +45,7 @@ public class PlaywrightTestFixture : IAsyncLifetime, IDisposable
 
 	/// <summary>
 	/// Override this method to provide custom PlaywrightSettings.
-	/// Default implementation loads from playwrightsettings.json or uses defaults.
+	/// Default implementation loads the <c>playwright</c> section of <c>testsettings.json</c>, or uses defaults.
 	/// </summary>
 	protected virtual PlaywrightSettings CreateSettings()
 	{

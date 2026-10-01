@@ -267,7 +267,7 @@ public static class KafkaTestGeneratorTools
 		{
 			sections.Add("""
 			== Authentication ==
-			    .WithSaslPlain()                                  SASL/PLAIN from kafkasettings.json
+			    .WithSaslPlain()                                  SASL/PLAIN from testsettings.json
 			    .WithSaslPlain("user", "pass")                    SASL/PLAIN explicit
 			    .WithSaslScram()                                  SASL/SCRAM from settings
 			    .WithKafkaAuth(c => c.UseSaslPlain(...))          Custom auth config
@@ -344,7 +344,7 @@ public static class KafkaTestGeneratorTools
 				sb.AppendLine("\t\t\t.WithSaslScram()");
 				break;
 			case "ssl":
-				sb.AppendLine("\t\t\t// .WithSsl() — configure SSL in kafkasettings.json");
+				sb.AppendLine("\t\t\t// .WithSsl() — configure SSL in testsettings.json");
 				break;
 		}
 	}

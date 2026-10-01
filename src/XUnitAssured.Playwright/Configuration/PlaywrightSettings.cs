@@ -3,7 +3,7 @@ using System.Collections.Generic;
 namespace XUnitAssured.Playwright.Configuration;
 
 /// <summary>
-/// Playwright configuration settings that can be loaded from playwrightsettings.json.
+/// Playwright configuration settings, read from the <c>playwright</c> section of <c>testsettings.json</c>.
 /// </summary>
 public class PlaywrightSettings
 {
@@ -138,7 +138,7 @@ public class PlaywrightSettings
 	public string TestIdAttribute { get; set; } = "data-testid";
 
 	/// <summary>
-	/// Loads settings from playwrightsettings.json file.
+	/// Loads settings from the <c>playwright</c> section of <c>testsettings.json</c>.
 	/// </summary>
 	/// <param name="customPath">Custom path to settings file (optional)</param>
 	/// <returns>Loaded Playwright settings</returns>

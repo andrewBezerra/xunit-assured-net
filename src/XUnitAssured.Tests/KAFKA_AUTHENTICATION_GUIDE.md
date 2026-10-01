@@ -21,7 +21,7 @@ XUnitAssured.Kafka supports **6 authentication types** covering **90% of real-wo
 // From settings (recommended - DRY)
 Given()
     .Topic("my-topic")
-    .WithSaslPlain()  // Loads from kafkasettings.json
+    .WithSaslPlain()  // Loads from testsettings.json
     .Consume();
 
 // Explicit credentials
@@ -84,7 +84,7 @@ Given()
 
 ---
 
-## Configuration File (`kafkasettings.json`)
+## Configuration File (`testsettings.json`)
 
 Place this file in the root of your test project:
 
@@ -96,61 +96,26 @@ Place this file in the root of your test project:
     "authentication": {
       "type": "None"
     }
-  },
-  "environments": {
-    "confluent": {
-      "bootstrapServers": "pkc-xxxxx.us-east-1.aws.confluent.cloud:9092",
-      "groupId": "confluent-group",
-      "authentication": {
-        "type": "SaslSsl",
-        "saslPlain": {
-          "username": "${ENV:CONFLUENT_KAFKA_KEY}",
-          "password": "${ENV:CONFLUENT_KAFKA_SECRET}",
-          "useSsl": true
-        }
-      }
-    },
-    "aws-msk": {
-      "bootstrapServers": "b-1.mycluster.kafka.us-east-1.amazonaws.com:9096",
-      "groupId": "msk-group",
-      "authentication": {
-        "type": "SaslScram256",
-        "saslScram": {
-          "username": "${ENV:MSK_USERNAME}",
-          "password": "${ENV:MSK_PASSWORD}",
-          "mechanism": "SCRAM-SHA-256",
-          "useSsl": true
-        }
-      }
-    },
-    "enterprise-ssl": {
-      "bootstrapServers": "kafka-ssl.company.com:9093",
-      "groupId": "enterprise-group",
-      "authentication": {
-        "type": "Ssl",
-        "ssl": {
-          "sslCaLocation": "${ENV:KAFKA_CA_CERT_PATH}",
-          "enableSslCertificateVerification": true
-        }
-      }
-    },
-    "enterprise-mtls": {
-      "bootstrapServers": "kafka-mtls.company.com:9093",
-      "groupId": "mtls-group",
-      "authentication": {
-        "type": "MutualTls",
-        "ssl": {
-          "sslCertificateLocation": "${ENV:KAFKA_CLIENT_CERT_PATH}",
-          "sslKeyLocation": "${ENV:KAFKA_CLIENT_KEY_PATH}",
-          "sslCaLocation": "${ENV:KAFKA_CA_CERT_PATH}",
-          "sslKeyPassword": "${ENV:KAFKA_KEY_PASSWORD}",
-          "enableSslCertificateVerification": true
-        }
-      }
-    }
   }
 }
 ```
+
+### One file per environment
+
+An environment is a separate file, `testsettings.{name}.json`, and **not** a section inside
+this one. There is no `environments` key: nothing reads it. Pick the environment by name in
+code, or with the `TEST_ENV` variable:
+
+```csharp
+var settings = KafkaSettings.Load("confluent");   // reads testsettings.confluent.json
+```
+
+```sh
+TEST_ENV=confluent dotnet test
+```
+
+Each of those files holds the same `kafka` section, with the values for that environment.
+The platform examples below are exactly that content.
 
 ### Environment Variables
 
@@ -190,7 +155,7 @@ export KAFKA_CA_CERT_PATH="/certs/ca-cert.pem"
 ### Confluent Cloud
 
 ```csharp
-// kafkasettings.json
+// testsettings.confluent.json
 {
   "kafka": {
     "bootstrapServers": "pkc-xxxxx.confluent.cloud:9092",
@@ -217,7 +182,7 @@ await Given()
 ### AWS MSK
 
 ```csharp
-// kafkasettings.json
+// testsettings.msk.json
 {
   "kafka": {
     "bootstrapServers": "b-1.mycluster.kafka.us-east-1.amazonaws.com:9096",
@@ -321,7 +286,7 @@ Given()
 
 ### Authentication Not Applied
 
-1. Check if `kafkasettings.json` exists
+1. Check if `testsettings.json` exists, and that the `kafka` section is in it
 2. Verify JSON syntax is valid
 3. Check environment variables are set
 4. Verify bootstrap servers are correct
@@ -354,14 +319,14 @@ Given()
 
 ### ✅ DO:
 - Store sensitive credentials in environment variables
-- Use `kafkasettings.json` for base configuration
+- Use the `kafka` section of `testsettings.json` for base configuration
 - Override authentication per test when needed
 - Use SSL/TLS in production
 - Enable certificate verification in production
 - Use SCRAM over PLAIN when possible
 
 ### ❌ DON'T:
-- Commit passwords in `kafkasettings.json`
+- Commit passwords in `testsettings.json`
 - Hardcode credentials in test code
 - Disable SSL certificate verification in production
 - Use PLAIN without SSL/TLS

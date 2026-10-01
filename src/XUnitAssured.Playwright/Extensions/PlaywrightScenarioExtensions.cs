@@ -19,11 +19,6 @@ public static class PlaywrightScenarioExtensions
 	// ──────────────────────────────────────────────
 
 	/// <summary>
-	/// Navigates to the specified URL.
-	/// If a BaseUrl is configured, relative paths are resolved against it.
-	/// Usage: Given().NavigateTo("/login") or Given().NavigateTo("https://example.com")
-	/// </summary>
-	/// <summary>
 	/// Navigates to a URL that is only known once the chain runs.
 	/// </summary>
 	/// <remarks>
@@ -34,7 +29,7 @@ public static class PlaywrightScenarioExtensions
 	/// var orderId = 0;
 	///
 	/// await Given(api, browser)
-	///     .ApiResource("/api/orders").Post(novoPedido)
+	///     .ApiResource("/api/orders").Post(newOrder)
 	///     .Validate(r =&gt; orderId = r.JsonPath&lt;int&gt;("$.id"))
 	///     .And()
 	///     .NavigateTo(() =&gt; $"/orders/{orderId}")
@@ -979,7 +974,7 @@ public static class PlaywrightScenarioExtensions
 	/// then translate the generated code into the XUnitAssured fluent DSL.
 	/// <para>
 	/// <b>Requirements:</b> The browser must be running in headed mode (Headless = false).
-	/// Set this in your fixture's <c>CreateSettings()</c> or <c>playwrightsettings.json</c>.
+	/// Set this in your fixture's <c>CreateSettings()</c> or in the <c>playwright</c> section of <c>testsettings.json</c>.
 	/// </para>
 	/// <para>
 	/// <b>Usage:</b> Insert <c>.RecordAndPause()</c> at any point in the fluent chain.
