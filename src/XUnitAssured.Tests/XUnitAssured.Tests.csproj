@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
-		<TargetFrameworks>net7.0;net8.0;net9.0;net10.0</TargetFrameworks>
+		<TargetFrameworks>net8.0;net9.0;net10.0</TargetFrameworks>
 		<LangVersion>12</LangVersion>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
@@ -17,11 +17,6 @@
 		<PackageReference Include="xunit" Version="2.9.2" />
 		<PackageReference Include="xunit.runner.visualstudio" Version="2.8.2" />
 		<PackageReference Include="Shouldly" Version="4.3.0" />
-		<PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="8.0.0" Condition="'$(TargetFramework)' == 'net7.0'" />
-		<PackageReference Include="Microsoft.Extensions.Configuration" Version="8.0.0" Condition="'$(TargetFramework)' == 'net7.0'" />
-		<PackageReference Include="Microsoft.Extensions.Configuration.FileExtensions" Version="8.0.0" Condition="'$(TargetFramework)' == 'net7.0'" />
-		<PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="8.0.0" Condition="'$(TargetFramework)' == 'net7.0'" />
-		<PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="8.0.0" Condition="'$(TargetFramework)' == 'net7.0'" />
 		<PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="9.0.8" Condition="'$(TargetFramework)' == 'net8.0' Or '$(TargetFramework)' == 'net9.0'" />
 		<PackageReference Include="Microsoft.Extensions.Configuration" Version="9.0.9" Condition="'$(TargetFramework)' == 'net8.0' Or '$(TargetFramework)' == 'net9.0'" />
 		<PackageReference Include="Microsoft.Extensions.Configuration.FileExtensions" Version="9.0.9" Condition="'$(TargetFramework)' == 'net8.0' Or '$(TargetFramework)' == 'net9.0'" />

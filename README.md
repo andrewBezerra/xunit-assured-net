@@ -60,7 +60,7 @@ One rough edge, stated plainly: when the Http, Kafka and Playwright packages are
 - **Browser** — clicks, fills, checks, navigation and screenshots on Playwright, with locators by role, label, test id, text and CSS, and assertions that read like the DSL.
 - **AI-assisted authoring** — an MCP server with 10 tools that translate Playwright Inspector recordings into the DSL and scaffold HTTP and Kafka tests from your editor.
 - **Diagnostics when things fail** — status codes, broker logs, exception detail and, for browser steps, a screenshot at the moment of failure.
-- **Modular** — install only the packages you need; each targets `net7.0` through `net10.0`.
+- **Modular** — install only the packages you need; each targets `net8.0` through `net10.0`.
 
 ## Supported today
 

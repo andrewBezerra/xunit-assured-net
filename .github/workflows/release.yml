@@ -58,7 +58,6 @@ jobs:
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: |
-            7.0.x
             8.0.x
             9.0.x
             10.0.x
@@ -79,9 +78,6 @@ jobs:
 
       - name: Build
         run: dotnet build ${{ env.SOLUTION }} --configuration Release --no-restore $VERSION_ARG
-
-      - name: Test (net7.0)
-        run: dotnet test ${{ env.UNIT_TESTS }} --configuration Release --no-build --framework net7.0 --filter "Requires!=Network"
 
       - name: Test (net8.0)
         run: dotnet test ${{ env.UNIT_TESTS }} --configuration Release --no-build --framework net8.0 --filter "Requires!=Network"

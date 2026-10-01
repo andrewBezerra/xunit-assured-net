@@ -1,6 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFrameworks>net7.0;net8.0;net9.0;net10.0</TargetFrameworks>
+    <TargetFrameworks>net8.0;net9.0;net10.0</TargetFrameworks>
     <SuppressTfmSupportBuildWarnings>true</SuppressTfmSupportBuildWarnings>
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
     <Description>Playwright UI testing extensions for XUnitAssured. Provides fluent DSL for browser-based UI testing with support for multiple locator strategies (CSS, ARIA roles, labels, test IDs, placeholders, text), page interactions, screenshots, and rich assertions. Built on Microsoft.Playwright.</Description>
