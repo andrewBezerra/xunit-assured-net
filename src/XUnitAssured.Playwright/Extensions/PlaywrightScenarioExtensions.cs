@@ -1087,7 +1087,7 @@ public static class PlaywrightScenarioExtensions
 		return BrowserScenario.De(scenario);
 	}
 
-	private static PlaywrightStep GetOrCreateStep(ITestScenario scenario)
+	internal static PlaywrightStep GetOrCreateStep(ITestScenario scenario)
 	{
 		if (scenario.CurrentStep is PlaywrightStep existingStep)
 			return existingStep;

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
@@ -171,6 +171,22 @@ public class PlaywrightStep : ITestStep
 	{
 		switch (action.ActionType)
 		{
+			// O estado que o navegador guarda — e que nenhum clique alcança. Era preciso sair
+			// do DSL e falar com IPage direto para mexer nele.
+			case PageActionType.ClearCookies:
+				await page.Context.ClearCookiesAsync();
+				break;
+
+			case PageActionType.SetLocalStorage:
+				await page.EvaluateAsync(
+					"([chave, valor]) => localStorage.setItem(chave, valor)",
+					new[] { action.Value!, action.SecondValue ?? string.Empty });
+				break;
+
+			case PageActionType.ClearLocalStorage:
+				await page.EvaluateAsync("() => localStorage.clear()");
+				break;
+
 			case PageActionType.Navigate:
 				var url = ResolveUrl(action.Value!);
 				await page.GotoAsync(url, new PageGotoOptions

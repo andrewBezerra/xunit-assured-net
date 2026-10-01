@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using XUnitAssured.Playwright.Locators;
 
 namespace XUnitAssured.Playwright.Steps;
@@ -59,7 +59,13 @@ public enum PageActionType
 	/// Requires headed mode (Headless = false). Use this to record actions via Codegen
 	/// and then translate them into the XUnitAssured fluent DSL.
 	/// </summary>
-	Pause
+	Pause,
+	/// <summary>Discard every cookie the browser context holds.</summary>
+	ClearCookies,
+	/// <summary>Write one entry into the page's local storage.</summary>
+	SetLocalStorage,
+	/// <summary>Empty the page's local storage.</summary>
+	ClearLocalStorage
 }
 
 /// <summary>
@@ -92,6 +98,12 @@ public class PageAction
 	/// For SetChecked: "true" or "false".
 	/// </summary>
 	public string? Value { get; init; }
+
+	/// <summary>
+	/// The second half of a pair, for the actions that need two strings.
+	/// For SetLocalStorage: the value, with <see cref="Value"/> holding the key.
+	/// </summary>
+	public string? SecondValue { get; init; }
 
 	/// <summary>
 	/// The target locator for drag-and-drop operations.
