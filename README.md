@@ -410,6 +410,38 @@ The reference implementation of an HTTP fixture is [`HttpSamplesRemoteFixture.cs
 - **YAGNI**: Only what you need, when you need it
 - **Separation of Concerns**: Clear boundaries between HTTP, Kafka, Playwright, and Core
 
+### Adding a protocol package
+
+One rule, and it exists for a reason worth stating: **a protocol package declares its verbs as
+extensions on its own scenario type, and only the entry verb takes `ITestScenario`.**
+
+```csharp
+// The entry verb, and the only one that takes the untyped scenario
+public static IRabbitScenario Queue(this ITestScenario scenario, string name)
+
+// Everything after it takes the typed scenario
+public static IRabbitScenario Consume(this IRabbitScenario scenario)
+public static IRabbitScenario WithTimeout(this IRabbitScenario scenario, TimeSpan timeout)
+```
+
+Two messaging packages want the same words. `Consume`, `Produce`, `WithTimeout` and
+`ValidateMessage` are the vocabulary of messaging, not of Kafka. Declared on `ITestScenario` in
+both packages, every one of those calls becomes ambiguous the moment a test project references
+both, and referencing several packages in one scenario is the point of this framework. Declared
+on the typed scenario, the compiler picks by receiver and there is nothing to disambiguate.
+
+Entry verbs do not collide because each broker names its own thing: `Topic` for Kafka, `Queue`
+or `Exchange` for RabbitMQ.
+
+> **The case this does not cover.** A chain stored in a variable typed `ITestScenario` and then
+> continued binds to whichever package still declares that verb on `ITestScenario`, silently.
+> Name the package's scenario type, or use `var`. The same applies to `Validate`, which the HTTP
+> package declares with an overload accepting any result.
+
+Kafka predates this rule and still declares its verbs on `ITestScenario`. That is why the rule
+is written for new packages rather than claimed as true of all of them; moving the existing ones
+is a breaking change, and it is the only thing that would close the gap above.
+
 ## 📚 Sample Projects
 
 The repository includes comprehensive sample projects for both local and remote testing:
