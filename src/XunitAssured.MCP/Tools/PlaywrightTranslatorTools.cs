@@ -19,10 +19,10 @@ public static class PlaywrightTranslatorTools
 	/// flow in the browser and paste it into a scenario without hand-translating locators.
 	/// </summary>
 	[McpServerTool(Name = "translate_playwright_to_dsl"),
-	 Description("Translates Playwright C# Library code (from the Inspector/Codegen) into XUnitAssured fluent DSL method calls. " +
-	             "Strips boilerplate (using statements, browser/context/page creation) and converts locator+action patterns. " +
-	             "Example input:  await page.GetByRole(AriaRole.Button, new() { Name = \"Click me\" }).ClickAsync(); " +
-	             "Example output: .ClickByRole(AriaRole.Button, \"Click me\")")]
+	 Description("Translates Playwright C# Library code, as the Inspector or Codegen emits it, into XUnitAssured fluent DSL calls. " +
+	             "Strips the boilerplate the fixture already owns (using statements, browser, context and page creation) and converts each locator plus action pair. " +
+	             "Returns only the chain of DSL calls as text, with no test method around them, and translates nothing it does not recognise: unsupported calls come back as a commented TODO line rather than being dropped. " +
+	             "For a complete pasteable test method, use translate_playwright_to_test.")]
 	public static string TranslatePlaywrightToDsl(
 		[Description("The Playwright C# Library code to translate. Can be a single line or a full block copied from the Inspector.")] string playwrightCode)
 	{
@@ -41,8 +41,10 @@ public static class PlaywrightTranslatorTools
 	/// body, for when the recording should become a whole test rather than a fragment.
 	/// </summary>
 	[McpServerTool(Name = "translate_playwright_to_test"),
-	 Description("Translates Playwright C# Library code into a complete XUnitAssured test block with Given/When/Then structure. " +
-	             "Wraps the translated DSL calls in a ready-to-paste test method body.")]
+	 Description("Translates Playwright C# Library code into a complete XUnitAssured test method body with Given/When/Then structure. " +
+	             "Returns C# source text, ready to paste; unsupported calls come back as commented TODO lines rather than being dropped. " +
+	             "It does not write files, compile, or run anything, and it does not emit the test class or its fixture. " +
+	             "When the surrounding test already exists and only the chain is wanted, use translate_playwright_to_dsl.")]
 	public static string TranslatePlaywrightToTest(
 		[Description("The Playwright C# Library code to translate into a complete Given/When/Then test block.")] string playwrightCode)
 	{
@@ -57,8 +59,10 @@ public static class PlaywrightTranslatorTools
 	/// so an assistant — or a person converting code by hand — can map one to the other.
 	/// </summary>
 	[McpServerTool(Name = "list_xunitassured_dsl_methods", ReadOnly = true),
-	 Description("Lists all available XUnitAssured Playwright DSL methods with their Playwright C# equivalents. " +
-	             "Use this as a reference when manually converting code or understanding the DSL API surface.")]
+	 Description("Lists the XUnitAssured Playwright DSL methods next to their Playwright C# equivalents, as a reference for converting code by hand or for understanding the DSL surface. " +
+	             "Returns a static reference table as text; it reads nothing from the caller's project and generates no code. " +
+	             "Covers the browser DSL only. HTTP and Kafka have their own list tools. " +
+	             "Despite the generic name, this is the Playwright table; the siblings are list_http_dsl_methods and list_kafka_dsl_methods.")]
 	public static string ListDslMethods(
 		[Description("Optional filter: 'click', 'fill', 'check', 'hover', 'navigation', 'all'. Default is 'all'.")] string filter = "all")
 	{
@@ -132,6 +136,20 @@ public static class PlaywrightTranslatorTools
 		if (filter is "all")
 		{
 			sections.Add("""
+			== Browser state (6.0.0; no Playwright one-liner equivalent) ==
+			  .ClearCookies()                                     Clear the context's cookies
+			  .SetLocalStorage("key", "value")                    Write to local storage
+			  .ClearLocalStorage()                                Clear local storage
+			  .AssertCookie("name")                               Assert a cookie exists
+			  .AssertNoCookie("name")                             Assert a cookie is gone
+			  .AssertCookieIsHttpOnly("name")                     Assert the page's JS cannot read it
+			  .AssertLocalStorage("key", "value")                 Assert a stored value
+			  .AssertNoLocalStorage("key")                        Assert nothing is stored there
+
+			== Observed requests (6.0.0) ==
+			  .AssertRequested("/v1/orders/*")                    Assert the page requested it (* wildcard)
+			  .AssertRequestedOnce("/v1/auth/refresh")            Assert it was requested exactly once
+
 			== Other ==
 			  .Wait(1000)                       ← await Task.Delay(1000)
 			  .WaitForSelector(".class")        ← page.WaitForSelectorAsync(".class")

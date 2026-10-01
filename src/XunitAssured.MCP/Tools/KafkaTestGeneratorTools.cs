@@ -19,8 +19,10 @@ public static class KafkaTestGeneratorTools
 	/// and authentication scaffolded from the arguments.
 	/// </summary>
 	[McpServerTool(Name = "generate_kafka_produce_test"),
-	 Description("Generates a complete XUnitAssured.Kafka test method that produces a message to a Kafka topic. " +
-	             "Produces a ready-to-paste [Fact] method with Given/When/Then structure.")]
+	 Description("Generates one XUnitAssured.Kafka test method that produces a message to a topic. " +
+	             "Returns C# source text: a [Fact] method with Given/When/Then structure, ready to paste. " +
+	             "It does not write files, compile, or run anything, and it does not create the topic or the broker configuration. " +
+	             "To assert that the message arrives, use generate_kafka_produce_consume_test; to consume only, generate_kafka_consume_test.")]
 	public static string GenerateKafkaProduceTest(
 		[Description("Kafka topic name, e.g. 'orders', 'user-events'")] string topic,
 		[Description("Message key (optional). Leave empty for null key.")] string? key = null,
@@ -83,8 +85,10 @@ public static class KafkaTestGeneratorTools
 	/// XUnitAssured.Kafka DSL and asserts on the message, with JSON-path checks when given.
 	/// </summary>
 	[McpServerTool(Name = "generate_kafka_consume_test"),
-	 Description("Generates a complete XUnitAssured.Kafka test method that consumes a message from a Kafka topic. " +
-	             "Produces a ready-to-paste [Fact] method with Given/When/Then structure and message assertions.")]
+	 Description("Generates one XUnitAssured.Kafka test method that consumes a message from a topic and asserts on it. " +
+	             "Returns C# source text: a [Fact] method with Given/When/Then structure and message assertions, ready to paste. " +
+	             "It does not write files, compile, or run anything, and it assumes something else put the message on the topic. " +
+	             "To produce the message in the same test, use generate_kafka_produce_consume_test.")]
 	public static string GenerateKafkaConsumeTest(
 		[Description("Kafka topic name, e.g. 'orders', 'user-events'")] string topic,
 		[Description("Consumer group ID. Default: 'test-group'")] string groupId = "test-group",
@@ -138,9 +142,10 @@ public static class KafkaTestGeneratorTools
 	/// serialisation work end to end.
 	/// </summary>
 	[McpServerTool(Name = "generate_kafka_produce_consume_test"),
-	 Description("Generates a complete produce-then-consume round-trip test for a Kafka topic. " +
-	             "First produces a message, then consumes it and validates the content. " +
-	             "Useful for end-to-end Kafka integration testing.")]
+	 Description("Generates one round-trip test that produces a message to a topic and then consumes it and validates the content. " +
+	             "Returns C# source text: a [Fact] method with Given/When/Then structure, ready to paste. " +
+	             "It does not write files, compile, or run anything, and it needs a reachable broker at run time, so it is an integration test and not a unit test. " +
+	             "When only one direction matters, generate_kafka_produce_test or generate_kafka_consume_test produce a smaller test.")]
 	public static string GenerateKafkaRoundTripTest(
 		[Description("Kafka topic name")] string topic,
 		[Description("Comma-separated fields for the message, e.g. 'id:int, name:string, amount:decimal'")] string? fields = null,
@@ -211,8 +216,10 @@ public static class KafkaTestGeneratorTools
 	/// configuration) as text an assistant can consult before writing a Kafka test.
 	/// </summary>
 	[McpServerTool(Name = "list_kafka_dsl_methods", ReadOnly = true),
-	 Description("Lists all available XUnitAssured.Kafka DSL methods for Kafka integration testing. " +
-	             "Use this as a reference when writing Kafka produce/consume tests.")]
+	 Description("Lists the XUnitAssured.Kafka DSL methods with a one-line note on each, as a reference while writing produce and consume tests. " +
+	             "Returns a static reference table as text; it reads nothing from the caller's project and generates no code. " +
+	             "Covers Kafka only. HTTP and Playwright have their own list tools. " +
+	             "The filter parameter narrows the output to one section when the whole table is more than needed.")]
 	public static string ListKafkaDslMethods(
 		[Description("Optional filter: 'produce', 'consume', 'auth', 'assert', 'config', 'all'. Default is 'all'.")] string filter = "all")
 	{

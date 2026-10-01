@@ -20,9 +20,10 @@ public static class HttpTestGeneratorTools
 	/// "generate a test for GET /api/products/1 expecting 200".
 	/// </summary>
 	[McpServerTool(Name = "generate_http_test"),
-	 Description("Generates a complete XUnitAssured.Http test method for a REST API endpoint. " +
-	             "Produces a ready-to-paste [Fact] method with Given/When/Then structure. " +
-	             "Example: method=GET, endpoint=/api/products/1, expectedStatus=200")]
+	 Description("Generates one XUnitAssured.Http test method for a single REST endpoint and HTTP method. " +
+	             "Returns C# source text: a [Fact] method with Given/When/Then structure, ready to paste into a test class. " +
+	             "It does not write files, compile, or run anything, and it does not create the test class or its fixture. " +
+	             "For a whole resource (list, read, create, update, delete) use generate_http_crud_tests instead of calling this five times.")]
 	public static string GenerateHttpTest(
 		[Description("HTTP method: GET, POST, PUT, PATCH, or DELETE")] string method,
 		[Description("API endpoint path, e.g. /api/products or /api/products/1")] string endpoint,
@@ -131,8 +132,10 @@ public static class HttpTestGeneratorTools
 	/// step instead of five prompts.
 	/// </summary>
 	[McpServerTool(Name = "generate_http_crud_tests"),
-	 Description("Generates a complete set of CRUD test methods (GET all, GET by id, POST create, PUT update, DELETE) " +
-	             "for a REST API resource. Produces a full test class body with 5-6 test methods.")]
+	 Description("Generates the five or six CRUD test methods for one REST resource: GET all, GET by id, POST, PUT and DELETE. " +
+	             "Returns C# source text for a test class body, ready to paste. " +
+	             "It does not write files, compile, or run anything, and it does not emit the class declaration or fixture wiring. " +
+	             "For a single endpoint, or any method outside the CRUD set, use generate_http_test.")]
 	public static string GenerateCrudTests(
 		[Description("Base API path, e.g. /api/products")] string basePath,
 		[Description("Resource name (singular), e.g. Product, User, Order")] string resourceName,
@@ -188,8 +191,10 @@ public static class HttpTestGeneratorTools
 	/// methods that exist rather than guessing names.
 	/// </summary>
 	[McpServerTool(Name = "list_http_dsl_methods", ReadOnly = true),
-	 Description("Lists all available XUnitAssured.Http DSL methods for REST API testing. " +
-	             "Use this as a reference when writing HTTP integration tests.")]
+	 Description("Lists the XUnitAssured.Http DSL methods with a one-line note on each, as a reference while writing HTTP tests. " +
+	             "Returns a static reference table as text; it reads nothing from the caller's project and generates no code. " +
+	             "Covers HTTP only. Kafka and Playwright have their own list tools. " +
+	             "The filter parameter narrows the output to one section when the whole table is more than needed.")]
 	public static string ListHttpDslMethods(
 		[Description("Optional filter: 'request', 'auth', 'assert', 'all'. Default is 'all'.")] string filter = "all")
 	{
@@ -224,13 +229,13 @@ public static class HttpTestGeneratorTools
 		{
 			sections.Add("""
 			== Authentication ==
-			    .WithBasicAuth("user", "pass")                  Basic authentication
-			    .WithBearerToken("jwt-token")                   Bearer token auth
-			    .WithApiKey("X-API-Key", "key-value")           API key in header
-			    .WithApiKeyInQuery("api_key", "key-value")      API key in query string
-			    .WithOAuth2ClientCredentials(config)             OAuth2 client credentials
-			    .WithCertificate(cert)                           Client certificate auth
-			    .WithCustomHeaderAuth("Header", "value")        Custom header auth
+			    .WithBasicAuth("user", "pass")               Basic authentication
+			    .WithBearerToken("jwt-token")                Bearer token auth
+			    .WithApiKey("X-API-Key", "key-value")        API key in header
+			    .WithApiKey("k", "v", ApiKeyLocation.Query)  API key in query string
+			    .WithOAuth2(url, clientId, secret, scopes)   OAuth2 client credentials
+			    .WithCertificate(cert)                       Client certificate auth
+			    .WithCustomHeader("Header", "value")         Custom header auth
 			""");
 		}
 
@@ -239,6 +244,8 @@ public static class HttpTestGeneratorTools
 			sections.Add("""
 			== Execution & Assertions ==
 			  .When().Execute()                                 Execute the request
+			  await ... .ExecuteAsync()                          Execute asynchronously (6.0.0; the chain
+			                                                      only describes until this call)
 			  .Then()
 			    .AssertStatusCode(200)                           Assert HTTP status code
 			    .AssertSuccess()                                 Assert IsValid = true

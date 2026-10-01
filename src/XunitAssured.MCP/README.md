@@ -83,6 +83,26 @@ In GitHub Copilot Chat (Agent mode):
 
 > "List all HTTP DSL methods"
 
+### What the Playwright translator does to your code
+
+This example used to live in the tool's own description, where it rode along in every request.
+It belongs here instead.
+
+Paste what the Playwright Inspector gives you:
+
+```csharp
+await page.GetByRole(AriaRole.Button, new() { Name = "Click me" }).ClickAsync();
+```
+
+and `translate_playwright_to_dsl` hands back the DSL call:
+
+```csharp
+.ClickByRole(AriaRole.Button, "Click me")
+```
+
+The boilerplate goes away: `using` statements, and the browser, context and page creation. What
+survives is the locator plus action, which is the part the fixture does not already own.
+
 ## Supported Clients
 
 | Client | Support |
