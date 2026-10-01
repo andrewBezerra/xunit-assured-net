@@ -974,7 +974,7 @@ public static class PlaywrightScenarioExtensions
 	/// then translate the generated code into the XUnitAssured fluent DSL.
 	/// <para>
 	/// <b>Requirements:</b> The browser must be running in headed mode (Headless = false).
-	/// Set this in your fixture's <c>CreateSettings()</c> or <c>playwrightsettings.json</c>.
+	/// Set this in your fixture's <c>CreateSettings()</c> or in the <c>playwright</c> section of <c>testsettings.json</c>.
 	/// </para>
 	/// <para>
 	/// <b>Usage:</b> Insert <c>.RecordAndPause()</c> at any point in the fluent chain.
