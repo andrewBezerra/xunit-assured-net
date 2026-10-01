@@ -1,3 +1,4 @@
+﻿using XUnitAssured.Core.Configuration;
 using System;
 using System.IO;
 using System.Text.Json;
@@ -6,8 +7,21 @@ using System.Text.Json.Serialization;
 namespace XUnitAssured.Playwright.Configuration;
 
 /// <summary>
-/// Loads Playwright settings from playwrightsettings.json file.
-/// Supports environment variables and caching.
+/// Loads Playwright settings.
+///
+/// <para>
+/// From the <c>playwright</c> section of <c>testsettings.json</c>, which is where every other
+/// package reads from. A project that crosses an API, a topic and a screen was configured in
+/// three files with three sets of rules — one of them, <c>playwrightsettings.json</c>, had to
+/// be copied to the output directory to be found at all, which is a thing to know rather than
+/// a thing to guess.
+/// </para>
+///
+/// <para>
+/// The old file still works and says so once, out loud. Taking it away in the same release
+/// that replaces it would break projects at the moment they upgrade, with settings silently
+/// falling back to defaults — a browser suddenly headed, a timeout suddenly 30s.
+/// </para>
 /// </summary>
 public static class PlaywrightSettingsLoader
 {
@@ -49,11 +63,20 @@ public static class PlaywrightSettingsLoader
 				return _cachedSettings.Clone();
 			}
 
-			// Try standard search paths
+			// The canonical file, same as every other package.
+			var doTestSettings = TestSettingsSection.Read<PlaywrightSettings>("playwright", OpcoesDeLeitura);
+			if (doTestSettings != null)
+			{
+				_cachedSettings = doTestSettings;
+				return _cachedSettings.Clone();
+			}
+
+			// The file this package used to own. Still read, and announced as on its way out.
 			foreach (var path in SearchPaths)
 			{
 				if (File.Exists(path))
 				{
+					AvisarQueOArquivoVaiSair(path);
 					_cachedSettings = LoadFromFile(path);
 					return _cachedSettings.Clone();
 				}
@@ -76,20 +99,41 @@ public static class PlaywrightSettingsLoader
 		}
 	}
 
+	/// <summary>
+	/// Case-insensitive on purpose: the old file was written in PascalCase and the canonical
+	/// one in camelCase, and neither spelling should decide whether a setting is read.
+	/// </summary>
+	private static JsonSerializerOptions OpcoesDeLeitura => new()
+	{
+		PropertyNameCaseInsensitive = true,
+		ReadCommentHandling = JsonCommentHandling.Skip,
+		AllowTrailingCommas = true,
+		Converters = { new JsonStringEnumConverter(JsonNamingPolicy.CamelCase) }
+	};
+
+	private static bool _avisou;
+
+	/// <summary>
+	/// Once per run, on standard error so it shows up in test output without failing anything.
+	/// </summary>
+	private static void AvisarQueOArquivoVaiSair(string caminho)
+	{
+		if (_avisou) return;
+		_avisou = true;
+
+		Console.Error.WriteLine(
+			$"[XUnitAssured] '{caminho}' still works, but it is going away. Move its contents " +
+			"into a \"playwright\" section of testsettings.json, where the http and kafka " +
+			"settings already live.");
+	}
+
 	private static PlaywrightSettings LoadFromFile(string path)
 	{
 		try
 		{
 			var json = File.ReadAllText(path);
-			var options = new JsonSerializerOptions
-				{
-					PropertyNameCaseInsensitive = true,
-					ReadCommentHandling = JsonCommentHandling.Skip,
-					AllowTrailingCommas = true,
-					Converters = { new JsonStringEnumConverter(JsonNamingPolicy.CamelCase) }
-				};
 
-			return JsonSerializer.Deserialize<PlaywrightSettings>(json, options)
+			return JsonSerializer.Deserialize<PlaywrightSettings>(json, OpcoesDeLeitura)
 				?? new PlaywrightSettings();
 		}
 		catch (Exception)

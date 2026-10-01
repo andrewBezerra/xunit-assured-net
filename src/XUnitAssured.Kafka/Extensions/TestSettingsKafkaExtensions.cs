@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text.Json;
@@ -126,128 +126,27 @@ public static class TestSettingsKafkaExtensions
 	}
 
 	/// <summary>
-	/// Gets the cache key for the current test settings file path.
+	/// The file in use is the cache key: two TestSettings loaded from the same file share one
+	/// entry, which is what keeps parallel tests from racing to parse it.
 	/// </summary>
-	/// <returns>Cache key (file path or "default")</returns>
-	private static string GetCacheKey()
-	{
-		// Try custom path from environment variable
-		var customPath = System.Environment.GetEnvironmentVariable("TESTSETTINGS_PATH");
-		if (!string.IsNullOrEmpty(customPath))
-			return customPath;
-
-		// Try to find default testsettings.json
-		foreach (var path in EnumerateSearchPaths())
-		{
-			if (File.Exists(path))
-				return Path.GetFullPath(path);
-		}
-
-		// No file found, use "default" as cache key
-		return "default";
-	}
+	private static string GetCacheKey() => TestSettingsSection.Localizar() ?? "default";
 
 	private static KafkaSettings? LoadKafkaSettingsFromFile()
 	{
-		// Try custom path from environment variable
-		var customPath = System.Environment.GetEnvironmentVariable("TESTSETTINGS_PATH");
-		if (!string.IsNullOrEmpty(customPath) && File.Exists(customPath))
+		// Finding the file, honouring TESTSETTINGS_PATH and expanding ${ENV:NAME} is the same
+		// work for every package, and lives in Core.
+		var settings = TestSettingsSection.Read<KafkaSettings>("kafka", new JsonSerializerOptions
 		{
-			return ParseKafkaSettings(customPath);
-		}
-
-		// Try standard paths
-		foreach (var path in EnumerateSearchPaths())
-		{
-			if (File.Exists(path))
-			{
-				return ParseKafkaSettings(path);
-			}
-		}
-
-		// No settings found
-		return null;
-	}
-
-	private static IEnumerable<string> EnumerateSearchPaths()
-	{
-		var searchPaths = new List<string>
-		{
-			"testsettings.json",
-			"./testsettings.json",
-			"../testsettings.json",
-			"../../testsettings.json",
-			"../../../testsettings.json"
-		};
-
-		foreach (var path in searchPaths)
-			yield return path;
-
-		var baseDirectory = AppContext.BaseDirectory;
-		while (!string.IsNullOrWhiteSpace(baseDirectory))
-		{
-			yield return Path.Combine(baseDirectory, "testsettings.json");
-			baseDirectory = Directory.GetParent(baseDirectory)?.FullName ?? string.Empty;
-		}
-	}
-
-	private static KafkaSettings? ParseKafkaSettings(string filePath)
-	{
-		try
-		{
-			// Read and process JSON
-			var json = File.ReadAllText(filePath);
-			json = ReplaceEnvironmentVariables(json);
-
-			// Parse JSON
-			using var document = JsonDocument.Parse(json, new JsonDocumentOptions
-			{
-				CommentHandling = JsonCommentHandling.Skip,
-				AllowTrailingCommas = true
-			});
-
-			// Look for "kafka" section
-			if (document.RootElement.TryGetProperty("kafka", out var kafkaElement))
-			{
-				// Deserialize KafkaSettings
-				var kafkaSettings = JsonSerializer.Deserialize<KafkaSettings>(
-					kafkaElement.GetRawText(),
-					new JsonSerializerOptions
-					{
-						PropertyNameCaseInsensitive = true,
-						ReadCommentHandling = JsonCommentHandling.Skip,
-						AllowTrailingCommas = true,
-						Converters = { new JsonStringEnumConverter() }
-					});
-
-				// Normalize authentication settings after deserialization
-				if (kafkaSettings != null)
-				{
-					NormalizeAuthenticationSettings(kafkaSettings);
-				}
-
-				return kafkaSettings;
-			}
-
-			return null;
-		}
-		catch
-		{
-			// If parsing fails, return null (settings not available)
-			return null;
-		}
-	}
-
-	private static string ReplaceEnvironmentVariables(string json)
-	{
-		// Replace ${ENV:VAR_NAME} with actual environment variable value
-		var regex = new Regex(@"\$\{ENV:([^}]+)\}", RegexOptions.IgnoreCase);
-		return regex.Replace(json, match =>
-		{
-			var varName = match.Groups[1].Value;
-			var value = System.Environment.GetEnvironmentVariable(varName);
-			return value ?? match.Value;
+			PropertyNameCaseInsensitive = true,
+			ReadCommentHandling = JsonCommentHandling.Skip,
+			AllowTrailingCommas = true,
+			Converters = { new JsonStringEnumConverter() }
 		});
+
+		if (settings != null)
+			NormalizeAuthenticationSettings(settings);
+
+		return settings;
 	}
 
 	/// <summary>
