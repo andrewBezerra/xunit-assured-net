@@ -67,7 +67,21 @@ public class KafkaBatchProduceStep : ITestStep
 	/// Bootstrap servers for Kafka.
 	/// Default is "localhost:9092".
 	/// </summary>
-	public string BootstrapServers { get; init; } = "localhost:9092";
+	public string BootstrapServers
+	{
+		get => _bootstrapServers ?? "localhost:9092";
+		init => _bootstrapServers = value;
+	}
+
+	/// <summary>
+	/// Se quem montou o passo informou o valor, em vez de ele por acaso ser igual ao
+	/// padrão. A resolução decidia isso comparando com "localhost:9092", e as duas coisas
+	/// não são a mesma: um projeto que configure o padrão de propósito tinha o valor dele
+	/// descartado em favor do contexto.
+	/// </summary>
+	internal bool BootstrapServersInformado => _bootstrapServers is not null;
+
+	private readonly string? _bootstrapServers;
 
 	/// <summary>
 	/// Authentication configuration for this Kafka connection.
@@ -112,7 +126,7 @@ public class KafkaBatchProduceStep : ITestStep
 		Headers = source.Headers;
 		Timeout = source.Timeout;
 		ProducerConfig = source.ProducerConfig;
-		BootstrapServers = source.BootstrapServers;
+		_bootstrapServers = source._bootstrapServers;
 		AuthConfig = source.AuthConfig;
 		JsonOptions = source.JsonOptions;
 	}
@@ -135,10 +149,10 @@ public class KafkaBatchProduceStep : ITestStep
 			}
 			else
 			{
-				// Resolve bootstrap servers: explicit > context > testsettings.json > default.
-				// The last fallback returns "localhost:9092" when nothing is configured, so
-				// a project without a settings file behaves exactly as before.
-				var resolvedBootstrapServers = BootstrapServers != "localhost:9092"
+				// Precedência: explícito > contexto > testsettings.json > padrão. O "explícito" é
+				// registrado no passo, e não deduzido comparando com o padrão: configurar
+				// localhost:9092 de propósito é justamente o caso comum de um broker local.
+				var resolvedBootstrapServers = BootstrapServersInformado
 					? BootstrapServers
 					: context.GetProperty<string>("_KafkaBootstrapServers")
 						?? KafkaSettings.Load().BootstrapServers;
