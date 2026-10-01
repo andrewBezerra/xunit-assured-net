@@ -14,10 +14,11 @@ namespace XUnitAssured.Core.Abstractions;
 /// scenario that crosses HTTP, Kafka and the browser is configured from one place:
 /// </para>
 /// <code>
-/// Given(api, kafka, browser)
+/// var assertions = await Given(api, kafka, browser)
 ///     .ApiResource("/api/orders").Post(order).Validate(...)
 ///     .And().On().Topic("orders.created").Consume().ValidateMessage&lt;OrderCreated&gt;(...)
-///     .And().NavigateTo("/orders/1");
+///     .And().NavigateTo("/orders/1")
+///     .ExecuteAsync();
 /// </code>
 /// <para>
 /// Core defines only the contract; what gets seeded, and under which keys, belongs

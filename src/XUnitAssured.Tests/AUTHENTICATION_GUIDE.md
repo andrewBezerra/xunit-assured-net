@@ -15,21 +15,23 @@ XUnitAssured.Http now supports multiple authentication methods:
 ### 1. Basic Authentication
 
 ```csharp
-Given()
+await Given()
     .ApiResource("https://api.example.com/users")
     .WithBasicAuth("username", "password")
     .Get()
-    .Validate(response => response.StatusCode.ShouldBe(200));
+    .Validate(response => response.StatusCode.ShouldBe(200))
+    .ExecuteAsync();
 ```
 
 ### 2. Bearer Token
 
 ```csharp
-Given()
+await Given()
     .ApiResource("https://api.example.com/protected")
     .WithBearerToken("your-jwt-token")
     .Get()
-    .Validate(response => response.IsSuccessStatusCode.ShouldBeTrue());
+    .Validate(response => response.IsSuccessStatusCode.ShouldBeTrue())
+    .ExecuteAsync();
 ```
 
 ### 3. Custom Token Prefix
@@ -109,10 +111,11 @@ export DEV_PASSWORD="dev-password"
 
 ```csharp
 // Automatically uses authentication from httpsettings.json
-Given()
+await Given()
     .ApiResource("/users")  // BaseUrl from settings
     .Get()
-    .Validate(response => response.StatusCode.ShouldBe(200));
+    .Validate(response => response.StatusCode.ShouldBe(200))
+    .ExecuteAsync();
 ```
 
 ### Override File Configuration
