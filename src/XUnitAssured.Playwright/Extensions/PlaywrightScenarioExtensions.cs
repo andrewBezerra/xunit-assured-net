@@ -23,6 +23,49 @@ public static class PlaywrightScenarioExtensions
 	/// If a BaseUrl is configured, relative paths are resolved against it.
 	/// Usage: Given().NavigateTo("/login") or Given().NavigateTo("https://example.com")
 	/// </summary>
+	/// <summary>
+	/// Navigates to a URL that is only known once the chain runs.
+	/// </summary>
+	/// <remarks>
+	/// For a URL built from something an earlier step produced. Written as a string, it would
+	/// be built while the chain is being described — before that step has run, and therefore
+	/// with nothing in it.
+	/// <code>
+	/// var orderId = 0;
+	///
+	/// await Given(api, browser)
+	///     .ApiResource("/api/orders").Post(novoPedido)
+	///     .Validate(r =&gt; orderId = r.JsonPath&lt;int&gt;("$.id"))
+	///     .And()
+	///     .NavigateTo(() =&gt; $"/orders/{orderId}")
+	///     .ExecuteAsync();
+	/// </code>
+	/// </remarks>
+	public static IBrowserScenario NavigateTo(this ITestScenario scenario, Func<string> url)
+	{
+		if (scenario == null) throw new ArgumentNullException(nameof(scenario));
+		if (url == null) throw new ArgumentNullException(nameof(url));
+
+		GetOrCreateStep(scenario).AddAction(new PageAction
+		{
+			ActionType = PageActionType.Navigate,
+			ValueProvider = url
+		});
+
+		return BrowserScenario.De(scenario);
+	}
+
+	/// <summary>
+	/// Navigates to an address that is known while the chain is being written.
+	/// </summary>
+	/// <remarks>
+	/// For an address that depends on a value an earlier step produces, use the overload
+	/// taking a <see cref="Func{TResult}"/>: a string is built as the chain is written, and
+	/// at that point no step has run yet.
+	/// </remarks>
+	/// <param name="scenario">The test scenario to add the navigation to</param>
+	/// <param name="url">The address to open</param>
+	/// <returns>The scenario, typed as a browser scenario</returns>
 	public static IBrowserScenario NavigateTo(this ITestScenario scenario, string url)
 	{
 		if (scenario == null) throw new ArgumentNullException(nameof(scenario));

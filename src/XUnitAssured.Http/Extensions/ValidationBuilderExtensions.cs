@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Concurrent;
 using System.Linq;
 using NJsonSchema;
@@ -21,6 +21,7 @@ public static class ValidationBuilderExtensions
 	/// This performs complete contract validation and detects breaking changes automatically.
 	/// Uses a cached schema for performance.
 	/// </summary>
+	/// <typeparam name="TBuilder">The validation builder being chained, so the chain keeps its type</typeparam>
 	/// <typeparam name="T">The type to validate against (e.g., Product, User)</typeparam>
 	/// <param name="builder">The validation builder instance</param>
 	/// <param name="result">The HTTP step result to validate</param>

@@ -16,7 +16,7 @@ Most integration tests check one boundary at a time. The interesting bugs live b
 var orderId = 0;
 await using var browser = await ui.OpenPageAsync();
 
-Given(api, kafka, browser)
+var assertions = await Given(api, kafka, browser)
     // HTTP: create the order through the API
     .ApiResource("/api/orders")
     .Post(new { customerId = 42, total = 99.90m })
@@ -38,15 +38,21 @@ Given(api, kafka, browser)
 
     // Browser: and the order must be visible to the user
     .And()
-    .NavigateTo($"/orders/{orderId}")
+    .NavigateTo(() => $"/orders/{orderId}")
 
-    .Execute()
+    .ExecuteAsync();
+
+assertions
     .Then()
     .AssertUrlContains($"/orders/{orderId}")
     .AssertTextContainsByTestId("order-status", "Created");
 ```
 
-The chain ends where it is: the last step was a browser step, so `Execute()` is the browser one. Each package's chain methods return their own scenario type, so the compiler picks the builder from the receiver — three packages referenced, and nothing to disambiguate.
+**One `await`, at the end.** The chain describes the scenario; `ExecuteAsync()` carries it out, running each step in order. `Execute()` is still there as a thin blocking wrapper, so an existing suite keeps working.
+
+The chain ends where it is: the last step was a browser step, so `ExecuteAsync()` is the browser one. Each package's chain methods return their own scenario type, so the compiler picks the builder from the receiver — three packages referenced, and nothing to disambiguate.
+
+**Why the last URL is a function.** While the chain is being written, nothing has run, so `orderId` is still zero — `$"/orders/{orderId}"` would be built from it right there. A lambda is read later, after the step that produces it has run. The checks do not need this: they are already lambdas.
 
 `api`, `kafka` and `ui` are ordinary xUnit fixtures; `Given(api, kafka, browser)` hands everything they provide to one scenario. Each leg is a *step*; steps share one context, so a value extracted from the API response drives the Kafka assertion and the page the browser opens. This exact scenario is compiled against the DSL on every build ([`CrossScenarioExampleTests.cs`](src/XUnitAssured.Tests/CrossScenarioExampleTests.cs)), so the README cannot drift from the API.
 
@@ -74,9 +80,8 @@ The definition above is where the project is going. This is what it ships now:
 
 In order of intent, not of promise:
 
-1. **A first-class asynchronous API** (`ExecuteAsync`, `CancellationToken` end to end) — the current `Execute()` blocks, which is the most common objection to the DSL. This is the v6 line.
-2. **More messaging systems** — RabbitMQ and Azure Service Bus are the natural next ones behind Kafka.
-3. **gRPC** alongside HTTP.
+1. **More messaging systems** — RabbitMQ and Azure Service Bus are the natural next ones behind Kafka.
+2. **gRPC** alongside HTTP.
 
 ## 📦 Packages
 
@@ -569,10 +574,27 @@ relied on.
   contents should move to; it will be removed in a future major.
 - **`net7.0` dropped** — out of support since May 2024. Targets are now `net8.0`, `net9.0`
   and `net10.0`. This also retires the Confluent.Kafka 2.3.0 pin that only that target used.
+- **An asynchronous API.** `ExecuteAsync()` runs the chain and takes a `CancellationToken`,
+  threaded through `ITestStep`. `Execute()` stays as a thin blocking wrapper, so an existing
+  suite keeps working unchanged.
+  *Breaking:* a chain now **describes** and runs on execution — `And()`, `On()` and
+  `Validate(...)` no longer run anything where they are written. Checks are lambdas and are
+  unaffected; a value interpolated into a string from an earlier step needs the
+  `Func<string>` overload, because that string is built while the chain is being written.
+  `ITestStep.ExecuteAsync` takes a `CancellationToken`, which custom steps must accept.
+- **Kafka consume returns the thread between attempts** instead of holding it for the whole
+  timeout. `IConsumer` has no asynchronous consume, so this is not "never blocks" — it is a
+  non-waiting read every 50ms with the thread back in the pool in between, which also notices
+  a message sooner than the 250ms wait it replaces.
 - **Browser-state verbs** — `ClearCookies`, `SetLocalStorage`, `ClearLocalStorage`, and the
   assertions `AssertCookie`, `AssertNoCookie`, `AssertCookieIsHttpOnly`, `AssertLocalStorage`,
   `AssertNoLocalStorage`. The last ones read the browser context rather than
   `document.cookie`, which is the only way to assert about a cookie the page cannot see.
+- **Observed requests** — `AssertRequested(urlPattern)` and `AssertRequestedOnce(urlPattern)`
+  assert about what the page asked for while the step ran, with `*` standing for any run of
+  characters. The second one is the point: a renewal that fires twice still leaves the user
+  signed in, so nothing on screen gives it away, and on a server that rotates a token on use
+  it is the second request that ends the session.
 
 ### v5.1.0 (cross-boundary scenarios from one call, fully compatible with 5.0.x)
 

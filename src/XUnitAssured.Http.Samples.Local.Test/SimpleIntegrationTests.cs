@@ -1,4 +1,4 @@
-using Shouldly;
+﻿using Shouldly;
 
 using XUnitAssured.Http.Extensions;
 using XUnitAssured.Http.Testing;
@@ -39,7 +39,7 @@ public class SimpleIntegrationTests : HttpTestBase<HttpSamplesFixture>, IClassFi
 			.ApiResource("/api/products/1")           // ← Relative URL now works!
 			.Get();
 
-		await scenario.ExecuteCurrentStepAsync();
+		await scenario.ExecutePendingAsync();
 
 		var step = scenario.CurrentStep;
 		var result = step?.Result as Results.HttpStepResult;

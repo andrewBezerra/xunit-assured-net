@@ -1,3 +1,4 @@
+﻿using System.Threading;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -141,7 +142,7 @@ public class HttpRequestStep : ITestStep
 	}
 
 	/// <inheritdoc />
-	public async Task<ITestStepResult> ExecuteAsync(ITestContext context)
+	public async Task<ITestStepResult> ExecuteAsync(ITestContext context, CancellationToken cancellationToken = default)
 	{
 		try
 		{

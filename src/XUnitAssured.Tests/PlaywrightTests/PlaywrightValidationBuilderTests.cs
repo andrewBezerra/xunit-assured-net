@@ -1,3 +1,4 @@
+﻿using System.Threading;
 using System.Text.RegularExpressions;
 using Microsoft.Playwright;
 using XUnitAssured.Core.Abstractions;
@@ -1258,6 +1259,118 @@ public class PlaywrightValidationBuilderTests
 	// Mock step for testing
 	// ──────────────────────────────────────────────
 
+	// ──────────────────────────────────────────────
+	// Observed requests
+	// ──────────────────────────────────────────────
+
+	/// <summary>
+	/// A success result carrying the addresses the step recorded.
+	/// </summary>
+	private static PlaywrightStepResult ResultadoCom(params string[] requisicoes) =>
+		PlaywrightStepResult.CreateSuccess(
+			url: "https://myapp.com/dashboard",
+			title: "Dashboard",
+			pageContent: "<html></html>",
+			screenshots: null,
+			consoleLogs: null,
+			requests: requisicoes.ToList());
+
+	[Fact(DisplayName = "AssertRequested should pass when the page requested a matching address")]
+	public void AssertRequested_Should_Pass_When_Matching()
+	{
+		var (_, builder) = CreateBuilder(ResultadoCom(
+			"https://api.myapp.com/v1/orders",
+			"https://api.myapp.com/v1/auth/refresh"));
+
+		builder.AssertRequested("/v1/auth/refresh").ShouldBeSameAs(builder);
+	}
+
+	[Fact(DisplayName = "AssertRequested should fail when nothing matches")]
+	public void AssertRequested_Should_Fail_When_Nothing_Matches()
+	{
+		var (_, builder) = CreateBuilder(ResultadoCom("https://api.myapp.com/v1/orders"));
+
+		Should.Throw<ShouldAssertException>(() => builder.AssertRequested("/v1/auth/refresh"));
+	}
+
+	// Um asterisco no meio é o que torna o verbo utilizável com identificadores na URL, que é
+	// a forma mais comum de endereço num aplicativo real.
+	[Fact(DisplayName = "A pattern with a wildcard should match an address with anything in that place")]
+	public void Wildcard_Should_Match_Anything_In_That_Place()
+	{
+		var (_, builder) = CreateBuilder(ResultadoCom("https://api.myapp.com/v1/orders/4821/items"));
+
+		builder.AssertRequested("/v1/orders/*/items").ShouldBeSameAs(builder);
+	}
+
+	[Fact(DisplayName = "A wildcard should not make an unrelated address match")]
+	public void Wildcard_Should_Not_Match_An_Unrelated_Address()
+	{
+		var (_, builder) = CreateBuilder(ResultadoCom("https://api.myapp.com/v1/customers/4821/items"));
+
+		Should.Throw<ShouldAssertException>(() => builder.AssertRequested("/v1/orders/*/items"));
+	}
+
+	[Fact(DisplayName = "AssertRequestedOnce should pass when the address was requested exactly once")]
+	public void AssertRequestedOnce_Should_Pass_When_Requested_Once()
+	{
+		var (_, builder) = CreateBuilder(ResultadoCom(
+			"https://api.myapp.com/v1/orders",
+			"https://api.myapp.com/v1/auth/refresh"));
+
+		builder.AssertRequestedOnce("/v1/auth/refresh").ShouldBeSameAs(builder);
+	}
+
+	// A razão de o verbo existir: uma renovação disparada duas vezes ainda deixa o usuário
+	// dentro do aplicativo, então nenhuma asserção sobre a tela percebe o problema — e num
+	// servidor que rotaciona o token a cada uso, é a segunda chamada que derruba a sessão.
+	[Fact(DisplayName = "AssertRequestedOnce should fail when the same address was requested twice")]
+	public void AssertRequestedOnce_Should_Fail_When_Requested_Twice()
+	{
+		var (_, builder) = CreateBuilder(ResultadoCom(
+			"https://api.myapp.com/v1/auth/refresh",
+			"https://api.myapp.com/v1/auth/refresh"));
+
+		Should.Throw<ShouldAssertException>(() => builder.AssertRequestedOnce("/v1/auth/refresh"));
+	}
+
+	[Fact(DisplayName = "AssertRequestedOnce should fail when the address was never requested")]
+	public void AssertRequestedOnce_Should_Fail_When_Never_Requested()
+	{
+		var (_, builder) = CreateBuilder(ResultadoCom("https://api.myapp.com/v1/orders"));
+
+		Should.Throw<ShouldAssertException>(() => builder.AssertRequestedOnce("/v1/auth/refresh"));
+	}
+
+	// Uma falha que só diz "não casou" obriga quem lê a rodar o teste de novo com um depurador.
+	[Fact(DisplayName = "A failure should say what the page actually requested")]
+	public void Failure_Should_Say_What_Was_Requested()
+	{
+		var (_, builder) = CreateBuilder(ResultadoCom("https://api.myapp.com/v1/orders"));
+
+		var erro = Should.Throw<ShouldAssertException>(() => builder.AssertRequested("/v1/auth/refresh"));
+
+		erro.Message.ShouldContain("https://api.myapp.com/v1/orders");
+	}
+
+	[Fact(DisplayName = "A failure on a step that requested nothing should say so")]
+	public void Failure_With_No_Requests_Should_Say_So()
+	{
+		var (_, builder) = CreateBuilder(ResultadoCom());
+
+		var erro = Should.Throw<ShouldAssertException>(() => builder.AssertRequested("/v1/auth/refresh"));
+
+		erro.Message.ShouldContain("no requests");
+	}
+
+	[Fact(DisplayName = "An empty pattern should be rejected rather than match everything")]
+	public void Empty_Pattern_Should_Be_Rejected()
+	{
+		var (_, builder) = CreateBuilder(ResultadoCom("https://api.myapp.com/v1/orders"));
+
+		Should.Throw<ArgumentException>(() => builder.AssertRequested("  "));
+	}
+
 	private class MockPlaywrightStep : ITestStep
 	{
 		public string? Name { get; set; }
@@ -1271,7 +1384,7 @@ public class PlaywrightValidationBuilderTests
 			Result = result;
 		}
 
-		public Task<ITestStepResult> ExecuteAsync(ITestContext context)
+		public Task<ITestStepResult> ExecuteAsync(ITestContext context, CancellationToken cancellationToken = default)
 		{
 			return Task.FromResult<ITestStepResult>(Result!);
 		}

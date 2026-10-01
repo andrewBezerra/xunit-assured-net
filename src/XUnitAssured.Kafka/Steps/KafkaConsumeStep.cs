@@ -81,8 +81,16 @@ public class KafkaConsumeStep : ITestStep
 	/// </summary>
 	public KafkaAuthConfig? AuthConfig { get; init; }
 
+	/// <summary>
+	/// Quanto se espera entre duas olhadas no que chegou.
+	///
+	/// Cinquenta milissegundos é menos do que os duzentos e cinquenta que a espera bloqueante
+	/// usava, então uma mensagem é notada mais cedo, e não mais tarde.
+	/// </summary>
+	private static readonly TimeSpan IntervaloEntreTentativas = TimeSpan.FromMilliseconds(50);
+
 	/// <inheritdoc />
-	public async Task<ITestStepResult> ExecuteAsync(ITestContext context)
+	public async Task<ITestStepResult> ExecuteAsync(ITestContext context, CancellationToken cancellationToken = default)
 	{
 		var startTime = DateTimeOffset.UtcNow;
 		var diagnosticProperties = new Dictionary<string, object?>();
@@ -164,7 +172,16 @@ public class KafkaConsumeStep : ITestStep
 
 			while (DateTime.UtcNow <= deadline)
 			{
-				var consumeResult = consumer.Consume(TimeSpan.FromMilliseconds(250));
+				cancellationToken.ThrowIfCancellationRequested();
+
+				// `Consume` com espera zero olha o que o cliente ja trouxe e volta na hora; a
+				// espera vira um Task.Delay, que devolve a thread ao pool em vez de prende-la
+				// ate o fim do intervalo. Numa suite paralela essa diferenca e o que separa
+				// um teste que espera de um pool que acabou.
+				//
+				// Nao ha ida a mais ao broker: o cliente mantem um buffer proprio, alimentado
+				// por uma thread dele, e isto apenas le desse buffer.
+				var consumeResult = consumer.Consume(TimeSpan.Zero);
 
 				if (consumeResult?.Message != null)
 				{
@@ -172,6 +189,8 @@ public class KafkaConsumeStep : ITestStep
 					Result = KafkaStepResult.CreateKafkaConsumeSuccess(consumeResult);
 					return Result;
 				}
+
+				await Task.Delay(IntervaloEntreTentativas, cancellationToken).ConfigureAwait(false);
 			}
 
 			// No message received. Surface the broker chatter here, where it is

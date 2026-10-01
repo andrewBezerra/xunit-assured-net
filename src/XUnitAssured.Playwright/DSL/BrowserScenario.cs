@@ -1,4 +1,7 @@
-﻿using System.Threading.Tasks;
+﻿using XUnitAssured.Core.Results;
+using System.Threading;
+using System;
+using System.Threading.Tasks;
 
 using XUnitAssured.Core.Abstractions;
 using XUnitAssured.Playwright.Abstractions;
@@ -38,7 +41,10 @@ internal sealed class BrowserScenario : IBrowserScenario
 
 	public void SetCurrentStep(ITestStep step) => _cenario.SetCurrentStep(step);
 
-	public Task ExecuteCurrentStepAsync() => _cenario.ExecuteCurrentStepAsync();
+	public void AddValidation(Action<ITestStepResult> validation) => _cenario.AddValidation(validation);
+
+	public Task ExecutePendingAsync(CancellationToken cancellationToken = default) =>
+		_cenario.ExecutePendingAsync(cancellationToken);
 
 	public IBrowserScenario And()
 	{
@@ -64,11 +70,13 @@ internal sealed class BrowserScenario : IBrowserScenario
 		return this;
 	}
 
-	public PlaywrightValidationBuilder Execute()
+	public async Task<PlaywrightValidationBuilder> ExecuteAsync(CancellationToken cancellationToken = default)
 	{
-		_cenario.ExecuteCurrentStepAsync().GetAwaiter().GetResult();
+		await _cenario.ExecutePendingAsync(cancellationToken).ConfigureAwait(false);
 		return new PlaywrightValidationBuilder(_cenario);
 	}
+
+	public PlaywrightValidationBuilder Execute() => ExecuteAsync().GetAwaiter().GetResult();
 
 	// Quem enxerga este objeto como ITestScenario continua recebendo o mesmo encadeamento;
 	// o tipo de retorno é o único detalhe que muda.

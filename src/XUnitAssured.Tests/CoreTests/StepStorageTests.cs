@@ -1,3 +1,4 @@
+﻿using System.Threading;
 using Shouldly;
 using Xunit;
 using XUnitAssured.Core.Abstractions;
@@ -241,7 +242,7 @@ public class StepStorageTests
 		public bool IsExecuted => Result != null;
 		public bool IsValid { get; private set; }
 
-		public Task<ITestStepResult> ExecuteAsync(ITestContext context)
+		public Task<ITestStepResult> ExecuteAsync(ITestContext context, CancellationToken cancellationToken = default)
 		{
 			Result = TestStepResult.CreateSuccess();
 			return Task.FromResult(Result);

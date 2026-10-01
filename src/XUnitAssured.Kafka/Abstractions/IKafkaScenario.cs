@@ -1,4 +1,6 @@
-﻿using XUnitAssured.Core.Abstractions;
+﻿using System.Threading.Tasks;
+using System.Threading;
+using XUnitAssured.Core.Abstractions;
 using XUnitAssured.Kafka.Extensions;
 
 namespace XUnitAssured.Kafka.Abstractions;
@@ -40,7 +42,17 @@ public interface IKafkaScenario : ITestScenario
 	new IKafkaScenario Then();
 
 	/// <summary>
-	/// Runs the step and hands back the Kafka assertions.
+	/// Runs the chain and hands back the assertions.
 	/// </summary>
+	Task<KafkaValidationBuilder> ExecuteAsync(CancellationToken cancellationToken = default);
+
+	/// <summary>
+	/// Runs the chain and waits for it.
+	/// </summary>
+	/// <remarks>
+	/// A thin wrapper over <see cref="ExecuteAsync"/>, kept so a suite written against the
+	/// synchronous DSL keeps working. It blocks the calling thread, which in a test runner
+	/// is the thread that would be waiting anyway.
+	/// </remarks>
 	KafkaValidationBuilder Execute();
 }

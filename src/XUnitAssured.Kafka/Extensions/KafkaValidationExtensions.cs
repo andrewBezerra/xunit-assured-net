@@ -24,14 +24,11 @@ public static class KafkaValidationExtensions
 		if (validation == null)
 			throw new ArgumentNullException(nameof(validation));
 
-		// Execute current step if not already executed
-		scenario.ExecuteCurrentStepAsync().GetAwaiter().GetResult();
-
-		if (scenario.CurrentStep == null)
-			throw new InvalidOperationException("No step to validate. Create a step first.");
+		// Registered, not run: the step has not run yet when the chain is being written.
+		// The lambda closes over whatever it needs and is called once the result exists.
 
 		// Validate with the generic ITestStepResult, then cast to KafkaStepResult
-		scenario.CurrentStep.Validate(result =>
+		scenario.AddValidation(result =>
 		{
 			if (result is not KafkaStepResult kafkaResult)
 				throw new InvalidOperationException($"Expected KafkaStepResult but got {result.GetType().Name}");
@@ -55,14 +52,11 @@ public static class KafkaValidationExtensions
 		if (validation == null)
 			throw new ArgumentNullException(nameof(validation));
 
-		// Execute current step if not already executed
-		scenario.ExecuteCurrentStepAsync().GetAwaiter().GetResult();
-
-		if (scenario.CurrentStep == null)
-			throw new InvalidOperationException("No step to validate. Create a step first.");
+		// Registered, not run: the step has not run yet when the chain is being written.
+		// The lambda closes over whatever it needs and is called once the result exists.
 
 		// Validate with typed message
-		scenario.CurrentStep.Validate(result =>
+		scenario.AddValidation(result =>
 		{
 			if (result is not KafkaStepResult kafkaResult)
 				throw new InvalidOperationException($"Expected KafkaStepResult but got {result.GetType().Name}");

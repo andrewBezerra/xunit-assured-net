@@ -1,4 +1,5 @@
-using System;
+﻿using System;
+using System.Threading;
 using System.Threading.Tasks;
 using XUnitAssured.Core.Results;
 
@@ -42,8 +43,13 @@ public interface ITestStep
 	/// Executes the step asynchronously.
 	/// </summary>
 	/// <param name="context">Test execution context containing shared state</param>
+	/// <param name="cancellationToken">
+	/// Cancels a step that is waiting on something that may never arrive — a request to a
+	/// server that stopped answering, a topic with no message coming. A step that ignores it
+	/// still works; it just cannot be given up on.
+	/// </param>
 	/// <returns>Result of the step execution</returns>
-	Task<ITestStepResult> ExecuteAsync(ITestContext context);
+	Task<ITestStepResult> ExecuteAsync(ITestContext context, CancellationToken cancellationToken = default);
 
 	/// <summary>
 	/// Validates the step result using a custom validation function.

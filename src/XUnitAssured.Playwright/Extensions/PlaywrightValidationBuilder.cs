@@ -2119,6 +2119,72 @@ public class PlaywrightValidationBuilder : ValidationBuilder<PlaywrightStepResul
 	}
 
 	/// <summary>
+	/// Asserts that the page requested an address matching this pattern.
+	/// </summary>
+	/// <remarks>
+	/// Matching is by containment, with <c>*</c> standing for any run of characters — so
+	/// <c>"/v1/auth/refresh"</c> matches a full URL ending in it, and
+	/// <c>"/v1/orders/*/items"</c> matches one with an identifier in the middle.
+	/// </remarks>
+	/// <param name="urlPattern">What the requested address should contain</param>
+	public PlaywrightValidationBuilder AssertRequested(string urlPattern)
+	{
+		var encontrados = RequisicoesQueCasam(urlPattern);
+
+		encontrados.Count.ShouldBeGreaterThan(0,
+			$"The page requested nothing matching '{urlPattern}'. {ResumoDasRequisicoes()}");
+
+		return this;
+	}
+
+	/// <summary>
+	/// Asserts that the page requested an address matching this pattern exactly once.
+	/// </summary>
+	/// <remarks>
+	/// The one worth having. A renewal that fires twice because two screens asked for it at the
+	/// same moment still signs the user in, so the bug is invisible to every assertion about
+	/// what is on screen — and on a server that rotates a token on use, the second request is
+	/// the one that logs the user out.
+	/// </remarks>
+	/// <param name="urlPattern">What the requested address should contain</param>
+	public PlaywrightValidationBuilder AssertRequestedOnce(string urlPattern)
+	{
+		var encontrados = RequisicoesQueCasam(urlPattern);
+
+		encontrados.Count.ShouldBe(1,
+			$"Expected exactly one request matching '{urlPattern}', found {encontrados.Count}. " +
+			ResumoDasRequisicoes());
+
+		return this;
+	}
+
+	/// <summary>
+	/// The addresses this step requested that match the pattern.
+	/// </summary>
+	private IReadOnlyList<string> RequisicoesQueCasam(string urlPattern)
+	{
+		if (string.IsNullOrWhiteSpace(urlPattern))
+			throw new ArgumentException("A URL pattern is required.", nameof(urlPattern));
+
+		var expressao = new Regex(
+			string.Join(".*", urlPattern.Split('*').Select(Regex.Escape)),
+			RegexOptions.IgnoreCase);
+
+		return Result.Requests.Where(url => expressao.IsMatch(url)).ToList();
+	}
+
+	/// <summary>
+	/// What the page actually requested, so a failure does not just say "no match".
+	/// </summary>
+	private string ResumoDasRequisicoes()
+	{
+		if (Result.Requests.Count == 0)
+			return "The step recorded no requests at all.";
+
+		return "It requested: " + string.Join(", ", Result.Requests);
+	}
+
+	/// <summary>
 	/// Whether the cookie is there, and whether the page's JavaScript can read it.
 	/// </summary>
 	/// <remarks>

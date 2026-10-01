@@ -1,4 +1,5 @@
-﻿using System;
+﻿using System.Threading;
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
@@ -23,6 +24,7 @@ public class PlaywrightStep : ITestStep
 {
 	private readonly List<PageAction> _actions = new();
 	private readonly ConcurrentQueue<string> _consoleLogs = new();
+	private readonly ConcurrentQueue<string> _requests = new();
 
 	/// <inheritdoc />
 	public string? Name { get; internal set; }
@@ -64,12 +66,13 @@ public class PlaywrightStep : ITestStep
 	}
 
 	/// <inheritdoc />
-	public async Task<ITestStepResult> ExecuteAsync(ITestContext context)
+	public async Task<ITestStepResult> ExecuteAsync(ITestContext context, CancellationToken cancellationToken = default)
 	{
 		var startTime = DateTimeOffset.UtcNow;
 		var screenshots = new List<string>();
 
 		EventHandler<IConsoleMessage>? consoleHandler = null;
+		EventHandler<IRequest>? requestHandler = null;
 
 		try
 		{
@@ -82,6 +85,12 @@ public class PlaywrightStep : ITestStep
 			consoleHandler = (_, msg) => _consoleLogs.Enqueue($"[{msg.Type}] {msg.Text}");
 			page.Console += consoleHandler;
 
+			// O que a página pediu enquanto este passo rodou. A gravação começa aqui, e não na
+			// criação da página, porque é o que dá sentido a afirmar que algo foi pedido uma vez
+			// só: o escopo da contagem é o passo.
+			requestHandler = (_, request) => _requests.Enqueue(request.Url);
+			page.Request += requestHandler;
+
 			// Execute each action in sequence
 			foreach (var action in _actions)
 			{
@@ -91,6 +100,8 @@ public class PlaywrightStep : ITestStep
 			// Unsubscribe before snapshotting the logs to prevent further mutations
 			page.Console -= consoleHandler;
 			consoleHandler = null;
+			page.Request -= requestHandler;
+			requestHandler = null;
 
 			var elapsed = DateTimeOffset.UtcNow - startTime;
 
@@ -115,6 +126,7 @@ public class PlaywrightStep : ITestStep
 				},
 				screenshots: screenshots,
 				consoleLogs: _consoleLogs.ToList(),
+				requests: _requests.ToList(),
 				elapsed: elapsed);
 
 			IsValid = true;
@@ -139,6 +151,7 @@ public class PlaywrightStep : ITestStep
 				url: TryGetUrl(failedPage),
 				screenshots: screenshots,
 				consoleLogs: _consoleLogs.ToList(),
+				requests: _requests.ToList(),
 				elapsed: elapsed,
 				exception: ex);
 
@@ -153,6 +166,13 @@ public class PlaywrightStep : ITestStep
 				var page = Page ?? context.GetProperty<IPage>("_PlaywrightPage");
 				if (page != null)
 					page.Console -= consoleHandler;
+			}
+
+			if (requestHandler != null)
+			{
+				var page = Page ?? context.GetProperty<IPage>("_PlaywrightPage");
+				if (page != null)
+					page.Request -= requestHandler;
 			}
 		}
 	}
@@ -188,7 +208,7 @@ public class PlaywrightStep : ITestStep
 				break;
 
 			case PageActionType.Navigate:
-				var url = ResolveUrl(action.Value!);
+				var url = ResolveUrl(action.ResolveValue()!);
 				await page.GotoAsync(url, new PageGotoOptions
 				{
 					Timeout = Settings.NavigationTimeout

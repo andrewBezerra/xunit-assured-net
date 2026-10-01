@@ -31,7 +31,7 @@ public class CrossScenarioExampleTests
 		var orderId = 0;
 		await using var browser = await ui.OpenPageAsync();
 
-		Given(api, kafka, browser)
+		var assertions = await Given(api, kafka, browser)
 			// HTTP: create the order through the API
 			.ApiResource("/api/orders")
 			.Post(new { customerId = 42, total = 99.90m })
@@ -51,13 +51,17 @@ public class CrossScenarioExampleTests
 				message.Status.ShouldBe("Created");
 			})
 
-			// Browser: and the order must be visible to the user
+			// Browser: and the order must be visible to the user.
+			// The URL is a function because `orderId` does not exist yet: the chain is being
+			// described, and the step that produces it has not run.
 			.And()
-			.NavigateTo($"/orders/{orderId}")
+			.NavigateTo(() => $"/orders/{orderId}")
 
-			// The chain ends where it is: the last step was a browser step, so `Execute()`
-			// is the browser one. Three packages referenced, and nothing to disambiguate.
-			.Execute()
+			// One await, at the end. The last step was a browser step, so `ExecuteAsync()` is
+			// the browser one — three packages referenced, and nothing to disambiguate.
+			.ExecuteAsync();
+
+		assertions
 			.Then()
 			.AssertUrlContains($"/orders/{orderId}")
 			.AssertTextContainsByTestId("order-status", "Created");
