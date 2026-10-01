@@ -22,10 +22,11 @@ namespace XUnitAssured.Playwright.Testing;
 /// <code>
 /// await using var browser = await UiFixture.OpenPageAsync();
 ///
-/// Given(ApiFixture, KafkaFixture, browser)
+/// var assertions = await Given(ApiFixture, KafkaFixture, browser)
 ///     .ApiResource("/api/orders").Post(order).Validate(...)
 ///     .And().On().Topic("orders.created").Consume().ValidateMessage&lt;OrderCreated&gt;(...)
-///     .And().NavigateTo("/orders/1");
+///     .And().NavigateTo("/orders/1")
+///     .ExecuteAsync();
 /// </code>
 /// <para>
 /// Disposing the session closes the page and its browser context. Tracing and

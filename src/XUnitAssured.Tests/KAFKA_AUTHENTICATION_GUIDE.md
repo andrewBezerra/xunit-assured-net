@@ -206,11 +206,12 @@ export KAFKA_CA_CERT_PATH="/certs/ca-cert.pem"
 }
 
 // Test code
-Given()
+await Given()
     .Topic("orders")
     .WithSaslPlain()  // Uses settings
     .Consume()
-    .Validate(result => result.Success.ShouldBeTrue());
+    .Validate(result => result.Success.ShouldBeTrue())
+    .ExecuteAsync();
 ```
 
 ### AWS MSK

@@ -80,10 +80,13 @@ public static class ScenarioDsl
 	/// <returns>A new test scenario with every provider's values in its context.</returns>
 	/// <example>
 	/// <code>
-	/// Given(api, kafka, browser)
+	/// var assertions = await Given(api, kafka, browser)
 	///     .ApiResource("/api/orders").Post(order).Validate(r =&gt; r.StatusCode.ShouldBe(201))
 	///     .And().On().Topic("orders.created").Consume().ValidateMessage&lt;OrderCreated&gt;(m =&gt; ...)
-	///     .And().NavigateTo("/orders/1");
+	///     .And().NavigateTo("/orders/1")
+	///     // Nothing above has run yet: the chain describes, and this call carries it out.
+	///     // A chain without it compiles and does nothing, which passes a test that tested nothing.
+	///     .ExecuteAsync();
 	/// </code>
 	/// </example>
 	/// <exception cref="System.ArgumentNullException">Thrown when the array or any element is null.</exception>
