@@ -275,9 +275,9 @@ public class BlazorFixture : PlaywrightTestFixture, IAsyncLifetime
 
 ## Supported Frameworks
 
-- .NET 7
 - .NET 8
 - .NET 9
+- .NET 10
 - .NET 10
 
 ## Dependencies

@@ -16,7 +16,7 @@ Add to your `.mcp.json` (repo root, `~/.mcp.json`, or `.vscode/mcp.json`):
     "xunitassured": {
       "type": "stdio",
       "command": "dnx",
-      "args": ["XUnitAssured.Mcp@5.0.0", "--yes"]
+      "args": ["XUnitAssured.Mcp@6.0.0", "--yes"]
     }
   }
 }
