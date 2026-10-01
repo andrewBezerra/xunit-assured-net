@@ -44,7 +44,12 @@ public static class KafkaValidationExtensions
 	/// Automatically deserializes the message to the specified type.
 	/// Usage: .ValidateMessage&lt;MyMessage&gt;(msg => msg.Id.ShouldNotBeEmpty())
 	/// </summary>
-	public static ITestScenario ValidateMessage<T>(this ITestScenario scenario, Action<T> validation) where T : class
+	/// <remarks>
+	/// Hands back an <see cref="IKafkaScenario"/>, like every sibling verb in this class.
+	/// Returning the untyped scenario made a Kafka-only chain that ends here fail to compile on
+	/// <c>ExecuteAsync()</c>, which is the exact problem typed scenarios exist to remove.
+	/// </remarks>
+	public static IKafkaScenario ValidateMessage<T>(this ITestScenario scenario, Action<T> validation) where T : class
 	{
 		if (scenario == null)
 			throw new ArgumentNullException(nameof(scenario));
@@ -68,7 +73,7 @@ public static class KafkaValidationExtensions
 			validation(message);
 		});
 
-		return scenario;
+		return KafkaScenario.De(scenario);
 	}
 
 	// ========== PRODUCE VALIDATIONS ==========

@@ -569,6 +569,9 @@ relied on.
   receiver. The scenario at the top of this README used to end with
   `PlaywrightBddExtensions.Execute(scenario)` spelled out.
   *Binary-breaking:* 157 extension methods changed their return type.
+- **`ValidateMessage` keeps the chain typed**, like every sibling verb. It returned the untyped
+  scenario, so a Kafka-only chain that ended with it would not compile on `ExecuteAsync()` —
+  the exact failure typed scenarios exist to remove.
 - **Browser settings moved into `testsettings.json`**, under a `playwright` section next to
   `http` and `kafka`. `playwrightsettings.json` is still read, and says once where its
   contents should move to; it will be removed in a future major.
