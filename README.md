@@ -590,6 +590,11 @@ relied on.
   assertions `AssertCookie`, `AssertNoCookie`, `AssertCookieIsHttpOnly`, `AssertLocalStorage`,
   `AssertNoLocalStorage`. The last ones read the browser context rather than
   `document.cookie`, which is the only way to assert about a cookie the page cannot see.
+- **Observed requests** — `AssertRequested(urlPattern)` and `AssertRequestedOnce(urlPattern)`
+  assert about what the page asked for while the step ran, with `*` standing for any run of
+  characters. The second one is the point: a renewal that fires twice still leaves the user
+  signed in, so nothing on screen gives it away, and on a server that rotates a token on use
+  it is the second request that ends the session.
 
 ### v5.1.0 (cross-boundary scenarios from one call, fully compatible with 5.0.x)
 

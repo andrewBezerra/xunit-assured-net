@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using XUnitAssured.Core.Results;
 
@@ -72,6 +72,17 @@ public class PlaywrightStepResult : TestStepResult
 		GetProperty<IReadOnlyList<string>>("ConsoleLogs") ?? Array.Empty<string>();
 
 	/// <summary>
+	/// The addresses the page requested while the step ran, in the order they were made.
+	/// </summary>
+	/// <remarks>
+	/// Only what this step caused: the recording starts when the step starts. A request the
+	/// page makes on its own after the step has finished is not here, which is what makes
+	/// asserting that something was requested exactly once mean anything.
+	/// </remarks>
+	public IReadOnlyList<string> Requests =>
+		GetProperty<IReadOnlyList<string>>("Requests") ?? Array.Empty<string>();
+
+	/// <summary>
 	/// Creates a successful Playwright result whose page content is fetched only if
 	/// something reads <see cref="PageContent"/>.
 	/// </summary>
@@ -83,6 +94,7 @@ public class PlaywrightStepResult : TestStepResult
 	/// </param>
 	/// <param name="screenshots">Screenshot paths taken during the step.</param>
 	/// <param name="consoleLogs">Console messages captured during the step.</param>
+	/// <param name="requests">Addresses the page requested during the step.</param>
 	/// <param name="elapsed">How long the step took.</param>
 	public static PlaywrightStepResult CreateSuccess(
 		string? url,
@@ -90,6 +102,7 @@ public class PlaywrightStepResult : TestStepResult
 		Func<string?> pageContentProvider,
 		List<string>? screenshots = null,
 		List<string>? consoleLogs = null,
+		List<string>? requests = null,
 		TimeSpan? elapsed = null)
 	{
 		if (pageContentProvider == null)
@@ -114,7 +127,8 @@ public class PlaywrightStepResult : TestStepResult
 				["Url"] = url,
 				["Title"] = title,
 				["Screenshots"] = (IReadOnlyList<string>)(screenshots ?? new List<string>()),
-				["ConsoleLogs"] = (IReadOnlyList<string>)(consoleLogs ?? new List<string>())
+				["ConsoleLogs"] = (IReadOnlyList<string>)(consoleLogs ?? new List<string>()),
+				["Requests"] = (IReadOnlyList<string>)(requests ?? new List<string>())
 			}
 		};
 	}
@@ -128,6 +142,7 @@ public class PlaywrightStepResult : TestStepResult
 		string? pageContent,
 		List<string>? screenshots = null,
 		List<string>? consoleLogs = null,
+		List<string>? requests = null,
 		TimeSpan? elapsed = null)
 	{
 		return new PlaywrightStepResult
@@ -147,7 +162,8 @@ public class PlaywrightStepResult : TestStepResult
 				["Url"] = url,
 				["Title"] = title,
 				["Screenshots"] = (IReadOnlyList<string>)(screenshots ?? new List<string>()),
-				["ConsoleLogs"] = (IReadOnlyList<string>)(consoleLogs ?? new List<string>())
+				["ConsoleLogs"] = (IReadOnlyList<string>)(consoleLogs ?? new List<string>()),
+				["Requests"] = (IReadOnlyList<string>)(requests ?? new List<string>())
 			}
 		};
 	}
@@ -160,6 +176,7 @@ public class PlaywrightStepResult : TestStepResult
 		string? url = null,
 		List<string>? screenshots = null,
 		List<string>? consoleLogs = null,
+		List<string>? requests = null,
 		TimeSpan? elapsed = null,
 		Exception? exception = null)
 	{
@@ -168,7 +185,8 @@ public class PlaywrightStepResult : TestStepResult
 			["Url"] = url,
 			["Title"] = null,
 			["Screenshots"] = (IReadOnlyList<string>)(screenshots ?? new List<string>()),
-			["ConsoleLogs"] = (IReadOnlyList<string>)(consoleLogs ?? new List<string>())
+			["ConsoleLogs"] = (IReadOnlyList<string>)(consoleLogs ?? new List<string>()),
+			["Requests"] = (IReadOnlyList<string>)(requests ?? new List<string>())
 		};
 
 		// A UI failure message on its own rarely says which action broke. Keeping the
