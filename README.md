@@ -16,9 +16,7 @@ Most integration tests check one boundary at a time. The interesting bugs live b
 var orderId = 0;
 await using var browser = await ui.OpenPageAsync();
 
-var scenario = Given(api, kafka, browser);
-
-scenario
+Given(api, kafka, browser)
     // HTTP: create the order through the API
     .ApiResource("/api/orders")
     .Post(new { customerId = 42, total = 99.90m })
@@ -40,15 +38,15 @@ scenario
 
     // Browser: and the order must be visible to the user
     .And()
-    .NavigateTo($"/orders/{orderId}");
+    .NavigateTo($"/orders/{orderId}")
 
-PlaywrightBddExtensions.Execute(scenario)
+    .Execute()
     .Then()
     .AssertUrlContains($"/orders/{orderId}")
     .AssertTextContainsByTestId("order-status", "Created");
 ```
 
-One rough edge, stated plainly: when the Http, Kafka and Playwright packages are all referenced, `Execute()` is ambiguous — each package defines its own — so the last leg names the package. A single entry point is the first item on the roadmap.
+The chain ends where it is: the last step was a browser step, so `Execute()` is the browser one. Each package's chain methods return their own scenario type, so the compiler picks the builder from the receiver — three packages referenced, and nothing to disambiguate.
 
 `api`, `kafka` and `ui` are ordinary xUnit fixtures; `Given(api, kafka, browser)` hands everything they provide to one scenario. Each leg is a *step*; steps share one context, so a value extracted from the API response drives the Kafka assertion and the page the browser opens. This exact scenario is compiled against the DSL on every build ([`CrossScenarioExampleTests.cs`](src/XUnitAssured.Tests/CrossScenarioExampleTests.cs)), so the README cannot drift from the API.
 
@@ -76,11 +74,10 @@ The definition above is where the project is going. This is what it ships now:
 
 In order of intent, not of promise:
 
-1. **A single `Execute()`** so a cross-boundary scenario ends the same way regardless of which packages are referenced — today the last leg has to name its package. (Getting `HttpClient`, broker and page from one `Given(api, kafka, browser)` call already works.)
-2. **A first-class asynchronous API** (`ExecuteAsync`, `CancellationToken` end to end) — the current `Execute()` blocks, which is the most common objection to the DSL. This is the v6 line.
-3. **More messaging systems** — RabbitMQ and Azure Service Bus are the natural next ones behind Kafka.
-4. **gRPC** alongside HTTP.
-5. **One configuration file** — bring Playwright into `testsettings.json` and retire the per-package files, so a cross-boundary project is configured in one place.
+1. **A first-class asynchronous API** (`ExecuteAsync`, `CancellationToken` end to end) — the current `Execute()` blocks, which is the most common objection to the DSL. This is the v6 line.
+2. **More messaging systems** — RabbitMQ and Azure Service Bus are the natural next ones behind Kafka.
+3. **gRPC** alongside HTTP.
+4. **One configuration file** — bring Playwright into `testsettings.json` and retire the per-package files, so a cross-boundary project is configured in one place.
 
 ## 📦 Packages
 

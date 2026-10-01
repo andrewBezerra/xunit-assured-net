@@ -1,3 +1,5 @@
+﻿using XUnitAssured.Kafka.DSL;
+using XUnitAssured.Kafka.Abstractions;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -17,7 +19,7 @@ public static class KafkaScenarioExtensions
 	/// Sets the Kafka topic for the next operation (Consume or Produce).
 	/// Usage: Given().Topic("my-topic").Consume() or Given().Topic("my-topic").Produce(value)
 	/// </summary>
-	public static ITestScenario Topic(this ITestScenario scenario, string topic)
+	public static IKafkaScenario Topic(this ITestScenario scenario, string topic)
 	{
 		if (scenario == null)
 			throw new ArgumentNullException(nameof(scenario));
@@ -27,14 +29,14 @@ public static class KafkaScenarioExtensions
 
 		// Store topic in context for Consume() or Produce() to use
 		scenario.Context.SetProperty("_KafkaTopic", topic);
-		return scenario;
+		return KafkaScenario.De(scenario);
 	}
 
 	/// <summary>
 	/// Configures the Kafka step to consume a message.
 	/// Must be called after Topic().
 	/// </summary>
-	public static ITestScenario Consume(this ITestScenario scenario)
+	public static IKafkaScenario Consume(this ITestScenario scenario)
 	{
 		var topic = scenario.Context.GetProperty<string>("_KafkaTopic");
 
@@ -47,7 +49,7 @@ public static class KafkaScenarioExtensions
 		};
 
 		scenario.SetCurrentStep(step);
-		return scenario;
+		return KafkaScenario.De(scenario);
 	}
 
 	/// <summary>
@@ -56,7 +58,7 @@ public static class KafkaScenarioExtensions
 	/// Must be called after Topic().
 	/// Usage: Topic("my-topic").ConsumeBatch(5)
 	/// </summary>
-	public static ITestScenario ConsumeBatch(this ITestScenario scenario, int count)
+	public static IKafkaScenario ConsumeBatch(this ITestScenario scenario, int count)
 	{
 		if (count <= 0)
 			throw new ArgumentOutOfRangeException(nameof(count), "Message count must be greater than zero.");
@@ -73,14 +75,14 @@ public static class KafkaScenarioExtensions
 		};
 
 		scenario.SetCurrentStep(step);
-		return scenario;
+		return KafkaScenario.De(scenario);
 	}
 
 	/// <summary>
 	/// Sets the expected schema type for the consumed message.
 	/// Usage: .WithSchema(typeof(MyMessage))
 	/// </summary>
-	public static ITestScenario WithSchema(this ITestScenario scenario, Type schemaType)
+	public static IKafkaScenario WithSchema(this ITestScenario scenario, Type schemaType)
 	{
 		if (scenario.CurrentStep is KafkaConsumeStep consumeStep)
 		{
@@ -116,13 +118,13 @@ public static class KafkaScenarioExtensions
 			throw new InvalidOperationException("Current step is not a Kafka consume step.");
 		}
 
-		return scenario;
+		return KafkaScenario.De(scenario);
 	}
 
 	/// <summary>
 	/// Sets the timeout for consuming or producing a message.
 	/// </summary>
-	public static ITestScenario WithTimeout(this ITestScenario scenario, TimeSpan timeout)
+	public static IKafkaScenario WithTimeout(this ITestScenario scenario, TimeSpan timeout)
 	{
 		if (scenario.CurrentStep is KafkaConsumeStep consumeStep)
 		{
@@ -194,14 +196,14 @@ public static class KafkaScenarioExtensions
 			throw new InvalidOperationException("Current step is not a Kafka step.");
 		}
 
-		return scenario;
+		return KafkaScenario.De(scenario);
 	}
 
 	/// <summary>
 	/// Sets the Kafka bootstrap servers.
 	/// Default is "localhost:9092".
 	/// </summary>
-	public static ITestScenario WithBootstrapServers(this ITestScenario scenario, string bootstrapServers)
+	public static IKafkaScenario WithBootstrapServers(this ITestScenario scenario, string bootstrapServers)
 	{
 		if (scenario.CurrentStep is KafkaConsumeStep consumeStep)
 		{
@@ -273,13 +275,13 @@ public static class KafkaScenarioExtensions
 			throw new InvalidOperationException("Current step is not a Kafka step.");
 		}
 
-		return scenario;
+		return KafkaScenario.De(scenario);
 	}
 
 	/// <summary>
 	/// Sets the Kafka consumer group ID.
 	/// </summary>
-	public static ITestScenario WithGroupId(this ITestScenario scenario, string groupId)
+	public static IKafkaScenario WithGroupId(this ITestScenario scenario, string groupId)
 	{
 		if (scenario.CurrentStep is KafkaConsumeStep consumeStep)
 		{
@@ -315,13 +317,13 @@ public static class KafkaScenarioExtensions
 			throw new InvalidOperationException("Current step is not a Kafka consume step.");
 		}
 
-		return scenario;
+		return KafkaScenario.De(scenario);
 	}
 
 	/// <summary>
 	/// Sets custom Kafka consumer configuration.
 	/// </summary>
-	public static ITestScenario WithConsumerConfig(this ITestScenario scenario, ConsumerConfig config)
+	public static IKafkaScenario WithConsumerConfig(this ITestScenario scenario, ConsumerConfig config)
 	{
 		if (scenario.CurrentStep is KafkaConsumeStep consumeStep)
 		{
@@ -357,7 +359,7 @@ public static class KafkaScenarioExtensions
 			throw new InvalidOperationException("Current step is not a Kafka consume step.");
 		}
 
-		return scenario;
+		return KafkaScenario.De(scenario);
 	}
 
 	// ========== PRODUCE METHODS ==========
@@ -367,7 +369,7 @@ public static class KafkaScenarioExtensions
 	/// Must be called after Topic().
 	/// Usage: Topic("my-topic").Produce(myObject)
 	/// </summary>
-	public static ITestScenario Produce(this ITestScenario scenario, object value)
+	public static IKafkaScenario Produce(this ITestScenario scenario, object value)
 	{
 		var topic = scenario.Context.GetProperty<string>("_KafkaTopic");
 
@@ -381,7 +383,7 @@ public static class KafkaScenarioExtensions
 		};
 
 		scenario.SetCurrentStep(step);
-		return scenario;
+		return KafkaScenario.De(scenario);
 	}
 
 	/// <summary>
@@ -389,7 +391,7 @@ public static class KafkaScenarioExtensions
 	/// Must be called after Topic().
 	/// Usage: Topic("my-topic").Produce(key: "123", value: myObject)
 	/// </summary>
-	public static ITestScenario Produce(this ITestScenario scenario, object key, object value)
+	public static IKafkaScenario Produce(this ITestScenario scenario, object key, object value)
 	{
 		var topic = scenario.Context.GetProperty<string>("_KafkaTopic");
 
@@ -404,7 +406,7 @@ public static class KafkaScenarioExtensions
 		};
 
 		scenario.SetCurrentStep(step);
-		return scenario;
+		return KafkaScenario.De(scenario);
 	}
 
 	/// <summary>
@@ -413,7 +415,7 @@ public static class KafkaScenarioExtensions
 	/// Must be called after Topic().
 	/// Usage: Topic("my-topic").ProduceBatch(messages)
 	/// </summary>
-	public static ITestScenario ProduceBatch(this ITestScenario scenario, IEnumerable<object> values)
+	public static IKafkaScenario ProduceBatch(this ITestScenario scenario, IEnumerable<object> values)
 	{
 		var topic = scenario.Context.GetProperty<string>("_KafkaTopic");
 
@@ -431,7 +433,7 @@ public static class KafkaScenarioExtensions
 		};
 
 		scenario.SetCurrentStep(step);
-		return scenario;
+		return KafkaScenario.De(scenario);
 	}
 
 	/// <summary>
@@ -440,7 +442,7 @@ public static class KafkaScenarioExtensions
 	/// Must be called after Topic().
 	/// Usage: Topic("my-topic").ProduceBatch(keyedMessages)
 	/// </summary>
-	public static ITestScenario ProduceBatch(this ITestScenario scenario, IEnumerable<KeyValuePair<object, object>> items)
+	public static IKafkaScenario ProduceBatch(this ITestScenario scenario, IEnumerable<KeyValuePair<object, object>> items)
 	{
 		var topic = scenario.Context.GetProperty<string>("_KafkaTopic");
 
@@ -458,7 +460,7 @@ public static class KafkaScenarioExtensions
 		};
 
 		scenario.SetCurrentStep(step);
-		return scenario;
+		return KafkaScenario.De(scenario);
 	}
 
 	// ========== KEY CONFIGURATION ==========
@@ -468,7 +470,7 @@ public static class KafkaScenarioExtensions
 	/// Alternative to passing key in Produce() method.
 	/// Usage: Produce(value).WithKey("my-key")
 	/// </summary>
-	public static ITestScenario WithKey(this ITestScenario scenario, object key)
+	public static IKafkaScenario WithKey(this ITestScenario scenario, object key)
 	{
 		if (scenario.CurrentStep is not KafkaProduceStep produceStep)
 			throw new InvalidOperationException("Current step is not a Kafka produce step.");
@@ -490,7 +492,7 @@ public static class KafkaScenarioExtensions
 		};
 
 		scenario.SetCurrentStep(newStep);
-		return scenario;
+		return KafkaScenario.De(scenario);
 	}
 
 	// ========== HEADERS CONFIGURATION ==========
@@ -499,7 +501,7 @@ public static class KafkaScenarioExtensions
 	/// Sets the headers for a Kafka message.
 	/// Usage: Produce(value).WithHeaders(headers)
 	/// </summary>
-	public static ITestScenario WithHeaders(this ITestScenario scenario, Headers headers)
+	public static IKafkaScenario WithHeaders(this ITestScenario scenario, Headers headers)
 	{
 		if (scenario.CurrentStep is KafkaProduceStep produceStep)
 		{
@@ -541,14 +543,14 @@ public static class KafkaScenarioExtensions
 			throw new InvalidOperationException("Current step is not a Kafka produce step.");
 		}
 
-		return scenario;
+		return KafkaScenario.De(scenario);
 	}
 
 	/// <summary>
 	/// Adds a single header to the Kafka message.
 	/// Usage: Produce(value).WithHeader("correlation-id", Encoding.UTF8.GetBytes("abc"))
 	/// </summary>
-	public static ITestScenario WithHeader(this ITestScenario scenario, string name, byte[] value)
+	public static IKafkaScenario WithHeader(this ITestScenario scenario, string name, byte[] value)
 	{
 		if (scenario.CurrentStep is not KafkaProduceStep produceStep)
 			throw new InvalidOperationException("Current step is not a Kafka produce step.");
@@ -574,7 +576,7 @@ public static class KafkaScenarioExtensions
 		};
 
 		scenario.SetCurrentStep(newStep);
-		return scenario;
+		return KafkaScenario.De(scenario);
 	}
 
 	// ========== PARTITION/TIMESTAMP CONFIGURATION ==========
@@ -583,7 +585,7 @@ public static class KafkaScenarioExtensions
 	/// Sets a specific partition for the Kafka message.
 	/// Usage: Produce(value).WithPartition(0)
 	/// </summary>
-	public static ITestScenario WithPartition(this ITestScenario scenario, int partition)
+	public static IKafkaScenario WithPartition(this ITestScenario scenario, int partition)
 	{
 		if (scenario.CurrentStep is not KafkaProduceStep produceStep)
 			throw new InvalidOperationException("Current step is not a Kafka produce step.");
@@ -605,14 +607,14 @@ public static class KafkaScenarioExtensions
 		};
 
 		scenario.SetCurrentStep(newStep);
-		return scenario;
+		return KafkaScenario.De(scenario);
 	}
 
 	/// <summary>
 	/// Sets a custom timestamp for the Kafka message.
 	/// Usage: Produce(value).WithTimestamp(DateTime.UtcNow)
 	/// </summary>
-	public static ITestScenario WithTimestamp(this ITestScenario scenario, DateTime timestamp)
+	public static IKafkaScenario WithTimestamp(this ITestScenario scenario, DateTime timestamp)
 	{
 		if (scenario.CurrentStep is not KafkaProduceStep produceStep)
 			throw new InvalidOperationException("Current step is not a Kafka produce step.");
@@ -634,7 +636,7 @@ public static class KafkaScenarioExtensions
 		};
 
 		scenario.SetCurrentStep(newStep);
-		return scenario;
+		return KafkaScenario.De(scenario);
 	}
 
 	// ========== PRODUCER CONFIGURATION ==========
@@ -643,7 +645,7 @@ public static class KafkaScenarioExtensions
 	/// Sets custom Kafka producer configuration.
 	/// Usage: Produce(value).WithProducerConfig(config)
 	/// </summary>
-	public static ITestScenario WithProducerConfig(this ITestScenario scenario, ProducerConfig config)
+	public static IKafkaScenario WithProducerConfig(this ITestScenario scenario, ProducerConfig config)
 	{
 		if (scenario.CurrentStep is KafkaProduceStep produceStep)
 		{
@@ -685,7 +687,7 @@ public static class KafkaScenarioExtensions
 			throw new InvalidOperationException("Current step is not a Kafka produce step.");
 		}
 
-		return scenario;
+		return KafkaScenario.De(scenario);
 	}
 
 	// ========== JSON SERIALIZATION ==========
@@ -694,7 +696,7 @@ public static class KafkaScenarioExtensions
 	/// Sets custom JSON serialization options for object serialization.
 	/// Usage: Produce(value).WithJsonOptions(new JsonSerializerOptions { ... })
 	/// </summary>
-	public static ITestScenario WithJsonOptions(this ITestScenario scenario, System.Text.Json.JsonSerializerOptions options)
+	public static IKafkaScenario WithJsonOptions(this ITestScenario scenario, System.Text.Json.JsonSerializerOptions options)
 	{
 		if (scenario.CurrentStep is KafkaProduceStep produceStep)
 		{
@@ -736,7 +738,7 @@ public static class KafkaScenarioExtensions
 			throw new InvalidOperationException("Current step is not a Kafka produce step.");
 		}
 
-		return scenario;
+		return KafkaScenario.De(scenario);
 	}
 
 	// ========== AUTHENTICATION ==========
@@ -762,7 +764,7 @@ public static class KafkaScenarioExtensions
 	///     .AssertSuccess();
 	/// </code>
 	/// </example>
-	public static ITestScenario WithAuth(this ITestScenario scenario, Action<KafkaAuthConfig> configure)
+	public static IKafkaScenario WithAuth(this ITestScenario scenario, Action<KafkaAuthConfig> configure)
 	{
 		if (configure == null)
 			throw new ArgumentNullException(nameof(configure));
@@ -841,7 +843,7 @@ public static class KafkaScenarioExtensions
 			throw new InvalidOperationException("Current step is not a Kafka step.");
 		}
 
-		return scenario;
+		return KafkaScenario.De(scenario);
 	}
 
 }
