@@ -176,7 +176,7 @@ Given()
     .AssertText("#msg", "Success!")                      // Assert element text
     .AssertTextByRole(AriaRole.Alert, "Saved")          // Assert text by role
     .AssertTextByTestId("status", "OK")                 // Assert text by test ID
-    .AssertScreenshot("login-page")                     // Capture assertion screenshot
+    .TakeScreenshot("login-page")                       // Capture a screenshot
 ```
 
 ## Playwright Codegen Integration

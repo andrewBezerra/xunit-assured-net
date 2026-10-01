@@ -162,7 +162,7 @@ Given().ApiResource("/api/secure")
 
 // OAuth2 Client Credentials
 Given().ApiResource("/api/secure")
-    .WithOAuth2ClientCredentials("https://auth.example.com/token", "client-id", "client-secret")
+    .WithOAuth2("https://auth.example.com/token", "client-id", "client-secret")
     .Get()
 .When().Execute()
 .Then().AssertStatusCode(200);

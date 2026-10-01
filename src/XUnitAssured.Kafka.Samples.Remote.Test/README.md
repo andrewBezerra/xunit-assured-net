@@ -327,16 +327,16 @@ Tests follow the **Given-When-Then** DSL pattern:
 
 ```csharp
 // PRODUCE
-await Given()
+Given()
     .Topic("my-topic")
     .Produce(myMessage)
 .When()
     .Execute()
 .Then()
-    .AssertProduceSucceeded();
+    .AssertSuccess();
 
 // CONSUME
-await Given()
+Given()
     .Topic("my-topic")
     .Consume()
 .When()
