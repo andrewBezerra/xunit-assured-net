@@ -72,7 +72,7 @@ public static class RabbitMqScenarioExtensions
 /// </remarks>
 internal static class RabbitMqVerbos
 {
-	internal static IRabbitMqScenario DeclareQueue(ITestScenario scenario)
+	internal static IRabbitMqScenario DeclareQueue(ITestScenario scenario, string? deadLetterExchange)
 	{
 		var fila = scenario.Context.GetProperty<string>("_RabbitMqQueue");
 
@@ -83,7 +83,8 @@ internal static class RabbitMqVerbos
 		scenario.SetCurrentStep(new RabbitMqTopologyStep
 		{
 			Operation = RabbitMqTopologyOperation.DeclareQueue,
-			Queue = fila!
+			Queue = fila!,
+			DeadLetterExchange = deadLetterExchange
 		});
 
 		return RabbitMqScenario.De(scenario);
@@ -230,6 +231,21 @@ internal static class RabbitMqVerbos
 				"Routing only applies to a publish step. Call Publish before AllowingUnroutable.");
 
 		scenario.SetCurrentStep(new RabbitMqPublishStep(publicacao) { RequireRouting = false });
+
+		return RabbitMqScenario.De(scenario);
+	}
+
+	internal static IRabbitMqScenario Rejecting(ITestScenario scenario, bool requeue)
+	{
+		if (scenario.CurrentStep is not RabbitMqConsumeStep consumo)
+			throw new InvalidOperationException(
+				"Only a consumed message can be rejected. Call Consume before Rejecting.");
+
+		scenario.SetCurrentStep(new RabbitMqConsumeStep(consumo)
+		{
+			RejectMessage = true,
+			RequeueRejected = requeue
+		});
 
 		return RabbitMqScenario.De(scenario);
 	}

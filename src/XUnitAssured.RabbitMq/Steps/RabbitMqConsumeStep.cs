@@ -56,6 +56,25 @@ public class RabbitMqConsumeStep : ITestStep
 	/// <summary>A fila de onde retirar.</summary>
 	public string Queue { get; init; } = string.Empty;
 
+	/// <summary>
+	/// Se a mensagem é recusada em vez de confirmada. Padrão: não, ela é confirmada ao chegar.
+	/// </summary>
+	/// <remarks>
+	/// A recusa acontece dentro do passo, antes de o canal fechar, porque é a única janela em que
+	/// ela existe: fechado o canal, uma mensagem não confirmada volta à fila sozinha e sem passar
+	/// pelo dead-letter. Daí isto ser um modo do consumo e não um verbo depois dele.
+	/// </remarks>
+	public bool RejectMessage { get; init; }
+
+	/// <summary>
+	/// Quando a mensagem é recusada, se ela volta para a fila. Padrão: não volta.
+	/// </summary>
+	/// <remarks>
+	/// Não voltar é o que manda a mensagem para o dead-letter da fila, quando há um configurado.
+	/// Voltar é o que permite afirmar que um consumo seguinte a encontra de novo.
+	/// </remarks>
+	public bool RequeueRejected { get; init; }
+
 	/// <summary>Quanto esperar por uma mensagem.</summary>
 	public TimeSpan Timeout { get; init; } = TimeSpan.FromSeconds(30);
 
@@ -97,6 +116,8 @@ public class RabbitMqConsumeStep : ITestStep
 		Name = source.Name;
 		Queue = source.Queue;
 		Timeout = source.Timeout;
+		RejectMessage = source.RejectMessage;
+		RequeueRejected = source.RequeueRejected;
 		_connectionUri = source._connectionUri;
 	}
 
@@ -130,7 +151,7 @@ public class RabbitMqConsumeStep : ITestStep
 			{
 				cancellationToken.ThrowIfCancellationRequested();
 
-				var entrega = await canal.BasicGetAsync(Queue, autoAck: true, cancellationToken)
+				var entrega = await canal.BasicGetAsync(Queue, autoAck: !RejectMessage, cancellationToken)
 					.ConfigureAwait(false);
 
 				if (entrega != null)
@@ -142,6 +163,14 @@ public class RabbitMqConsumeStep : ITestStep
 						remainingMessageCount: entrega.MessageCount,
 						headers: Cabecalhos(entrega.BasicProperties),
 						elapsed: cronometro.Elapsed);
+
+					if (RejectMessage)
+					{
+						await canal.BasicNackAsync(
+								entrega.DeliveryTag, multiple: false, requeue: RequeueRejected,
+								cancellationToken)
+							.ConfigureAwait(false);
+					}
 
 					IsValid = true;
 					return Result;

@@ -67,7 +67,8 @@ internal sealed class RabbitMqScenario : IRabbitMqScenario
 		return this;
 	}
 
-	public IRabbitMqScenario DeclareQueue() => RabbitMqVerbos.DeclareQueue(_cenario);
+	public IRabbitMqScenario DeclareQueue(string? deadLetterExchange = null) =>
+		RabbitMqVerbos.DeclareQueue(_cenario, deadLetterExchange);
 
 	public IRabbitMqScenario DeclareExchange(string type = "direct") =>
 		RabbitMqVerbos.DeclareExchange(_cenario, type);
@@ -89,6 +90,9 @@ internal sealed class RabbitMqScenario : IRabbitMqScenario
 		RabbitMqVerbos.WithHeaders(_cenario, headers);
 
 	public IRabbitMqScenario AllowingUnroutable() => RabbitMqVerbos.AllowingUnroutable(_cenario);
+
+	public IRabbitMqScenario Rejecting(bool requeue = false) =>
+		RabbitMqVerbos.Rejecting(_cenario, requeue);
 
 	public IRabbitMqScenario WithTimeout(TimeSpan timeout) =>
 		RabbitMqVerbos.WithTimeout(_cenario, timeout);
