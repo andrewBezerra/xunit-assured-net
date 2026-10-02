@@ -50,6 +50,24 @@ mistake when the URI is written by hand.
 An environment is a separate file, `testsettings.{name}.json`, as everywhere else in the
 framework.
 
+> **On Windows, prefer `127.0.0.1` to `localhost`.** Resolving `localhost` tries IPv6 first, and
+> each connection pays about 57 seconds before falling back to IPv4. Measured here: three
+> round-trip tests took 2m51s with `localhost` and 2s with the literal address. The default above
+> keeps `localhost` because it is the convention and costs nothing on Linux.
+
+## Running a broker locally
+
+```bash
+podman run -d --name xa-rabbitmq --pids-limit=0 -p 5672:5672 -p 15672:15672 \
+    -e RABBITMQ_DEFAULT_USER=xa -e RABBITMQ_DEFAULT_PASS=xa-senha \
+    docker.io/library/rabbitmq:4-management
+```
+
+The management UI is then on `http://127.0.0.1:15672`. Two things that cost time to discover:
+`--pids-limit=0` is required under Podman on WSL, which otherwise fails to create the container
+with a cgroup controller error; and RabbitMQ 4 refuses a transient non-exclusive queue, so a
+queue declared for a test has to be `durable: true`.
+
 ## Where the verbs live
 
 Every verb except the entry one is a member of `IRabbitMqScenario`, not an extension on

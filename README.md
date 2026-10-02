@@ -594,6 +594,13 @@ In GitHub Copilot Chat, the XUnitAssured tools should appear as available. Try:
 
 Merged and not published yet. One new package; the rest are correctness fixes with no API changes.
 
+- **A verb that reconfigures a step no longer adds a second execution.** Steps are `init`-only,
+  so every verb that changes one value rebuilds the whole step; when 6.0.0 made the chain
+  describe, that rebuild started appending a planned step instead of replacing the one being
+  described. A consume chain then consumed twice: the first step took the message and the second
+  found nothing, and the assertions read the last result. `And()` and `On()` are what start a new
+  step, which is what they already meant. This affects every package and was found by running a
+  round trip against a real broker.
 - **New package: `XUnitAssured.RabbitMq`.** Publish and consume steps for RabbitMQ on the
   official client, configured from a `rabbitmq` section of `testsettings.json`. Its verbs are
   members of `IRabbitMqScenario` rather than extensions on `ITestScenario`, which is what lets a
