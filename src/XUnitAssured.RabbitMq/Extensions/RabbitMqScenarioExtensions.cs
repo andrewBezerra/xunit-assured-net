@@ -72,6 +72,69 @@ public static class RabbitMqScenarioExtensions
 /// </remarks>
 internal static class RabbitMqVerbos
 {
+	internal static IRabbitMqScenario DeclareQueue(ITestScenario scenario)
+	{
+		var fila = scenario.Context.GetProperty<string>("_RabbitMqQueue");
+
+		if (string.IsNullOrWhiteSpace(fila))
+			throw new InvalidOperationException(
+				"No queue to declare. Call Queue(name) first.");
+
+		scenario.SetCurrentStep(new RabbitMqTopologyStep
+		{
+			Operation = RabbitMqTopologyOperation.DeclareQueue,
+			Queue = fila!
+		});
+
+		return RabbitMqScenario.De(scenario);
+	}
+
+	internal static IRabbitMqScenario DeclareExchange(ITestScenario scenario, string type)
+	{
+		if (string.IsNullOrWhiteSpace(type))
+			throw new ArgumentException("Exchange type is required.", nameof(type));
+
+		var exchange = scenario.Context.GetProperty<string>("_RabbitMqExchange");
+
+		if (string.IsNullOrWhiteSpace(exchange))
+			throw new InvalidOperationException(
+				"No exchange to declare. Call Exchange(name) first.");
+
+		scenario.SetCurrentStep(new RabbitMqTopologyStep
+		{
+			Operation = RabbitMqTopologyOperation.DeclareExchange,
+			Exchange = exchange!,
+			ExchangeType = type
+		});
+
+		return RabbitMqScenario.De(scenario);
+	}
+
+	internal static IRabbitMqScenario BindQueueTo(
+		ITestScenario scenario, string exchange, string routingKey)
+	{
+		if (string.IsNullOrWhiteSpace(exchange))
+			throw new ArgumentException("Exchange name is required.", nameof(exchange));
+		if (routingKey == null)
+			throw new ArgumentNullException(nameof(routingKey));
+
+		var fila = scenario.Context.GetProperty<string>("_RabbitMqQueue");
+
+		if (string.IsNullOrWhiteSpace(fila))
+			throw new InvalidOperationException(
+				"No queue to bind. Call Queue(name) first; a binding joins a queue to an exchange.");
+
+		scenario.SetCurrentStep(new RabbitMqTopologyStep
+		{
+			Operation = RabbitMqTopologyOperation.BindQueue,
+			Queue = fila!,
+			Exchange = exchange,
+			RoutingKey = routingKey
+		});
+
+		return RabbitMqScenario.De(scenario);
+	}
+
 	internal static IRabbitMqScenario Publish(ITestScenario scenario, object value)
 	{
 		var exchange = scenario.Context.GetProperty<string>("_RabbitMqExchange") ?? string.Empty;

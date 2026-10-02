@@ -129,6 +129,50 @@ public class VerbosDoRabbitMqTests
 		erro.Message.Contains("consume").ShouldBeTrue();
 	}
 
+	[Fact(DisplayName = "DeclareQueue should record a queue declaration")]
+	public void DeclareQueue_Should_Record_A_Declaration()
+	{
+		var cenario = ScenarioDsl.Given().Queue("pedidos").DeclareQueue();
+
+		var passo = cenario.CurrentStep.ShouldBeOfType<RabbitMqTopologyStep>();
+		passo.Operation.ShouldBe(RabbitMqTopologyOperation.DeclareQueue);
+		passo.Queue.ShouldBe("pedidos");
+		passo.Durable.ShouldBeTrue("RabbitMQ 4 refuses a transient non-exclusive queue");
+	}
+
+	[Fact(DisplayName = "DeclareExchange should record the type it was given")]
+	public void DeclareExchange_Should_Record_The_Type()
+	{
+		var cenario = ScenarioDsl.Given().Exchange("eventos").DeclareExchange("topic");
+
+		var passo = cenario.CurrentStep.ShouldBeOfType<RabbitMqTopologyStep>();
+		passo.Operation.ShouldBe(RabbitMqTopologyOperation.DeclareExchange);
+		passo.Exchange.ShouldBe("eventos");
+		passo.ExchangeType.ShouldBe("topic");
+	}
+
+	[Fact(DisplayName = "BindQueueTo should record both ends and the routing key")]
+	public void BindQueueTo_Should_Record_Both_Ends()
+	{
+		var cenario = ScenarioDsl.Given().Queue("pedidos").BindQueueTo("eventos", "pedidos.criado");
+
+		var passo = cenario.CurrentStep.ShouldBeOfType<RabbitMqTopologyStep>();
+		passo.Operation.ShouldBe(RabbitMqTopologyOperation.BindQueue);
+		passo.Queue.ShouldBe("pedidos");
+		passo.Exchange.ShouldBe("eventos");
+		passo.RoutingKey.ShouldBe("pedidos.criado");
+	}
+
+	// Declarar fila sem nomear fila é erro de ordem, e a mensagem diz o verbo que falta.
+	[Fact(DisplayName = "Declaring with nothing named should say which verb is missing")]
+	public void Declaring_With_Nothing_Named_Should_Say_So()
+	{
+		var erro = Should.Throw<InvalidOperationException>(
+			() => ScenarioDsl.Given().Exchange("eventos").DeclareQueue());
+
+		erro.Message.Contains("Queue").ShouldBeTrue();
+	}
+
 	// Antes de Publish ou Consume não há passo onde guardar a URI, então ela vai para o contexto e
 	// o passo a encontra quando nascer.
 	[Fact(DisplayName = "A connection URI set before the step should reach the step")]

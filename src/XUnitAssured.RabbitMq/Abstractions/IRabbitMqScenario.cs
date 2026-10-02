@@ -42,6 +42,28 @@ public interface IRabbitMqScenario : ITestScenario
 	new IRabbitMqScenario Then();
 
 	/// <summary>
+	/// Declara no broker a fila que a cadeia nomeou. Durável, porque o RabbitMQ 4 recusa fila
+	/// transitória não exclusiva.
+	/// </summary>
+	/// <remarks>Declarar é idempotente: declarar de novo com os mesmos argumentos não é erro.</remarks>
+	IRabbitMqScenario DeclareQueue();
+
+	/// <summary>
+	/// Declara no broker a exchange que a cadeia nomeou.
+	/// </summary>
+	/// <param name="type"><c>direct</c>, <c>topic</c>, <c>fanout</c> ou <c>headers</c>.</param>
+	IRabbitMqScenario DeclareExchange(string type = "direct");
+
+	/// <summary>
+	/// Liga a fila que a cadeia nomeou a uma exchange, por uma routing key.
+	/// </summary>
+	/// <remarks>
+	/// Sem binding, publicar na exchange não chega a fila nenhuma — e desde que a publicação vai
+	/// com <c>mandatory</c>, isso é falha e não silêncio.
+	/// </remarks>
+	IRabbitMqScenario BindQueueTo(string exchange, string routingKey);
+
+	/// <summary>
 	/// Publica uma mensagem no destino que a cadeia nomeou.
 	/// </summary>
 	/// <param name="value">

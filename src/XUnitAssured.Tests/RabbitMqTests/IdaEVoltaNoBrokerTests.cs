@@ -1,8 +1,6 @@
 using System;
 using System.Threading.Tasks;
 
-using RabbitMQ.Client;
-
 using Shouldly;
 using Xunit;
 
@@ -204,37 +202,79 @@ public class IdaEVoltaNoBrokerTests
 		assercoes.Then().AssertSuccess();
 	}
 
+	// O caminho completo de topologia, que antes não dava para escrever só com o DSL: declarar a
+	// exchange, declarar a fila, ligar as duas, publicar e consumir.
+	[Fact(DisplayName = "A message published through a bound exchange should arrive in the queue")]
+	public async Task A_Message_Through_A_Bound_Exchange_Should_Arrive()
+	{
+		var exchange = $"xa-ex-{Guid.NewGuid():N}";
+		var fila = $"xa-{Guid.NewGuid():N}";
+		const string rota = "pedidos.criado";
+
+		var topologia = await ScenarioDsl.Given()
+			.Exchange(exchange)
+			.WithConnectionUri(Broker)
+			.DeclareExchange("topic")
+			.And()
+			.Queue(fila)
+			.DeclareQueue()
+			.And()
+			.BindQueueTo(exchange, rota)
+			.ExecuteAsync();
+
+		topologia.Then().AssertSuccess();
+
+		await ScenarioDsl.Given()
+			.Exchange(exchange)
+			.WithConnectionUri(Broker)
+			.Publish("pelo caminho longo")
+			.WithRoutingKey(rota)
+			.ExecuteAsync();
+
+		var assercoes = await ScenarioDsl.Given()
+			.Queue(fila)
+			.WithConnectionUri(Broker)
+			.Consume()
+			.WithTimeout(TimeSpan.FromSeconds(10))
+			.ExecuteAsync();
+
+		assercoes.Then().AssertSuccess().AssertMessage("pelo caminho longo").AssertRoutingKey(rota);
+	}
+
 	/// <summary>
-	/// Declara uma exchange sem nenhuma fila ligada a ela.
+	/// Declara uma exchange sem nenhuma fila ligada a ela, pelos verbos do próprio pacote.
 	/// </summary>
 	private static async Task<string> ExchangeSemBinding()
 	{
 		var nome = $"xa-ex-{Guid.NewGuid():N}";
 
-		var fabrica = new ConnectionFactory { Uri = new Uri(Broker) };
-		await using var conexao = await fabrica.CreateConnectionAsync();
-		await using var canal = await conexao.CreateChannelAsync();
+		var resultado = await ScenarioDsl.Given()
+			.Exchange(nome)
+			.WithConnectionUri(Broker)
+			.DeclareExchange()
+			.ExecuteAsync();
 
-		await canal.ExchangeDeclareAsync(nome, type: "direct", durable: true, autoDelete: false);
+		resultado.Then().AssertSuccess();
 
 		return nome;
 	}
 
 	/// <summary>
-	/// Declara uma fila com nome único para este teste, para que uma execução não veja a mensagem
-	/// da outra. O pacote ainda não tem verbo de declaração, então aqui usa-se o cliente direto.
+	/// Declara uma fila com nome único para este teste, para que uma execução não veja a mensagem da
+	/// outra. Antes dos verbos de topologia isto descia à API do cliente, que era o sinal de que
+	/// faltava verbo.
 	/// </summary>
 	private static async Task<string> FilaNova()
 	{
 		var nome = $"xa-{Guid.NewGuid():N}";
 
-		var fabrica = new ConnectionFactory { Uri = new Uri(Broker) };
-		await using var conexao = await fabrica.CreateConnectionAsync();
-		await using var canal = await conexao.CreateChannelAsync();
+		var resultado = await ScenarioDsl.Given()
+			.Queue(nome)
+			.WithConnectionUri(Broker)
+			.DeclareQueue()
+			.ExecuteAsync();
 
-		// Durável de propósito: o RabbitMQ 4 recusa fila transitória não exclusiva, com
-		// INTERNAL_ERROR e a mensagem de que `transient_nonexcl_queues` está em depreciação.
-		await canal.QueueDeclareAsync(nome, durable: true, exclusive: false, autoDelete: false);
+		resultado.Then().AssertSuccess();
 
 		return nome;
 	}

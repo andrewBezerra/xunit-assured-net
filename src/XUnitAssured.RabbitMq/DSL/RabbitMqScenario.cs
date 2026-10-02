@@ -67,6 +67,14 @@ internal sealed class RabbitMqScenario : IRabbitMqScenario
 		return this;
 	}
 
+	public IRabbitMqScenario DeclareQueue() => RabbitMqVerbos.DeclareQueue(_cenario);
+
+	public IRabbitMqScenario DeclareExchange(string type = "direct") =>
+		RabbitMqVerbos.DeclareExchange(_cenario, type);
+
+	public IRabbitMqScenario BindQueueTo(string exchange, string routingKey) =>
+		RabbitMqVerbos.BindQueueTo(_cenario, exchange, routingKey);
+
 	public IRabbitMqScenario Publish(object value) => RabbitMqVerbos.Publish(_cenario, value);
 
 	public IRabbitMqScenario Consume() => RabbitMqVerbos.Consume(_cenario);
