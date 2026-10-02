@@ -115,6 +115,25 @@ await Given()
     .ExecuteAsync();
 ```
 
+## Consuming a batch
+
+```csharp
+var assertions = await Given().Queue("pedidos").ConsumeBatch(3).ExecuteAsync();
+
+assertions.Then().AssertSuccess().AssertMessageCount(3);
+```
+
+The timeout covers the whole batch, not each message. Finding fewer than asked is a success with
+what was there, and `AssertMessageCount` is where the test says what it expected. `Messages`
+carries them in arrival order; `Message` stays the first one, so a single consume never has to
+think about collections.
+
+**Prefetch is not here, and that is a finding rather than an omission.** Prefetch (`BasicQos`) is a
+consumer setting: it shapes how many messages the broker pushes to a registered consumer. These
+steps pull with `BasicGet`, which prefetch does not touch, so a `WithPrefetch` verb would read as
+configuration and do nothing. Making it meaningful means moving the consume to `BasicConsume`,
+which is a different design with its own tradeoffs.
+
 ## Rejecting a message, and dead-letter
 
 A consumed message is acknowledged as soon as it arrives, which is right for a test. `Rejecting()`

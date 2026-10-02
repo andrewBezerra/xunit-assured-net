@@ -621,6 +621,8 @@ Merged and not published yet. One new package; the rest are correctness fixes wi
   `Rejecting(requeue)` and `DeclareQueue(deadLetterExchange:)` make the discard path testable: a
   message rejected without requeue lands in the queue's dead-letter exchange, which is a test
   people want to write and could not.
+  `ConsumeBatch(n)` brings the package level with Kafka's batch consume, and `AssertMessageCount`
+  is how a test says how many it expected.
 - **Authentication survives the consume verbs.** The Kafka steps are `init`-only, so each verb
   that changes one value rebuilt the whole step by hand, and five of them left `AuthConfig`
   out: `WithTimeout`, `WithGroupId`, `WithBootstrapServers`, `WithSchema` and

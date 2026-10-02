@@ -84,6 +84,15 @@ public interface IRabbitMqScenario : ITestScenario
 	IRabbitMqScenario Consume();
 
 	/// <summary>
+	/// Retira até <paramref name="count"/> mensagens da fila, esperando até o prazo.
+	/// </summary>
+	/// <remarks>
+	/// O prazo é do lote inteiro. Trazer menos do que se pediu é sucesso: afirme quantas vieram
+	/// com <c>AssertMessageCount</c>.
+	/// </remarks>
+	IRabbitMqScenario ConsumeBatch(int count);
+
+	/// <summary>
 	/// A routing key da publicação. Numa fila nomeada direto, é o próprio nome dela.
 	/// </summary>
 	IRabbitMqScenario WithRoutingKey(string routingKey);

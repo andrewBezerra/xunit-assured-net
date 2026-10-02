@@ -317,6 +317,49 @@ public class IdaEVoltaNoBrokerTests
 		noDeadLetter.Then().AssertSuccess().AssertMessage("vai morrer");
 	}
 
+	[Fact(DisplayName = "A batch consume should bring every message published")]
+	public async Task A_Batch_Consume_Should_Bring_Every_Message()
+	{
+		var fila = await FilaNova();
+
+		for (var i = 1; i <= 3; i++)
+		{
+			await ScenarioDsl.Given()
+				.Queue(fila).WithConnectionUri(Broker)
+				.Publish($"mensagem {i}")
+				.ExecuteAsync();
+		}
+
+		var assercoes = await ScenarioDsl.Given()
+			.Queue(fila).WithConnectionUri(Broker)
+			.ConsumeBatch(3)
+			.WithTimeout(TimeSpan.FromSeconds(10))
+			.ExecuteAsync();
+
+		assercoes.Then().AssertSuccess().AssertMessageCount(3);
+	}
+
+	// Pedir mais do que existe é sucesso com o que havia, e não falha: o teste afirma a contagem, e
+	// é essa afirmação que tem significado.
+	[Fact(DisplayName = "A batch that finds fewer than asked should succeed with what there was")]
+	public async Task A_Batch_With_Fewer_Should_Succeed_With_What_There_Was()
+	{
+		var fila = await FilaNova();
+
+		await ScenarioDsl.Given()
+			.Queue(fila).WithConnectionUri(Broker)
+			.Publish("só uma")
+			.ExecuteAsync();
+
+		var assercoes = await ScenarioDsl.Given()
+			.Queue(fila).WithConnectionUri(Broker)
+			.ConsumeBatch(5)
+			.WithTimeout(TimeSpan.FromSeconds(2))
+			.ExecuteAsync();
+
+		assercoes.Then().AssertSuccess().AssertMessageCount(1);
+	}
+
 	/// <summary>
 	/// Declara uma exchange sem nenhuma fila ligada a ela, pelos verbos do próprio pacote.
 	/// </summary>
