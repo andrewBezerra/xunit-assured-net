@@ -46,7 +46,10 @@ public interface IRabbitMqScenario : ITestScenario
 	/// transitória não exclusiva.
 	/// </summary>
 	/// <remarks>Declarar é idempotente: declarar de novo com os mesmos argumentos não é erro.</remarks>
-	IRabbitMqScenario DeclareQueue();
+	/// <param name="deadLetterExchange">
+	/// A exchange para onde a fila manda o que foi recusado sem requeue, ou nulo para não ter.
+	/// </param>
+	IRabbitMqScenario DeclareQueue(string? deadLetterExchange = null);
 
 	/// <summary>
 	/// Declara no broker a exchange que a cadeia nomeou.
@@ -100,6 +103,19 @@ public interface IRabbitMqScenario : ITestScenario
 	/// calado. Use isto quando publicar antes de existir binding é justamente o que o teste quer.
 	/// </remarks>
 	IRabbitMqScenario AllowingUnroutable();
+
+	/// <summary>
+	/// Recusa a mensagem em vez de confirmá-la.
+	/// </summary>
+	/// <param name="requeue">
+	/// Se a mensagem volta para a fila. Falso, o padrão, é o que a manda para o dead-letter da fila
+	/// quando há um configurado; verdadeiro é o que permite afirmar que um consumo seguinte a
+	/// encontra de novo.
+	/// </param>
+	/// <remarks>
+	/// O resultado continua trazendo a mensagem, então dá para afirmar sobre o que foi recusado.
+	/// </remarks>
+	IRabbitMqScenario Rejecting(bool requeue = false);
 
 	/// <summary>Quanto esperar por uma mensagem ao consumir.</summary>
 	IRabbitMqScenario WithTimeout(TimeSpan timeout);

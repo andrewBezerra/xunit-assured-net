@@ -241,6 +241,82 @@ public class IdaEVoltaNoBrokerTests
 		assercoes.Then().AssertSuccess().AssertMessage("pelo caminho longo").AssertRoutingKey(rota);
 	}
 
+	// Recusar com requeue devolve a mensagem à fila, então o consumo seguinte a encontra de novo.
+	// Antes da recusa explícita isto não dava para escrever: o consumo confirmava ao chegar.
+	[Fact(DisplayName = "A rejected message with requeue should be found again")]
+	public async Task A_Rejected_Message_With_Requeue_Should_Be_Found_Again()
+	{
+		var fila = await FilaNova();
+
+		await ScenarioDsl.Given()
+			.Queue(fila).WithConnectionUri(Broker)
+			.Publish("volta pra fila")
+			.ExecuteAsync();
+
+		var recusa = await ScenarioDsl.Given()
+			.Queue(fila).WithConnectionUri(Broker)
+			.Consume()
+			.WithTimeout(TimeSpan.FromSeconds(10))
+			.Rejecting(requeue: true)
+			.ExecuteAsync();
+
+		recusa.Then().AssertSuccess().AssertMessage("volta pra fila");
+
+		var segundo = await ScenarioDsl.Given()
+			.Queue(fila).WithConnectionUri(Broker)
+			.Consume()
+			.WithTimeout(TimeSpan.FromSeconds(10))
+			.ExecuteAsync();
+
+		segundo.Then().AssertSuccess().AssertMessage("volta pra fila");
+	}
+
+	// O teste que as pessoas querem escrever e não conseguiam: recusar sem requeue manda a mensagem
+	// para o dead-letter da fila, e ela aparece do outro lado.
+	[Fact(DisplayName = "A rejected message without requeue should land in the dead-letter queue")]
+	public async Task A_Rejected_Message_Should_Land_In_The_Dead_Letter_Queue()
+	{
+		var sufixo = Guid.NewGuid().ToString("N");
+		var dlx = $"xa-dlx-{sufixo}";
+		var filaMorta = $"xa-morta-{sufixo}";
+		var fila = $"xa-{sufixo}";
+
+		var topologia = await ScenarioDsl.Given()
+			.Exchange(dlx).WithConnectionUri(Broker)
+			.DeclareExchange("fanout")
+			.And()
+			.Queue(filaMorta).DeclareQueue()
+			.And()
+			.BindQueueTo(dlx, string.Empty)
+			.And()
+			.Queue(fila).DeclareQueue(deadLetterExchange: dlx)
+			.ExecuteAsync();
+
+		topologia.Then().AssertSuccess();
+
+		await ScenarioDsl.Given()
+			.Queue(fila).WithConnectionUri(Broker)
+			.Publish("vai morrer")
+			.ExecuteAsync();
+
+		var recusa = await ScenarioDsl.Given()
+			.Queue(fila).WithConnectionUri(Broker)
+			.Consume()
+			.WithTimeout(TimeSpan.FromSeconds(10))
+			.Rejecting()
+			.ExecuteAsync();
+
+		recusa.Then().AssertSuccess();
+
+		var noDeadLetter = await ScenarioDsl.Given()
+			.Queue(filaMorta).WithConnectionUri(Broker)
+			.Consume()
+			.WithTimeout(TimeSpan.FromSeconds(10))
+			.ExecuteAsync();
+
+		noDeadLetter.Then().AssertSuccess().AssertMessage("vai morrer");
+	}
+
 	/// <summary>
 	/// Declara uma exchange sem nenhuma fila ligada a ela, pelos verbos do próprio pacote.
 	/// </summary>

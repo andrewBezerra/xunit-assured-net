@@ -618,6 +618,9 @@ Merged and not published yet. One new package; the rest are correctness fixes wi
   Topology verbs complete the picture: `DeclareQueue()`, `DeclareExchange(type)` and
   `BindQueueTo(exchange, routingKey)`. Without them a test that needed a queue dropped to the
   client API, which this repository's own round-trip tests were doing in a helper.
+  `Rejecting(requeue)` and `DeclareQueue(deadLetterExchange:)` make the discard path testable: a
+  message rejected without requeue lands in the queue's dead-letter exchange, which is a test
+  people want to write and could not.
 - **Authentication survives the consume verbs.** The Kafka steps are `init`-only, so each verb
   that changes one value rebuilt the whole step by hand, and five of them left `AuthConfig`
   out: `WithTimeout`, `WithGroupId`, `WithBootstrapServers`, `WithSchema` and

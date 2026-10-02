@@ -86,6 +86,16 @@ public class RabbitMqTopologyStep : ITestStep
 	/// </remarks>
 	public bool Durable { get; init; } = true;
 
+	/// <summary>
+	/// A exchange para onde a fila manda o que foi recusado sem requeue, ou nulo para não ter.
+	/// </summary>
+	/// <remarks>
+	/// Vai como o argumento <c>x-dead-letter-exchange</c> da fila. Uma fila já declarada sem ele
+	/// não ganha o argumento depois: o broker recusa a redeclaração com argumentos diferentes, e é
+	/// ele que está certo.
+	/// </remarks>
+	public string? DeadLetterExchange { get; init; }
+
 	/// <summary>A URI de conexão, quando não vem do contexto nem do arquivo.</summary>
 	public string ConnectionUri
 	{
@@ -118,6 +128,7 @@ public class RabbitMqTopologyStep : ITestStep
 		ExchangeType = source.ExchangeType;
 		RoutingKey = source.RoutingKey;
 		Durable = source.Durable;
+		DeadLetterExchange = source.DeadLetterExchange;
 		_connectionUri = source._connectionUri;
 	}
 
@@ -149,9 +160,16 @@ public class RabbitMqTopologyStep : ITestStep
 			switch (Operation)
 			{
 				case RabbitMqTopologyOperation.DeclareQueue:
+					var argumentos = DeadLetterExchange is null
+						? null
+						: new Dictionary<string, object?>
+						{
+							["x-dead-letter-exchange"] = DeadLetterExchange
+						};
+
 					await canal.QueueDeclareAsync(
 							Queue, durable: Durable, exclusive: false, autoDelete: false,
-							cancellationToken: cancellationToken)
+							arguments: argumentos, cancellationToken: cancellationToken)
 						.ConfigureAwait(false);
 					break;
 

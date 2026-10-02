@@ -115,6 +115,33 @@ await Given()
     .ExecuteAsync();
 ```
 
+## Rejecting a message, and dead-letter
+
+A consumed message is acknowledged as soon as it arrives, which is right for a test. `Rejecting()`
+is the other path:
+
+```csharp
+// Back to the queue, so the next consume finds it again
+await Given().Queue("pedidos").Consume().Rejecting(requeue: true).ExecuteAsync();
+
+// Not requeued, so it goes to the queue's dead-letter exchange
+await Given().Queue("pedidos").Consume().Rejecting().ExecuteAsync();
+```
+
+The rejection happens inside the step, before the channel closes, because that is the only window
+it exists in: once the channel is gone, an unacknowledged message returns to the queue on its own
+and without passing through the dead-letter. That is why this is a mode of the consume rather than
+a verb after it. The result still carries the message, so you can assert on what was rejected.
+
+A queue gets its dead-letter exchange when it is declared:
+
+```csharp
+await Given().Queue("pedidos").DeclareQueue(deadLetterExchange: "dlx").ExecuteAsync();
+```
+
+A queue already declared without it does not gain the argument later: the broker refuses a
+redeclaration with different arguments, and it is right to.
+
 ## Where the verbs live
 
 Every verb except the entry one is a member of `IRabbitMqScenario`, not an extension on

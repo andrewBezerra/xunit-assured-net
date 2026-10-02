@@ -173,6 +173,38 @@ public class VerbosDoRabbitMqTests
 		erro.Message.Contains("Queue").ShouldBeTrue();
 	}
 
+	[Fact(DisplayName = "Rejecting should record the rejection and its requeue choice")]
+	public void Rejecting_Should_Record_The_Choice()
+	{
+		var semRequeue = ScenarioDsl.Given().Queue("pedidos").Consume().Rejecting();
+		var comRequeue = ScenarioDsl.Given().Queue("pedidos").Consume().Rejecting(requeue: true);
+
+		var a = semRequeue.CurrentStep.ShouldBeOfType<RabbitMqConsumeStep>();
+		a.RejectMessage.ShouldBeTrue();
+		a.RequeueRejected.ShouldBeFalse("not requeueing is what sends it to the dead-letter");
+
+		comRequeue.CurrentStep.ShouldBeOfType<RabbitMqConsumeStep>().RequeueRejected.ShouldBeTrue();
+	}
+
+	[Fact(DisplayName = "DeclareQueue should record the dead-letter exchange it was given")]
+	public void DeclareQueue_Should_Record_The_Dead_Letter_Exchange()
+	{
+		var cenario = ScenarioDsl.Given().Queue("pedidos").DeclareQueue(deadLetterExchange: "dlx");
+
+		cenario.CurrentStep.ShouldBeOfType<RabbitMqTopologyStep>()
+			.DeadLetterExchange.ShouldBe("dlx");
+	}
+
+	// Recusar sem ter consumido é erro de ordem, e a mensagem diz o verbo que falta.
+	[Fact(DisplayName = "Rejecting without consuming should say which verb is missing")]
+	public void Rejecting_Without_Consuming_Should_Say_So()
+	{
+		var erro = Should.Throw<InvalidOperationException>(
+			() => ScenarioDsl.Given().Queue("pedidos").Publish("oi").Rejecting());
+
+		erro.Message.Contains("Consume").ShouldBeTrue();
+	}
+
 	// Antes de Publish ou Consume não há passo onde guardar a URI, então ela vai para o contexto e
 	// o passo a encontra quando nascer.
 	[Fact(DisplayName = "A connection URI set before the step should reach the step")]
