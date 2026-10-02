@@ -95,8 +95,13 @@ public class TestScenario : ITestScenario
 	public void SetCurrentStep(ITestStep step)
 	{
 		if (step == null) throw new ArgumentNullException(nameof(step));
+		// Um passo de outro tipo é sempre um passo novo, mesmo sem And(). Uma reconstrução é, por
+		// definição, do mesmo tipo: é o mesmo verbo trocando um valor. Sem esta regra, misturar
+		// pacotes sem o And() substituía em silêncio — `ApiResource(...).Get().NavigateTo(...)`
+		// descartava a requisição HTTP e nada dizia.
+		var outroTipo = _passos.Count > 0 && _passos[^1].Step.GetType() != step.GetType();
 
-		if (_comecarNovoPasso || _passos.Count == 0)
+		if (_comecarNovoPasso || _passos.Count == 0 || outroTipo)
 		{
 			_passos.Add(new PassoPlanejado(step));
 			_comecarNovoPasso = false;

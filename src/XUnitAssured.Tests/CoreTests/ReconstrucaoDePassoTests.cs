@@ -123,6 +123,50 @@ public class ReconstrucaoDePassoTests
 		primeiro.Execucoes.ShouldBe(0);
 		segundo.Execucoes.ShouldBe(1);
 	}
+	// A irmã do defeito acima, e também silenciosa: misturar pacotes sem And() substituía o passo
+	// anterior. `ApiResource(...).Get().NavigateTo(...)` descartava a requisição HTTP sem dizer
+	// nada. Um passo de outro tipo é sempre um passo novo; reconstrução é sempre do mesmo tipo.
+	[Fact(DisplayName = "A step of another type should be a new step even without And")]
+	public async Task A_Step_Of_Another_Type_Should_Be_A_New_Step()
+	{
+		var cenario = new TestScenario();
+		var primeiro = new PassoContado();
+		var deOutroTipo = new OutroPasso();
+
+		cenario.SetCurrentStep(primeiro);
+		cenario.SetCurrentStep(deOutroTipo);
+
+		await cenario.ExecutePendingAsync();
+
+		primeiro.Execucoes.ShouldBe(1, "a step of another type must not silently replace this one");
+		deOutroTipo.Execucoes.ShouldBe(1);
+	}
+
+	private sealed class OutroPasso : ITestStep
+	{
+		public string? Name => null;
+
+		public string StepType => "Outro";
+
+		public ITestStepResult? Result { get; private set; }
+
+		public bool IsExecuted => Result != null;
+
+		public bool IsValid => true;
+
+		public int Execucoes { get; private set; }
+
+		public Task<ITestStepResult> ExecuteAsync(
+			ITestContext context, CancellationToken cancellationToken = default)
+		{
+			Execucoes++;
+			Result = TestStepResult.CreateSuccess(data: "pronto");
+			return Task.FromResult(Result);
+		}
+
+		public void Validate(Action<ITestStepResult> validation) => validation(Result!);
+	}
+
 
 	private sealed class PassoContado : ITestStep
 	{
