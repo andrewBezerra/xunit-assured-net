@@ -175,6 +175,27 @@ internal static class RabbitMqVerbos
 		return RabbitMqScenario.De(scenario);
 	}
 
+	internal static IRabbitMqScenario ConsumeBatch(ITestScenario scenario, int count)
+	{
+		if (count <= 0)
+			throw new ArgumentOutOfRangeException(nameof(count), "Message count must be greater than zero.");
+
+		var fila = scenario.Context.GetProperty<string>("_RabbitMqQueue");
+
+		if (string.IsNullOrWhiteSpace(fila))
+			throw new InvalidOperationException(
+				"No queue to consume from. Call Queue(name) first; an exchange holds nothing to consume.");
+
+		scenario.SetCurrentStep(new RabbitMqConsumeStep
+		{
+			Queue = fila!,
+			MessageCount = count,
+			Timeout = TimeSpan.FromSeconds(RabbitMqSettings.Load().ConsumeTimeoutSeconds)
+		});
+
+		return RabbitMqScenario.De(scenario);
+	}
+
 	internal static IRabbitMqScenario WithRoutingKey(ITestScenario scenario, string routingKey)
 	{
 		if (routingKey == null) throw new ArgumentNullException(nameof(routingKey));

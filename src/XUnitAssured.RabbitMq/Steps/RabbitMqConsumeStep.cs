@@ -75,6 +75,15 @@ public class RabbitMqConsumeStep : ITestStep
 	/// </remarks>
 	public bool RequeueRejected { get; init; }
 
+	/// <summary>
+	/// Quantas mensagens retirar. Padrão: uma.
+	/// </summary>
+	/// <remarks>
+	/// O prazo é do lote inteiro, não de cada mensagem. Trazer menos do que se pediu é sucesso: o
+	/// passo consumiu o que havia, e quantas havia é o que o teste afirma.
+	/// </remarks>
+	public int MessageCount { get; init; } = 1;
+
 	/// <summary>Quanto esperar por uma mensagem.</summary>
 	public TimeSpan Timeout { get; init; } = TimeSpan.FromSeconds(30);
 
@@ -115,6 +124,7 @@ public class RabbitMqConsumeStep : ITestStep
 
 		Name = source.Name;
 		Queue = source.Queue;
+		MessageCount = source.MessageCount;
 		Timeout = source.Timeout;
 		RejectMessage = source.RejectMessage;
 		RequeueRejected = source.RequeueRejected;
@@ -147,6 +157,8 @@ public class RabbitMqConsumeStep : ITestStep
 				.ConfigureAwait(false);
 
 			var limite = cronometro.Elapsed + Timeout;
+			var colhidas = new List<string>();
+			uint restantes = 0;
 			while (cronometro.Elapsed < limite)
 			{
 				cancellationToken.ThrowIfCancellationRequested();
@@ -156,13 +168,8 @@ public class RabbitMqConsumeStep : ITestStep
 
 				if (entrega != null)
 				{
-					Result = RabbitMqStepResult.CreateConsumeSuccess(
-						destination: Queue,
-						routingKey: entrega.RoutingKey,
-						message: Encoding.UTF8.GetString(entrega.Body.Span),
-						remainingMessageCount: entrega.MessageCount,
-						headers: Cabecalhos(entrega.BasicProperties),
-						elapsed: cronometro.Elapsed);
+					colhidas.Add(Encoding.UTF8.GetString(entrega.Body.Span));
+					restantes = entrega.MessageCount;
 
 					if (RejectMessage)
 					{
@@ -172,11 +179,36 @@ public class RabbitMqConsumeStep : ITestStep
 							.ConfigureAwait(false);
 					}
 
-					IsValid = true;
-					return Result;
+					if (colhidas.Count == 1 && MessageCount == 1)
+					{
+						Result = RabbitMqStepResult.CreateConsumeSuccess(
+							destination: Queue,
+							routingKey: entrega.RoutingKey,
+							message: colhidas[0],
+							remainingMessageCount: restantes,
+							headers: Cabecalhos(entrega.BasicProperties),
+							elapsed: cronometro.Elapsed);
+
+						IsValid = true;
+						return Result;
+					}
+
+					if (colhidas.Count >= MessageCount)
+						break;
+
+					// Já veio uma; a próxima pode estar esperando, então tenta de novo sem pausar.
+					continue;
 				}
 
 				await Task.Delay(IntervaloEntreTentativas, cancellationToken).ConfigureAwait(false);
+			}
+
+			if (colhidas.Count > 0)
+			{
+				Result = RabbitMqStepResult.CreateBatchConsumeSuccess(
+					Queue, colhidas, restantes, cronometro.Elapsed);
+				IsValid = true;
+				return Result;
 			}
 
 			Result = RabbitMqStepResult.CreateConsumeTimeout(Queue, Timeout, cronometro.Elapsed);

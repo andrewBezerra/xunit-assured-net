@@ -62,6 +62,15 @@ public class RabbitMqValidationBuilder : ValidationBuilder<RabbitMqStepResult>
 		return this;
 	}
 
+	/// <summary>Afirma quantas mensagens o lote trouxe.</summary>
+	public RabbitMqValidationBuilder AssertMessageCount(int expected)
+	{
+		Result.Messages.Count.ShouldBe(expected,
+			$"the batch brought {Result.Messages.Count} message(s) within the timeout");
+
+		return this;
+	}
+
 	/// <summary>Afirma a routing key com que a mensagem chegou.</summary>
 	public RabbitMqValidationBuilder AssertRoutingKey(string expected)
 	{

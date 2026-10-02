@@ -80,6 +80,9 @@ internal sealed class RabbitMqScenario : IRabbitMqScenario
 
 	public IRabbitMqScenario Consume() => RabbitMqVerbos.Consume(_cenario);
 
+	public IRabbitMqScenario ConsumeBatch(int count) =>
+		RabbitMqVerbos.ConsumeBatch(_cenario, count);
+
 	public IRabbitMqScenario WithRoutingKey(string routingKey) =>
 		RabbitMqVerbos.WithRoutingKey(_cenario, routingKey);
 

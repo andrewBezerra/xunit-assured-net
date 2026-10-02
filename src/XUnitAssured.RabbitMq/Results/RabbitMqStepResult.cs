@@ -33,6 +33,17 @@ public class RabbitMqStepResult : TestStepResult
 	/// </summary>
 	public uint? RemainingMessageCount => GetProperty<uint?>("RemainingMessageCount");
 
+	/// <summary>
+	/// As mensagens consumidas, na ordem em que chegaram. Um consumo simples traz uma.
+	/// </summary>
+	/// <remarks>
+	/// Existe sempre, ainda que vazia, como as outras propriedades deste resultado.
+	/// <see cref="Message"/> é a primeira delas, e continua sendo o jeito de ler um consumo
+	/// simples sem pensar em coleção.
+	/// </remarks>
+	public IReadOnlyList<string> Messages =>
+		GetProperty<IReadOnlyList<string>>("Messages") ?? Array.Empty<string>();
+
 	/// <summary>Os headers AMQP da mensagem consumida.</summary>
 	public IReadOnlyDictionary<string, object?> Headers =>
 		GetProperty<IReadOnlyDictionary<string, object?>>("Headers")
@@ -94,6 +105,7 @@ public class RabbitMqStepResult : TestStepResult
 				["Destination"] = destination,
 				["RoutingKey"] = routingKey,
 				["Message"] = null,
+				["Messages"] = (IReadOnlyList<string>)Array.Empty<string>(),
 				["RemainingMessageCount"] = null,
 				["Headers"] = (IReadOnlyDictionary<string, object?>)new Dictionary<string, object?>()
 			}
@@ -119,8 +131,37 @@ public class RabbitMqStepResult : TestStepResult
 				["Destination"] = destination,
 				["RoutingKey"] = routingKey,
 				["Message"] = message,
+				["Messages"] = (IReadOnlyList<string>)new[] { message },
 				["RemainingMessageCount"] = remainingMessageCount,
 				["Headers"] = headers ?? new Dictionary<string, object?>()
+			}
+		};
+
+	/// <summary>Resultado de um consumo em lote que trouxe pelo menos uma mensagem.</summary>
+	/// <remarks>
+	/// Trazer menos do que se pediu é sucesso: o passo consumiu o que havia dentro do prazo, e
+	/// quantas havia é justamente o que o teste quer afirmar com <c>AssertMessageCount</c>.
+	/// </remarks>
+	public static RabbitMqStepResult CreateBatchConsumeSuccess(
+		string destination,
+		IReadOnlyList<string> messages,
+		uint remainingMessageCount,
+		TimeSpan? elapsed = null) =>
+		new()
+		{
+			Success = true,
+			Errors = Array.Empty<string>(),
+			Data = messages.Count > 0 ? messages[0] : null,
+			DataType = typeof(string),
+			Metadata = Metadados(StepStatus.Succeeded, elapsed),
+			Properties = new Dictionary<string, object?>
+			{
+				["Destination"] = destination,
+				["RoutingKey"] = null,
+				["Message"] = messages.Count > 0 ? messages[0] : null,
+				["Messages"] = messages,
+				["RemainingMessageCount"] = remainingMessageCount,
+				["Headers"] = (IReadOnlyDictionary<string, object?>)new Dictionary<string, object?>()
 			}
 		};
 
@@ -147,6 +188,7 @@ public class RabbitMqStepResult : TestStepResult
 				["Destination"] = destination,
 				["RoutingKey"] = null,
 				["Message"] = null,
+				["Messages"] = (IReadOnlyList<string>)Array.Empty<string>(),
 				["RemainingMessageCount"] = null,
 				["Headers"] = (IReadOnlyDictionary<string, object?>)new Dictionary<string, object?>()
 			}
@@ -169,6 +211,7 @@ public class RabbitMqStepResult : TestStepResult
 			["Destination"] = destination,
 			["RoutingKey"] = null,
 			["Message"] = null,
+			["Messages"] = (IReadOnlyList<string>)Array.Empty<string>(),
 			["RemainingMessageCount"] = null,
 			["Headers"] = (IReadOnlyDictionary<string, object?>)new Dictionary<string, object?>(),
 			["ExceptionType"] = exception.GetType().FullName,
