@@ -89,22 +89,22 @@ In order of intent, not of promise:
 
 | Package | Version | Description |
 |---------|---------|-------------|
-| **XUnitAssured.Core** | 6.0.0 | Core abstractions, DSL infrastructure, DI support (`DITestFixture`), `ValidationBuilder`, and BDD extensions |
+| **XUnitAssured.Core** | 6.1.0 | Core abstractions, DSL infrastructure, DI support (`DITestFixture`), `ValidationBuilder`, and BDD extensions |
 
 ### Protocol Packages
 
 | Package | Version | Description |
 |---------|---------|-------------|
-| **XUnitAssured.Http** | 6.0.0 | HTTP/REST API testing — fluent DSL, authentication handlers, JSON path assertions, schema validation |
-| **XUnitAssured.Kafka** | 6.0.0 | Apache Kafka integration testing — produce/consume, batch operations, authentication, Schema Registry support |
-| **XUnitAssured.RabbitMq** | 6.0.0 | RabbitMQ integration testing — publish/consume steps on the official async client, queues and exchanges, AMQP headers |
-| **XUnitAssured.Playwright** | 6.0.0 | Playwright UI testing — fluent DSL for browser interactions, multiple locator strategies, screenshots, and assertions |
+| **XUnitAssured.Http** | 6.1.0 | HTTP/REST API testing — fluent DSL, authentication handlers, JSON path assertions, schema validation |
+| **XUnitAssured.Kafka** | 6.1.0 | Apache Kafka integration testing — produce/consume, batch operations, authentication, Schema Registry support |
+| **XUnitAssured.RabbitMq** | 6.1.0 | RabbitMQ integration testing — publish/consume steps on the official async client, queues and exchanges, AMQP headers |
+| **XUnitAssured.Playwright** | 6.1.0 | Playwright UI testing — fluent DSL for browser interactions, multiple locator strategies, screenshots, and assertions |
 
 ### Tooling
 
 | Package | Version | Description |
 |---------|---------|-------------|
-| **XUnitAssured.Mcp** | 6.0.0 | MCP server for AI-assisted test generation — install via `dnx XUnitAssured.Mcp` or `dotnet tool install XUnitAssured.Mcp` |
+| **XUnitAssured.Mcp** | 6.1.0 | MCP server for AI-assisted test generation — install via `dnx XUnitAssured.Mcp` or `dotnet tool install XUnitAssured.Mcp` |
 
 ## 🚀 Quick Start
 
@@ -521,7 +521,7 @@ Add to your `.mcp.json` (repo root, `~/.mcp.json`, or `.vscode/mcp.json`):
     "xunitassured": {
       "type": "stdio",
       "command": "dnx",
-      "args": ["XUnitAssured.Mcp@6.0.0", "--yes"]
+      "args": ["XUnitAssured.Mcp@6.1.0", "--yes"]
     }
   }
 }
@@ -590,9 +590,9 @@ In GitHub Copilot Chat, the XUnitAssured tools should appear as available. Try:
 
 ## 🔄 Version History
 
-### Unreleased
+### v6.1.0 (Current — RabbitMQ, and the 6.0.0 regressions)
 
-Merged and not published yet. One new package; the rest are correctness fixes with no API changes.
+Additive: one new package, and correctness fixes with no API changes. Upgrading from 6.0.0 requires no code changes.
 
 - **A verb that reconfigures a step no longer adds a second execution.** Steps are `init`-only,
   so every verb that changes one value rebuilds the whole step; when 6.0.0 made the chain
@@ -646,7 +646,7 @@ Merged and not published yet. One new package; the rest are correctness fixes wi
 - **Fragments in the authentication guides are marked as such**, by ending without a semicolon,
   so copying one does not compile instead of becoming a test that asserts nothing.
 
-### v6.0.0 (Current — one `Execute()`, one configuration file)
+### v6.0.0 (one `Execute()`, one configuration file)
 
 > Upgrading from 5.1.x? **[UPGRADING.md](UPGRADING.md)** says what to change in your code, with
 > the one silent change first. Its examples are compiled as part of the test suite.
