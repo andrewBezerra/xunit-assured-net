@@ -79,14 +79,18 @@ jobs:
       - name: Build
         run: dotnet build ${{ env.SOLUTION }} --configuration Release --no-restore $VERSION_ARG
 
+      # O filtro tem de excluir os dois traits. Requires=Broker exige um broker de serviço, que
+      # existe no ci.yml e não aqui: uma release não deve depender de infraestrutura de runner
+      # para decidir se publica. Quando a v6.1.0 foi cortada, este arquivo ainda filtrava só
+      # Requires!=Network e a release falhou nos onze testes de ida e volta.
       - name: Test (net8.0)
-        run: dotnet test ${{ env.UNIT_TESTS }} --configuration Release --no-build --framework net8.0 --filter "Requires!=Network"
+        run: dotnet test ${{ env.UNIT_TESTS }} --configuration Release --no-build --framework net8.0 --filter "Requires!=Network&Requires!=Broker"
 
       - name: Test (net9.0)
-        run: dotnet test ${{ env.UNIT_TESTS }} --configuration Release --no-build --framework net9.0 --filter "Requires!=Network"
+        run: dotnet test ${{ env.UNIT_TESTS }} --configuration Release --no-build --framework net9.0 --filter "Requires!=Network&Requires!=Broker"
 
       - name: Test (net10.0)
-        run: dotnet test ${{ env.UNIT_TESTS }} --configuration Release --no-build --framework net10.0 --filter "Requires!=Network"
+        run: dotnet test ${{ env.UNIT_TESTS }} --configuration Release --no-build --framework net10.0 --filter "Requires!=Network&Requires!=Broker"
 
       # --no-build packs exactly what was compiled and tested above. Without it,
       # pack races the build it would trigger and fails with NU5026 on a clean
