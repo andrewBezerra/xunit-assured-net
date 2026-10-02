@@ -2,13 +2,13 @@
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-10-17/server.schema.json",
   "name": "io.github.andrewBezerra/XUnitAssured.Mcp",
   "description": "AI-assisted test generation for XUnitAssured. Translate Playwright code, scaffold HTTP/REST tests, generate Kafka produce/consume tests. 10 tools for GitHub Copilot Chat, VS Code, and Visual Studio.",
-  "version": "6.0.0",
+  "version": "6.1.0",
   "packages": [
     {
       "registryType": "nuget",
       "registryBaseUrl": "https://api.nuget.org",
       "identifier": "XUnitAssured.Mcp",
-      "version": "6.0.0",
+      "version": "6.1.0",
       "transport": {
         "type": "stdio"
       },
