@@ -73,6 +73,27 @@ address from `XA_RABBITMQ_URI`, so CI points them at its own service container a
 falls back to the address above. They are the tests that caught a regression 916 broker-free
 tests had missed, which is why they run on every pull request rather than living behind a skip.
 
+## A publish that reaches no queue is a failure
+
+AMQP has a case Kafka does not: publishing to an exchange that matches no binding. The broker
+accepts the publish and drops the message, so the step "succeeded" and nothing arrived. In a test
+that is the worst possible outcome, because it is a topology mistake that passes in silence.
+
+So publishing goes out with `mandatory` and the step fails when the broker returns the message,
+naming the exchange and the routing key that matched nothing. Publisher confirmations are on, so
+the await waits for the broker's answer rather than for the bytes to leave.
+
+When publishing into the void is the point of the test, say so:
+
+```csharp
+await Given()
+    .Exchange("eventos")
+    .Publish("ninguém escuta")
+    .WithRoutingKey("rota.sem.fila")
+    .AllowingUnroutable()
+    .ExecuteAsync();
+```
+
 ## Where the verbs live
 
 Every verb except the entry one is a member of `IRabbitMqScenario`, not an extension on

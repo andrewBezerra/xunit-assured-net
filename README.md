@@ -612,6 +612,9 @@ Merged and not published yet. One new package; the rest are correctness fixes wi
   `RabbitMQ.Client` 7 is asynchronous end to end, so the steps await real I/O. Its
   result reads the consumed message by type or by JSON path, through the same navigator the Http
   and Kafka packages use.
+  A publish that reaches no queue fails instead of reporting success: AMQP accepts a publish to an
+  exchange matching no binding and drops the message, which is a topology mistake that otherwise
+  passes in silence. `AllowingUnroutable()` opts out where that is the point of the test.
 - **Authentication survives the consume verbs.** The Kafka steps are `init`-only, so each verb
   that changes one value rebuilt the whole step by hand, and five of them left `AuthConfig`
   out: `WithTimeout`, `WithGroupId`, `WithBootstrapServers`, `WithSchema` and

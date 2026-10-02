@@ -80,6 +80,8 @@ internal sealed class RabbitMqScenario : IRabbitMqScenario
 	public IRabbitMqScenario WithHeaders(IDictionary<string, object?> headers) =>
 		RabbitMqVerbos.WithHeaders(_cenario, headers);
 
+	public IRabbitMqScenario AllowingUnroutable() => RabbitMqVerbos.AllowingUnroutable(_cenario);
+
 	public IRabbitMqScenario WithTimeout(TimeSpan timeout) =>
 		RabbitMqVerbos.WithTimeout(_cenario, timeout);
 

@@ -76,6 +76,22 @@ public class RabbitMqPublishStep : ITestStep
 	/// </summary>
 	internal bool ConnectionUriInformada => _connectionUri is not null;
 
+	/// <summary>
+	/// Se a publicação exige que a mensagem chegue a pelo menos uma fila. Padrão: sim.
+	/// </summary>
+	/// <remarks>
+	/// O AMQP tem um caso que o Kafka não tem: publicar numa exchange que não casa nenhuma
+	/// binding. O broker aceita a publicação e descarta a mensagem, então o passo "deu certo" e
+	/// nada chegou. Num teste isso é o pior resultado possível, porque é um erro de topologia que
+	/// passa calado. Com isto ligado, a publicação vai com <c>mandatory</c> e o passo falha quando
+	/// o broker devolve a mensagem.
+	/// <para>
+	/// Desligue quando o teste publica de propósito antes de existir binding, com
+	/// <c>AllowingUnroutable()</c>.
+	/// </para>
+	/// </remarks>
+	public bool RequireRouting { get; init; } = true;
+
 	/// <summary>Opções de serialização do corpo, quando ele não é string.</summary>
 	public JsonSerializerOptions? JsonOptions { get; init; }
 
@@ -106,6 +122,7 @@ public class RabbitMqPublishStep : ITestStep
 		Value = source.Value;
 		Headers = source.Headers;
 		_connectionUri = source._connectionUri;
+		RequireRouting = source.RequireRouting;
 		JsonOptions = source.JsonOptions;
 	}
 
@@ -132,8 +149,22 @@ public class RabbitMqPublishStep : ITestStep
 
 			await using var conexao = await fabrica.CreateConnectionAsync(cancellationToken)
 				.ConfigureAwait(false);
-			await using var canal = await conexao.CreateChannelAsync(cancellationToken: cancellationToken)
+			// Confirmação do publicador ligada: sem ela o await da publicação volta assim que o byte
+			// sai, e um retorno por mensagem não roteável chegaria depois de o passo já ter dito que
+			// deu certo. Com ela, o await espera o broker responder.
+			await using var canal = await conexao.CreateChannelAsync(
+					new CreateChannelOptions(
+						publisherConfirmationsEnabled: true,
+						publisherConfirmationTrackingEnabled: true),
+					cancellationToken)
 				.ConfigureAwait(false);
+
+			string? devolvida = null;
+			canal.BasicReturnAsync += (_, argumentos) =>
+			{
+				devolvida = $"{argumentos.ReplyCode} {argumentos.ReplyText}";
+				return Task.CompletedTask;
+			};
 
 			var propriedades = new BasicProperties();
 			if (Headers is { Count: > 0 })
@@ -144,11 +175,24 @@ public class RabbitMqPublishStep : ITestStep
 			await canal.BasicPublishAsync(
 					exchange: Exchange,
 					routingKey: RoutingKey,
-					mandatory: false,
+					mandatory: RequireRouting,
 					basicProperties: propriedades,
 					body: CorpoEmBytes(),
 					cancellationToken: cancellationToken)
 				.ConfigureAwait(false);
+
+			if (devolvida is not null)
+			{
+				diagnostico["BasicReturn"] = devolvida;
+				Result = RabbitMqStepResult.CreateFailure(
+					new InvalidOperationException(
+						$"The broker returned the message as unroutable: {devolvida}. Nothing on " +
+						$"'{destino}' matched routing key '{RoutingKey}'. Declare the binding, or call " +
+						"AllowingUnroutable() when that is the point of the test."),
+					destino, diagnostico, cronometro.Elapsed);
+				IsValid = false;
+				return Result;
+			}
 
 			Result = RabbitMqStepResult.CreatePublishSuccess(destino, RoutingKey, cronometro.Elapsed);
 			IsValid = true;

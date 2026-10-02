@@ -160,6 +160,17 @@ internal static class RabbitMqVerbos
 		return RabbitMqScenario.De(scenario);
 	}
 
+	internal static IRabbitMqScenario AllowingUnroutable(ITestScenario scenario)
+	{
+		if (scenario.CurrentStep is not RabbitMqPublishStep publicacao)
+			throw new InvalidOperationException(
+				"Routing only applies to a publish step. Call Publish before AllowingUnroutable.");
+
+		scenario.SetCurrentStep(new RabbitMqPublishStep(publicacao) { RequireRouting = false });
+
+		return RabbitMqScenario.De(scenario);
+	}
+
 	internal static IRabbitMqScenario WithTimeout(ITestScenario scenario, TimeSpan timeout)
 	{
 		if (scenario.CurrentStep is RabbitMqConsumeStep consumo)

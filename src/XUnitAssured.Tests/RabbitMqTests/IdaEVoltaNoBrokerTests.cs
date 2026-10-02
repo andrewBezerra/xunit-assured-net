@@ -169,6 +169,57 @@ public class IdaEVoltaNoBrokerTests
 		assercoes.Then().AssertFailure();
 	}
 
+	// O caso que o Kafka não tem: publicar numa exchange que não casa binding nenhum. O broker
+	// aceita e descarta, então sem `mandatory` o passo diria que deu certo e nada teria chegado.
+	[Fact(DisplayName = "Publishing where nothing is bound should fail, not report success")]
+	public async Task Publishing_Where_Nothing_Is_Bound_Should_Fail()
+	{
+		var exchange = await ExchangeSemBinding();
+
+		var assercoes = await ScenarioDsl.Given()
+			.Exchange(exchange)
+			.WithConnectionUri(Broker)
+			.Publish("ninguém escuta")
+			.WithRoutingKey("rota.sem.fila")
+			.ExecuteAsync();
+
+		assercoes.Then().AssertFailure();
+	}
+
+	// E o contrário, para que o padrão seja escolha e não imposição: quando publicar no vazio é o
+	// ponto do teste, o verbo aceita.
+	[Fact(DisplayName = "AllowingUnroutable should accept a publish that reaches no queue")]
+	public async Task AllowingUnroutable_Should_Accept_It()
+	{
+		var exchange = await ExchangeSemBinding();
+
+		var assercoes = await ScenarioDsl.Given()
+			.Exchange(exchange)
+			.WithConnectionUri(Broker)
+			.Publish("ninguém escuta")
+			.WithRoutingKey("rota.sem.fila")
+			.AllowingUnroutable()
+			.ExecuteAsync();
+
+		assercoes.Then().AssertSuccess();
+	}
+
+	/// <summary>
+	/// Declara uma exchange sem nenhuma fila ligada a ela.
+	/// </summary>
+	private static async Task<string> ExchangeSemBinding()
+	{
+		var nome = $"xa-ex-{Guid.NewGuid():N}";
+
+		var fabrica = new ConnectionFactory { Uri = new Uri(Broker) };
+		await using var conexao = await fabrica.CreateConnectionAsync();
+		await using var canal = await conexao.CreateChannelAsync();
+
+		await canal.ExchangeDeclareAsync(nome, type: "direct", durable: true, autoDelete: false);
+
+		return nome;
+	}
+
 	/// <summary>
 	/// Declara uma fila com nome único para este teste, para que uma execução não veja a mensagem
 	/// da outra. O pacote ainda não tem verbo de declaração, então aqui usa-se o cliente direto.
