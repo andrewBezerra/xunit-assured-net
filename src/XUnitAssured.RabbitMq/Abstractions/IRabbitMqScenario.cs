@@ -69,6 +69,16 @@ public interface IRabbitMqScenario : ITestScenario
 	/// <summary>Substitui os headers AMQP da mensagem publicada.</summary>
 	IRabbitMqScenario WithHeaders(IDictionary<string, object?> headers);
 
+	/// <summary>
+	/// Aceita que a publicação não chegue a fila nenhuma.
+	/// </summary>
+	/// <remarks>
+	/// Por padrão a publicação falha quando o broker devolve a mensagem como não roteável, porque
+	/// num teste uma mensagem que não chegou a lugar nenhum é um erro de topologia que passaria
+	/// calado. Use isto quando publicar antes de existir binding é justamente o que o teste quer.
+	/// </remarks>
+	IRabbitMqScenario AllowingUnroutable();
+
 	/// <summary>Quanto esperar por uma mensagem ao consumir.</summary>
 	IRabbitMqScenario WithTimeout(TimeSpan timeout);
 
