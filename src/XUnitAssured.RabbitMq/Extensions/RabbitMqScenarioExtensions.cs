@@ -77,6 +77,9 @@ internal static class RabbitMqVerbos
 		var exchange = scenario.Context.GetProperty<string>("_RabbitMqExchange") ?? string.Empty;
 		var fila = scenario.Context.GetProperty<string>("_RabbitMqQueue") ?? string.Empty;
 
+		// Inalcançável pela DSL pública: `Publish` é membro de IRabbitMqScenario, e só os verbos de
+		// entrada produzem esse tipo, então chamar fora de ordem é erro de compilação. Fica como
+		// rede para um cenário reaproveitado entre cadeias, onde o contexto pode não ter destino.
 		if (string.IsNullOrEmpty(exchange) && string.IsNullOrEmpty(fila))
 			throw new InvalidOperationException(
 				"No destination. Call Queue(name) or Exchange(name) before Publish.");

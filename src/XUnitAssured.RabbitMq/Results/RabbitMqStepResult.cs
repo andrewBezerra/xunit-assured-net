@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Text.Json;
 
+using XUnitAssured.Core.Extensions;
 using XUnitAssured.Core.Results;
 
 namespace XUnitAssured.RabbitMq.Results;
@@ -56,9 +57,28 @@ public class RabbitMqStepResult : TestStepResult
 		});
 	}
 
-	// Falta aqui um JsonPath<T>(caminho), como o KafkaStepResult tem. Ele depende do
-	// JsonPathNavigator ter subido para o Core, que é a #56 e ainda não entrou; empilhar os dois
-	// numa revisão só atrapalharia a leitura. Entra em seguida.
+	/// <summary>
+	/// Lê um valor da mensagem consumida por caminho JSON, por exemplo <c>$.pedido.id</c>.
+	/// </summary>
+	/// <remarks>
+	/// O prefixo <c>$.</c> é opcional. Usa o mesmo navegador que os pacotes Http e Kafka, que mora
+	/// no Core justamente para não haver três interpretações de caminho divergindo com o tempo.
+	/// </remarks>
+	/// <exception cref="InvalidOperationException">Quando não há mensagem.</exception>
+	public T JsonPath<T>(string path)
+	{
+		if (string.IsNullOrWhiteSpace(Message))
+			throw new InvalidOperationException(
+				"No message on this result. Either the step published instead of consuming, or the consume timed out.");
+
+		using var documento = JsonDocument.Parse(Message!);
+		var raiz = documento.RootElement;
+
+		if (path.StartsWith("$."))
+			path = path.Substring(2);
+
+		return JsonPathNavigator.Navigate<T>(raiz, path);
+	}
 
 	/// <summary>Resultado de uma publicação que o broker aceitou.</summary>
 	public static RabbitMqStepResult CreatePublishSuccess(

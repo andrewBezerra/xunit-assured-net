@@ -599,7 +599,9 @@ Merged and not published yet. One new package; the rest are correctness fixes wi
   members of `IRabbitMqScenario` rather than extensions on `ITestScenario`, which is what lets a
   test project reference it alongside Kafka and write both chains in one file: `Consume`,
   `WithTimeout` and `ValidateMessage` are the vocabulary of messaging, not of one broker.
-  `RabbitMQ.Client` 7 is asynchronous end to end, so the steps await real I/O.
+  `RabbitMQ.Client` 7 is asynchronous end to end, so the steps await real I/O. Its
+  result reads the consumed message by type or by JSON path, through the same navigator the Http
+  and Kafka packages use.
 - **Authentication survives the consume verbs.** The Kafka steps are `init`-only, so each verb
   that changes one value rebuilt the whole step by hand, and five of them left `AuthConfig`
   out: `WithTimeout`, `WithGroupId`, `WithBootstrapServers`, `WithSchema` and
