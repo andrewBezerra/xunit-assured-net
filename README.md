@@ -601,6 +601,9 @@ Merged and not published yet. One new package; the rest are correctness fixes wi
   found nothing, and the assertions read the last result. `And()` and `On()` are what start a new
   step, which is what they already meant. This affects every package and was found by running a
   round trip against a real broker.
+  A step of another **type** is always a new step, with or without `And()`: mixing packages
+  without the boundary verb used to replace the previous step, so
+  `ApiResource(...).Get().NavigateTo(...)` dropped the HTTP request and said nothing.
 - **New package: `XUnitAssured.RabbitMq`.** Publish and consume steps for RabbitMQ on the
   official client, configured from a `rabbitmq` section of `testsettings.json`. Its verbs are
   members of `IRabbitMqScenario` rather than extensions on `ITestScenario`, which is what lets a
