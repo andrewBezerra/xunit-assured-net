@@ -73,6 +73,27 @@ address from `XA_RABBITMQ_URI`, so CI points them at its own service container a
 falls back to the address above. They are the tests that caught a regression 916 broker-free
 tests had missed, which is why they run on every pull request rather than living behind a skip.
 
+## Topology
+
+```csharp
+await Given()
+    .Exchange("eventos").DeclareExchange("topic")
+    .And()
+    .Queue("pedidos").DeclareQueue()
+    .And()
+    .BindQueueTo("eventos", "pedidos.criado")
+    .ExecuteAsync();
+```
+
+A queue is declared durable, because RabbitMQ 4 refuses a transient non-exclusive one. Declaring
+is idempotent in AMQP: declaring again with the same arguments is not an error, and with different
+arguments it is — that error comes from the broker, which is where the truth lives.
+
+These verbs exist because without them a test that needed a queue had to drop to the client API.
+The round-trip tests in this repository did exactly that in a helper, which is the point at which
+a DSL stops earning its place: it had verbs for publishing and consuming and none for the topology
+without which neither has anywhere to happen.
+
 ## A publish that reaches no queue is a failure
 
 AMQP has a case Kafka does not: publishing to an exchange that matches no binding. The broker

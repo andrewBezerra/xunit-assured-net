@@ -615,6 +615,9 @@ Merged and not published yet. One new package; the rest are correctness fixes wi
   A publish that reaches no queue fails instead of reporting success: AMQP accepts a publish to an
   exchange matching no binding and drops the message, which is a topology mistake that otherwise
   passes in silence. `AllowingUnroutable()` opts out where that is the point of the test.
+  Topology verbs complete the picture: `DeclareQueue()`, `DeclareExchange(type)` and
+  `BindQueueTo(exchange, routingKey)`. Without them a test that needed a queue dropped to the
+  client API, which this repository's own round-trip tests were doing in a helper.
 - **Authentication survives the consume verbs.** The Kafka steps are `init`-only, so each verb
   that changes one value rebuilt the whole step by hand, and five of them left `AuthConfig`
   out: `WithTimeout`, `WithGroupId`, `WithBootstrapServers`, `WithSchema` and
