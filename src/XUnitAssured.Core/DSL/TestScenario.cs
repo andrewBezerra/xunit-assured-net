@@ -35,6 +35,19 @@ public class TestScenario : ITestScenario
 	/// </summary>
 	private readonly List<PassoPlanejado> _passos = new();
 
+	/// <summary>
+	/// Se o próximo <see cref="SetCurrentStep"/> começa um passo novo, em vez de reconstruir o
+	/// que está sendo descrito.
+	/// </summary>
+	/// <remarks>
+	/// Os passos são <c>init</c>-only, então todo verbo que muda um valor reconstrói o passo
+	/// inteiro e chama <c>SetCurrentStep</c> com o novo. Sem esta distinção, cada verbo depois da
+	/// ação acrescentava uma execução: numa cadeia de consumo, o primeiro passo retirava a mensagem
+	/// e o segundo não achava nada, e as asserções leem o último resultado. A cadeia que a
+	/// documentação ensina, ação e depois configuração, falhava por construção.
+	/// </remarks>
+	private bool _comecarNovoPasso = true;
+
 	/// <inheritdoc />
 	public ITestContext Context { get; }
 
@@ -59,10 +72,18 @@ public class TestScenario : ITestScenario
 	}
 
 	/// <inheritdoc />
-	public ITestScenario And() => this;
+	public ITestScenario And()
+	{
+		_comecarNovoPasso = true;
+		return this;
+	}
 
 	/// <inheritdoc />
-	public ITestScenario On() => this;
+	public ITestScenario On()
+	{
+		_comecarNovoPasso = true;
+		return this;
+	}
 
 	/// <inheritdoc />
 	public ITestScenario When() => this;
@@ -75,7 +96,21 @@ public class TestScenario : ITestScenario
 	{
 		if (step == null) throw new ArgumentNullException(nameof(step));
 
-		_passos.Add(new PassoPlanejado(step));
+		if (_comecarNovoPasso || _passos.Count == 0)
+		{
+			_passos.Add(new PassoPlanejado(step));
+			_comecarNovoPasso = false;
+			return;
+		}
+
+		// Reconstrução: o verbo trocou um valor do passo que está sendo descrito. As verificações
+		// já registradas pertencem ao passo, e não ao objeto, então acompanham a troca — perdê-las
+		// transformaria uma asserção falha num teste verde, que é pior do que a execução dupla que
+		// isto conserta.
+		var anterior = _passos[^1];
+		var substituto = new PassoPlanejado(step);
+		substituto.Validacoes.AddRange(anterior.Validacoes);
+		_passos[^1] = substituto;
 	}
 
 	/// <inheritdoc />

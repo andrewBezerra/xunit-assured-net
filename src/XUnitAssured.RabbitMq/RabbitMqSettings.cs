@@ -28,6 +28,13 @@ public class RabbitMqSettings
 	/// O virtual host é o último segmento. Uma URI terminada em <c>/</c> aponta para o virtual
 	/// host padrão; <c>/meu-vhost</c> aponta para um nomeado. Omitir a barra final não é o mesmo
 	/// que informá-la, e é a confusão mais comum de quem escreve a URI à mão.
+	/// <para>
+	/// <b>No Windows, prefira <c>127.0.0.1</c> a <c>localhost</c>.</b> A resolução de
+	/// <c>localhost</c> tenta IPv6 primeiro, e cada conexão paga cerca de 57 segundos antes de
+	/// cair para IPv4. Medido: três testes de ida e volta levaram 2m51s com <c>localhost</c> e 2s
+	/// com o endereço literal. O padrão abaixo mantém <c>localhost</c> porque é a convenção e em
+	/// Linux não custa nada.
+	/// </para>
 	/// </remarks>
 	[JsonPropertyName("connectionUri")]
 	public string ConnectionUri { get; set; } = "amqp://guest:guest@localhost:5672/";
