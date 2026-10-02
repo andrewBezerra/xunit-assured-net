@@ -13,6 +13,7 @@ namespace XUnitAssured.Tests.RabbitMqTests;
 
 [Trait("Category", "RabbitMq")]
 [Trait("Component", "Integration")]
+[Trait("Requires", "Broker")]
 /// <summary>
 /// A ida e volta contra um broker de verdade.
 ///
@@ -44,7 +45,28 @@ namespace XUnitAssured.Tests.RabbitMqTests;
 /// </summary>
 public class IdaEVoltaNoBrokerTests
 {
-	private const string Broker = "amqp://xa:xa-senha@127.0.0.1:5672/";
+	/// <summary>
+	/// O endereço do broker. Vem de <c>XA_RABBITMQ_URI</c> quando definida, para que o CI aponte
+	/// para o contêiner de serviço dele, e cai no endereço local no resto do tempo.
+	/// </summary>
+	private static readonly string Broker =
+		Environment.GetEnvironmentVariable("XA_RABBITMQ_URI")
+			?? "amqp://xa:xa-senha@127.0.0.1:5672/";
+
+	private sealed class Endereco
+	{
+		public ClienteDto Cliente { get; set; } = new();
+	}
+
+	private sealed class ClienteDto
+	{
+		public EnderecoDto Endereco { get; set; } = new();
+	}
+
+	private sealed class EnderecoDto
+	{
+		public string Cidade { get; set; } = string.Empty;
+	}
 
 	private sealed class Pedido
 	{
@@ -53,8 +75,7 @@ public class IdaEVoltaNoBrokerTests
 		public string Status { get; set; } = string.Empty;
 	}
 
-	[Fact(Skip = "Integration test — requires a RabbitMQ broker on 127.0.0.1:5672",
-		DisplayName = "A published message should come back from the queue")]
+	[Fact(DisplayName = "A published message should come back from the queue")]
 	public async Task A_Published_Message_Should_Come_Back()
 	{
 		var fila = await FilaNova();
@@ -83,10 +104,33 @@ public class IdaEVoltaNoBrokerTests
 			});
 	}
 
+	// O caminho JSON contra mensagem que atravessou o broker de verdade, e não montada à mão. É o
+	// mesmo navegador que os pacotes Http e Kafka usam, que mora no Core.
+	[Fact(DisplayName = "JsonPath should read a value from a message that crossed the broker")]
+	public async Task JsonPath_Should_Read_From_A_Real_Message()
+	{
+		var fila = await FilaNova();
+
+		await ScenarioDsl.Given()
+			.Queue(fila)
+			.WithConnectionUri(Broker)
+			.Publish(new { cliente = new { endereco = new { cidade = "Recife" } } })
+			.ExecuteAsync();
+
+		var assercoes = await ScenarioDsl.Given()
+			.Queue(fila)
+			.WithConnectionUri(Broker)
+			.Consume()
+			.WithTimeout(TimeSpan.FromSeconds(10))
+			.ExecuteAsync();
+
+		assercoes.Then().AssertSuccess();
+		assercoes.Then().AssertMessage<Endereco>(e => e.Cliente.Endereco.Cidade.ShouldBe("Recife"));
+	}
+
 	// Headers AMQP atravessam o broker, e é a parte que mais fácil se quebra numa troca de versão
 	// do cliente.
-	[Fact(Skip = "Integration test — requires a RabbitMQ broker on 127.0.0.1:5672",
-		DisplayName = "An AMQP header should survive the round trip")]
+	[Fact(DisplayName = "An AMQP header should survive the round trip")]
 	public async Task An_Amqp_Header_Should_Survive()
 	{
 		var fila = await FilaNova();
@@ -110,8 +154,7 @@ public class IdaEVoltaNoBrokerTests
 
 	// Consumir de fila vazia é falha com motivo, e não sucesso com mensagem nula. Contra o broker
 	// real isso exercita o laço de espera até o prazo.
-	[Fact(Skip = "Integration test — requires a RabbitMQ broker on 127.0.0.1:5672",
-		DisplayName = "Consuming from an empty queue should fail with a reason")]
+	[Fact(DisplayName = "Consuming from an empty queue should fail with a reason")]
 	public async Task Consuming_From_An_Empty_Queue_Should_Fail()
 	{
 		var fila = await FilaNova();

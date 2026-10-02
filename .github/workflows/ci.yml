@@ -52,15 +52,15 @@ jobs:
       # a Kafka broker or a browser, so they are not gating material.
       - name: Test (net8.0)
         if: ${{ !cancelled() && steps.build.outcome == 'success' }}
-        run: dotnet test ${{ env.UNIT_TESTS }} --configuration Release --no-build --framework net8.0 --filter "Requires!=Network" --logger "trx;LogFileName=net8.0.trx" --results-directory TestResults
+        run: dotnet test ${{ env.UNIT_TESTS }} --configuration Release --no-build --framework net8.0 --filter "Requires!=Network&Requires!=Broker" --logger "trx;LogFileName=net8.0.trx" --results-directory TestResults
 
       - name: Test (net9.0)
         if: ${{ !cancelled() && steps.build.outcome == 'success' }}
-        run: dotnet test ${{ env.UNIT_TESTS }} --configuration Release --no-build --framework net9.0 --filter "Requires!=Network" --logger "trx;LogFileName=net9.0.trx" --results-directory TestResults
+        run: dotnet test ${{ env.UNIT_TESTS }} --configuration Release --no-build --framework net9.0 --filter "Requires!=Network&Requires!=Broker" --logger "trx;LogFileName=net9.0.trx" --results-directory TestResults
 
       - name: Test (net10.0)
         if: ${{ !cancelled() && steps.build.outcome == 'success' }}
-        run: dotnet test ${{ env.UNIT_TESTS }} --configuration Release --no-build --framework net10.0 --filter "Requires!=Network" --logger "trx;LogFileName=net10.0.trx" --results-directory TestResults
+        run: dotnet test ${{ env.UNIT_TESTS }} --configuration Release --no-build --framework net10.0 --filter "Requires!=Network&Requires!=Broker" --logger "trx;LogFileName=net10.0.trx" --results-directory TestResults
 
       - name: Upload test results
         if: always()
@@ -89,6 +89,46 @@ jobs:
 
       - name: Test against live services
         run: dotnet test ${{ env.UNIT_TESTS }} --configuration Release --framework net10.0 --filter "Requires=Network"
+
+  # A regressao que a 6.0.0 publicou passou por 916 testes sem broker: um verbo depois da acao
+  # criava uma execucao extra, e so publicar e consumir de verdade mostrou. Este trabalho existe
+  # para que essa classe de defeito apareca antes de ser publicada.
+  #
+  # Nao bloqueante de proposito: broker de servico depende de infraestrutura do runner, e uma
+  # falha de infraestrutura nao deve derrubar o PR de quem mexeu noutra coisa.
+  broker-round-trip:
+    name: Broker round trip (non-blocking)
+    runs-on: ubuntu-latest
+    continue-on-error: true
+
+    services:
+      rabbitmq:
+        image: rabbitmq:4
+        # O usuario guest do RabbitMQ so aceita conexao da propria maquina, e um contendor de
+        # servico e alcancado pela rede do Docker, entao um usuario proprio e obrigatorio.
+        env:
+          RABBITMQ_DEFAULT_USER: xa
+          RABBITMQ_DEFAULT_PASS: xa-senha
+        ports:
+          - 5672:5672
+        options: >-
+          --health-cmd "rabbitmq-diagnostics -q ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Round trip against a real broker
+        env:
+          XA_RABBITMQ_URI: amqp://xa:xa-senha@127.0.0.1:5672/
+        run: dotnet test ${{ env.UNIT_TESTS }} --configuration Release --framework net10.0 --filter "Requires=Broker"
 
   # Proves the five packages actually pack, and keeps the artifacts so a release
   # candidate can be inspected before any tag is cut.

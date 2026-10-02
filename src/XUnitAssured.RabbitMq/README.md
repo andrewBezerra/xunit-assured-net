@@ -68,6 +68,11 @@ The management UI is then on `http://127.0.0.1:15672`. Two things that cost time
 with a cgroup controller error; and RabbitMQ 4 refuses a transient non-exclusive queue, so a
 queue declared for a test has to be `durable: true`.
 
+The round-trip tests in this repository carry `[Trait("Requires", "Broker")]` and read the
+address from `XA_RABBITMQ_URI`, so CI points them at its own service container and a local run
+falls back to the address above. They are the tests that caught a regression 916 broker-free
+tests had missed, which is why they run on every pull request rather than living behind a skip.
+
 ## Where the verbs live
 
 Every verb except the entry one is a member of `IRabbitMqScenario`, not an extension on
