@@ -150,6 +150,9 @@ jobs:
 
   # Tag anotada e release do GitHub, depois do build e antes do NuGet: o que está
   # no NuGet sempre tem tag e release. O corpo da release é docs/releases/<versão>.md.
+  # Se a primeira linha do registro for um título ("# Kafka performance"), ele vira
+  # o subtítulo da release ("v6.2.0 — Kafka performance") e sai do corpo; sem ela,
+  # o título é só a tag. É o padrão das releases v5.0.1 a v6.1.1.
   release:
     name: Tag e release
     runs-on: ubuntu-latest
@@ -181,7 +184,16 @@ jobs:
           if gh release view "$TAG" >/dev/null 2>&1; then
             echo "A release $TAG já existe."
           else
-            gh release create "$TAG" --verify-tag --title "$TAG" --notes-file "$REGISTRO"
+            TITULO="$TAG"
+            CORPO="$REGISTRO"
+            PRIMEIRA=$(head -n 1 "$REGISTRO" | tr -d '\r')
+            if [[ "$PRIMEIRA" =~ ^#[[:space:]]+(.+)$ ]]; then
+              TITULO="$TAG — ${BASH_REMATCH[1]}"
+              CORPO=$(mktemp)
+              # O resto do registro, sem as linhas em branco que separavam o título
+              tail -n +2 "$REGISTRO" | sed '/[^[:space:]]/,$!d' > "$CORPO"
+            fi
+            gh release create "$TAG" --verify-tag --title "$TITULO" --notes-file "$CORPO"
           fi
           echo "Release: $(gh release view "$TAG" --json url -q .url)" >> "$GITHUB_STEP_SUMMARY"
 

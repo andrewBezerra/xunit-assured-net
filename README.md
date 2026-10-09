@@ -656,7 +656,7 @@ The filter skips the tests that need the network or a running broker; CI runs th
 
 Adding a protocol package? Read [Adding a protocol package](#adding-a-protocol-package) first.
 
-**Releases.** Merging to `main` publishes, so every pull request raises `<Version>` in `src/Directory.Build.props` and adds `docs/releases/<version>.md` with what ships. The pull request check fails without both; on merge, the release workflow creates the tag and the GitHub release from that file, then publishes to NuGet after a manual approval.
+**Releases.** Merging to `main` publishes, so every pull request raises `<Version>` in `src/Directory.Build.props` and adds `docs/releases/<version>.md` with what ships; a first line such as `# Kafka performance` becomes the release subtitle. The pull request check fails without both; on merge, the release workflow creates the tag and the GitHub release from that file, then publishes to NuGet after a manual approval.
 
 ## 📄 License
 
