@@ -1,6 +1,23 @@
 name: Release
 
-# Cutting a tag builds and verifies the packages, but publishing waits for a human.
+# O merge em main publica, na ordem: confere a versão, compila e testa, cria a tag
+# v<versão> e a release do GitHub com docs/releases/<versão>.md, e só então publica
+# no NuGet — e a publicação ainda espera uma aprovação humana.
+#
+# A mesma regra do LiaisonHub.Api (decidida em 07/10/2026): publicar é decidir uma
+# versão. A PR sobe o <Version> e escreve o registro da versão; o portão de PR do
+# ci.yml já reprova uma PR que não faz isso, e este workflow reprova de novo, antes
+# de qualquer tag, se uma passar mesmo assim. As regras vivem em
+# .github/scripts/conferir-versao.sh, compartilhado com o ci.yml.
+#
+# A tag é criada aqui, e não à mão, porque a ordem importa: uma tag criada pelo
+# GITHUB_TOKEN não dispara outro workflow, então "tag → release → NuGet" só é
+# garantido dentro do mesmo workflow. Até a 6.1.0 as tags eram criadas à mão e
+# disparavam este arquivo; nenhuma virou release no GitHub.
+#
+# Rodar de novo (re-run ou workflow_dispatch) não é erro: se a tag já aponta para
+# este commit, a release é a mesma e o passo só confere; --skip-duplicate cuida do
+# NuGet.
 #
 # Authentication uses Trusted Publishing, so no nuget.org API key is stored here.
 # The job proves its identity with a short-lived OIDC token issued by GitHub, which
@@ -27,14 +44,8 @@ name: Release
 
 on:
   push:
-    tags:
-      - 'v*'
+    branches: [main]
   workflow_dispatch:
-    inputs:
-      version:
-        description: 'Version to build (e.g. 5.0.1). Defaults to the version in Directory.Build.props.'
-        required: false
-        type: string
 
 env:
   DOTNET_NOLOGO: true
@@ -43,10 +54,34 @@ env:
   UNIT_TESTS: src/XUnitAssured.Tests/XUnitAssured.Tests.csproj
 
 jobs:
-  # A tag must not be publishable unless it passes the same bar as a pull request.
+  # Antes de compilar qualquer coisa: a versão é nova e tem registro? Um merge sem
+  # versão nova para aqui, e nada é empacotado nem publicado.
+  versao:
+    name: Versão nova
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      versao: ${{ steps.regras.outputs.versao }}
+      tag: ${{ steps.regras.outputs.tag }}
+      registro: ${{ steps.regras.outputs.registro }}
+      ja_existe: ${{ steps.regras.outputs.ja_existe }}
+
+    steps:
+      # fetch-depth 0: sem as tags, "a versão já tem tag?" responderia sempre que não.
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Conferir a versão
+        id: regras
+        run: bash .github/scripts/conferir-versao.sh publicar
+
+  # A version must not be publishable unless it passes the same bar as a pull request.
   verify:
     name: Build, test & pack
     runs-on: ubuntu-latest
+    needs: versao
 
     steps:
       - uses: actions/checkout@v4
@@ -62,22 +97,11 @@ jobs:
             9.0.x
             10.0.x
 
-      # A dispatched version has to reach the build as well as the pack: the
-      # packages are produced from the compiled output, so overriding it only at
-      # pack time would stamp a version the assemblies do not carry.
-      - name: Resolve version
-        run: |
-          if [ -n "${{ inputs.version }}" ]; then
-            echo "VERSION_ARG=-p:Version=${{ inputs.version }}" >> "$GITHUB_ENV"
-          else
-            echo "VERSION_ARG=" >> "$GITHUB_ENV"
-          fi
-
       - name: Restore
         run: dotnet restore ${{ env.SOLUTION }}
 
       - name: Build
-        run: dotnet build ${{ env.SOLUTION }} --configuration Release --no-restore $VERSION_ARG
+        run: dotnet build ${{ env.SOLUTION }} --configuration Release --no-restore
 
       # O filtro tem de excluir os dois traits. Requires=Broker exige um broker de serviço, que
       # existe no ci.yml e não aqui: uma release não deve depender de infraestrutura de runner
@@ -96,22 +120,22 @@ jobs:
       # pack races the build it would trigger and fails with NU5026 on a clean
       # checkout, where nothing is in bin/ yet.
       - name: Pack
-        run: dotnet pack ${{ env.SOLUTION }} --configuration Release --no-build --output artifacts $VERSION_ARG
+        run: dotnet pack ${{ env.SOLUTION }} --configuration Release --no-build --output artifacts
 
-      # A tag that disagrees with the version in the build is almost always a
-      # mistake, and it would publish under a version nobody intended.
-      - name: Check the tag matches the package version
-        if: startsWith(github.ref, 'refs/tags/v')
+      # The version checked above and the one the packages carry must be the same,
+      # or the tag would name a version nobody packed.
+      - name: Check the packages carry the checked version
+        env:
+          VERSAO: ${{ needs.versao.outputs.versao }}
         run: |
-          tag_version="${GITHUB_REF_NAME#v}"
           package=$(ls artifacts/XUnitAssured.Core.*.nupkg | head -1)
           package_version=$(basename "$package" .nupkg | sed 's/^XUnitAssured\.Core\.//')
 
-          echo "Tag version:     $tag_version"
+          echo "Checked version: $VERSAO"
           echo "Package version: $package_version"
 
-          if [ "$tag_version" != "$package_version" ]; then
-            echo "::error::Tag '$GITHUB_REF_NAME' does not match packaged version '$package_version'. Update <Version> in src/Directory.Build.props, or retag."
+          if [ "$VERSAO" != "$package_version" ]; then
+            echo "::error::The packages carry '$package_version', but the version check read '$VERSAO'."
             exit 1
           fi
 
@@ -124,13 +148,50 @@ jobs:
             artifacts/*.snupkg
           if-no-files-found: error
 
+  # Tag anotada e release do GitHub, depois do build e antes do NuGet: o que está
+  # no NuGet sempre tem tag e release. O corpo da release é docs/releases/<versão>.md.
+  release:
+    name: Tag e release
+    runs-on: ubuntu-latest
+    needs: [versao, verify]
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Criar a tag e a release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSAO: ${{ needs.versao.outputs.versao }}
+          TAG: ${{ needs.versao.outputs.tag }}
+          REGISTRO: ${{ needs.versao.outputs.registro }}
+          JA_EXISTE: ${{ needs.versao.outputs.ja_existe }}
+          COMMIT: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          if [ "$JA_EXISTE" != "true" ]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git tag -a "$TAG" "$COMMIT" -m "$VERSAO"
+            git push origin "refs/tags/$TAG"
+          fi
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "A release $TAG já existe."
+          else
+            gh release create "$TAG" --verify-tag --title "$TAG" --notes-file "$REGISTRO"
+          fi
+          echo "Release: $(gh release view "$TAG" --json url -q .url)" >> "$GITHUB_STEP_SUMMARY"
+
   # Gated by the 'nuget-release' environment. Publishing to nuget.org cannot be
   # undone — a package version is permanent once listed — so this waits for an
   # explicit approval in the GitHub UI.
   publish:
     name: Publish to NuGet
     runs-on: ubuntu-latest
-    needs: verify
+    needs: release
     environment: nuget-release
 
     permissions:
