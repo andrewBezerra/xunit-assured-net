@@ -2,6 +2,8 @@
 
 [![CI](https://github.com/andrewBezerra/xunit-assured-net/actions/workflows/ci.yml/badge.svg)](https://github.com/andrewBezerra/xunit-assured-net/actions/workflows/ci.yml)
 [![NuGet](https://img.shields.io/nuget/v/XUnitAssured.Core.svg?label=nuget)](https://www.nuget.org/packages/XUnitAssured.Core)
+[![NuGet downloads](https://img.shields.io/nuget/dt/XUnitAssured.Core.svg?label=downloads)](https://www.nuget.org/profiles/AndrewBezerra)
+[![.NET](https://img.shields.io/badge/.NET-8%20%7C%209%20%7C%2010-512BD4)](https://dotnet.microsoft.com/)
 [![License: Apache-2.0](https://img.shields.io/badge/License-Apache--2.0-blue.svg)](LICENSE.md)
 
 XUnitAssured is a .NET integration testing framework for describing and validating end-to-end scenarios that span HTTP APIs, messaging systems and browser workflows in distributed applications.
@@ -58,11 +60,12 @@ The chain ends where it is: the last step was a browser step, so `ExecuteAsync()
 
 ## What it does
 
-- **One DSL across boundaries** — `Given().When().Then()` over HTTP, Kafka and the browser, with steps that share state (`SaveStep`, `Steps["name"]`, extracted values).
+- **One DSL across boundaries** — `Given().When().Then()` over HTTP, Kafka, RabbitMQ and the browser, with steps that share state (`SaveStep`, `Steps["name"]`, extracted values).
 - **HTTP** — full CRUD, JSON path assertions, contract validation, and authentication applied once from `testsettings.json`: Bearer, Basic, OAuth2, API key, client certificate (mTLS), custom headers.
 - **Kafka** — produce and consume single messages and batches, headers and keys, SASL/PLAIN, SCRAM, SSL and mTLS, Schema Registry. Consume steps skip the consumer-group join, so a consume costs milliseconds instead of seconds.
+- **RabbitMQ** — publish and consume single messages and batches, declare queues, exchanges and bindings, reject to a dead-letter exchange; a publish that reaches no queue fails instead of passing in silence.
 - **Browser** — clicks, fills, checks, navigation and screenshots on Playwright, with locators by role, label, test id, text and CSS, and assertions that read like the DSL.
-- **AI-assisted authoring** — an MCP server with 10 tools that translate Playwright Inspector recordings into the DSL and scaffold HTTP and Kafka tests from your editor.
+- **AI-assisted authoring** — an MCP server with 10 tools that translate Playwright Inspector recordings into the DSL and scaffold HTTP and Kafka tests from your editor (GitHub Copilot, Claude Code, VS Code and any MCP client).
 - **Diagnostics when things fail** — status codes, broker logs, exception detail and, for browser steps, a screenshot at the moment of failure.
 - **Modular** — install only the packages you need; each targets `net8.0` through `net10.0`.
 
@@ -89,24 +92,26 @@ In order of intent, not of promise:
 
 | Package | Version | Description |
 |---------|---------|-------------|
-| **XUnitAssured.Core** | 6.1.0 | Core abstractions, DSL infrastructure, DI support (`DITestFixture`), `ValidationBuilder`, and BDD extensions |
+| **XUnitAssured.Core** | [![NuGet](https://img.shields.io/nuget/v/XUnitAssured.Core.svg?label=)](https://www.nuget.org/packages/XUnitAssured.Core) | Core abstractions, DSL infrastructure, DI support (`DITestFixture`), `ValidationBuilder`, and BDD extensions |
 
 ### Protocol Packages
 
 | Package | Version | Description |
 |---------|---------|-------------|
-| **XUnitAssured.Http** | 6.1.0 | HTTP/REST API testing — fluent DSL, authentication handlers, JSON path assertions, schema validation |
-| **XUnitAssured.Kafka** | 6.1.0 | Apache Kafka integration testing — produce/consume, batch operations, authentication, Schema Registry support |
-| **XUnitAssured.RabbitMq** | 6.1.0 | RabbitMQ integration testing — publish/consume steps on the official async client, queues and exchanges, AMQP headers |
-| **XUnitAssured.Playwright** | 6.1.0 | Playwright UI testing — fluent DSL for browser interactions, multiple locator strategies, screenshots, and assertions |
+| **XUnitAssured.Http** | [![NuGet](https://img.shields.io/nuget/v/XUnitAssured.Http.svg?label=)](https://www.nuget.org/packages/XUnitAssured.Http) | HTTP/REST API testing — fluent DSL, authentication handlers, JSON path assertions, schema validation |
+| **XUnitAssured.Kafka** | [![NuGet](https://img.shields.io/nuget/v/XUnitAssured.Kafka.svg?label=)](https://www.nuget.org/packages/XUnitAssured.Kafka) | Apache Kafka integration testing — produce/consume, batch operations, authentication, Schema Registry support |
+| **XUnitAssured.RabbitMq** | [![NuGet](https://img.shields.io/nuget/v/XUnitAssured.RabbitMq.svg?label=)](https://www.nuget.org/packages/XUnitAssured.RabbitMq) | RabbitMQ integration testing — publish/consume steps on the official async client, queues and exchanges, AMQP headers |
+| **XUnitAssured.Playwright** | [![NuGet](https://img.shields.io/nuget/v/XUnitAssured.Playwright.svg?label=)](https://www.nuget.org/packages/XUnitAssured.Playwright) | Playwright UI testing — fluent DSL for browser interactions, multiple locator strategies, screenshots, and assertions |
 
 ### Tooling
 
 | Package | Version | Description |
 |---------|---------|-------------|
-| **XUnitAssured.Mcp** | 6.1.0 | MCP server for AI-assisted test generation — install via `dnx XUnitAssured.Mcp` or `dotnet tool install XUnitAssured.Mcp` |
+| **XUnitAssured.Mcp** | [![NuGet](https://img.shields.io/nuget/v/XUnitAssured.Mcp.svg?label=)](https://www.nuget.org/packages/XUnitAssured.Mcp) | MCP server for AI-assisted test generation — install via `dnx XUnitAssured.Mcp` or `dotnet tool install XUnitAssured.Mcp` |
 
 ## 🚀 Quick Start
+
+Every snippet in this section is compiled against the DSL on every build ([`ReadmeQuickStartExamplesTests.cs`](src/XUnitAssured.Tests/ReadmeQuickStartExamplesTests.cs)). They use `ExecuteAsync()`; the blocking `Execute()` still works if your suite is synchronous. `.When()` is optional: `Given()...ExecuteAsync()` and `Given()...When().ExecuteAsync()` describe the same scenario.
 
 ### HTTP Testing
 
@@ -114,23 +119,39 @@ In order of intent, not of promise:
 dotnet add package XUnitAssured.Http
 ```
 
+A fixture tells the DSL how to reach your API. This one reads the `http` section of `testsettings.json`, described under Configuration below:
+
+```csharp
+using XUnitAssured.Core.Abstractions;
+using XUnitAssured.Core.Configuration;
+using XUnitAssured.Http.Configuration;
+
+public class MyApiFixture : IHttpClientProvider, IHttpClientAuthProvider
+{
+    private readonly HttpSettings _http = TestSettings.Load().GetHttpSettings()!;
+    public HttpClient CreateClient() => new() { BaseAddress = new Uri(_http.BaseUrl!) };
+    public HttpAuthConfig? GetAuthenticationConfig() => _http.Authentication;
+}
+```
+
 ```csharp
 using XUnitAssured.Http.Extensions;
 using XUnitAssured.Http.Testing;
 
-public class MyApiTests : HttpTestBase<MyTestFixture>, IClassFixture<MyTestFixture>
+public class MyApiTests : HttpTestBase<MyApiFixture>, IClassFixture<MyApiFixture>
 {
-    public MyApiTests(MyTestFixture fixture) : base(fixture) { }
+    public MyApiTests(MyApiFixture fixture) : base(fixture) { }
 
     [Fact]
-    public void Get_Users_Returns_Success()
+    public async Task Get_Users_Returns_Success()
     {
-        Given()
+        var assertions = await Given()
             .ApiResource("/api/users")
             .Get()
-        .When()
-            .Execute()
-        .Then()
+            .ExecuteAsync();
+
+        assertions
+            .Then()
             .AssertStatusCode(200)
             .AssertJsonPath<string>("$.name", value => value == "John", "Name should be John");
     }
@@ -179,21 +200,22 @@ dotnet add package XUnitAssured.Playwright
 using XUnitAssured.Playwright.Extensions;
 using XUnitAssured.Playwright.Testing;
 
-public class MyUiTests : PlaywrightTestBase<MyPlaywrightFixture>, IClassFixture<MyPlaywrightFixture>
+public class MyUiTests : PlaywrightTestBase<PlaywrightTestFixture>, IClassFixture<PlaywrightTestFixture>
 {
-    public MyUiTests(MyPlaywrightFixture fixture) : base(fixture) { }
+    public MyUiTests(PlaywrightTestFixture fixture) : base(fixture) { }
 
     [Fact]
-    public void Login_Should_Navigate_To_Dashboard()
+    public async Task Login_Should_Navigate_To_Dashboard()
     {
-        Given()
+        var assertions = await Given()
             .NavigateTo("/login")
             .FillByLabel("Email", "user@test.com")
             .FillByLabel("Password", "secret")
             .ClickByRole(AriaRole.Button, "Sign in")
-        .When()
-            .Execute()
-        .Then()
+            .ExecuteAsync();
+
+        assertions
+            .Then()
             .AssertSuccess()
             .AssertUrl("/dashboard");
     }
@@ -229,28 +251,23 @@ public class MyKafkaTests : KafkaTestBase<KafkaClassFixture>, IClassFixture<Kafk
     public MyKafkaTests(KafkaClassFixture fixture) : base(fixture) { }
 
     [Fact]
-    public void Produce_And_Consume_Message()
+    public async Task Produce_And_Consume_Message()
     {
         var topic = GenerateUniqueTopic("my-test");
-        var groupId = $"test-{Guid.NewGuid():N}";
 
-        // Produce
-        Given()
+        await Given()
             .Topic(topic)
             .Produce("Hello, Kafka!")
-        .When()
-            .Execute()
-        .Then()
-            .AssertSuccess();
+            .ExecuteAsync();
 
-        // Consume
-        Given()
+        var assertions = await Given()
             .Topic(topic)
             .Consume()
-            .WithGroupId(groupId)
-        .When()
-            .Execute()
-        .Then()
+            .WithGroupId($"test-{Guid.NewGuid():N}")
+            .ExecuteAsync();
+
+        assertions
+            .Then()
             .AssertSuccess()
             .AssertMessage<string>(msg => msg.ShouldBe("Hello, Kafka!"));
     }
@@ -309,6 +326,38 @@ Given().Topic("my-topic")
 .When().Execute()
 .Then().AssertSuccess();
 ```
+
+### RabbitMQ Testing
+
+```bash
+dotnet add package XUnitAssured.RabbitMq
+```
+
+```csharp
+using XUnitAssured.RabbitMq.Extensions;
+
+[Fact]
+public async Task Publish_And_Consume_Message()
+{
+    await Given()
+        .Queue("orders")
+        .Publish(new { id = 42, status = "Created" })
+        .ExecuteAsync();
+
+    var assertions = await Given()
+        .Queue("orders")
+        .Consume()
+        .WithTimeout(TimeSpan.FromSeconds(5))
+        .ExecuteAsync();
+
+    assertions
+        .Then()
+        .AssertSuccess()
+        .AssertMessage<Order>(order => order.Status.ShouldBe("Created"));
+}
+```
+
+Topology, batches, dead-letter, and why prefetch is not a verb: see the [RabbitMQ package README](src/XUnitAssured.RabbitMq/README.md).
 
 ## ⚙️ Configuration: `testsettings.json`
 
@@ -394,22 +443,20 @@ The reference implementation of an HTTP fixture is [`HttpSamplesRemoteFixture.cs
 ## 🏗️ Architecture
 
 ```
-                    XUnitAssured.Core
-          (DSL + Abstractions + DI + ValidationBuilder)
-             ↓              ↓              ↓
-  XUnitAssured.Http   XUnitAssured.Kafka   XUnitAssured.Playwright
-  (REST API Testing)  (Kafka Testing)      (UI Testing)
-                            ↑
-                    XUnitAssured.Mcp
-               (AI-Assisted Test Generation)
+                                XUnitAssured.Core
+                  (DSL + Abstractions + DI + ValidationBuilder)
+          ↓                  ↓                   ↓                    ↓
+  XUnitAssured.Http   XUnitAssured.Kafka   XUnitAssured.RabbitMq   XUnitAssured.Playwright
+  (REST APIs)         (Kafka)              (RabbitMQ)              (Browser UI)
+
+  XUnitAssured.Mcp — MCP server that writes tests in the DSL above (AI-assisted authoring)
 ```
 
-**Design Principles:**
-- **SOLID**: Each package has a single responsibility
-- **KISS**: Simple, straightforward APIs
-- **DRY**: Reusable components across tests
-- **YAGNI**: Only what you need, when you need it
-- **Separation of Concerns**: Clear boundaries between HTTP, Kafka, Playwright, and Core
+**What the design optimises for:**
+- **Reference only what you test.** Each boundary is its own package on a small core, so an API-only suite never pulls in Playwright or a Kafka client.
+- **Packages compose without ambiguity.** Several packages in one scenario is the point, so their verbs must not collide — the rule below is how.
+- **Describe first, run once.** A chain is a description and `ExecuteAsync()` runs it, which is what lets one step's output feed the next step's input.
+- **Failures explain themselves.** Status codes, broker logs, exception detail and screenshots travel with the result.
 
 ### Adding a protocol package
 
@@ -452,7 +499,7 @@ The repository includes comprehensive sample projects for both local and remote 
 | `XUnitAssured.Http.Samples.Local.Test` | HTTP tests against a local `SampleWebApi` (WebApplicationFactory) |
 | `XUnitAssured.Http.Samples.Remote.Test` | HTTP tests against a deployed remote API |
 | `XUnitAssured.Kafka.Samples.Remote.Test` | Kafka tests against local Docker or remote Kafka clusters |
-| `XUnitAssured.Playwright.Samples.Local.Test` | Playwright UI tests against a local Blazor `SampleWebApp` |
+| `XunitAssured.PlayWright.Samples.Local.Test` | Playwright UI tests against a local Blazor `SampleWebApp` |
 | `XUnitAssured.Playwright.Samples.Remote.Test` | Playwright UI tests against a deployed remote web application |
 
 ### HTTP Sample Test Categories
@@ -521,7 +568,7 @@ Add to your `.mcp.json` (repo root, `~/.mcp.json`, or `.vscode/mcp.json`):
     "xunitassured": {
       "type": "stdio",
       "command": "dnx",
-      "args": ["XUnitAssured.Mcp@6.1.0", "--yes"]
+      "args": ["XUnitAssured.Mcp@6.1.1", "--yes"]
     }
   }
 }
@@ -588,209 +635,28 @@ In GitHub Copilot Chat, the XUnitAssured tools should appear as available. Try:
 
 > "Generate a Kafka produce-consume round-trip test for the orders topic"
 
-## 🔄 Version History
+## 🔄 What's New
 
-### v6.1.0 (Current — RabbitMQ, and the 6.0.0 regressions)
+**6.1.1** — a README rewritten for the first visit (asynchronous Quick Start compiled on every build, RabbitMQ throughout), and every release now ships with a tag and a GitHub release. No API changes.
 
-Additive: one new package, and correctness fixes with no API changes. Upgrading from 6.0.0 requires no code changes.
+**6.1.0** — a new `XUnitAssured.RabbitMq` package (publish/consume, topology, batches, dead-letter), and fixes for steps that ran twice or lost their authentication after 6.0.0. Upgrading from 6.0.0 needs no code changes.
 
-- **A verb that reconfigures a step no longer adds a second execution.** Steps are `init`-only,
-  so every verb that changes one value rebuilds the whole step; when 6.0.0 made the chain
-  describe, that rebuild started appending a planned step instead of replacing the one being
-  described. A consume chain then consumed twice: the first step took the message and the second
-  found nothing, and the assertions read the last result. `And()` and `On()` are what start a new
-  step, which is what they already meant. This affects every package and was found by running a
-  round trip against a real broker.
-  A step of another **type** is always a new step, with or without `And()`: mixing packages
-  without the boundary verb used to replace the previous step, so
-  `ApiResource(...).Get().NavigateTo(...)` dropped the HTTP request and said nothing.
-- **New package: `XUnitAssured.RabbitMq`.** Publish and consume steps for RabbitMQ on the
-  official client, configured from a `rabbitmq` section of `testsettings.json`. Its verbs are
-  members of `IRabbitMqScenario` rather than extensions on `ITestScenario`, which is what lets a
-  test project reference it alongside Kafka and write both chains in one file: `Consume`,
-  `WithTimeout` and `ValidateMessage` are the vocabulary of messaging, not of one broker.
-  `RabbitMQ.Client` 7 is asynchronous end to end, so the steps await real I/O. Its
-  result reads the consumed message by type or by JSON path, through the same navigator the Http
-  and Kafka packages use.
-  A publish that reaches no queue fails instead of reporting success: AMQP accepts a publish to an
-  exchange matching no binding and drops the message, which is a topology mistake that otherwise
-  passes in silence. `AllowingUnroutable()` opts out where that is the point of the test.
-  Topology verbs complete the picture: `DeclareQueue()`, `DeclareExchange(type)` and
-  `BindQueueTo(exchange, routingKey)`. Without them a test that needed a queue dropped to the
-  client API, which this repository's own round-trip tests were doing in a helper.
-  `Rejecting(requeue)` and `DeclareQueue(deadLetterExchange:)` make the discard path testable: a
-  message rejected without requeue lands in the queue's dead-letter exchange, which is a test
-  people want to write and could not.
-  `ConsumeBatch(n)` brings the package level with Kafka's batch consume, and `AssertMessageCount`
-  is how a test says how many it expected.
-- **Authentication survives the consume verbs.** The Kafka steps are `init`-only, so each verb
-  that changes one value rebuilt the whole step by hand, and five of them left `AuthConfig`
-  out: `WithTimeout`, `WithGroupId`, `WithBootstrapServers`, `WithSchema` and
-  `WithConsumerConfig`. Authenticating and then adjusting any of those replaced the explicit
-  credential with the fixture's, or connected with none at all. The four steps now have a copy
-  constructor and the verbs use it, so a property added later is carried over by default.
-- **An explicitly configured broker or group is no longer discarded.** The Kafka steps decided
-  "not configured" by comparing the value against the default, so a project that set
-  `localhost:9092` on purpose had its value replaced by the fixture's. Absence is now recorded
-  on the step instead of inferred, and `localhost:9092` is exactly the address a local broker
-  uses, so it was the value most likely to be written by hand.
-- **The MCP server's reference tables name methods that exist.** `list_http_dsl_methods`
-  advertised `WithApiKeyInQuery`, `WithOAuth2ClientCredentials` and `WithCustomHeaderAuth`, none
-  of which are in the API, while its own description says to use it as a reference. The tables
-  also now cover the 6.0.0 surface, and each tool description says when not to use it and what
-  it does not return.
-- **The result-type error message names the cause.** It used to say to pick the right
-  `Execute<T>()`, which stopped being the mechanism in 6.0.0. It now names both result types
-  and points at the usual cause, a lambda with no parameter type binding to another package's
-  overload.
-- **Fragments in the authentication guides are marked as such**, by ending without a semicolon,
-  so copying one does not compile instead of becoming a test that asserts nothing.
-
-### v6.0.0 (one `Execute()`, one configuration file)
-
-> Upgrading from 5.1.x? **[UPGRADING.md](UPGRADING.md)** says what to change in your code, with
-> the one silent change first. Its examples are compiled as part of the test suite.
-
-Breaking. Source-compatible for a chain written the usual way; the changes bite where a
-scenario was stored in a variable, a custom step was implemented, or an old file name was
-relied on.
-
-- **A cross-boundary chain ends with a plain `.Execute()`.** Each package's chain methods
-  return their own scenario type — `IHttpScenario`, `IKafkaScenario`, `IBrowserScenario` —
-  and `Execute()` is an instance method on it, so the compiler picks the builder from the
-  receiver. The scenario at the top of this README used to end with
-  `PlaywrightBddExtensions.Execute(scenario)` spelled out.
-  *Binary-breaking:* 157 extension methods changed their return type.
-- **`ValidateMessage` keeps the chain typed**, like every sibling verb. It returned the untyped
-  scenario, so a Kafka-only chain that ended with it would not compile on `ExecuteAsync()` —
-  the exact failure typed scenarios exist to remove.
-- **Browser settings moved into `testsettings.json`**, under a `playwright` section next to
-  `http` and `kafka`. `playwrightsettings.json` is still read, and says once where its
-  contents should move to; it will be removed in a future major.
-- **`net7.0` dropped** — out of support since May 2024. Targets are now `net8.0`, `net9.0`
-  and `net10.0`. This also retires the Confluent.Kafka 2.3.0 pin that only that target used.
-- **An asynchronous API.** `ExecuteAsync()` runs the chain and takes a `CancellationToken`,
-  threaded through `ITestStep`. `Execute()` stays as a thin blocking wrapper, so an existing
-  suite keeps working unchanged.
-  *Breaking:* a chain now **describes** and runs on execution — `And()`, `On()` and
-  `Validate(...)` no longer run anything where they are written. Checks are lambdas and are
-  unaffected; a value interpolated into a string from an earlier step needs the
-  `Func<string>` overload, because that string is built while the chain is being written.
-  `ITestStep.ExecuteAsync` takes a `CancellationToken`, which custom steps must accept.
-- **Kafka consume returns the thread between attempts** instead of holding it for the whole
-  timeout. `IConsumer` has no asynchronous consume, so this is not "never blocks" — it is a
-  non-waiting read every 50ms with the thread back in the pool in between, which also notices
-  a message sooner than the 250ms wait it replaces.
-- **Browser-state verbs** — `ClearCookies`, `SetLocalStorage`, `ClearLocalStorage`, and the
-  assertions `AssertCookie`, `AssertNoCookie`, `AssertCookieIsHttpOnly`, `AssertLocalStorage`,
-  `AssertNoLocalStorage`. The last ones read the browser context rather than
-  `document.cookie`, which is the only way to assert about a cookie the page cannot see.
-- **A request that gets no answer now says so.** A timeout, a cancellation, a refused
-  connection or a name that does not resolve were reported as an HTTP error response with
-  status `0`, an empty error list and the step marked `Succeeded`. They are now failures,
-  with the reason in `Errors`. The rule is that no status code means no response arrived.
-- **`CancellationToken` reaches the HTTP call**, instead of stopping at the step's signature,
-  and `TimeoutSeconds` is applied on the custom-`HttpClient` path, where it used to be stored
-  and ignored while the client's own 100-second default did the waiting.
-- **Observed requests** — `AssertRequested(urlPattern)` and `AssertRequestedOnce(urlPattern)`
-  assert about what the page asked for while the step ran, with `*` standing for any run of
-  characters. The second one is the point: a renewal that fires twice still leaves the user
-  signed in, so nothing on screen gives it away, and on a server that rotates a token on use
-  it is the second request that ends the session.
-
-### v5.1.0 (cross-boundary scenarios from one call, fully compatible with 5.0.x)
-
-Additive release; upgrading requires no code changes.
-
-- **`Given(api, kafka, browser)`** — any fixture or per-test object that implements
-  the new `ITestContextSeeder` can be passed to `Given(...)`, alone or combined, so a
-  scenario spanning HTTP, Kafka and the browser is configured in one place.
-  `KafkaClassFixture`, `PlaywrightTestBase` and the new
-  `PlaywrightTestFixture.OpenPageAsync()` session implement it; every
-  `IHttpClientProvider` is one automatically.
-- **Kafka steps read `testsettings.json` without a fixture.** `KafkaSettings.Load()`
-  used to return defaults regardless of configuration, which also meant the
-  parameterless `WithSaslPlain()`, `WithSaslScram()` and `WithSsl()` always threw.
-- **Playwright steps stop serialising the page on every step.** `PageContent` is
-  fetched on first read; a step on a 500 KB page went from ~105 ms to ~6 ms.
-- **Batch consume keeps its diagnostics on failure**, as the single consume already did.
-- Every public member ships XML documentation; the packages build warning-free.
-- Configuration guidance for Kafka in Docker/Podman on Windows (`127.0.0.1`, not `localhost`).
-
-### v5.0.2 (Kafka performance, fully compatible with 5.0.1)
-
-No API changed; upgrading requires no code changes.
-
-- **Kafka — consume steps are ~14× faster.** A consume step no longer joins a
-  consumer group. Joining cost a coordinator lookup, a rebalance and, on a
-  default broker, a three-second `group.initial.rebalance.delay.ms` wait — paid
-  on every step, for nothing, since steps never commit offsets. Partitions are
-  now assigned directly, starting from the same offsets a subscription would
-  use (a committed offset for the group wins; otherwise `AutoOffsetReset`).
-  Measured against a local broker, one message per fresh topic and group:
-  median **3 220 ms → 236 ms** per consume.
-- **Kafka — `Produce` without a key works again.** A keyless message is valid
-  Kafka (the broker picks the partition) and is what the quick start does, but
-  since 5.0.0 the step rejected it before reaching the broker. Producing with a
-  `null` key now goes through; the value is still required.
-
-### v5.0.1 (Reliability fixes, fully compatible with 5.0.0)
-
-No API changed; upgrading requires no code changes.
-
-- **HTTP — configuration was silently dropped when a step was reconfigured.**
-  `WithTimeout()` discarded the authentication and the custom `HttpClient`, so a
-  call chain that set a timeout lost its credentials and simply received 401.
-  Every fluent method now copies the step through a single constructor instead
-  of rebuilding it field by field.
-- **Kafka — verbose broker tracing is no longer forced on.** `Consume` enabled
-  librdkafka's `Debug` output on its own and then reported the resulting broker
-  chatter as errors. Tracing is opt-in again, and broker logs moved to the
-  `BrokerLogs` diagnostic property.
-- **HTTP — response headers are no longer split on commas**, which corrupted
-  `Date`, `Set-Cookie` and any header whose value legitimately contains one.
-- **Results — value conversion now understands** `Guid`, `DateTime`,
-  `DateTimeOffset`, `TimeSpan`, enums and `Nullable<T>`, which previously
-  returned `default` without explanation.
-- **Failures carry diagnostics.** HTTP and Playwright failures keep the
-  exception type and stack trace, and a failing Playwright step captures a
-  screenshot when `ScreenshotOnFailure` is enabled.
-- Removed debug output that printed on every `WebApplicationFactory` test.
-- Packages now ship XML documentation, symbol packages (`.snupkg`) and
-  SourceLink, so you can step into the framework while debugging.
-
-### v5.0.0 (Core, Http, Kafka, Playwright, MCP)
-- Added .NET 10 support across all packages
-- Multi-target support: `net7.0`, `net8.0`, `net9.0`, `net10.0`
-- Unified version across all packages (Core, Http, Kafka, Playwright)
-- **XUnitAssured.Playwright** — New package for browser-based UI testing with fluent DSL
-  - Multiple locator strategies: CSS, ARIA roles, labels, test IDs, placeholders, text, title
-  - All interaction types: click, fill, check, hover, focus, select, press, type, drag, scroll
-  - Screenshot capture, tracing, and Playwright Inspector integration (`RecordAndPause()`)
-  - Codegen translator: converts Playwright Inspector output to XUnitAssured DSL
-- **XUnitAssured.Mcp** — New MCP server for AI-assisted test generation
-  - 10 tools: Playwright translation (3), HTTP scaffolding (3), Kafka scaffolding (4)
-  - Integrates with GitHub Copilot Chat, VS Code, Claude Desktop, and any MCP client
-  - stdio transport for zero-config local usage
-
-### v4.2.0 (Core)
-- Consolidated DI support from `XUnitAssured.DependencyInjection` into `XUnitAssured.Core` (`DITestFixture`)
-
-### v4.0.0 (Core + Http)
-- Added `ValidationBuilder` and BDD extensions (consolidated from `XUnitAssured.Extensions`)
-- Added `HttpValidationBuilder` and BDD extensions for HTTP
-- Multi-target support: `net7.0`, `net8.0`, `net9.0`
-
-### v3.0.0 (Kafka)
-- Aligned with framework architecture refactoring
-- Full fluent DSL integration for Kafka produce/consume
-- Batch operations (`ProduceBatch`, `ConsumeBatch`)
-- Comprehensive authentication support (SASL, SSL, mTLS)
-- Schema Registry support with Avro serialization
+The full history is in **[CHANGELOG.md](https://github.com/andrewBezerra/xunit-assured-net/blob/main/CHANGELOG.md)**. Coming from 5.x? Start with **[UPGRADING.md](https://github.com/andrewBezerra/xunit-assured-net/blob/main/UPGRADING.md)**.
 
 ## 🤝 Contributing
 
-Contributions are welcome! Please feel free to submit a Pull Request.
+Contributions are welcome — issues and pull requests alike.
+
+```bash
+dotnet build src/XUnitAssured.Net.sln
+dotnet test src/XUnitAssured.Tests --filter "Requires!=Network&Requires!=Broker"
+```
+
+The filter skips the tests that need the network or a running broker; CI runs those separately, the broker ones against its own RabbitMQ service. To run the Kafka samples locally, the compose files under `src/XUnitAssured.Kafka.Samples.Remote.Test/docker` start a broker per authentication mode. The certificates and keys committed there are **test-only fixtures** for those local brokers, not credentials for anything real.
+
+Adding a protocol package? Read [Adding a protocol package](#adding-a-protocol-package) first.
+
+**Releases.** Merging to `main` publishes, so every pull request raises `<Version>` in `src/Directory.Build.props` and adds `docs/releases/<version>.md` with what ships. The pull request check fails without both; on merge, the release workflow creates the tag and the GitHub release from that file, then publishes to NuGet after a manual approval.
 
 ## 📄 License
 
@@ -800,9 +666,11 @@ This project is licensed under the Apache License 2.0 - see the [LICENSE.md](LIC
 
 **Carlos Andrew Costa Bezerra**
 - GitHub: [@andrewBezerra](https://github.com/andrewBezerra)
+- LinkedIn: [andrew-bezerra](https://www.linkedin.com/in/andrew-bezerra/)
 
 ## 🔗 Links
 
 - [GitHub Repository](https://github.com/andrewBezerra/xunit-assured-net)
-- [NuGet Packages](https://www.nuget.org/packages?q=XUnitAssured)
+- [NuGet Packages](https://www.nuget.org/profiles/AndrewBezerra)
+- [Changelog](https://github.com/andrewBezerra/xunit-assured-net/blob/main/CHANGELOG.md)
 - [Report Issues](https://github.com/andrewBezerra/xunit-assured-net/issues)
