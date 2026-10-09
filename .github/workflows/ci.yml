@@ -15,6 +15,24 @@ env:
   UNIT_TESTS: src/XUnitAssured.Tests/XUnitAssured.Tests.csproj
 
 jobs:
+  # Portão de versão: toda PR para main sobe o <Version> de src/Directory.Build.props
+  # e escreve docs/releases/<versão>.md, porque o merge publica (release.yml). Só lê.
+  # Mesma regra do LiaisonHub.Api; o script é o mesmo que o release.yml usa.
+  versao:
+    name: Versão nova
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      # fetch-depth 0: sem as tags, "a versão já tem tag?" responderia sempre que não.
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Conferir a versão
+        run: bash .github/scripts/conferir-versao.sh conferir
+
   # The gating job: builds every project and runs the deterministic test suite on
   # each target framework. Nothing here depends on a network service, a broker or a
   # browser, so a red result always means the code is broken.
