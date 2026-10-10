@@ -23,12 +23,10 @@ public class ProductTests : HttpTestBase<MyTestFixture>, IClassFixture<MyTestFix
     [Fact]
     public async Task GetProduct_ShouldReturn200()
     {
-        var response = await Given()
+        await Given()
             .ApiResource("/api/products/1")
             .Get()
-            .ExecuteAsync();
-
-        response.Then()
+            .ExecuteAsync()
             .AssertStatusCode(200)
             .AssertJsonPath<string>("$.name", name => name.ShouldNotBeEmpty())
             .AssertJsonPath<decimal>("$.price", price => price.ShouldBeGreaterThan(0));
@@ -36,12 +34,20 @@ public class ProductTests : HttpTestBase<MyTestFixture>, IClassFixture<MyTestFix
 }
 ```
 
-`ExecuteAsync()` sends the request; `Then()` starts the assertions. A failed `AssertStatusCode`
-shows the response body, which is usually where the reason is.
+`ExecuteAsync()` sends the request, and the assertions chain right after it, with a single `await`
+at the start. A failed `AssertStatusCode` shows the response body, which is usually where the
+reason is. Await the whole chain: the request goes out either way, but without the `await` a failed
+assertion is never seen and the test passes.
 
-`Execute()`, the synchronous form, still exists so older suites keep compiling, but it blocks the
-test thread while it waits — write new tests with `ExecuteAsync()`. `.When()` before it is
-optional and changes nothing: keep it only if you like the Given/When/Then reading.
+The assertions can also wait for a result kept in a variable — `var response = await
+...ExecuteAsync();` then `response.Then()...` — or in parentheses, `(await ...ExecuteAsync()).Then()`.
+That is how to use `Extract(out ...)` and `ExtractJsonPath(..., out ...)`, the two that cannot come
+before the `await`; to read a value in the chain, end it with `JsonPath<T>("$.id")` instead.
+
+`.Then()` before the assertions and `.When()` before `ExecuteAsync()` are optional and change
+nothing: keep them only if you like the Given/When/Then reading. `Execute()`, the synchronous form,
+still exists so older suites keep compiling, but it blocks the test thread while it waits — write
+new tests with `ExecuteAsync()`.
 
 ## Fluent DSL Reference
 
@@ -109,20 +115,18 @@ wrong type, XML, plain text. The Content-Type goes as given, parameters included
 ### Assertions
 
 ```csharp
-(await Given()
+await Given()
     .ApiResource("/api/products/1")
     .Get()
-    .ExecuteAsync())
-.Then()
+    .ExecuteAsync()
     .AssertStatusCode(200)                                              // the body is shown when it fails
     .AssertStatusCode(403, 404)                                         // any of these, e.g. access denied by design
     .AssertSuccess()                                                    // Assert IsValid = true
     .ValidateContract<Product>()                                        // Validate JSON schema against type
     .AssertJsonPath<int>("$.id", id => id.ShouldBe(1))                  // Assert JSON value with Shouldly
     .AssertJsonPath<string>("$.name", n => n.ShouldNotBeNullOrEmpty())   // Assert JSON string
-    .Extract(out var result)                                            // Capture result for later use
     .Extract(r => myVar = r.StatusCode)                                 // Capture via callback
-    .JsonPath<int>("$.id")                                              // Extract value from JSON
+    .JsonPath<int>("$.id")                                              // Ends the chain with the value: var id = await ...
 ```
 
 ### Null or missing
@@ -177,7 +181,7 @@ To use a cookie the response set, for example to replay a session from another c
 the result. `SetCookie` returns null when the response did not set it:
 
 ```csharp
-var signIn = (await Given().ApiResource("/auth/login").Post(credentials).ExecuteAsync()).GetResult();
+var signIn = await Given().ApiResource("/auth/login").Post(credentials).ExecuteAsync().GetResult();
 var session = signIn.SetCookie("sid")!.Value;                           // attributes too: .HttpOnly, .Path, .Expires
 ```
 
@@ -191,11 +195,10 @@ cookies puts the session in the `Cookie` header, and that is what a session test
 using var browser = api.ClientWithCookies();
 // ... sign in, then sign out ...
 
-(await Given(browser)
+await Given(browser)
     .ApiResource("/auth/refresh")
     .Post()
-    .ExecuteAsync())
-.Then()
+    .ExecuteAsync()
     .AssertStatusCode(401)
     .AssertNoSentCookie("refresh")                                      // the revoked session is gone
     .AssertRequestHeader("X-Correlation-Id", id => id.Length > 0);     // names are case-insensitive
@@ -212,12 +215,11 @@ through the same client. Every copy is started before any is awaited.
 ```csharp
 var names = Enumerable.Range(1, 6).Select(i => $"Member {i}").ToList();
 
-(await Given()
+await Given()
     .ApiResource($"/api/teams/{teamId}/members")
     .Post()
     .Concurrently(names.Select(n => new { Name = n }))                  // one request per body
-    .ExecuteAsync())
-.Then()
+    .ExecuteAsync()
     .AssertStatusCode(201)                                              // every one of the six
     .AssertEach(r => r.AssertHeader("Location", l => l.StartsWith("/api/members/")));
 ```
@@ -282,76 +284,76 @@ push.AssertSent("https://push.example/devices/*", times: 2)
 ### Bearer Token
 
 ```csharp
-(await Given()
+await Given()
     .ApiResource("/api/secure")
     .WithBearerToken("my-jwt-token")
     .Get()
-    .ExecuteAsync())
-.Then().AssertStatusCode(200);
+    .ExecuteAsync()
+    .AssertStatusCode(200);
 ```
 
 ### Basic Auth
 
 ```csharp
-(await Given()
+await Given()
     .ApiResource("/api/secure")
     .WithBasicAuth("username", "password")
     .Get()
-    .ExecuteAsync())
-.Then().AssertStatusCode(200);
+    .ExecuteAsync()
+    .AssertStatusCode(200);
 ```
 
 ### API Key
 
 ```csharp
 // Header
-(await Given()
+await Given()
     .ApiResource("/api/secure")
     .WithApiKey("X-API-Key", "my-key")
     .Get()
-    .ExecuteAsync())
-.Then().AssertStatusCode(200);
+    .ExecuteAsync()
+    .AssertStatusCode(200);
 
 // Query string
-(await Given()
+await Given()
     .ApiResource("/api/secure")
     .WithApiKey("api_key", "my-key", ApiKeyLocation.Query)
     .Get()
-    .ExecuteAsync())
-.Then().AssertStatusCode(200);
+    .ExecuteAsync()
+    .AssertStatusCode(200);
 ```
 
 ### OAuth2 Client Credentials
 
 ```csharp
-(await Given()
+await Given()
     .ApiResource("/api/secure")
     .WithOAuth2("https://auth.example.com/token", "client-id", "client-secret")
     .Get()
-    .ExecuteAsync())
-.Then().AssertStatusCode(200);
+    .ExecuteAsync()
+    .AssertStatusCode(200);
 ```
 
 ### Certificate (mTLS)
 
 ```csharp
-(await Given()
+await Given()
     .ApiResource("/api/secure")
     .WithCertificate("client.pfx", "password")
     .Get()
-    .ExecuteAsync())
-.Then().AssertStatusCode(200);
+    .ExecuteAsync()
+    .AssertStatusCode(200);
 ```
 
 ### Custom Header Auth
 
 ```csharp
-(await Given()
+await Given()
     .ApiResource("/api/secure")
     .WithAuthConfig(config => config.UseCustomHeader("X-Auth-Token", "my-token"))
     .Get()
-    .ExecuteAsync())
-.Then().AssertStatusCode(200);
+    .ExecuteAsync()
+    .AssertStatusCode(200);
 ```
 
 ### Automatic Authentication via testsettings.json
@@ -399,54 +401,52 @@ public class MyFixture : IHttpClientProvider, IHttpClientAuthProvider, IDisposab
 Then use `Given(fixture)` — auth is applied automatically:
 
 ```csharp
-(await Given(fixture)
+await Given(fixture)
     .ApiResource("/api/products")
     .Get()
-    .ExecuteAsync())
-.Then().AssertStatusCode(200);
+    .ExecuteAsync()
+    .AssertStatusCode(200);
 ```
 
 ## CRUD Example
 
 ```csharp
 // GET all
-(await Given()
+await Given()
     .ApiResource("/api/products")
     .Get()
-    .ExecuteAsync())
-.Then().AssertStatusCode(200);
+    .ExecuteAsync()
+    .AssertStatusCode(200);
 
 // GET by ID
-(await Given()
+await Given()
     .ApiResource("/api/products/1")
     .Get()
-    .ExecuteAsync())
-.Then()
+    .ExecuteAsync()
     .AssertStatusCode(200)
     .AssertJsonPath<int>("$.id", id => id.ShouldBe(1));
 
 // POST create
-(await Given()
+await Given()
     .ApiResource("/api/products")
     .Post(new { name = "Laptop", price = 999.99m })
-    .ExecuteAsync())
-.Then()
+    .ExecuteAsync()
     .AssertStatusCode(201)
     .AssertJsonPath<int>("$.id", id => id.ShouldBeGreaterThan(0));
 
 // PUT update
-(await Given()
+await Given()
     .ApiResource("/api/products/1")
     .Put(new { name = "Updated Laptop", price = 899.99m })
-    .ExecuteAsync())
-.Then().AssertStatusCode(200);
+    .ExecuteAsync()
+    .AssertStatusCode(200);
 
 // DELETE
-(await Given()
+await Given()
     .ApiResource("/api/products/1")
     .Delete()
-    .ExecuteAsync())
-.Then().AssertStatusCode(204);
+    .ExecuteAsync()
+    .AssertStatusCode(204);
 ```
 
 ## Local Testing with WebApplicationFactory
@@ -470,11 +470,11 @@ public class LocalTests(MyApi api) : HttpTestBase<MyApi>(api)
 {
     [Fact]
     public async Task GetProducts_ShouldReturn200() =>
-        (await Given()
+        await Given()
             .ApiResource("/api/products")
             .Get()
-            .ExecuteAsync())
-        .Then().AssertStatusCode(200);
+            .ExecuteAsync()
+            .AssertStatusCode(200);
 }
 ```
 
