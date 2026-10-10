@@ -83,3 +83,28 @@ sealed class AllowApp(Func<string> origin) : IStartupFilter
 ```
 
 If the front-end was built with the API address baked in (`VITE_API_URL=http://localhost:5199`, for example), fix `ApiPort` to match.
+
+## Fixed ports: one fixture for every class
+
+A fixed port can be bound once, and xUnit starts an `IClassFixture` per class, in parallel. With fixed ports, share one fixture through a collection — which also starts the API and the front-end once instead of once per class:
+
+```csharp
+[CollectionDefinition("Browser")]
+public sealed class BrowserCollection : ICollectionFixture<MyApp>;
+
+[Collection("Browser")]
+public class SessionTests(MyApp app) { /* ... */ }
+```
+
+## Apps with a service worker (PWA)
+
+Requests a service worker makes for the page bypass `InterceptRoute`, so an interception answers nothing once the worker controls the page. Block service workers in the settings:
+
+```csharp
+protected override PlaywrightSettings CreateSettings()
+{
+    var settings = base.CreateSettings();
+    settings.BlockServiceWorkers = true;
+    return settings;
+}
+```

@@ -119,6 +119,19 @@ public class PlaywrightSettings
 	public bool IgnoreHttpsErrors { get; set; }
 
 	/// <summary>
+	/// Whether to keep the page's service workers from registering.
+	/// Default: false
+	/// </summary>
+	/// <remarks>
+	/// Turn it on to test an app with a service worker (a PWA) using <c>InterceptRoute</c>.
+	/// A request a service worker makes on the page's behalf — a cached API call, for instance —
+	/// bypasses the page's routes, so the interception answers nothing once the worker controls
+	/// the page, which is from the first reload on. The worker's own caching is then out of
+	/// the test.
+	/// </remarks>
+	public bool BlockServiceWorkers { get; set; }
+
+	/// <summary>
 	/// Custom HTTP headers to include in every request made by the browser context.
 	/// </summary>
 	public Dictionary<string, string>? ExtraHttpHeaders { get; set; }
@@ -176,6 +189,7 @@ public class PlaywrightSettings
 			VideoPath = other.VideoPath != "videos" ? other.VideoPath : VideoPath,
 			ScreenshotOnFailure = other.ScreenshotOnFailure,
 			IgnoreHttpsErrors = other.IgnoreHttpsErrors,
+			BlockServiceWorkers = other.BlockServiceWorkers || BlockServiceWorkers,
 			ExtraHttpHeaders = other.ExtraHttpHeaders ?? ExtraHttpHeaders,
 			EnableInspector = other.EnableInspector || EnableInspector,
 			TestIdAttribute = other.TestIdAttribute != "data-testid" ? other.TestIdAttribute : TestIdAttribute
@@ -208,6 +222,7 @@ public class PlaywrightSettings
 			VideoPath = VideoPath,
 			ScreenshotOnFailure = ScreenshotOnFailure,
 			IgnoreHttpsErrors = IgnoreHttpsErrors,
+			BlockServiceWorkers = BlockServiceWorkers,
 			ExtraHttpHeaders = ExtraHttpHeaders != null
 				? new Dictionary<string, string>(ExtraHttpHeaders)
 				: null,

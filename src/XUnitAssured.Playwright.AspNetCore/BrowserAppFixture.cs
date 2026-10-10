@@ -59,6 +59,11 @@ public class BrowserAppFixture<TProgram> : PlaywrightTestFixture, IAsyncLifetime
 	/// The API's port. 0 (the default) picks a free one; fix it when the front-end was built with
 	/// the API address baked in.
 	/// </summary>
+	/// <remarks>
+	/// A fixed port can be bound once. Share one fixture across test classes with a collection
+	/// fixture (<c>[CollectionDefinition]</c> + <c>ICollectionFixture</c>) rather than an
+	/// <c>IClassFixture</c> per class, which xUnit starts in parallel on the same port.
+	/// </remarks>
 	protected virtual int ApiPort => 0;
 
 	/// <summary>
@@ -106,7 +111,19 @@ public class BrowserAppFixture<TProgram> : PlaywrightTestFixture, IAsyncLifetime
 		var portaDaApi = ApiPort == 0 ? PortaLivre() : ApiPort;
 		_api = new FabricaDaApi(ConfigureApi);
 		_api.UseKestrel(portaDaApi);
-		_api.StartServer();
+		try
+		{
+			_api.StartServer();
+		}
+		catch (IOException erro) when (ApiPort != 0)
+		{
+			// Porta fixa ocupada: quase sempre duas classes com IClassFixture próprio, que o
+			// xUnit sobe em paralelo. A mensagem do Kestrel não diz isso.
+			throw new InvalidOperationException(
+				$"The API could not bind port {portaDaApi}: it is in use. With a fixed ApiPort, share one fixture " +
+				"across test classes with a collection fixture ([CollectionDefinition] + ICollectionFixture) " +
+				"instead of an IClassFixture per class, and stop any API you started by hand on that port.", erro);
+		}
 		ApiUrl = $"http://localhost:{portaDaApi}";
 
 		AppUrl = ApiUrl;
