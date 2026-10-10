@@ -2,7 +2,15 @@
 
 All notable changes to the XUnitAssured packages. Upgrading from 5.1.x? See [UPGRADING.md](UPGRADING.md).
 
-## v6.4.2 (Current — documentation and samples)
+## v6.5.0 (Current — testing your own API)
+
+Additive: a new package. Upgrading from 6.4.x requires no code changes.
+
+- **`ApiFixture<TProgram>`** (#100, new package `XUnitAssured.Http.AspNetCore`, net8.0 to net10.0). Hosts your own ASP.NET Core API in memory with `WebApplicationFactory` and implements `IHttpClientProvider` and `IHttpClientAuthProvider`, so `Given(fixture)` and `HttpTestBase` work as before. `CreateClient()` is the shared client, with the identity `ConfigureClient` gives it; `ClientFor(("Header", "value"), ...)` is a new client as someone else, its headers replacing those of the same name; `ClientWithCookies()` and `ClientWithoutCookies()` for sessions that live in a cookie; `Services` and `CreateScope()`; `ConfigureApi` and `Authentication` to override. In a real consumer suite this replaced a ~140-line fixture with ~80, most of it the environment's own settings.
+- **Sharing is the documented default.** The package README and XML docs lead with a collection fixture: with an `IClassFixture` per class, the consumer suite spent about 70 of its 118 seconds starting the API, migrations included.
+- **Log capture that works with any logging library.** With `CaptureLogs` on, `Logs` (a `LogCapture`) records every entry the API writes, at every level. It wraps the API's `ILoggerFactory` instead of adding a provider: a provider is ignored under `UseSerilog`, and the environment's minimum level would filter the rest. The console output is unchanged.
+
+## v6.4.2 (documentation and samples)
 
 Documentation and samples. No package code changes; upgrading from 6.4.1 requires no code changes.
 

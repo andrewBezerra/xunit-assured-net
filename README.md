@@ -599,7 +599,7 @@ Add to your `.mcp.json` (repo root, `~/.mcp.json`, or `.vscode/mcp.json`):
     "xunitassured": {
       "type": "stdio",
       "command": "dnx",
-      "args": ["XUnitAssured.Mcp@6.4.2", "--yes"]
+      "args": ["XUnitAssured.Mcp@6.5.0", "--yes"]
     }
   }
 }
@@ -629,9 +629,9 @@ In GitHub Copilot Chat, the XUnitAssured tools should appear as available. Try:
 
 ## What's New
 
-**6.4.2** — documentation: the README says only what is true and shows what 6.2 to 6.4 added; every Quick Start test is now compiled on each build. No code changes.
+**6.5.0** — `XUnitAssured.Http.AspNetCore`: `ApiFixture` hosts your own ASP.NET Core API in memory, with a client per identity, clients with and without cookies, its services and its logs — one instance for the whole suite. No changes to existing packages.
 
-**6.4.1** — fixes from the first real migration to 6.4.0: `BlockServiceWorkers` for apps with a service worker, whose requests bypassed `InterceptRoute`, and a clear error when a fixed port is taken. No code changes needed from 6.4.0.
+**6.4.2** — documentation: the README says only what is true and shows what 6.2 to 6.4 added; every Quick Start test is now compiled on each build. No code changes.
 
 The full history is in **[CHANGELOG.md](https://github.com/andrewBezerra/xunit-assured-net/blob/main/CHANGELOG.md)**. Coming from 5.x? Start with **[UPGRADING.md](https://github.com/andrewBezerra/xunit-assured-net/blob/main/UPGRADING.md)**.
 
