@@ -189,8 +189,7 @@ public class OrderTests(MyApi api) : HttpTestBase<MyApi>(api)
     [Fact]
     public async Task Reader_Cannot_Delete()
     {
-        var assertions = await Given()
-            .WithHttpClient(Fixture.ClientFor(("X-Test-User", "reader")))
+        var assertions = await Given(Fixture.ClientFor(("X-Test-User", "reader")))
             .ApiResource("/orders/1")
             .Delete()
             .ExecuteAsync();

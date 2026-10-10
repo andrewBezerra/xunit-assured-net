@@ -48,9 +48,9 @@ optional and changes nothing: keep it only if you like the Given/When/Then readi
 ### Request Setup
 
 ```csharp
-Given()
+Given()                                    // Given(client): every request of the scenario goes through client
     .ApiResource("/api/endpoint")          // Set target URL
-    .WithHttpClient(client)                // Use custom HttpClient (e.g., WebApplicationFactory)
+    .WithHttpClient(client)                // Use a custom HttpClient for this request only
     .WithHeader("X-Custom", "value")       // Add request header
     .WithQueryParam("page", 1)             // Add query parameter
     .WithTimeout(30)                       // Set timeout in seconds
@@ -167,8 +167,7 @@ cookies puts the session in the `Cookie` header, and that is what a session test
 using var browser = api.ClientWithCookies();
 // ... sign in, then sign out ...
 
-(await Given()
-    .WithHttpClient(browser)
+(await Given(browser)
     .ApiResource("/auth/refresh")
     .Post()
     .ExecuteAsync())
