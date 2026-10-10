@@ -147,34 +147,6 @@ public class ApiResourceAdiadoTests
 			ScenarioDsl.Given().ApiResource((Func<string>)null!));
 	}
 
-	// ---------- Servidor de mentira ----------
-
 	private static HttpResponseMessage Responder(HttpStatusCode status, string json) =>
-		new(status) { Content = new StringContent(json, Encoding.UTF8, "application/json") };
-
-	private sealed record Recebido(string Metodo, string Caminho, string Consulta, Dictionary<string, string> Cabecalhos);
-
-	private sealed class ServidorDeMentira(Func<HttpRequestMessage, HttpResponseMessage> responder) : HttpMessageHandler
-	{
-		private readonly List<Recebido> _recebidos = [];
-
-		public IReadOnlyList<Recebido> Recebidos => _recebidos;
-
-		protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
-		{
-			_recebidos.Add(new Recebido(
-				request.Method.Method,
-				request.RequestUri!.AbsolutePath,
-				request.RequestUri.Query,
-				request.Headers.ToDictionary(h => h.Key, h => string.Join(",", h.Value))));
-
-			return Task.FromResult(responder(request));
-		}
-	}
-
-	private sealed class ProvedorDeMentira(HttpMessageHandler servidor) : IHttpClientProvider
-	{
-		public HttpClient CreateClient() =>
-			new(servidor, disposeHandler: false) { BaseAddress = new Uri("http://servidor.teste") };
-	}
+		ServidorDeMentira.Responder(status, json);
 }

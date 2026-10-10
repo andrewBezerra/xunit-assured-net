@@ -259,6 +259,13 @@ public static class HttpTestGeneratorTools
 			    .AssertJsonPathCount("$.items", 2)               Array length, or how many values [*] selects
 			    .AssertJsonPathAll<string>("$[*].city", c => ...) Every value matches; fails on an empty list
 			    .JsonPathAll<string>("$[*].id")                  Extract every value [*] selects
+			    .AssertHeader("Location", "/orders/1")           Header value (name is case-insensitive)
+			    .AssertNoHeader("X-Powered-By")                  Header must be absent
+			    .AssertSetCookie("sid", c => c.HttpOnly)         Cookie set, with its attributes
+			    .AssertCookieCleared("sid")                      Cookie expired (past Expires or Max-Age=0)
+			    .AssertProblemDetails(409, p => p.Extension<string>("code") == "X") RFC 7807 error body
+			    .AssertBodyContains("text")                      Body contains text
+			    .AssertBodyNotContains("secret")                 Body must not contain (e.g. a leak)
 			    .Extract(out var result)                         Capture result for later use
 			    .Extract(r => myVar = r.StatusCode)             Capture via callback
 			    .JsonPath<int>("$.id")                           Extract value from JSON
