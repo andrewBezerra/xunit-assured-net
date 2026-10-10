@@ -24,14 +24,14 @@
   </PropertyGroup>
 
   <PropertyGroup>
-    <Version>6.7.0</Version>
+    <Version>6.8.0</Version>
 
     <!--
       O que a página do pacote no nuget.org mostra. Sem isto ela fica muda, e quem atualiza
       por `dotnet add package` não recebe nenhum aviso de que a major quebra coisas.
       Trocar a cada versão, junto do número acima.
     -->
-    <PackageReleaseNotes>HTTP DSL: Given(httpClient) sends a scenario through a given client, every HTTP step included; AssertStatusCode(403, 404) accepts any of several codes; AssertJsonPathNull and AssertJsonPathMissing tell a field present with null from a missing one; HttpStepResult.SetCookie(name) reads the cookie a response set. Additive: no code changes needed from 6.6.x. Upgrade guide: https://github.com/andrewBezerra/xunit-assured-net/blob/main/UPGRADING.md</PackageReleaseNotes>
+    <PackageReleaseNotes>HTTP DSL: the assertions chain before the await, without (await ...ExecuteAsync()).Then(): await Given()...ExecuteAsync().AssertStatusCode(201).JsonPath&lt;string&gt;("$.id"). Every public method of HttpValidationBuilder has a counterpart on Task&lt;HttpValidationBuilder&gt;, except the two with an out parameter. Additive: the parenthesized form keeps working, and no code changes are needed from 6.7.0. Upgrade guide: https://github.com/andrewBezerra/xunit-assured-net/blob/main/UPGRADING.md</PackageReleaseNotes>
     <Authors>Carlos Andrew Costa Bezerra</Authors>
     <Company>Carlos Andrew Costa Bezerra</Company>
     <Copyright>Copyright (c) Carlos Andrew Costa Bezerra</Copyright>

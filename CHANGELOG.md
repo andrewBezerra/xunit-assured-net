@@ -2,7 +2,13 @@
 
 All notable changes to the XUnitAssured packages. Upgrading from 5.1.x? See [UPGRADING.md](UPGRADING.md).
 
-## v6.7.0 (Current — a client per scenario, null or missing, the cookie set)
+## v6.8.0 (Current — assertions before the await)
+
+Additive. Upgrading from 6.7.x requires no code changes.
+
+- **The assertions chain before the `await`** (#115). The common HTTP chain needed the `await` in parentheses to reach them — `(await Given()...ExecuteAsync()).Then().AssertStatusCode(201)` — and the consumer suite wrote that 221 times. `HttpValidationTaskExtensions` has, on `Task<HttpValidationBuilder>`, a method for every public method of `HttpValidationBuilder`, with the same name, so the chain reads `await Given()...ExecuteAsync().AssertStatusCode(201).AssertJsonPath(...)`. `JsonPath<T>`, `JsonPathAll<T>` and `GetResult` end the chain with the value; the assertions inherited from the generic builder keep the chain on HTTP. `Extract(out ...)` and `ExtractJsonPath(..., out ...)` cannot be asynchronous and stay on the builder. A reflection test fails when a builder method is added without its counterpart. The HTTP and ASP.NET Core package READMEs use the new form.
+
+## v6.7.0 (a client per scenario, null or missing, the cookie set)
 
 Additive. Upgrading from 6.6.x requires no code changes. The rest of the usability pass driven by a real consumer suite's workarounds.
 
