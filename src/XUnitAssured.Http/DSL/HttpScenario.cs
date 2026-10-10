@@ -4,6 +4,7 @@ using System;
 using System.Threading.Tasks;
 
 using XUnitAssured.Core.Abstractions;
+using XUnitAssured.Core.DSL;
 using XUnitAssured.Http.Abstractions;
 using XUnitAssured.Http.Extensions;
 
@@ -19,9 +20,12 @@ namespace XUnitAssured.Http.DSL;
 /// without the caller naming a class.
 /// </para>
 /// </summary>
-internal sealed class HttpScenario : IHttpScenario
+internal sealed class HttpScenario : IHttpScenario, IFronteiraDePasso
 {
 	private readonly ITestScenario _cenario;
+
+	// O And() é do cenário embrulhado; o invólucro só repassa a pergunta.
+	bool IFronteiraDePasso.ComecaPassoNovo => FronteiraDePasso.ComecaPassoNovo(_cenario);
 
 	private HttpScenario(ITestScenario cenario) => _cenario = cenario;
 

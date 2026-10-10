@@ -18,6 +18,7 @@
 	<ItemGroup>
 		<InternalsVisibleTo Include="XUnitAssured.Http" />
 		<InternalsVisibleTo Include="XUnitAssured.Kafka" />
+		<InternalsVisibleTo Include="XUnitAssured.Playwright" />
 		<InternalsVisibleTo Include="XUnitAssured.RabbitMq" />
 		<InternalsVisibleTo Include="XUnitAssured.Tests" />
 	</ItemGroup>
