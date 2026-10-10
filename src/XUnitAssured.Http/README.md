@@ -141,6 +141,56 @@ search that returned nothing would otherwise pass.
 `AssertCookieCleared` reads the expiry: checking that the header text mentions `expires=` is not the
 same thing, since a date in the future mentions it too.
 
+## What the system did besides answering
+
+Some of the most valuable E2E tests are about side effects: what the system logged, and which
+outside services it called.
+
+### Logs: `LogCapture`
+
+```csharp
+using XUnitAssured.Core.Logging;
+
+var logs = new LogCapture();
+var app = new WebApplicationFactory<Program>().WithWebHostBuilder(b =>
+    b.ConfigureLogging(log => { log.SetMinimumLevel(LogLevel.Trace); log.AddProvider(logs); }));
+
+logs.Clear();                                                   // only what the action below logs
+// ... the request under test ...
+logs.AssertLoggedOnce("MyApp.Errors", LogLevel.Error)           // one error, not three
+    .AssertLogged("MyApp.Security", LogLevel.Warning, e => e.EventId.Id == 9001)
+    .AssertNothingContains(patientName);                        // message, exception, values and scopes
+```
+
+`AssertNothingContains` looks at everything an entry carries — the message, the exception with
+its stack trace, the structured values and the active scopes — since a value kept out of the
+message can still ride in a scope.
+
+### Outbound calls: `OutboundHttpCapture`
+
+Stands in for an outside service at the HTTP boundary: it answers what the test configures and
+records every request. Replacing the component that calls the service would hide the logic under
+test; here everything up to the request itself runs for real.
+
+```csharp
+using XUnitAssured.Http.Testing;
+
+var push = new OutboundHttpCapture()
+    .RespondWith(HttpStatusCode.Created)
+    .When("https://push.example/devices/gone*", HttpStatusCode.Gone);
+
+// in ConfigureTestServices:
+services.AddHttpClient("push").ConfigurePrimaryHttpMessageHandler(() => push);
+
+// ... the request under test ...
+push.AssertSent("https://push.example/devices/*", times: 2)
+    .AssertSent("https://push.example/*", predicate: r => r.BodyText.Contains("\"lang\":\"es\""))
+    .AssertNotSent("https://push.example/devices/removed*");
+```
+
+`*` stands for any run of characters. It keeps working after a client that owns it is disposed, so
+`IHttpClientFactory` recycling handlers does not break it mid-test.
+
 ## Authentication
 
 ### Bearer Token
