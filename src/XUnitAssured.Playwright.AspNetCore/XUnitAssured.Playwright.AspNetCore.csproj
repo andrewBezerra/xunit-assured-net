@@ -1,0 +1,40 @@
+<Project Sdk="Microsoft.NET.Sdk">
+	<PropertyGroup>
+		<!--
+			Só net10.0: o WebApplicationFactory.UseKestrel, que sobe a API numa porta real, chegou
+			no Microsoft.AspNetCore.Mvc.Testing 10. Sem ele o navegador não alcança a API, que no
+			factory comum vive num TestServer em memória.
+		-->
+		<TargetFrameworks>net10.0</TargetFrameworks>
+		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+		<Description>Browser tests against your own ASP.NET Core API with XUnitAssured.Playwright: a fixture that hosts the API on a real port with WebApplicationFactory and serves a built front-end on another, so browser tests run with dotnet test alone — in CI, with real cross-origin rules.</Description>
+		<PackageId>XUnitAssured.Playwright.AspNetCore</PackageId>
+		<PackageTags>xunit;playwright;aspnetcore;webapplicationfactory;e2e;browser-testing;integration-testing</PackageTags>
+		<RootNamespace>XUnitAssured.Playwright.AspNetCore</RootNamespace>
+		<IsPackable>true</IsPackable>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<FrameworkReference Include="Microsoft.AspNetCore.App" />
+		<PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="10.0.3" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<None Include="..\..\package-icon.png">
+			<Pack>True</Pack>
+			<PackagePath>\</PackagePath>
+		</None>
+		<None Include="README.md">
+			<Pack>True</Pack>
+			<PackagePath>\</PackagePath>
+		</None>
+		<None Include="..\..\LICENSE.md">
+			<Pack>True</Pack>
+			<PackagePath>\</PackagePath>
+		</None>
+	</ItemGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\XUnitAssured.Playwright\XUnitAssured.Playwright.csproj" />
+	</ItemGroup>
+</Project>

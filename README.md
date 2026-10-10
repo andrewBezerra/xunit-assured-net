@@ -102,6 +102,7 @@ In order of intent, not of promise:
 | **XUnitAssured.Kafka** | [![NuGet](https://img.shields.io/nuget/v/XUnitAssured.Kafka.svg?label=)](https://www.nuget.org/packages/XUnitAssured.Kafka) | Apache Kafka integration testing — produce/consume, batch operations, authentication, Schema Registry support |
 | **XUnitAssured.RabbitMq** | [![NuGet](https://img.shields.io/nuget/v/XUnitAssured.RabbitMq.svg?label=)](https://www.nuget.org/packages/XUnitAssured.RabbitMq) | RabbitMQ integration testing — publish/consume steps on the official async client, queues and exchanges, AMQP headers |
 | **XUnitAssured.Playwright** | [![NuGet](https://img.shields.io/nuget/v/XUnitAssured.Playwright.svg?label=)](https://www.nuget.org/packages/XUnitAssured.Playwright) | Playwright UI testing — fluent DSL for browser interactions, multiple locator strategies, screenshots, and assertions |
+| **XUnitAssured.Playwright.AspNetCore** | [![NuGet](https://img.shields.io/nuget/v/XUnitAssured.Playwright.AspNetCore.svg?label=)](https://www.nuget.org/packages/XUnitAssured.Playwright.AspNetCore) | Browser tests against your own ASP.NET Core API — `BrowserAppFixture` hosts the API and your built front-end on real ports, so they run with `dotnet test` alone (.NET 10) |
 
 ### Tooling
 
@@ -221,6 +222,23 @@ public class MyUiTests : PlaywrightTestBase<PlaywrightTestFixture>, IClassFixtur
     }
 }
 ```
+
+### Browser tests against your own API
+
+```bash
+dotnet add package XUnitAssured.Playwright.AspNetCore
+```
+
+`BrowserAppFixture<TProgram>` starts your API on a real port (`WebApplicationFactory` + Kestrel), serves your built front-end on another, and launches the browser — no terminals to start by hand, so browser tests run in CI. Two ports means two origins, so SameSite, cookie `Path` and CORS with credentials behave as in production.
+
+```csharp
+public sealed class MyApp : BrowserAppFixture<Program>
+{
+    protected override string? AppDirectory => "../../../../my-app/dist";
+}
+```
+
+See the [package README](src/XUnitAssured.Playwright.AspNetCore/README.md) for ports, CORS and arranging data through `Api.CreateClient()`.
 
 ### Playwright Codegen Integration
 

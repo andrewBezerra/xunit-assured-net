@@ -168,7 +168,9 @@ public class RedeDaPaginaTests : IClassFixture<RedeDaPaginaTests.NavegadorComDua
 	// ---------- Ambiente ----------
 
 	/// <summary>Um navegador headless e as duas origens, uma vez por classe.</summary>
-	public sealed class NavegadorComDuasOrigens : PlaywrightTestFixture
+	// IAsyncLifetime de novo: o DisposeAsync da base não é virtual, e sem reimplementar a
+	// interface o xUnit chamaria o da base -- e os listeners nunca fechariam.
+	public sealed class NavegadorComDuasOrigens : PlaywrightTestFixture, IAsyncLifetime
 	{
 		public DuasOrigens Origens { get; } = new();
 
