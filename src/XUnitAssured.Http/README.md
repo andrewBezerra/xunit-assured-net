@@ -47,6 +47,27 @@ Given()
     .WithTimeout(30)                       // Set timeout in seconds
 ```
 
+### A URL from an earlier step
+
+A chain is described first and run when it executes, so a string interpolated while writing it is
+built before any step has run. When the URL depends on a value an earlier step produces — the
+usual case is creating a resource and reading it back — pass a function, built when the step runs:
+
+```csharp
+int productId = 0;
+
+var readBack = await Given()
+    .ApiResource("/api/products").Post(newProduct)
+    .Validate((HttpStepResult created) => productId = created.JsonPath<int>("$.id"))
+    .And()
+    .ApiResource(() => $"/api/products/{productId}").Get()
+    .ExecuteAsync();
+
+readBack.Then().AssertStatusCode(200);
+```
+
+A 201 alone proves the API answered; reading the resource back proves it was stored.
+
 ### HTTP Methods
 
 ```csharp

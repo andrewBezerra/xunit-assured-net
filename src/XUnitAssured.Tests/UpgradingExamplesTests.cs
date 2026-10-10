@@ -109,9 +109,26 @@ public class UpgradingExamplesTests
 			.ExecuteAsync();
 	}
 
-	// Só NavigateTo aceita um valor adiado. Para os demais verbos, a saída é honesta e simples:
-	// duas cadeias, cada uma com a sua execução. O guia diz isso em vez de prometer uma
-	// sobrecarga que não existe.
+	[Fact(Skip = "Guide example — requires a running API", DisplayName = "Upgrading: a deferred API resource is a function")]
+	public async Task A_Deferred_Api_Resource_Is_A_Function()
+	{
+		var orderId = 0;
+
+		var lido = await ScenarioDsl.Given()
+			.ApiResource("https://api.example.com/orders")
+			.Post(new Order())
+			.Validate((HttpStepResult response) => orderId = response.JsonPath<int>("$.id"))
+			.And()
+			.ApiResource(() => $"https://api.example.com/orders/{orderId}")
+			.Get()
+			.ExecuteAsync();
+
+		lido.Then().AssertStatusCode(200);
+	}
+
+	// NavigateTo e, desde a 6.2.0, ApiResource aceitam um valor adiado. Para os demais verbos,
+	// a saída é honesta e simples: duas cadeias, cada uma com a sua execução. O guia diz isso
+	// em vez de prometer uma sobrecarga que não existe.
 	[Fact(Skip = "Guide example — requires a running API", DisplayName = "Upgrading: two chains when the verb takes no function")]
 	public async Task Two_Chains_When_The_Verb_Takes_No_Function()
 	{

@@ -20,11 +20,53 @@ public static class HttpScenarioExtensions
 	/// Automatically detects and applies authentication from IHttpClientAuthProvider if available.
 	/// Usage: Given().ApiResource("http://api.com/endpoint")
 	/// </summary>
+	/// <remarks>
+	/// For a URL that depends on a value an earlier step produces, use the overload taking a
+	/// <see cref="Func{TResult}"/>: a string is built as the chain is written, and at that point
+	/// no step has run yet.
+	/// </remarks>
 	public static IHttpScenario ApiResource(this ITestScenario scenario, string url)
 	{
 		if (scenario == null)
 			throw new ArgumentNullException(nameof(scenario));
 
+		return StartRequest(scenario, url, urlProvider: null);
+	}
+
+	/// <summary>
+	/// Starts an HTTP request step whose URL is built when the step runs.
+	/// </summary>
+	/// <remarks>
+	/// For a URL built from something an earlier step of the same chain produced — the usual
+	/// shape of a behavior test: create, then read back what was created. Written as a string,
+	/// it would be built while the chain is being described, before that step has run.
+	/// <code>
+	/// string? orderId = null;
+	///
+	/// await Given(api)
+	///     .ApiResource("/api/orders").Post(newOrder)
+	///     .Validate((HttpStepResult r) =&gt; orderId = r.JsonPath&lt;string&gt;("$.id"))
+	///     .And()
+	///     .ApiResource(() =&gt; $"/api/orders/{orderId}").Get()
+	///     .Validate((HttpStepResult r) =&gt; r.StatusCode.ShouldBe(200))
+	///     .ExecuteAsync();
+	/// </code>
+	/// </remarks>
+	/// <param name="scenario">The test scenario to add the request to</param>
+	/// <param name="url">Builds the URL at execution time</param>
+	/// <returns>The scenario, typed as an HTTP scenario</returns>
+	public static IHttpScenario ApiResource(this ITestScenario scenario, Func<string> url)
+	{
+		if (scenario == null)
+			throw new ArgumentNullException(nameof(scenario));
+		if (url == null)
+			throw new ArgumentNullException(nameof(url));
+
+		return StartRequest(scenario, string.Empty, url);
+	}
+
+	private static IHttpScenario StartRequest(ITestScenario scenario, string url, Func<string>? urlProvider)
+	{
 		// Check if there's already an HttpRequestStep (e.g., from WithHttpClient)
 		// and preserve its properties
 		HttpClient? existingHttpClient = null;
@@ -54,6 +96,7 @@ public static class HttpScenarioExtensions
 		var step = new HttpRequestStep
 		{
 			Url = url,
+			UrlProvider = urlProvider,
 			Method = HttpMethod.Get,
 			CustomHttpClient = existingHttpClient,  // Preserve CustomHttpClient if set
 			AuthConfig = existingAuthConfig  // Preserve or set AuthConfig from provider

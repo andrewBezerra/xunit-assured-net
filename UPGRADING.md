@@ -67,9 +67,16 @@ the earlier step had already run.
 .And().NavigateTo(() => $"/orders/{orderId}")
 ```
 
-`NavigateTo` is the **only** verb with a deferred overload. `ApiResource`, `Topic`, `Fill` and the
-rest take a string, and there is no version of them that takes a function. When a later step needs
-a value from an earlier one in a position like that, use two chains:
+`NavigateTo` and, since 6.2.0, `ApiResource` have a deferred overload, so creating a resource and
+reading it back fits in one chain:
+
+```csharp
+.And().ApiResource(() => $"/api/orders/{orderId}").Get()
+```
+
+`Topic`, `Fill` and the rest take a string, and there is no version of them that takes a function.
+When a later step needs a value from an earlier one in a position like that, use two chains — shown
+here with `ApiResource`, where it also still works:
 
 ```csharp
 var orderId = 0;

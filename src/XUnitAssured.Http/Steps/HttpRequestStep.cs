@@ -44,6 +44,16 @@ public class HttpRequestStep : ITestStep
 	public string Url { get; init; } = string.Empty;
 
 	/// <summary>
+	/// Builds the URL when the step runs, instead of when the chain is written.
+	/// </summary>
+	/// <remarks>
+	/// For a URL that depends on a value an earlier step of the same chain produces: a chain
+	/// describes first and runs at execution, so a string interpolated while writing it would
+	/// be built before that step ran. When set, it takes precedence over <see cref="Url"/>.
+	/// </remarks>
+	public Func<string>? UrlProvider { get; init; }
+
+	/// <summary>
 	/// HTTP method (GET, POST, PUT, DELETE, etc.).
 	/// </summary>
 	public HttpMethod Method { get; init; } = HttpMethod.Get;
@@ -132,6 +142,7 @@ public class HttpRequestStep : ITestStep
 
 		Name = source.Name;
 		Url = source.Url;
+		UrlProvider = source.UrlProvider;
 		Method = source.Method;
 		Body = source.Body;
 		Headers = source.Headers;
@@ -146,10 +157,12 @@ public class HttpRequestStep : ITestStep
 	{
 		try
 		{
+			var url = ResolveUrl();
+
 			// If custom HttpClient is provided, use it directly (bypass Flurl for better compatibility)
 			if (CustomHttpClient != null)
 			{
-				return await ExecuteWithCustomHttpClient(cancellationToken);
+				return await ExecuteWithCustomHttpClient(url, cancellationToken);
 			}
 
 			IFlurlRequest request;
@@ -164,13 +177,13 @@ public class HttpRequestStep : ITestStep
 				// CertificateAuthHandler has no per-request work to do.
 				var flurlClient = FlurlClientFactory.GetOrCreateClient(certificate);
 				request = flurlClient
-					.Request(Url)
+					.Request(url)
 					.WithTimeout(TimeSpan.FromSeconds(TimeoutSeconds));
 			}
 			else
 			{
 				// Normal request without certificate
-				request = Url
+				request = url
 					.WithTimeout(TimeSpan.FromSeconds(TimeoutSeconds));
 
 				// Apply other authentication types (Basic, Bearer, ApiKey, etc.)
@@ -358,19 +371,40 @@ public class HttpRequestStep : ITestStep
 	}
 
 	/// <summary>
+	/// The URL for this execution: the provider's, when there is one, otherwise <see cref="Url"/>.
+	/// </summary>
+	/// <remarks>
+	/// Called once per execution, so a provider that reads a value an earlier step captured
+	/// sees it, and every path below uses the same address.
+	/// </remarks>
+	private string ResolveUrl()
+	{
+		if (UrlProvider == null)
+			return Url;
+
+		var url = UrlProvider();
+		if (string.IsNullOrWhiteSpace(url))
+			throw new InvalidOperationException(
+				"The URL provider passed to ApiResource returned an empty address. " +
+				"If it reads a value an earlier step captures, check that the step ran and captured it.");
+
+		return url;
+	}
+
+	/// <summary>
 	/// Executes HTTP request using CustomHttpClient directly (bypasses Flurl).
 	/// This ensures proper header propagation for integration tests with WebApplicationFactory.
 	/// </summary>
-	private async Task<ITestStepResult> ExecuteWithCustomHttpClient(CancellationToken cancellationToken)
+	private async Task<ITestStepResult> ExecuteWithCustomHttpClient(string url, CancellationToken cancellationToken)
 	{
 		if (CustomHttpClient == null)
 			throw new InvalidOperationException("CustomHttpClient is null");
 
 		// Combine BaseAddress with relative URL if needed
-		var requestUrl = Url;
-		if (CustomHttpClient.BaseAddress != null && !Uri.IsWellFormedUriString(Url, UriKind.Absolute))
+		var requestUrl = url;
+		if (CustomHttpClient.BaseAddress != null && !Uri.IsWellFormedUriString(url, UriKind.Absolute))
 		{
-			requestUrl = new Uri(CustomHttpClient.BaseAddress, Url).ToString();
+			requestUrl = new Uri(CustomHttpClient.BaseAddress, url).ToString();
 		}
 
 		// Build query string
