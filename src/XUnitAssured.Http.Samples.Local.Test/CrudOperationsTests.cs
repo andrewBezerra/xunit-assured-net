@@ -1,4 +1,5 @@
 using XUnitAssured.Http.Extensions;
+using XUnitAssured.Http.Results;
 using XUnitAssured.Http.Testing;
 
 namespace XUnitAssured.Http.Samples.Local.Test;
@@ -28,8 +29,9 @@ public class CrudOperationsTests : HttpTestBase<HttpSamplesFixture>, IClassFixtu
 				.Execute()
 			.Then()
 				.AssertStatusCode(200)
-			.AssertStatusCode(200);
-		// Note: Cannot validate array in root with current JsonPath implementation
+				// The response is an array at the root: [*] selects a value from every item
+				.AssertJsonPathContains("$[*].id", 1)
+				.AssertJsonPathAll<decimal>("$[*].price", price => price > 0, "Every product should have a positive price");
 	}
 	[Fact(DisplayName = "GET product by ID should return product details with 200 OK status")]
 	public void Example02_GetProductById_ShouldReturnProduct()
@@ -342,5 +344,38 @@ public class CrudOperationsTests : HttpTestBase<HttpSamplesFixture>, IClassFixtu
 			.Then()
 				.AssertStatusCode(200)
 				.AssertJsonPath<int>("$.count", value => value == 3, "Should reset to 3 initial products");
+	}
+
+	/// <summary>
+	/// Creating and then reading back what was created, in one chain. A 201 alone proves the
+	/// API answered; reading the resource back proves it was stored. The id only exists after
+	/// the POST runs, so the GET takes its URL as a function: a string would be built while
+	/// the chain is written, before the POST has run.
+	/// </summary>
+	[Fact(DisplayName = "POST then GET in one chain should read back the created product")]
+	public async Task Example14_CreateProduct_ThenReadItBack_InOneChain()
+	{
+		var newProduct = new
+		{
+			name = "Read-back Product",
+			description = "Created and read back in one chain",
+			price = 42.50m
+		};
+
+		int productId = 0;
+
+		var readBack = await Given()
+			.ApiResource("/api/products")
+			.Post(newProduct)
+			.Validate((HttpStepResult created) => productId = created.JsonPath<int>("$.id"))
+			.And()
+			.ApiResource(() => $"/api/products/{productId}")
+			.Get()
+			.ExecuteAsync();
+
+		readBack.Then()
+			.AssertStatusCode(200)
+			.AssertJsonPath<int>("$.id", value => value == productId, "Should read back the product just created")
+			.AssertJsonPath<string>("$.name", value => value == newProduct.name, $"Product name should be '{newProduct.name}'");
 	}
 }

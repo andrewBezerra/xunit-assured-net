@@ -209,6 +209,7 @@ public static class HttpTestGeneratorTools
 			  Given()                                           Start a test scenario
 			  Given(fixture)                                    Start with IHttpClientProvider fixture
 			    .ApiResource("/api/endpoint")                   Set the target URL
+			    .ApiResource(() => $"/api/orders/{id}")         URL built when the step runs (value from an earlier step)
 			    .WithHttpClient(client)                         Use a custom HttpClient
 			    .WithHeader("X-Custom", "value")                Add request header
 			    .WithQueryParam("page", 1)                      Add query parameter
@@ -246,12 +247,28 @@ public static class HttpTestGeneratorTools
 			  .When().Execute()                                 Execute the request
 			  await ... .ExecuteAsync()                          Execute asynchronously (6.0.0; the chain
 			                                                      only describes until this call)
+			  await ... .ExtractAsync<string>("$.id")            Arrange: run, require 2xx, return the value
+			  await ... .ExtractAsync<string, string>("$.id", "$.token")  Two values at once
+			  await ... .EnsureSuccessAsync()                    Arrange with no value: run and require 2xx
 			  .Then()
 			    .AssertStatusCode(200)                           Assert HTTP status code
 			    .AssertSuccess()                                 Assert IsValid = true
 			    .ValidateContract<Product>()                     Validate JSON schema
 			    .AssertJsonPath<int>("$.id", id => id.ShouldBe(1))          Assert JSON value
 			    .AssertJsonPath<string>("$.name", n => n.ShouldNotBeEmpty()) Assert JSON string
+			    .AssertJsonPath<string>("$[0].id", id => ...)    Index a root array
+			    .AssertJsonPathContains("$[*].id", id)           A list includes a value ([*] = every item)
+			    .AssertJsonPathNotContains("$[*].id", id)        A list leaves a value out (what a filter excluded)
+			    .AssertJsonPathCount("$.items", 2)               Array length, or how many values [*] selects
+			    .AssertJsonPathAll<string>("$[*].city", c => ...) Every value matches; fails on an empty list
+			    .JsonPathAll<string>("$[*].id")                  Extract every value [*] selects
+			    .AssertHeader("Location", "/orders/1")           Header value (name is case-insensitive)
+			    .AssertNoHeader("X-Powered-By")                  Header must be absent
+			    .AssertSetCookie("sid", c => c.HttpOnly)         Cookie set, with its attributes
+			    .AssertCookieCleared("sid")                      Cookie expired (past Expires or Max-Age=0)
+			    .AssertProblemDetails(409, p => p.Extension<string>("code") == "X") RFC 7807 error body
+			    .AssertBodyContains("text")                      Body contains text
+			    .AssertBodyNotContains("secret")                 Body must not contain (e.g. a leak)
 			    .Extract(out var result)                         Capture result for later use
 			    .Extract(r => myVar = r.StatusCode)             Capture via callback
 			    .JsonPath<int>("$.id")                           Extract value from JSON

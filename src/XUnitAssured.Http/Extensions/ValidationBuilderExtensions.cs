@@ -116,6 +116,86 @@ public static class ValidationBuilderExtensions
 	}
 
 	/// <summary>
+	/// Asserts that the values a path selects include <paramref name="expected"/>.
+	/// </summary>
+	public static TBuilder AssertJsonPathContains<TBuilder, T>(
+		this TBuilder builder,
+		HttpStepResult result,
+		string jsonPath,
+		T expected)
+		where TBuilder : class
+	{
+		var valores = result.JsonPathAll<T>(jsonPath);
+		valores.Contains(expected).ShouldBeTrue(
+			$"Expected {jsonPath} to contain {Formatar(expected)}, but it had: {Formatar(valores)}");
+		return builder;
+	}
+
+	/// <summary>
+	/// Asserts that the values a path selects do not include <paramref name="unexpected"/> —
+	/// what a filter must have left out.
+	/// </summary>
+	public static TBuilder AssertJsonPathNotContains<TBuilder, T>(
+		this TBuilder builder,
+		HttpStepResult result,
+		string jsonPath,
+		T unexpected)
+		where TBuilder : class
+	{
+		var valores = result.JsonPathAll<T>(jsonPath);
+		valores.Contains(unexpected).ShouldBeFalse(
+			$"Expected {jsonPath} not to contain {Formatar(unexpected)}, but it did: {Formatar(valores)}");
+		return builder;
+	}
+
+	/// <summary>
+	/// Asserts how many items there are at a path: the values a [*] selects, or the length
+	/// of the array the path points to.
+	/// </summary>
+	public static TBuilder AssertJsonPathCount<TBuilder>(
+		this TBuilder builder,
+		HttpStepResult result,
+		string jsonPath,
+		int expectedCount)
+		where TBuilder : class
+	{
+		var total = result.JsonPathCount(jsonPath);
+		total.ShouldBe(expectedCount,
+			$"Expected {jsonPath} to have {expectedCount} item(s), but it had {total}");
+		return builder;
+	}
+
+	/// <summary>
+	/// Asserts that every value a path selects satisfies <paramref name="predicate"/>.
+	/// </summary>
+	/// <remarks>
+	/// Fails when the path selects nothing: an empty list satisfies any condition, so a search
+	/// that returned nothing would otherwise pass "every result is in the city I asked for".
+	/// </remarks>
+	public static TBuilder AssertJsonPathAll<TBuilder, T>(
+		this TBuilder builder,
+		HttpStepResult result,
+		string jsonPath,
+		Func<T, bool> predicate,
+		string? failureMessage = null)
+		where TBuilder : class
+	{
+		var valores = result.JsonPathAll<T>(jsonPath);
+
+		valores.Count.ShouldBeGreaterThan(0,
+			$"{jsonPath} selected no values, and an empty list satisfies any condition. " +
+			"Assert the count as well if an empty result is acceptable.");
+
+		var falham = valores.Where(v => !predicate(v)).ToList();
+		falham.ShouldBeEmpty(
+			$"{failureMessage ?? $"Every value at {jsonPath} should satisfy the condition"}. " +
+			$"These did not: {Formatar(falham)}");
+		return builder;
+	}
+
+	private static string Formatar(object? valor) => System.Text.Json.JsonSerializer.Serialize(valor);
+
+	/// <summary>
 	/// Gets or adds a cached JSON schema for the specified type.
 	/// This improves performance by avoiding repeated schema generation.
 	/// </summary>

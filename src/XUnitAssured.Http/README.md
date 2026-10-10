@@ -47,6 +47,39 @@ Given()
     .WithTimeout(30)                       // Set timeout in seconds
 ```
 
+### A URL from an earlier step
+
+A chain is described first and run when it executes, so a string interpolated while writing it is
+built before any step has run. When the URL depends on a value an earlier step produces — the
+usual case is creating a resource and reading it back — pass a function, built when the step runs:
+
+```csharp
+int productId = 0;
+
+var readBack = await Given()
+    .ApiResource("/api/products").Post(newProduct)
+    .Validate((HttpStepResult created) => productId = created.JsonPath<int>("$.id"))
+    .And()
+    .ApiResource(() => $"/api/products/{productId}").Get()
+    .ExecuteAsync();
+
+readBack.Then().AssertStatusCode(200);
+```
+
+A 201 alone proves the API answered; reading the resource back proves it was stored.
+
+### Arranging data
+
+Creating a parent resource and keeping its id fits in one line. `ExtractAsync` runs the chain,
+requires a 2xx, and returns the value; a failed arrange fails right there, with the status and the
+body, instead of handing the test an empty id:
+
+```csharp
+var customerId = await Given().ApiResource("/customers").Post(customer).ExtractAsync<string>("$.id");
+var (id, token) = await Given().ApiResource(route).Post(invite).ExtractAsync<string, string>("$.id", "$.token");
+await Given().ApiResource($"/orders/{id}").Delete().EnsureSuccessAsync();   // no value needed
+```
+
 ### HTTP Methods
 
 ```csharp
@@ -74,6 +107,39 @@ Given()
     .Extract(r => myVar = r.StatusCode)                                 // Capture via callback
     .JsonPath<int>("$.id")                                              // Extract value from JSON
 ```
+
+### Lists
+
+A path can start at a root array (`$[0].id`), and `[*]` selects a value from every item
+(`$[*].id`, `$.items[*].sku`). A filter is only tested when the test proves what it left out:
+
+```csharp
+.Then()
+    .AssertJsonPathContains("$[*].id", matchingId)                      // must be in the result
+    .AssertJsonPathNotContains("$[*].id", otherCityId)                  // must have been filtered out
+    .AssertJsonPathCount("$.items", 2)                                  // array length, or values [*] selects
+    .AssertJsonPathAll<string>("$[*].city", c => c == "Rio")           // every value; fails on an empty list
+    .JsonPathAll<string>("$[*].id")                                     // extract every selected value
+```
+
+`AssertJsonPathAll` fails when the path selects nothing: an empty list satisfies any condition, so a
+search that returned nothing would otherwise pass.
+
+### Headers, cookies, Problem Details and body text
+
+```csharp
+.Then()
+    .AssertHeader("Location", "/api/orders/42")                         // header names are case-insensitive
+    .AssertNoHeader("X-Powered-By")
+    .AssertSetCookie("session", c => c.HttpOnly && c.Secure && c.Path == "/auth")
+    .AssertCookieCleared("session")                                     // expiry in the past or Max-Age=0
+    .AssertProblemDetails(409, p => p.Extension<string>("code") == "ScheduleConflict")
+    .AssertBodyContains("not found")
+    .AssertBodyNotContains("invited@example.com")                       // the response must not leak it
+```
+
+`AssertCookieCleared` reads the expiry: checking that the header text mentions `expires=` is not the
+same thing, since a date in the future mentions it too.
 
 ## Authentication
 
