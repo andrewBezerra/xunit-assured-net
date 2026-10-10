@@ -2185,6 +2185,80 @@ public class PlaywrightValidationBuilder : ValidationBuilder<PlaywrightStepResul
 	}
 
 	/// <summary>
+	/// Asserts that a route set up with <c>InterceptRoute</c> answered at least
+	/// <paramref name="atLeast"/> requests — optionally only those matching
+	/// <paramref name="urlPattern"/> (<c>*</c> = any run of characters).
+	/// </summary>
+	/// <remarks>
+	/// The precondition of a test built on an interception. A route that matches nothing answers
+	/// nothing; the app then behaves normally, and a test that asserts only the outcome passes
+	/// without having provoked the scenario it describes.
+	/// </remarks>
+	/// <param name="urlPattern">What the intercepted address should contain; null for any</param>
+	/// <param name="atLeast">The minimum number of answered requests</param>
+	/// <returns>The validation builder, for chaining</returns>
+	public PlaywrightValidationBuilder AssertIntercepted(string? urlPattern = null, int atLeast = 1)
+	{
+		var interceptadas = urlPattern == null
+			? Result.InterceptedRequests
+			: Result.InterceptedRequests.Where(Casa(urlPattern)).ToList();
+
+		interceptadas.Count.ShouldBeGreaterThanOrEqualTo(atLeast,
+			$"Expected the interception to answer at least {atLeast} request(s){(urlPattern == null ? "" : $" matching '{urlPattern}'")}, " +
+			$"but it answered {interceptadas.Count}. {ResumoDasRequisicoes()}");
+
+		return this;
+	}
+
+	/// <summary>
+	/// Asserts the status of the last request made with <c>FetchFromPage</c> in the step.
+	/// A status of 0 means the browser got no response — typically CORS refused it.
+	/// </summary>
+	/// <param name="expectedStatus">The expected status code</param>
+	/// <returns>The validation builder, for chaining</returns>
+	public PlaywrightValidationBuilder AssertFetchStatus(int expectedStatus)
+	{
+		var busca = UltimaBusca();
+		busca.Status.ShouldBe(expectedStatus,
+			$"Expected {busca.Method} {busca.Url} from the page to answer {expectedStatus}, but it answered {busca.Status}. Body: {busca.Body}");
+		return this;
+	}
+
+	/// <summary>
+	/// Asserts a value in the JSON body of the last <c>FetchFromPage</c> response.
+	/// </summary>
+	/// <typeparam name="T">The type to read the value as</typeparam>
+	/// <param name="jsonPath">The JSON path, e.g. "$.accessToken"</param>
+	/// <param name="predicate">The condition the value must satisfy</param>
+	/// <param name="failureMessage">Custom failure message</param>
+	/// <returns>The validation builder, for chaining</returns>
+	public PlaywrightValidationBuilder AssertFetchJsonPath<T>(string jsonPath, Func<T, bool> predicate, string? failureMessage = null)
+	{
+		var busca = UltimaBusca();
+		predicate(busca.JsonPath<T>(jsonPath)).ShouldBeTrue(
+			$"{failureMessage ?? $"{jsonPath} did not satisfy the condition"}. Body: {busca.Body}");
+		return this;
+	}
+
+	/// <summary>Reads a value from the JSON body of the last <c>FetchFromPage</c> response.</summary>
+	/// <typeparam name="T">The type to read the value as</typeparam>
+	/// <param name="jsonPath">The JSON path</param>
+	/// <returns>The value</returns>
+	public T FetchJsonPath<T>(string jsonPath) => UltimaBusca().JsonPath<T>(jsonPath);
+
+	private PageFetch UltimaBusca() =>
+		Result.LastFetch ?? throw new InvalidOperationException(
+			"This step made no request with FetchFromPage, so there is no response to check.");
+
+	private static Func<string, bool> Casa(string urlPattern)
+	{
+		var expressao = new Regex(
+			string.Join(".*", urlPattern.Split('*').Select(Regex.Escape)),
+			RegexOptions.IgnoreCase);
+		return url => expressao.IsMatch(url);
+	}
+
+	/// <summary>
 	/// Whether the cookie is there, and whether the page's JavaScript can read it.
 	/// </summary>
 	/// <remarks>

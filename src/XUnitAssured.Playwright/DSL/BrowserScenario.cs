@@ -4,6 +4,7 @@ using System;
 using System.Threading.Tasks;
 
 using XUnitAssured.Core.Abstractions;
+using XUnitAssured.Core.DSL;
 using XUnitAssured.Playwright.Abstractions;
 using XUnitAssured.Playwright.Extensions;
 
@@ -20,9 +21,12 @@ namespace XUnitAssured.Playwright.DSL;
 /// without the caller naming a class.
 /// </para>
 /// </summary>
-internal sealed class BrowserScenario : IBrowserScenario
+internal sealed class BrowserScenario : IBrowserScenario, IFronteiraDePasso
 {
 	private readonly ITestScenario _cenario;
+
+	// O And() é do cenário embrulhado; o invólucro só repassa a pergunta.
+	bool IFronteiraDePasso.ComecaPassoNovo => FronteiraDePasso.ComecaPassoNovo(_cenario);
 
 	private BrowserScenario(ITestScenario cenario) => _cenario = cenario;
 

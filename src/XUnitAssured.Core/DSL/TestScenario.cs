@@ -28,7 +28,7 @@ namespace XUnitAssured.Core.DSL;
 /// that case.
 /// </para>
 /// </summary>
-public class TestScenario : ITestScenario
+public class TestScenario : ITestScenario, IFronteiraDePasso
 {
 	/// <summary>
 	/// The steps in the order they were written, each with the checks registered for it.
@@ -72,6 +72,8 @@ public class TestScenario : ITestScenario
 	}
 
 	/// <inheritdoc />
+	bool IFronteiraDePasso.ComecaPassoNovo => _comecarNovoPasso;
+
 	public ITestScenario And()
 	{
 		_comecarNovoPasso = true;

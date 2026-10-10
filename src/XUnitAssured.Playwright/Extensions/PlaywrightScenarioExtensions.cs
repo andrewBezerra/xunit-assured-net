@@ -3,6 +3,7 @@ using XUnitAssured.Playwright.Abstractions;
 using System;
 using Microsoft.Playwright;
 using XUnitAssured.Core.Abstractions;
+using XUnitAssured.Core.DSL;
 using XUnitAssured.Playwright.Locators;
 using XUnitAssured.Playwright.Steps;
 
@@ -1127,7 +1128,10 @@ public static class PlaywrightScenarioExtensions
 
 	internal static PlaywrightStep GetOrCreateStep(ITestScenario scenario)
 	{
-		if (scenario.CurrentStep is PlaywrightStep existingStep)
+		// Continua o passo atual, a menos que a cadeia tenha pedido um novo com And() ou On().
+		// Até a 6.3 o And() não separava nada numa cadeia só de navegador: as ações caíam todas
+		// no mesmo passo, e um Validate escrito entre elas só rodava depois de todas.
+		if (scenario.CurrentStep is PlaywrightStep existingStep && !FronteiraDePasso.ComecaPassoNovo(scenario))
 			return existingStep;
 
 		// Retrieve page and settings from context (set by PlaywrightTestBase)

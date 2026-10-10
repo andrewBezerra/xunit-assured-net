@@ -34,6 +34,51 @@ public class PlaywrightStepResult : TestStepResult
 		_pageContent = new Lazy<string?>(pageContentProvider, isThreadSafe: true);
 	}
 
+	private PlaywrightStepResult(Lazy<string?>? pageContent)
+	{
+		_pageContent = pageContent;
+	}
+
+	/// <summary>
+	/// The addresses a route set up with <c>InterceptRoute</c> answered during the step, in order.
+	/// </summary>
+	/// <remarks>
+	/// What lets a test require that its scenario happened. A route that matches nothing answers
+	/// nothing, and a test asserting only the outcome would pass without having provoked it.
+	/// </remarks>
+	public IReadOnlyList<string> InterceptedRequests =>
+		GetProperty<IReadOnlyList<string>>("InterceptedRequests") ?? Array.Empty<string>();
+
+	/// <summary>The requests made with <c>FetchFromPage</c> during the step, in order.</summary>
+	public IReadOnlyList<PageFetch> Fetches =>
+		GetProperty<IReadOnlyList<PageFetch>>("Fetches") ?? Array.Empty<PageFetch>();
+
+	/// <summary>The last request made with <c>FetchFromPage</c> during the step, or null.</summary>
+	public PageFetch? LastFetch => Fetches.Count == 0 ? null : Fetches[Fetches.Count - 1];
+
+	/// <summary>
+	/// Uma cópia com o que o passo fez na rede. As fábricas públicas ficam como estão: mudar a
+	/// assinatura delas quebraria código já compilado contra o pacote.
+	/// </summary>
+	internal PlaywrightStepResult ComRede(IReadOnlyList<string> interceptadas, IReadOnlyList<PageFetch> buscas)
+	{
+		var propriedades = new Dictionary<string, object?>(Properties)
+		{
+			["InterceptedRequests"] = interceptadas,
+			["Fetches"] = buscas
+		};
+
+		return new PlaywrightStepResult(_pageContent)
+		{
+			Success = Success,
+			Errors = Errors,
+			Data = Data,
+			DataType = DataType,
+			Metadata = Metadata,
+			Properties = propriedades
+		};
+	}
+
 	/// <summary>
 	/// The full HTML content of the page after all actions executed.
 	/// </summary>
