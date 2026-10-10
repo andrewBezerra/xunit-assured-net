@@ -24,14 +24,14 @@
   </PropertyGroup>
 
   <PropertyGroup>
-    <Version>6.5.0</Version>
+    <Version>6.6.0</Version>
 
     <!--
       O que a página do pacote no nuget.org mostra. Sem isto ela fica muda, e quem atualiza
       por `dotnet add package` não recebe nenhum aviso de que a major quebra coisas.
       Trocar a cada versão, junto do número acima.
     -->
-    <PackageReleaseNotes>Adds XUnitAssured.Http.AspNetCore: ApiFixture hosts your own ASP.NET Core API in memory for Given(fixture) and HttpTestBase, with a shared client, a new client per identity (ClientFor), clients with and without cookies, the API's services, and opt-in log capture that works with any logging library. Its documentation leads with sharing one instance across the suite through a collection fixture. No changes to existing packages. Upgrade guide: https://github.com/andrewBezerra/xunit-assured-net/blob/main/UPGRADING.md</PackageReleaseNotes>
+    <PackageReleaseNotes>HTTP DSL: Concurrently(n) and Concurrently(bodies) send a request several times at once, with AssertStatusCode over every response and AssertEach for any other assertion; HttpStepResult.Request is the request as it went out, cookies the client added included, with AssertRequestHeader, AssertSentCookie and AssertNoSentCookie; PostRaw, PutRaw and PatchRaw send a body exactly as written. Additive: no code changes needed from 6.5.0. Upgrade guide: https://github.com/andrewBezerra/xunit-assured-net/blob/main/UPGRADING.md</PackageReleaseNotes>
     <Authors>Carlos Andrew Costa Bezerra</Authors>
     <Company>Carlos Andrew Costa Bezerra</Company>
     <Copyright>Copyright (c) Carlos Andrew Costa Bezerra</Copyright>

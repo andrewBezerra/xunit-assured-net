@@ -69,6 +69,31 @@ public class ApiFixtureTests(ApiFixtureTests.Api api) : HttpTestBase<ApiFixtureT
 		(await outro.GetStringAsync("/eco/sessao")).ShouldBeEmpty();
 	}
 
+	[Fact(DisplayName = "AssertSentCookie sees the cookie the client added on its own")]
+	public async Task Sent_Cookie_Comes_From_The_Client()
+	{
+		using var comCookies = Fixture.ClientWithCookies();
+		using var semCookies = Fixture.ClientWithoutCookies();
+		foreach (var cliente in new[] { comCookies, semCookies })
+			(await cliente.PostAsync("/eco/entrar", null)).EnsureSuccessStatusCode();
+
+		// O teste não escreve cookie nenhum: quem põe a sessão no pedido é o cliente, como um
+		// navegador -- e é isso que se confere.
+		(await XUnitAssured.Core.DSL.ScenarioDsl.Given()
+			.WithHttpClient(comCookies)
+			.ApiResource("/eco/sessao")
+			.Get()
+			.ExecuteAsync())
+		.Then().AssertSentCookie("sessao", v => v == "aberta");
+
+		(await XUnitAssured.Core.DSL.ScenarioDsl.Given()
+			.WithHttpClient(semCookies)
+			.ApiResource("/eco/sessao")
+			.Get()
+			.ExecuteAsync())
+		.Then().AssertNoSentCookie("sessao");
+	}
+
 	[Fact(DisplayName = "Services and CreateScope reach the API's own services")]
 	public void Services_Reach_The_Api()
 	{

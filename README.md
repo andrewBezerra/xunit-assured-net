@@ -61,7 +61,7 @@ The chain ends where it is: the last step was a browser step, so `ExecuteAsync()
 ## What it does
 
 - **One DSL across boundaries** — `Given().When().Then()` over HTTP, Kafka, RabbitMQ and the browser, with steps that share state (`SaveStep`, `Steps["name"]`, extracted values).
-- **HTTP** — full CRUD, JSON path assertions over objects and lists (`$[*].id`), header, `Set-Cookie` and Problem Details assertions, `ExtractAsync` to arrange data in one line, and authentication applied once from `testsettings.json`: Bearer, Basic, OAuth2, API key, client certificate (mTLS), custom headers. `ApiFixture` hosts your own ASP.NET Core API in memory, with a client per identity and one instance for the whole suite.
+- **HTTP** — full CRUD, JSON path assertions over objects and lists (`$[*].id`), header, `Set-Cookie` and Problem Details assertions, the request as it was sent (cookies included), requests sent at once with `Concurrently`, raw bodies for malformed input, `ExtractAsync` to arrange data in one line, and authentication applied once from `testsettings.json`: Bearer, Basic, OAuth2, API key, client certificate (mTLS), custom headers. `ApiFixture` hosts your own ASP.NET Core API in memory, with a client per identity and one instance for the whole suite.
 - **Kafka** — produce and consume single messages and batches, headers and keys, SASL/PLAIN, SCRAM, SSL and mTLS, Schema Registry. Consume steps skip the consumer-group join, so a consume costs milliseconds instead of seconds.
 - **RabbitMQ** — publish and consume single messages and batches, declare queues, exchanges and bindings, reject to a dead-letter exchange; a publish that reaches no queue fails instead of passing in silence.
 - **Browser** — clicks, fills, checks, navigation and screenshots on Playwright, with locators by role, label, test id, text and CSS, and assertions that read like the DSL. The page's network too: intercept a route and prove it answered (`InterceptRoute`, `AssertIntercepted`), or call the API from inside the page with its cookies (`FetchFromPage`). `BrowserAppFixture` starts your own ASP.NET Core API and front-end inside `dotnet test`.
@@ -599,7 +599,7 @@ Add to your `.mcp.json` (repo root, `~/.mcp.json`, or `.vscode/mcp.json`):
     "xunitassured": {
       "type": "stdio",
       "command": "dnx",
-      "args": ["XUnitAssured.Mcp@6.5.0", "--yes"]
+      "args": ["XUnitAssured.Mcp@6.6.0", "--yes"]
     }
   }
 }
@@ -629,9 +629,9 @@ In GitHub Copilot Chat, the XUnitAssured tools should appear as available. Try:
 
 ## What's New
 
-**6.5.0** — `XUnitAssured.Http.AspNetCore`: `ApiFixture` hosts your own ASP.NET Core API in memory, with a client per identity, clients with and without cookies, its services and its logs — one instance for the whole suite. No changes to existing packages.
+**6.6.0** — HTTP: `Concurrently` sends a request several times at once and asserts on every response, `result.Request` is the request as it went out (cookies the client added included), and `PostRaw` sends malformed input on purpose. No code changes needed from 6.5.0.
 
-**6.4.2** — documentation: the README says only what is true and shows what 6.2 to 6.4 added; every Quick Start test is now compiled on each build. No code changes.
+**6.5.0** — `XUnitAssured.Http.AspNetCore`: `ApiFixture` hosts your own ASP.NET Core API in memory, with a client per identity, clients with and without cookies, its services and its logs — one instance for the whole suite. No changes to existing packages.
 
 The full history is in **[CHANGELOG.md](https://github.com/andrewBezerra/xunit-assured-net/blob/main/CHANGELOG.md)**. Coming from 5.x? Start with **[UPGRADING.md](https://github.com/andrewBezerra/xunit-assured-net/blob/main/UPGRADING.md)**.
 
