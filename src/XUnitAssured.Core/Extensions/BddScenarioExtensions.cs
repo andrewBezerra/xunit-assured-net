@@ -26,7 +26,6 @@ public static class BddScenarioExtensions
 	/// var assertions = await Given()
 	///     .ApiResource("/api/products")
 	///     .Get()
-	/// .When()
 	///     .ExecuteAsync&lt;HttpStepResult&gt;();
 	///
 	/// assertions.Then().AssertSuccess();

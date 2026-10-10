@@ -1,6 +1,6 @@
 # XUnitAssured.Http
 
-HTTP/REST API testing extensions for the [XUnitAssured.Net](https://github.com/andrewBezerra/XUnitAssured.Net) framework. Write expressive integration tests using a fluent `Given().When().Then()` DSL with full support for HTTP methods, headers, authentication, JSON path assertions, and schema validation.
+HTTP/REST API testing extensions for the [XUnitAssured.Net](https://github.com/andrewBezerra/XUnitAssured.Net) framework. Write expressive integration tests using a fluent `Given()` … `ExecuteAsync()` … `Then()` DSL with full support for HTTP methods, headers, authentication, JSON path assertions, and schema validation.
 
 ## Installation
 
@@ -21,20 +21,27 @@ public class ProductTests : HttpTestBase<MyTestFixture>, IClassFixture<MyTestFix
     public ProductTests(MyTestFixture fixture) : base(fixture) { }
 
     [Fact]
-    public void GetProduct_ShouldReturn200()
+    public async Task GetProduct_ShouldReturn200()
     {
-        Given()
+        var response = await Given()
             .ApiResource("/api/products/1")
             .Get()
-        .When()
-            .Execute()
-        .Then()
+            .ExecuteAsync();
+
+        response.Then()
             .AssertStatusCode(200)
             .AssertJsonPath<string>("$.name", name => name.ShouldNotBeEmpty())
             .AssertJsonPath<decimal>("$.price", price => price.ShouldBeGreaterThan(0));
     }
 }
 ```
+
+`ExecuteAsync()` sends the request; `Then()` starts the assertions. A failed `AssertStatusCode`
+shows the response body, which is usually where the reason is.
+
+`Execute()`, the synchronous form, still exists so older suites keep compiling, but it blocks the
+test thread while it waits — write new tests with `ExecuteAsync()`. `.When()` before it is
+optional and changes nothing: keep it only if you like the Given/When/Then reading.
 
 ## Fluent DSL Reference
 
@@ -102,10 +109,12 @@ wrong type, XML, plain text. The Content-Type goes as given, parameters included
 ### Assertions
 
 ```csharp
-.When()
-    .Execute()
+(await Given()
+    .ApiResource("/api/products/1")
+    .Get()
+    .ExecuteAsync())
 .Then()
-    .AssertStatusCode(200)                                              // Assert HTTP status code
+    .AssertStatusCode(200)                                              // the body is shown when it fails
     .AssertSuccess()                                                    // Assert IsValid = true
     .ValidateContract<Product>()                                        // Validate JSON schema against type
     .AssertJsonPath<int>("$.id", id => id.ShouldBe(1))                  // Assert JSON value with Shouldly
@@ -250,22 +259,22 @@ push.AssertSent("https://push.example/devices/*", times: 2)
 ### Bearer Token
 
 ```csharp
-Given()
+(await Given()
     .ApiResource("/api/secure")
     .WithBearerToken("my-jwt-token")
     .Get()
-.When().Execute()
+    .ExecuteAsync())
 .Then().AssertStatusCode(200);
 ```
 
 ### Basic Auth
 
 ```csharp
-Given()
+(await Given()
     .ApiResource("/api/secure")
     .WithBasicAuth("username", "password")
     .Get()
-.When().Execute()
+    .ExecuteAsync())
 .Then().AssertStatusCode(200);
 ```
 
@@ -273,52 +282,52 @@ Given()
 
 ```csharp
 // Header
-Given()
+(await Given()
     .ApiResource("/api/secure")
     .WithApiKey("X-API-Key", "my-key")
     .Get()
-.When().Execute()
+    .ExecuteAsync())
 .Then().AssertStatusCode(200);
 
 // Query string
-Given()
+(await Given()
     .ApiResource("/api/secure")
     .WithApiKey("api_key", "my-key", ApiKeyLocation.Query)
     .Get()
-.When().Execute()
+    .ExecuteAsync())
 .Then().AssertStatusCode(200);
 ```
 
 ### OAuth2 Client Credentials
 
 ```csharp
-Given()
+(await Given()
     .ApiResource("/api/secure")
     .WithOAuth2("https://auth.example.com/token", "client-id", "client-secret")
     .Get()
-.When().Execute()
+    .ExecuteAsync())
 .Then().AssertStatusCode(200);
 ```
 
 ### Certificate (mTLS)
 
 ```csharp
-Given()
+(await Given()
     .ApiResource("/api/secure")
-    .WithCertificate(new X509Certificate2("client.pfx", "password"))
+    .WithCertificate("client.pfx", "password")
     .Get()
-.When().Execute()
+    .ExecuteAsync())
 .Then().AssertStatusCode(200);
 ```
 
 ### Custom Header Auth
 
 ```csharp
-Given()
+(await Given()
     .ApiResource("/api/secure")
     .WithAuthConfig(config => config.UseCustomHeader("X-Auth-Token", "my-token"))
     .Get()
-.When().Execute()
+    .ExecuteAsync())
 .Then().AssertStatusCode(200);
 ```
 
@@ -367,10 +376,10 @@ public class MyFixture : IHttpClientProvider, IHttpClientAuthProvider, IDisposab
 Then use `Given(fixture)` — auth is applied automatically:
 
 ```csharp
-Given(fixture)
+(await Given(fixture)
     .ApiResource("/api/products")
     .Get()
-.When().Execute()
+    .ExecuteAsync())
 .Then().AssertStatusCode(200);
 ```
 
@@ -378,74 +387,71 @@ Given(fixture)
 
 ```csharp
 // GET all
-Given()
+(await Given()
     .ApiResource("/api/products")
     .Get()
-.When().Execute()
+    .ExecuteAsync())
 .Then().AssertStatusCode(200);
 
 // GET by ID
-Given()
+(await Given()
     .ApiResource("/api/products/1")
     .Get()
-.When().Execute()
+    .ExecuteAsync())
 .Then()
     .AssertStatusCode(200)
     .AssertJsonPath<int>("$.id", id => id.ShouldBe(1));
 
 // POST create
-Given()
+(await Given()
     .ApiResource("/api/products")
     .Post(new { name = "Laptop", price = 999.99m })
-.When().Execute()
+    .ExecuteAsync())
 .Then()
     .AssertStatusCode(201)
     .AssertJsonPath<int>("$.id", id => id.ShouldBeGreaterThan(0));
 
 // PUT update
-Given()
+(await Given()
     .ApiResource("/api/products/1")
     .Put(new { name = "Updated Laptop", price = 899.99m })
-.When().Execute()
+    .ExecuteAsync())
 .Then().AssertStatusCode(200);
 
 // DELETE
-Given()
+(await Given()
     .ApiResource("/api/products/1")
     .Delete()
-.When().Execute()
+    .ExecuteAsync())
 .Then().AssertStatusCode(204);
 ```
 
 ## Local Testing with WebApplicationFactory
 
+To test your own ASP.NET Core API in memory, use
+[XUnitAssured.Http.AspNetCore](https://www.nuget.org/packages/XUnitAssured.Http.AspNetCore):
+`ApiFixture<Program>` hosts it with `WebApplicationFactory`, gives `Given()` its client, and adds a
+client per identity, clients with and without cookies, its services and its logs.
+
 ```csharp
-public class LocalFixture : IHttpClientProvider, IDisposable
+public sealed class MyApi : ApiFixture<Program>
 {
-    private readonly WebApplicationFactory<Program> _factory;
-
-    public LocalFixture()
-    {
-        _factory = new WebApplicationFactory<Program>();
-    }
-
-    public HttpClient CreateClient() => _factory.CreateClient();
-    public void Dispose() => _factory?.Dispose();
+    protected override void ConfigureApi(IWebHostBuilder api) => api.UseEnvironment("Testing");
 }
 
-public class LocalTests : HttpTestBase<LocalFixture>, IClassFixture<LocalFixture>
-{
-    public LocalTests(LocalFixture fixture) : base(fixture) { }
+[CollectionDefinition("API")]
+public sealed class ApiCollection : ICollectionFixture<MyApi>;
 
+[Collection("API")]
+public class LocalTests(MyApi api) : HttpTestBase<MyApi>(api)
+{
     [Fact]
-    public void GetProducts_ShouldReturn200()
-    {
-        Given()
+    public async Task GetProducts_ShouldReturn200() =>
+        (await Given()
             .ApiResource("/api/products")
             .Get()
-        .When().Execute()
+            .ExecuteAsync())
         .Then().AssertStatusCode(200);
-    }
 }
 ```
 
@@ -453,7 +459,6 @@ public class LocalTests : HttpTestBase<LocalFixture>, IClassFixture<LocalFixture
 
 - .NET 8
 - .NET 9
-- .NET 10
 - .NET 10
 
 ## Dependencies

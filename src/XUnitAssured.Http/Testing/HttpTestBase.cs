@@ -18,14 +18,13 @@ namespace XUnitAssured.Http.Testing;
 ///     public MyApiTests(MyTestFixture fixture) : base(fixture) { }
 ///     
 ///     [Fact]
-///     public void TestEndpoint()
+///     public async Task TestEndpoint()
 ///     {
 ///         // Given() automatically uses the fixture's HttpClient
-///         Given()
+///         (await Given()
 ///             .ApiResource("/api/endpoint")
 ///             .Get()
-///             .When()
-///                 .Execute()
+///             .ExecuteAsync())
 ///             .Then()
 ///                 .AssertStatusCode(200);
 ///     }
@@ -50,11 +49,10 @@ public abstract class HttpTestBase<TFixture> : FixtureTestBase<TFixture>
 	/// <returns>A new test scenario pre-configured with the fixture's HttpClient</returns>
 	/// <example>
 	/// <code>
-	/// Given()
+	/// (await Given()
 	///     .ApiResource("/api/products")
 	///     .Get()
-	///     .When()
-	///         .Execute()
+	///     .ExecuteAsync())
 	///     .Then()
 	///         .AssertStatusCode(200);
 	/// </code>

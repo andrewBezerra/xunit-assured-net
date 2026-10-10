@@ -48,11 +48,10 @@ public abstract class FixtureTestBase<TFixture>
 	/// <returns>A new test scenario</returns>
 	/// <example>
 	/// <code>
-	/// Given()
+	/// (await Given()
 	///     .ApiResource("/api/products")
 	///     .Get()
-	///     .When()
-	///         .Execute()
+	///     .ExecuteAsync())
 	///     .Then()
 	///         .AssertStatusCode(200);
 	/// </code>

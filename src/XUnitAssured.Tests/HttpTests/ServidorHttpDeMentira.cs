@@ -40,11 +40,13 @@ internal sealed class ServidorDeMentira(Func<HttpRequestMessage, HttpResponseMes
 
 	protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
 	{
-		_recebidos.Add(new Recebido(
-			request.Method.Method,
-			request.RequestUri!.AbsolutePath,
-			request.RequestUri.Query,
-			request.Headers.ToDictionary(h => h.Key, h => string.Join(",", h.Value))));
+		// Trava porque Concurrently manda pedidos ao mesmo tempo.
+		lock (_recebidos)
+			_recebidos.Add(new Recebido(
+				request.Method.Method,
+				request.RequestUri!.AbsolutePath,
+				request.RequestUri.Query,
+				request.Headers.ToDictionary(h => h.Key, h => string.Join(",", h.Value))));
 
 		return Task.FromResult(responder(request));
 	}
