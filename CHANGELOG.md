@@ -2,7 +2,15 @@
 
 All notable changes to the XUnitAssured packages. Upgrading from 5.1.x? See [UPGRADING.md](UPGRADING.md).
 
-## v6.5.0 (Current — testing your own API)
+## v6.6.0 (Current — requests at once, the request sent, raw bodies)
+
+Additive. Upgrading from 6.5.x requires no code changes. The three things that still sent a real consumer suite from the DSL to a raw `HttpClient` (#101).
+
+- **`Concurrently(n)` and `Concurrently(bodies)`** (`XUnitAssured.Http`). Sends the request several times at once through the same client, every copy started before any is awaited — for tests whose subject is the concurrency itself. The result is a `ConcurrentHttpStepResult` with the `Responses` in the order of the bodies. `AssertStatusCode` checks every response and lists all codes when one differs; `AssertEach(r => ...)` runs any assertion on each response and names the ones that failed. An assertion about a single body or header on it fails saying to use `AssertEach`, instead of picking one response at random.
+- **`HttpStepResult.Request`**: the request as it went out — method, address, headers, cookies and body — read after sending, so it includes what the client added on the way, such as the session cookie a cookie-keeping client sends. New assertions `AssertRequestHeader`, `AssertSentCookie` and `AssertNoSentCookie`. A request that got no answer still shows what was being sent.
+- **`PostRaw`, `PutRaw`, `PatchRaw`**: a body sent exactly as written, with the Content-Type given — malformed JSON on purpose, a wrong type, XML.
+
+## v6.5.0 (testing your own API)
 
 Additive: a new package. Upgrading from 6.4.x requires no code changes.
 
