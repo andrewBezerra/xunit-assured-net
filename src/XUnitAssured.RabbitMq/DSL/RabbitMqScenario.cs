@@ -4,6 +4,7 @@ using System.Threading;
 using System.Threading.Tasks;
 
 using XUnitAssured.Core.Abstractions;
+using XUnitAssured.Core.DSL;
 using XUnitAssured.Core.Results;
 using XUnitAssured.RabbitMq.Abstractions;
 using XUnitAssured.RabbitMq.Extensions;
@@ -19,9 +20,12 @@ namespace XUnitAssured.RabbitMq.DSL;
 /// Este tipo acrescenta uma coisa só, ser um <see cref="IRabbitMqScenario"/>, e é isso que faz o
 /// compilador resolver os verbos sem o chamador nomear classe nenhuma.
 /// </remarks>
-internal sealed class RabbitMqScenario : IRabbitMqScenario
+internal sealed class RabbitMqScenario : IRabbitMqScenario, IFronteiraDePasso
 {
 	private readonly ITestScenario _cenario;
+
+	// O And() é do cenário embrulhado; o invólucro só repassa a pergunta.
+	bool IFronteiraDePasso.ComecaPassoNovo => FronteiraDePasso.ComecaPassoNovo(_cenario);
 
 	private RabbitMqScenario(ITestScenario cenario) => _cenario = cenario;
 

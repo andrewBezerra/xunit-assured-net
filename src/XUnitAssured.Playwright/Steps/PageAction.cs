@@ -66,7 +66,13 @@ public enum PageActionType
 	/// <summary>Write one entry into the page's local storage.</summary>
 	SetLocalStorage,
 	/// <summary>Empty the page's local storage.</summary>
-	ClearLocalStorage
+	ClearLocalStorage,
+	/// <summary>Answer matching requests from the test, for the rest of the step.</summary>
+	InterceptRoute,
+	/// <summary>Reload the page and wait for the network to settle.</summary>
+	Reload,
+	/// <summary>Make a request from inside the page, with its cookies.</summary>
+	FetchFromPage
 }
 
 /// <summary>
@@ -150,6 +156,18 @@ public class PageAction
 	/// Applicable to Click, RightClick, and other pointer actions.
 	/// </summary>
 	public bool Force { get; init; }
+
+	/// <summary>The status code an intercepted route answers with.</summary>
+	public int? Status { get; init; }
+
+	/// <summary>How many matching requests an intercepted route answers before letting them through.</summary>
+	public int? Times { get; init; }
+
+	/// <summary>
+	/// The body of a <see cref="PageActionType.FetchFromPage"/> request, built when the step runs
+	/// so it can carry a value an earlier step produced. Serialized as JSON.
+	/// </summary>
+	public Func<object?>? BodyProvider { get; init; }
 
 	/// <inheritdoc />
 	public override string ToString()

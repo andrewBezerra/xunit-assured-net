@@ -4,6 +4,7 @@ using System;
 using System.Threading.Tasks;
 
 using XUnitAssured.Core.Abstractions;
+using XUnitAssured.Core.DSL;
 using XUnitAssured.Kafka.Abstractions;
 using XUnitAssured.Kafka.Extensions;
 
@@ -20,9 +21,12 @@ namespace XUnitAssured.Kafka.DSL;
 /// without the caller naming a class.
 /// </para>
 /// </summary>
-internal sealed class KafkaScenario : IKafkaScenario
+internal sealed class KafkaScenario : IKafkaScenario, IFronteiraDePasso
 {
 	private readonly ITestScenario _cenario;
+
+	// O And() é do cenário embrulhado; o invólucro só repassa a pergunta.
+	bool IFronteiraDePasso.ComecaPassoNovo => FronteiraDePasso.ComecaPassoNovo(_cenario);
 
 	private KafkaScenario(ITestScenario cenario) => _cenario = cenario;
 

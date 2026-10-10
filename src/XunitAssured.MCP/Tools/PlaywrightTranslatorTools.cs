@@ -150,6 +150,16 @@ public static class PlaywrightTranslatorTools
 			  .AssertRequested("/v1/orders/*")                    Assert the page requested it (* wildcard)
 			  .AssertRequestedOnce("/v1/auth/refresh")            Assert it was requested exactly once
 
+			== The page's network (6.4.0) ==
+			  .InterceptRoute("**/api/**", status: 401, times: 3) Answer the first N matching requests, then let them through (rest of the step)
+			  .Reload()                                           Reload and wait for the network to settle
+			  .FetchFromPage($"{api}/me")                         Request from inside the page, with its cookies
+			  .FetchFromPage(() => url, "POST", () => new { t })  URL and body built when the step runs
+			  .AssertIntercepted(atLeast: 2)                      The interception actually answered something
+			  .AssertFetchStatus(200)                             Status of the last FetchFromPage (0 = no response, e.g. CORS)
+			  .AssertFetchJsonPath<string>("$.token", t => ...)   A value in the last FetchFromPage body
+			  .Validate((PlaywrightStepResult r) => ...)          Capture from the step result, e.g. r.LastFetch
+
 			== Other ==
 			  .Wait(1000)                       ← await Task.Delay(1000)
 			  .WaitForSelector(".class")        ← page.WaitForSelectorAsync(".class")

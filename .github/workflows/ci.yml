@@ -70,15 +70,15 @@ jobs:
       # a Kafka broker or a browser, so they are not gating material.
       - name: Test (net8.0)
         if: ${{ !cancelled() && steps.build.outcome == 'success' }}
-        run: dotnet test ${{ env.UNIT_TESTS }} --configuration Release --no-build --framework net8.0 --filter "Requires!=Network&Requires!=Broker" --logger "trx;LogFileName=net8.0.trx" --results-directory TestResults
+        run: dotnet test ${{ env.UNIT_TESTS }} --configuration Release --no-build --framework net8.0 --filter "Requires!=Network&Requires!=Broker&Requires!=Browser" --logger "trx;LogFileName=net8.0.trx" --results-directory TestResults
 
       - name: Test (net9.0)
         if: ${{ !cancelled() && steps.build.outcome == 'success' }}
-        run: dotnet test ${{ env.UNIT_TESTS }} --configuration Release --no-build --framework net9.0 --filter "Requires!=Network&Requires!=Broker" --logger "trx;LogFileName=net9.0.trx" --results-directory TestResults
+        run: dotnet test ${{ env.UNIT_TESTS }} --configuration Release --no-build --framework net9.0 --filter "Requires!=Network&Requires!=Broker&Requires!=Browser" --logger "trx;LogFileName=net9.0.trx" --results-directory TestResults
 
       - name: Test (net10.0)
         if: ${{ !cancelled() && steps.build.outcome == 'success' }}
-        run: dotnet test ${{ env.UNIT_TESTS }} --configuration Release --no-build --framework net10.0 --filter "Requires!=Network&Requires!=Broker" --logger "trx;LogFileName=net10.0.trx" --results-directory TestResults
+        run: dotnet test ${{ env.UNIT_TESTS }} --configuration Release --no-build --framework net10.0 --filter "Requires!=Network&Requires!=Broker&Requires!=Browser" --logger "trx;LogFileName=net10.0.trx" --results-directory TestResults
 
       - name: Upload test results
         if: always()
@@ -148,7 +148,35 @@ jobs:
           XA_RABBITMQ_URI: amqp://xa:xa-senha@127.0.0.1:5672/
         run: dotnet test ${{ env.UNIT_TESTS }} --configuration Release --framework net10.0 --filter "Requires=Broker"
 
-  # Proves the five packages actually pack, and keeps the artifacts so a release
+  # Interceptar rota e fazer requisicao de dentro da pagina so se prova num navegador de
+  # verdade, com duas origens de verdade: SameSite, o Path do cookie e o CORS com credenciais
+  # nao existem fora dele. Os testes sobem o proprio servidor local; o que este trabalho traz e
+  # o Chromium.
+  #
+  # Nao bloqueante pelo mesmo motivo do broker: baixar e instalar navegador depende do runner.
+  browser-tests:
+    name: Browser tests (non-blocking)
+    runs-on: ubuntu-latest
+    continue-on-error: true
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Build
+        run: dotnet build ${{ env.UNIT_TESTS }} --configuration Release --framework net10.0
+
+      - name: Install Chromium
+        run: pwsh src/XUnitAssured.Tests/bin/Release/net10.0/playwright.ps1 install --with-deps chromium
+
+      - name: Tests in a real browser
+        run: dotnet test ${{ env.UNIT_TESTS }} --configuration Release --no-build --framework net10.0 --filter "Requires=Browser"
+
+  # Proves every package actually packs, and keeps the artifacts so a release
   # candidate can be inspected before any tag is cut.
   pack:
     name: Pack

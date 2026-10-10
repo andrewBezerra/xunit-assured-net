@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+	<meta charset="utf-8">
+	<title>App de teste</title>
+</head>
+<body>
+	<!-- Um front-end "compilado" mínimo: pede à API, cujo endereço vem na query (?api=), e mostra a resposta. -->
+	<script>
+		const api = new URLSearchParams(location.search).get('api');
+		if (api) {
+			fetch(api + '/api/auth/public', { credentials: 'include' })
+				.then(r => r.json())
+				.then(corpo => mostrar('resposta', corpo.message))
+				.catch(() => mostrar('erro', 'falhou'));
+		}
+
+		// Um elemento que só aparece com a resposta: o teste espera por ele.
+		function mostrar(id, texto) {
+			const p = document.createElement('p');
+			p.id = id;
+			p.textContent = texto;
+			document.body.appendChild(p);
+		}
+	</script>
+</body>
+</html>

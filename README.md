@@ -102,6 +102,7 @@ In order of intent, not of promise:
 | **XUnitAssured.Kafka** | [![NuGet](https://img.shields.io/nuget/v/XUnitAssured.Kafka.svg?label=)](https://www.nuget.org/packages/XUnitAssured.Kafka) | Apache Kafka integration testing — produce/consume, batch operations, authentication, Schema Registry support |
 | **XUnitAssured.RabbitMq** | [![NuGet](https://img.shields.io/nuget/v/XUnitAssured.RabbitMq.svg?label=)](https://www.nuget.org/packages/XUnitAssured.RabbitMq) | RabbitMQ integration testing — publish/consume steps on the official async client, queues and exchanges, AMQP headers |
 | **XUnitAssured.Playwright** | [![NuGet](https://img.shields.io/nuget/v/XUnitAssured.Playwright.svg?label=)](https://www.nuget.org/packages/XUnitAssured.Playwright) | Playwright UI testing — fluent DSL for browser interactions, multiple locator strategies, screenshots, and assertions |
+| **XUnitAssured.Playwright.AspNetCore** | [![NuGet](https://img.shields.io/nuget/v/XUnitAssured.Playwright.AspNetCore.svg?label=)](https://www.nuget.org/packages/XUnitAssured.Playwright.AspNetCore) | Browser tests against your own ASP.NET Core API — `BrowserAppFixture` hosts the API and your built front-end on real ports, so they run with `dotnet test` alone (.NET 10) |
 
 ### Tooling
 
@@ -221,6 +222,23 @@ public class MyUiTests : PlaywrightTestBase<PlaywrightTestFixture>, IClassFixtur
     }
 }
 ```
+
+### Browser tests against your own API
+
+```bash
+dotnet add package XUnitAssured.Playwright.AspNetCore
+```
+
+`BrowserAppFixture<TProgram>` starts your API on a real port (`WebApplicationFactory` + Kestrel), serves your built front-end on another, and launches the browser — no terminals to start by hand, so browser tests run in CI. Two ports means two origins, so SameSite, cookie `Path` and CORS with credentials behave as in production.
+
+```csharp
+public sealed class MyApp : BrowserAppFixture<Program>
+{
+    protected override string? AppDirectory => "../../../../my-app/dist";
+}
+```
+
+See the [package README](src/XUnitAssured.Playwright.AspNetCore/README.md) for ports, CORS and arranging data through `Api.CreateClient()`.
 
 ### Playwright Codegen Integration
 
@@ -568,7 +586,7 @@ Add to your `.mcp.json` (repo root, `~/.mcp.json`, or `.vscode/mcp.json`):
     "xunitassured": {
       "type": "stdio",
       "command": "dnx",
-      "args": ["XUnitAssured.Mcp@6.3.0", "--yes"]
+      "args": ["XUnitAssured.Mcp@6.4.0", "--yes"]
     }
   }
 }
@@ -637,9 +655,9 @@ In GitHub Copilot Chat, the XUnitAssured tools should appear as available. Try:
 
 ## 🔄 What's New
 
-**6.3.0** — assert what the system did besides answering: `LogCapture` for what it logged (including values that leak through scopes or exceptions) and `OutboundHttpCapture` for the outside services it called. No code changes needed from 6.2.x.
+**6.4.0** — browser tests that run in CI: `BrowserAppFixture` (new package **XUnitAssured.Playwright.AspNetCore**, .NET 10) starts your API and built front-end on real ports inside `dotnet test`, and the page's network is in the DSL — `InterceptRoute` with `AssertIntercepted`, `Reload`, and `FetchFromPage` with the page's cookies. `And()` now starts a new step in browser-only chains.
 
-**6.2.0** — HTTP behavior tests without leaving the DSL: `ApiResource(() => ...)` to create and read back in one chain, lists in JSON paths (`$[*].id`, `AssertJsonPathContains`/`NotContains`/`Count`/`All`), header, cookie and Problem Details assertions, and `ExtractAsync` to arrange data in one line. No code changes needed from 6.1.x.
+**6.3.0** — assert what the system did besides answering: `LogCapture` for what it logged (including values that leak through scopes or exceptions) and `OutboundHttpCapture` for the outside services it called. No code changes needed from 6.2.x.
 
 The full history is in **[CHANGELOG.md](https://github.com/andrewBezerra/xunit-assured-net/blob/main/CHANGELOG.md)**. Coming from 5.x? Start with **[UPGRADING.md](https://github.com/andrewBezerra/xunit-assured-net/blob/main/UPGRADING.md)**.
 

@@ -14,6 +14,8 @@ After installing, run the Playwright browser install:
 pwsh bin/Debug/net10.0/playwright.ps1 install
 ```
 
+> Testing your own ASP.NET Core API and front-end? [XUnitAssured.Playwright.AspNetCore](https://www.nuget.org/packages/XUnitAssured.Playwright.AspNetCore) starts both on real ports inside `dotnet test`.
+
 ## Quick Start
 
 ```csharp
@@ -178,6 +180,46 @@ Given()
     .AssertTextByTestId("status", "OK")                 // Assert text by test ID
     .TakeScreenshot("login-page")                       // Capture a screenshot
 ```
+
+## The page's network
+
+Some behaviors only exist inside a browser: SameSite, the cookie `Path`, CORS with credentials, and
+an app reacting to several requests failing at once. These verbs reach them without leaving the DSL.
+
+```csharp
+// Several requests come back 401 at once; the app should renew the session a single time.
+var reloaded = await Given(browser)
+    .NavigateTo("/dashboard")
+    .InterceptRoute($"{apiUrl}/**", status: 401, times: 10)   // the first 10 matching, then through
+    .Reload()
+    .ExecuteAsync();
+
+reloaded.Then()
+    .AssertIntercepted(atLeast: 2)          // the scenario actually happened
+    .AssertRequestedOnce("/auth/refresh");
+
+// A request from inside the page, with its cookies, across origins.
+string? token = null;
+
+var renewed = await Given(browser)
+    .FetchFromPage($"{apiUrl}/auth/refresh", "POST")
+    .Validate((PlaywrightStepResult r) => token = r.LastFetch!.JsonPath<string>("$.accessToken"))
+    .And()
+    .FetchFromPage(() => $"{apiUrl}/auth/refresh", "POST", () => new { AccessToken = token })
+    .ExecuteAsync();
+
+renewed.Then()
+    .AssertFetchStatus(200)
+    .AssertFetchJsonPath<string>("$.accessToken", t => t != token);
+```
+
+- `InterceptRoute` takes a Playwright glob (`**/api/**`) and lasts until the end of its step.
+- `AssertIntercepted` is the precondition: a route that matches nothing answers nothing, and a test
+  that asserts only the outcome would pass without having provoked it.
+- `FetchFromPage` bodies are sent as camelCase JSON. A status of 0 means the browser got no response
+  — typically CORS refused it.
+- `And()` starts a new step in a browser chain, so a `Validate` between steps runs before the next
+  one (until 6.3 browser verbs kept adding to the same step).
 
 ## Playwright Codegen Integration
 

@@ -41,4 +41,14 @@
 		<ProjectReference Include="..\XUnitAssured.RabbitMq\XUnitAssured.RabbitMq.csproj" />
 	</ItemGroup>
 
+	<!-- O BrowserAppFixture só existe no net10 (o UseKestrel do Mvc.Testing é do 10). A SampleWebApi é a API que ele sobe. -->
+	<ItemGroup Condition="'$(TargetFramework)' == 'net10.0'">
+		<ProjectReference Include="..\XUnitAssured.Playwright.AspNetCore\XUnitAssured.Playwright.AspNetCore.csproj" />
+		<ProjectReference Include="..\SampleWebApi\SampleWebApi.csproj" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<None Include="PlaywrightTests\AppDeTeste\**" CopyToOutputDirectory="PreserveNewest" />
+	</ItemGroup>
+
 </Project>

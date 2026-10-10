@@ -4,6 +4,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text.Json;
 using System.Threading.Tasks;
 
 using Microsoft.Playwright;
@@ -25,6 +26,15 @@ public class PlaywrightStep : ITestStep
 	private readonly List<PageAction> _actions = new();
 	private readonly ConcurrentQueue<string> _consoleLogs = new();
 	private readonly ConcurrentQueue<string> _requests = new();
+	private readonly ConcurrentQueue<string> _interceptadas = new();
+	private readonly List<PageFetch> _buscas = new();
+
+	// As rotas que este passo instalou. Saem no fim do passo, com sucesso ou não: uma rota que
+	// sobrevivesse responderia pelos passos seguintes sem ninguém ter pedido.
+	private readonly List<(string Padrao, Func<IRoute, Task> Manipulador)> _rotas = new();
+
+	// Corpo do FetchFromPage em camelCase, como uma página o mandaria.
+	private static readonly JsonSerializerOptions OpcoesDoCorpo = new(JsonSerializerDefaults.Web);
 
 	/// <inheritdoc />
 	public string? Name { get; internal set; }
@@ -102,6 +112,7 @@ public class PlaywrightStep : ITestStep
 			consoleHandler = null;
 			page.Request -= requestHandler;
 			requestHandler = null;
+			await RemoverRotasAsync(page);
 
 			var elapsed = DateTimeOffset.UtcNow - startTime;
 
@@ -127,7 +138,7 @@ public class PlaywrightStep : ITestStep
 				screenshots: screenshots,
 				consoleLogs: _consoleLogs.ToList(),
 				requests: _requests.ToList(),
-				elapsed: elapsed);
+				elapsed: elapsed).ComRede(_interceptadas.ToList(), _buscas.ToList());
 
 			IsValid = true;
 			return Result;
@@ -153,7 +164,7 @@ public class PlaywrightStep : ITestStep
 				consoleLogs: _consoleLogs.ToList(),
 				requests: _requests.ToList(),
 				elapsed: elapsed,
-				exception: ex);
+				exception: ex).ComRede(_interceptadas.ToList(), _buscas.ToList());
 
 			IsValid = false;
 			return Result;
@@ -174,7 +185,31 @@ public class PlaywrightStep : ITestStep
 				if (page != null)
 					page.Request -= requestHandler;
 			}
+
+			if (_rotas.Count > 0)
+			{
+				var page = Page ?? context.GetProperty<IPage>("_PlaywrightPage");
+				if (page != null)
+					await RemoverRotasAsync(page);
+			}
 		}
+	}
+
+	private async Task RemoverRotasAsync(IPage page)
+	{
+		foreach (var (padrao, manipulador) in _rotas)
+		{
+			try
+			{
+				await page.UnrouteAsync(padrao, manipulador);
+			}
+			catch (PlaywrightException)
+			{
+				// A página já fechou: não há rota para tirar.
+			}
+		}
+
+		_rotas.Clear();
 	}
 
 	/// <inheritdoc />
@@ -185,6 +220,79 @@ public class PlaywrightStep : ITestStep
 
 		validation(Result);
 		IsValid = true;
+	}
+
+	/// <summary>
+	/// Responde as primeiras requisições que casam com o padrão e deixa as demais seguirem. É o
+	/// que reproduz "o acesso venceu bem quando a tela carregava": vários pedidos voltando 401
+	/// juntos, e a retentativa indo de verdade para a API.
+	/// </summary>
+	private async Task InterceptarAsync(IPage page, PageAction action)
+	{
+		var padrao = action.Value!;
+		var status = action.Status ?? 200;
+		var vezes = action.Times ?? 1;
+		var corpo = action.SecondValue;
+		var respondidas = 0;
+
+		Func<IRoute, Task> manipulador = async rota =>
+		{
+			if (Interlocked.Increment(ref respondidas) <= vezes)
+			{
+				_interceptadas.Enqueue(rota.Request.Url);
+				await rota.FulfillAsync(new RouteFulfillOptions
+				{
+					Status = status,
+					Body = corpo ?? string.Empty,
+					ContentType = corpo == null ? null : "application/json"
+				});
+			}
+			else
+			{
+				await rota.FallbackAsync();
+			}
+		};
+
+		await page.RouteAsync(padrao, manipulador);
+		_rotas.Add((padrao, manipulador));
+	}
+
+	/// <summary>
+	/// Uma requisição que sai da própria página, com os cookies dela. Só assim valem as regras
+	/// que existem apenas no navegador: SameSite, o Path do cookie e o CORS com credenciais.
+	/// </summary>
+	private async Task BuscarPelaPaginaAsync(IPage page, PageAction action)
+	{
+		var url = action.ResolveValue()
+			?? throw new InvalidOperationException("FetchFromPage needs a URL.");
+		var metodo = action.SecondValue ?? "GET";
+		var corpo = action.BodyProvider?.Invoke();
+		var json = corpo == null ? null : JsonSerializer.Serialize(corpo, OpcoesDoCorpo);
+
+		var resposta = await page.EvaluateAsync<JsonElement>(
+			"""
+			async ([url, metodo, corpo]) => {
+				try {
+					const r = await fetch(url, {
+						method: metodo,
+						credentials: 'include',
+						headers: corpo === null ? {} : { 'Content-Type': 'application/json' },
+						body: corpo
+					})
+					return { status: r.status, body: await r.text() }
+				} catch (erro) {
+					// Sem resposta: CORS recusado, rede fora. O motivo vai no corpo.
+					return { status: 0, body: String(erro) }
+				}
+			}
+			""",
+			new object?[] { url, metodo, json });
+
+		_buscas.Add(new PageFetch(
+			url,
+			metodo,
+			resposta.GetProperty("status").GetInt32(),
+			resposta.GetProperty("body").GetString() ?? string.Empty));
 	}
 
 	private async Task ExecuteActionAsync(IPage page, PageAction action, List<string> screenshots)
@@ -205,6 +313,22 @@ public class PlaywrightStep : ITestStep
 
 			case PageActionType.ClearLocalStorage:
 				await page.EvaluateAsync("() => localStorage.clear()");
+				break;
+
+			case PageActionType.InterceptRoute:
+				await InterceptarAsync(page, action);
+				break;
+
+			case PageActionType.Reload:
+				await page.ReloadAsync(new PageReloadOptions
+				{
+					WaitUntil = WaitUntilState.NetworkIdle,
+					Timeout = Settings.NavigationTimeout
+				});
+				break;
+
+			case PageActionType.FetchFromPage:
+				await BuscarPelaPaginaAsync(page, action);
 				break;
 
 			case PageActionType.Navigate:
