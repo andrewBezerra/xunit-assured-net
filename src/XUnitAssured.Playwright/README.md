@@ -216,6 +216,8 @@ renewed.Then()
 - `InterceptRoute` takes a Playwright glob (`**/api/**`) and lasts until the end of its step.
 - `AssertIntercepted` is the precondition: a route that matches nothing answers nothing, and a test
   that asserts only the outcome would pass without having provoked it.
+- An app with a service worker (a PWA) needs `BlockServiceWorkers = true` in the settings: requests the
+  worker makes for the page bypass the route, so from the first reload on it answers nothing.
 - `FetchFromPage` bodies are sent as camelCase JSON. A status of 0 means the browser got no response
   — typically CORS refused it.
 - `And()` starts a new step in a browser chain, so a `Validate` between steps runs before the next

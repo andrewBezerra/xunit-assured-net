@@ -2205,7 +2205,10 @@ public class PlaywrightValidationBuilder : ValidationBuilder<PlaywrightStepResul
 
 		interceptadas.Count.ShouldBeGreaterThanOrEqualTo(atLeast,
 			$"Expected the interception to answer at least {atLeast} request(s){(urlPattern == null ? "" : $" matching '{urlPattern}'")}, " +
-			$"but it answered {interceptadas.Count}. {ResumoDasRequisicoes()}");
+			$"but it answered {interceptadas.Count}. {ResumoDasRequisicoes()}" +
+			(interceptadas.Count == 0
+				? " If the app has a service worker, requests it makes bypass the route: set BlockServiceWorkers in the Playwright settings."
+				: ""));
 
 		return this;
 	}
