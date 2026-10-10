@@ -115,6 +115,7 @@ wrong type, XML, plain text. The Content-Type goes as given, parameters included
     .ExecuteAsync())
 .Then()
     .AssertStatusCode(200)                                              // the body is shown when it fails
+    .AssertStatusCode(403, 404)                                         // any of these, e.g. access denied by design
     .AssertSuccess()                                                    // Assert IsValid = true
     .ValidateContract<Product>()                                        // Validate JSON schema against type
     .AssertJsonPath<int>("$.id", id => id.ShouldBe(1))                  // Assert JSON value with Shouldly
@@ -123,6 +124,21 @@ wrong type, XML, plain text. The Content-Type goes as given, parameters included
     .Extract(r => myVar = r.StatusCode)                                 // Capture via callback
     .JsonPath<int>("$.id")                                              // Extract value from JSON
 ```
+
+### Null or missing
+
+A field present with `null` and a field that is not there are different answers, and each has its
+own assertion. The failure says which of the two the response had:
+
+```csharp
+.Then()
+    .AssertJsonPathNull("$.contactId")                                  // "contactId": null
+    .AssertJsonPathMissing("$.password")                                // no "password" at all
+```
+
+`AssertJsonPathMissing` needs everything before the last part of the path to exist. If an
+earlier part is missing too, the path is more likely wrong than the field absent, so the assertion
+fails.
 
 ### Lists
 
@@ -156,6 +172,14 @@ search that returned nothing would otherwise pass.
 
 `AssertCookieCleared` reads the expiry: checking that the header text mentions `expires=` is not the
 same thing, since a date in the future mentions it too.
+
+To use a cookie the response set, for example to replay a session from another client, read it from
+the result. `SetCookie` returns null when the response did not set it:
+
+```csharp
+var signIn = (await Given().ApiResource("/auth/login").Post(credentials).ExecuteAsync()).GetResult();
+var session = signIn.SetCookie("sid")!.Value;                           // attributes too: .HttpOnly, .Path, .Expires
+```
 
 ### The request that was sent
 
