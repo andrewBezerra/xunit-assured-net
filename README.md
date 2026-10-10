@@ -61,7 +61,7 @@ The chain ends where it is: the last step was a browser step, so `ExecuteAsync()
 ## What it does
 
 - **One DSL across boundaries** — `Given().When().Then()` over HTTP, Kafka, RabbitMQ and the browser, with steps that share state (`SaveStep`, `Steps["name"]`, extracted values).
-- **HTTP** — full CRUD, JSON path assertions over objects and lists (`$[*].id`), header, `Set-Cookie` and Problem Details assertions, `ExtractAsync` to arrange data in one line, and authentication applied once from `testsettings.json`: Bearer, Basic, OAuth2, API key, client certificate (mTLS), custom headers.
+- **HTTP** — full CRUD, JSON path assertions over objects and lists (`$[*].id`), header, `Set-Cookie` and Problem Details assertions, `ExtractAsync` to arrange data in one line, and authentication applied once from `testsettings.json`: Bearer, Basic, OAuth2, API key, client certificate (mTLS), custom headers. `ApiFixture` hosts your own ASP.NET Core API in memory, with a client per identity and one instance for the whole suite.
 - **Kafka** — produce and consume single messages and batches, headers and keys, SASL/PLAIN, SCRAM, SSL and mTLS, Schema Registry. Consume steps skip the consumer-group join, so a consume costs milliseconds instead of seconds.
 - **RabbitMQ** — publish and consume single messages and batches, declare queues, exchanges and bindings, reject to a dead-letter exchange; a publish that reaches no queue fails instead of passing in silence.
 - **Browser** — clicks, fills, checks, navigation and screenshots on Playwright, with locators by role, label, test id, text and CSS, and assertions that read like the DSL. The page's network too: intercept a route and prove it answered (`InterceptRoute`, `AssertIntercepted`), or call the API from inside the page with its cookies (`FetchFromPage`). `BrowserAppFixture` starts your own ASP.NET Core API and front-end inside `dotnet test`.
@@ -100,6 +100,7 @@ In order of intent, not of promise:
 | Package | Version | Description |
 |---------|---------|-------------|
 | **XUnitAssured.Http** | [![NuGet](https://img.shields.io/nuget/v/XUnitAssured.Http.svg?label=)](https://www.nuget.org/packages/XUnitAssured.Http) | HTTP/REST API testing — fluent DSL, authentication handlers, JSON path assertions, schema validation |
+| **XUnitAssured.Http.AspNetCore** | [![NuGet](https://img.shields.io/nuget/v/XUnitAssured.Http.AspNetCore.svg?label=)](https://www.nuget.org/packages/XUnitAssured.Http.AspNetCore) | HTTP tests against your own ASP.NET Core API — `ApiFixture` hosts it in memory with a shared client, a client per identity, clients with and without cookies, its services and its logs |
 | **XUnitAssured.Kafka** | [![NuGet](https://img.shields.io/nuget/v/XUnitAssured.Kafka.svg?label=)](https://www.nuget.org/packages/XUnitAssured.Kafka) | Apache Kafka integration testing — produce/consume, batch operations, authentication, Schema Registry support |
 | **XUnitAssured.RabbitMq** | [![NuGet](https://img.shields.io/nuget/v/XUnitAssured.RabbitMq.svg?label=)](https://www.nuget.org/packages/XUnitAssured.RabbitMq) | RabbitMQ integration testing — publish/consume steps on the official async client, queues and exchanges, AMQP headers |
 | **XUnitAssured.Playwright** | [![NuGet](https://img.shields.io/nuget/v/XUnitAssured.Playwright.svg?label=)](https://www.nuget.org/packages/XUnitAssured.Playwright) | Playwright UI testing — fluent DSL for browser interactions, multiple locator strategies, screenshots, and assertions |
@@ -159,6 +160,47 @@ public class MyApiTests : HttpTestBase<MyApiFixture>, IClassFixture<MyApiFixture
     }
 }
 ```
+
+### HTTP tests against your own API
+
+```bash
+dotnet add package XUnitAssured.Http.AspNetCore
+```
+
+`ApiFixture<TProgram>` hosts your API in memory with `WebApplicationFactory` and gives `Given()` its client. Share one instance across the suite with a collection fixture: each instance starts the API once, migrations included, and in a real consumer suite an `IClassFixture` per class spent about 70 of 118 seconds starting it.
+
+```csharp
+using XUnitAssured.Http.AspNetCore;
+
+public sealed class MyApi : ApiFixture<Program>
+{
+    protected override void ConfigureApi(IWebHostBuilder api) => api.UseEnvironment("Testing");
+
+    protected override void ConfigureClient(HttpClient client) =>
+        client.DefaultRequestHeaders.Add("X-Test-User", "admin");
+}
+
+[CollectionDefinition("API")]
+public sealed class ApiCollection : ICollectionFixture<MyApi>;
+
+[Collection("API")]
+public class OrderTests(MyApi api) : HttpTestBase<MyApi>(api)
+{
+    [Fact]
+    public async Task Reader_Cannot_Delete()
+    {
+        var assertions = await Given()
+            .WithHttpClient(Fixture.ClientFor(("X-Test-User", "reader")))
+            .ApiResource("/orders/1")
+            .Delete()
+            .ExecuteAsync();
+
+        assertions.Then().AssertStatusCode(403);
+    }
+}
+```
+
+See the [package README](src/XUnitAssured.Http.AspNetCore/README.md) for clients with and without cookies, the API's services, its logs, and when a test needs its own instance.
 
 ### HTTP Authentication Examples
 
@@ -469,9 +511,9 @@ The reference implementation of an HTTP fixture is [`HttpSamplesRemoteFixture.cs
           ↓                  ↓                   ↓                    ↓
   XUnitAssured.Http   XUnitAssured.Kafka   XUnitAssured.RabbitMq   XUnitAssured.Playwright
   (REST APIs)         (Kafka)              (RabbitMQ)              (Browser UI)
-                                                                          ↓
-                                                         XUnitAssured.Playwright.AspNetCore
-                                                         (your API + front-end on real ports)
+          ↓                                                               ↓
+  XUnitAssured.Http.AspNetCore                           XUnitAssured.Playwright.AspNetCore
+  (your API in memory)                                   (your API + front-end on real ports)
 
   XUnitAssured.Mcp — MCP server that writes tests in the DSL above (AI-assisted authoring)
 ```
