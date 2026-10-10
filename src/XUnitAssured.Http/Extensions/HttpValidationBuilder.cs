@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using Shouldly;
 using XUnitAssured.Core.Abstractions;
 using XUnitAssured.Core.Extensions;
@@ -117,8 +118,70 @@ public class HttpValidationBuilder : ValidationBuilder<HttpStepResult>
 	}
 
 	/// <summary>
+	/// Asserts that the values a path selects include <paramref name="expected"/>.
+	/// </summary>
+	/// <remarks>
+	/// Pair it with <see cref="AssertJsonPathNotContains{T}"/>: a filter is only tested when the
+	/// test also proves it left something out.
+	/// </remarks>
+	/// <typeparam name="T">The type of each value</typeparam>
+	/// <param name="jsonPath">A path with [*], e.g. "$[*].id" or "$.items[*].id"</param>
+	/// <param name="expected">The value that must be among them</param>
+	/// <returns>The same HTTP validation builder for method chaining</returns>
+	/// <example>
+	/// <code>
+	/// .Then()
+	///     .AssertJsonPathContains("$[*].id", matchingId)
+	///     .AssertJsonPathNotContains("$[*].id", otherCityId);
+	/// </code>
+	/// </example>
+	public HttpValidationBuilder AssertJsonPathContains<T>(string jsonPath, T expected) =>
+		this.AssertJsonPathContains<HttpValidationBuilder, T>(Result, jsonPath, expected);
+
+	/// <summary>
+	/// Asserts that the values a path selects do not include <paramref name="unexpected"/> —
+	/// what a filter, a permission or an isolation rule must have left out.
+	/// </summary>
+	/// <typeparam name="T">The type of each value</typeparam>
+	/// <param name="jsonPath">A path with [*], e.g. "$[*].id"</param>
+	/// <param name="unexpected">The value that must not be among them</param>
+	/// <returns>The same HTTP validation builder for method chaining</returns>
+	public HttpValidationBuilder AssertJsonPathNotContains<T>(string jsonPath, T unexpected) =>
+		this.AssertJsonPathNotContains<HttpValidationBuilder, T>(Result, jsonPath, unexpected);
+
+	/// <summary>
+	/// Asserts how many items there are at a path: the values a [*] selects
+	/// ("$.items[*]"), or the length of the array the path points to ("$.items", "$").
+	/// </summary>
+	/// <param name="jsonPath">A path to an array, or a path with [*]</param>
+	/// <param name="expectedCount">The expected number of items</param>
+	/// <returns>The same HTTP validation builder for method chaining</returns>
+	public HttpValidationBuilder AssertJsonPathCount(string jsonPath, int expectedCount) =>
+		this.AssertJsonPathCount<HttpValidationBuilder>(Result, jsonPath, expectedCount);
+
+	/// <summary>
+	/// Asserts that every value a path selects satisfies <paramref name="predicate"/>.
+	/// Fails when the path selects nothing, since an empty list satisfies any condition.
+	/// </summary>
+	/// <typeparam name="T">The type of each value</typeparam>
+	/// <param name="jsonPath">A path with [*], e.g. "$.items[*].city"</param>
+	/// <param name="predicate">The condition every value must satisfy</param>
+	/// <param name="failureMessage">Custom failure message</param>
+	/// <returns>The same HTTP validation builder for method chaining</returns>
+	public HttpValidationBuilder AssertJsonPathAll<T>(string jsonPath, Func<T, bool> predicate, string? failureMessage = null) =>
+		this.AssertJsonPathAll<HttpValidationBuilder, T>(Result, jsonPath, predicate, failureMessage);
+
+	/// <summary>
+	/// Extracts every value a path with [*] selects, e.g. the ids of a list.
+	/// </summary>
+	/// <typeparam name="T">The type of each value</typeparam>
+	/// <param name="path">A path with [*], e.g. "$[*].id"</param>
+	/// <returns>The selected values, in document order</returns>
+	public IReadOnlyList<T> JsonPathAll<T>(string path) => Result.JsonPathAll<T>(path);
+
+	/// <summary>
 	/// Extracts a value from the JSON response using a simplified JSON path.
-	/// Supports: $.propertyName, $.property.nested, $.array[0]
+	/// Supports: $.propertyName, $.property.nested, $.array[0], a root array ($[0].id). For [*], use JsonPathAll.
 	/// Delegates to HttpStepResultExtensions.JsonPath from XUnitAssured.Http.
 	/// </summary>
 	/// <typeparam name="T">The expected type of the value</typeparam>
