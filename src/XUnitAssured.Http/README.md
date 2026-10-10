@@ -92,7 +92,12 @@ await Given().ApiResource($"/orders/{id}").Delete().EnsureSuccessAsync();   // n
 .Put(body)                                 // HTTP PUT with JSON body
 .Patch(body)                               // HTTP PATCH with JSON body
 .Delete()                                  // HTTP DELETE
+.PostRaw(text, "application/json")         // POST the text as written, no serialization
+.PutRaw(text, contentType)                 // and PUT, PATCH: PatchRaw
 ```
+
+The raw verbs are for what a serializer never produces: malformed JSON on purpose, a field of the
+wrong type, XML, plain text. The Content-Type goes as given, parameters included.
 
 ### Assertions
 
@@ -142,6 +147,53 @@ search that returned nothing would otherwise pass.
 
 `AssertCookieCleared` reads the expiry: checking that the header text mentions `expires=` is not the
 same thing, since a date in the future mentions it too.
+
+### The request that was sent
+
+`result.Request` is the request as it went out, read after the client sent it: method, address,
+headers, cookies and body. It includes what the client added on the way — a client that keeps
+cookies puts the session in the `Cookie` header, and that is what a session test is about:
+
+```csharp
+using var browser = api.ClientWithCookies();
+// ... sign in, then sign out ...
+
+(await Given()
+    .WithHttpClient(browser)
+    .ApiResource("/auth/refresh")
+    .Post()
+    .ExecuteAsync())
+.Then()
+    .AssertStatusCode(401)
+    .AssertNoSentCookie("refresh")                                      // the revoked session is gone
+    .AssertRequestHeader("X-Correlation-Id", id => id.Length > 0);     // names are case-insensitive
+```
+
+`AssertSentCookie("name", v => ...)` requires the cookie, and optionally checks its value.
+
+### Requests at once
+
+For a test whose subject is the concurrency itself — simultaneous creates under one parent, a
+double submit, a race on a counter — `Concurrently` sends the request several times at once,
+through the same client. Every copy is started before any is awaited.
+
+```csharp
+var names = Enumerable.Range(1, 6).Select(i => $"Member {i}").ToList();
+
+(await Given()
+    .ApiResource($"/api/teams/{teamId}/members")
+    .Post()
+    .Concurrently(names.Select(n => new { Name = n }))                  // one request per body
+    .ExecuteAsync())
+.Then()
+    .AssertStatusCode(201)                                              // every one of the six
+    .AssertEach(r => r.AssertHeader("Location", l => l.StartsWith("/api/members/")));
+```
+
+`Concurrently(3)` sends the same body three times. The result is a `ConcurrentHttpStepResult`: its
+`Responses` come in the order of the bodies, `AssertStatusCode` checks all of them and lists every
+code when one differs, and `AssertEach` runs any other assertion on each response, naming the ones
+that failed. An assertion about a single body or header on it says to use `AssertEach` instead.
 
 ## What the system did besides answering
 

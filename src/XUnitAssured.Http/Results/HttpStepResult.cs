@@ -44,6 +44,13 @@ public class HttpStepResult : TestStepResult
 	public string? ReasonPhrase => GetProperty<string>("ReasonPhrase");
 
 	/// <summary>
+	/// The request as it went out — method, address, headers, cookies and body — read after the
+	/// client sent it, so it includes what the client added, such as the cookies it keeps. Null
+	/// when no request left, e.g. the address could not be resolved.
+	/// </summary>
+	public SentRequest? Request => GetProperty<SentRequest>("Request");
+
+	/// <summary>
 	/// Gets the response body converted to the specified type.
 	/// </summary>
 	/// <typeparam name="T">Target type for deserialization</typeparam>
@@ -102,6 +109,26 @@ public class HttpStepResult : TestStepResult
 			Data = responseBody,
 			DataType = responseBody?.GetType(),
 			Properties = properties
+		};
+	}
+
+	/// <summary>
+	/// The same result, carrying the request that produced it.
+	/// </summary>
+	internal HttpStepResult ComPedido(SentRequest? pedido)
+	{
+		if (pedido == null)
+			return this;
+
+		var propriedades = new Dictionary<string, object?>(Properties) { ["Request"] = pedido };
+		return new HttpStepResult
+		{
+			Metadata = Metadata,
+			Success = Success,
+			Data = Data,
+			DataType = DataType,
+			Errors = Errors,
+			Properties = propriedades
 		};
 	}
 
