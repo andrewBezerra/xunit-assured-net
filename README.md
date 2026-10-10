@@ -598,7 +598,7 @@ Add to your `.mcp.json` (repo root, `~/.mcp.json`, or `.vscode/mcp.json`):
     "xunitassured": {
       "type": "stdio",
       "command": "dnx",
-      "args": ["XUnitAssured.Mcp@6.6.1", "--yes"]
+      "args": ["XUnitAssured.Mcp@6.7.0", "--yes"]
     }
   }
 }
@@ -628,9 +628,9 @@ In GitHub Copilot Chat, the XUnitAssured tools should appear as available. Try:
 
 ## What's New
 
-**6.6.1** — a failed `AssertStatusCode` shows the response body, where the reason usually is; the HTTP package README teaches `ExecuteAsync` throughout. No API changes.
+**6.7.0** — HTTP: `Given(httpClient)` sends a scenario through a given client, `AssertStatusCode(403, 404)` accepts any of several codes, `AssertJsonPathNull` and `AssertJsonPathMissing` tell null from missing, and `result.SetCookie("sid")` reads the cookie a response set. No code changes needed from 6.6.x.
 
-**6.6.0** — HTTP: `Concurrently` sends a request several times at once and asserts on every response, `result.Request` is the request as it went out (cookies the client added included), and `PostRaw` sends malformed input on purpose. No code changes needed from 6.5.0.
+**6.6.1** — a failed `AssertStatusCode` shows the response body, where the reason usually is; the HTTP package README teaches `ExecuteAsync` throughout. No API changes.
 
 The full history is in **[CHANGELOG.md](https://github.com/andrewBezerra/xunit-assured-net/blob/main/CHANGELOG.md)**. Coming from 5.x? Start with **[UPGRADING.md](https://github.com/andrewBezerra/xunit-assured-net/blob/main/UPGRADING.md)**.
 

@@ -24,14 +24,14 @@
   </PropertyGroup>
 
   <PropertyGroup>
-    <Version>6.6.1</Version>
+    <Version>6.7.0</Version>
 
     <!--
       O que a página do pacote no nuget.org mostra. Sem isto ela fica muda, e quem atualiza
       por `dotnet add package` não recebe nenhum aviso de que a major quebra coisas.
       Trocar a cada versão, junto do número acima.
     -->
-    <PackageReleaseNotes>A failed AssertStatusCode now shows the response body (cut at 1,000 characters), or why there was no response; with Concurrently, each response that differed explains itself. The XUnitAssured.Http README and the XML doc examples teach ExecuteAsync throughout. No API changes from 6.6.0. Upgrade guide: https://github.com/andrewBezerra/xunit-assured-net/blob/main/UPGRADING.md</PackageReleaseNotes>
+    <PackageReleaseNotes>HTTP DSL: Given(httpClient) sends a scenario through a given client, every HTTP step included; AssertStatusCode(403, 404) accepts any of several codes; AssertJsonPathNull and AssertJsonPathMissing tell a field present with null from a missing one; HttpStepResult.SetCookie(name) reads the cookie a response set. Additive: no code changes needed from 6.6.x. Upgrade guide: https://github.com/andrewBezerra/xunit-assured-net/blob/main/UPGRADING.md</PackageReleaseNotes>
     <Authors>Carlos Andrew Costa Bezerra</Authors>
     <Company>Carlos Andrew Costa Bezerra</Company>
     <Copyright>Copyright (c) Carlos Andrew Costa Bezerra</Copyright>
