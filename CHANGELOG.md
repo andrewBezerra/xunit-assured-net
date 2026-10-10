@@ -2,7 +2,15 @@
 
 All notable changes to the XUnitAssured packages. Upgrading from 5.1.x? See [UPGRADING.md](UPGRADING.md).
 
-## v6.4.1 (Current — service workers and fixed ports)
+## v6.4.2 (Current — documentation and samples)
+
+Documentation and samples. No package code changes; upgrading from 6.4.1 requires no code changes.
+
+- **The README says only what is true.** "Every Quick Start snippet is compiled" held for four of nine blocks; the HTTP and Kafka authentication, Kafka batch and `BrowserAppFixture` snippets are now compiled on every build too, and written async like the rest. The supported .NET versions name the one net10-only package, the contributing command skips browser tests as CI does, and the architecture diagram and the configuration example include `Playwright.AspNetCore` and the `rabbitmq` section.
+- **The README shows what 6.2 to 6.4 added**, which had dropped out with the release notes: header, cookie and Problem Details assertions, list JSON paths, `ExtractAsync`, `LogCapture` and `OutboundHttpCapture`, and the page's network. Shorter, too — the sample lists folded into one table, and the MCP from-source setup moved to the MCP package README.
+- **Samples no longer fail one run in ten** (#88). The sample API kept its products in static fields, shared by every test host in the process, so one class's reset could remove a product another class had just created. Each host now has its own store: 7 failures in 60 runs before, 0 in 60 after.
+
+## v6.4.1 (service workers and fixed ports)
 
 Fixes from migrating a real consumer suite's browser tests to 6.4.0. Upgrading from 6.4.0 requires no code changes.
 
