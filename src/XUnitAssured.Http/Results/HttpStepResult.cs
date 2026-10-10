@@ -52,6 +52,33 @@ public class HttpStepResult : TestStepResult
 	public SentRequest? Request => GetProperty<SentRequest>("Request");
 
 	/// <summary>
+	/// The cookie this response set, read from its <c>Set-Cookie</c> headers — to replay a session
+	/// from another client, or to read an attribute. When the response sets the same name more
+	/// than once, the last one is returned, because that is the one the client keeps.
+	/// </summary>
+	/// <param name="name">The cookie name, matched exactly</param>
+	/// <returns>The cookie, or null when the response did not set it</returns>
+	/// <example>
+	/// <code>
+	/// var signIn = (await Given().ApiResource("/auth/login").Post(credentials).ExecuteAsync()).GetResult();
+	/// var session = signIn.SetCookie("sid")!.Value;
+	/// </code>
+	/// </example>
+	public SetCookie? SetCookie(string name) =>
+		SetCookies.LastOrDefault(c => string.Equals(c.Name, name, StringComparison.Ordinal));
+
+	/// <summary>
+	/// Every cookie this response set, in the order of its <c>Set-Cookie</c> headers.
+	/// </summary>
+	public IReadOnlyList<SetCookie> SetCookies =>
+		(Headers ?? new Dictionary<string, IEnumerable<string>>())
+			.Where(h => string.Equals(h.Key, "Set-Cookie", StringComparison.OrdinalIgnoreCase))
+			.SelectMany(h => h.Value)
+			.Select(Results.SetCookie.Parse)
+			.OfType<SetCookie>()
+			.ToList();
+
+	/// <summary>
 	/// Gets the response body converted to the specified type.
 	/// </summary>
 	/// <typeparam name="T">Target type for deserialization</typeparam>

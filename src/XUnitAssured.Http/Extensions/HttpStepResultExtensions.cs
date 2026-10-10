@@ -72,6 +72,20 @@ public static class HttpStepResultExtensions
 	}
 
 	/// <summary>
+	/// Looks for a path without throwing when it is missing, so a field present with null can be
+	/// told from a field that is not there.
+	/// </summary>
+	internal static JsonPathNavigator.Procura JsonPathProcurar(this HttpStepResult result, string path)
+	{
+		var responseBody = result.ResponseBody?.ToString() ?? string.Empty;
+		if (string.IsNullOrWhiteSpace(responseBody))
+			throw new InvalidOperationException("Response body is empty");
+
+		using var document = JsonDocument.Parse(responseBody);
+		return JsonPathNavigator.Procurar(document.RootElement, path);
+	}
+
+	/// <summary>
 	/// How many items there are at a path: the values a [*] selects, or the length of the
 	/// array the path points to.
 	/// </summary>

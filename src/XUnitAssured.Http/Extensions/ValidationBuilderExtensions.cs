@@ -193,7 +193,67 @@ public static class ValidationBuilderExtensions
 		return builder;
 	}
 
+	/// <summary>
+	/// Asserts that the field is in the response with the value null — not missing.
+	/// </summary>
+	public static TBuilder AssertJsonPathNull<TBuilder>(
+		this TBuilder builder,
+		HttpStepResult result,
+		string jsonPath)
+		where TBuilder : class
+	{
+		var procura = result.JsonPathProcurar(jsonPath);
+
+		if (!procura.Achou)
+			throw new ShouldAssertException(procura.SoFaltouOUltimo
+				? $"Expected {jsonPath} to be present and null, but the response has no {jsonPath}. " +
+				  "If missing is what you expect, use AssertJsonPathMissing."
+				: $"Expected {jsonPath} to be null, but the path stops at {procura.Alcancado}, which is {Descrever(procura.Valor)}.");
+
+		if (procura.Valor.ValueKind != System.Text.Json.JsonValueKind.Null)
+			throw new ShouldAssertException($"Expected {jsonPath} to be null, but it is {Descrever(procura.Valor)}.");
+
+		return builder;
+	}
+
+	/// <summary>
+	/// Asserts that the field is not in the response at all — not even with null.
+	/// </summary>
+	/// <remarks>
+	/// Everything before the last part of the path must exist: when an earlier part is missing
+	/// too, the path is more likely wrong than the field absent, and the assertion fails.
+	/// </remarks>
+	public static TBuilder AssertJsonPathMissing<TBuilder>(
+		this TBuilder builder,
+		HttpStepResult result,
+		string jsonPath)
+		where TBuilder : class
+	{
+		var procura = result.JsonPathProcurar(jsonPath);
+
+		if (procura.Achou)
+			throw new ShouldAssertException(procura.Valor.ValueKind == System.Text.Json.JsonValueKind.Null
+				? $"Expected {jsonPath} to be missing, but it is there with null. If null is what you expect, use AssertJsonPathNull."
+				: $"Expected {jsonPath} to be missing, but it is there: {Descrever(procura.Valor)}.");
+
+		if (!procura.SoFaltouOUltimo)
+			throw new ShouldAssertException(
+				$"Expected only the last part of {jsonPath} to be missing, but the path already stops at " +
+				$"{procura.Alcancado}, which is {Descrever(procura.Valor)}. Check the path for a typo.");
+
+		return builder;
+	}
+
 	private static string Formatar(object? valor) => System.Text.Json.JsonSerializer.Serialize(valor);
+
+	// Um objeto ou uma lista grande ocuparia a mensagem inteira; o que importa é o que há ali.
+	private static string Descrever(System.Text.Json.JsonElement valor) => valor.ValueKind switch
+	{
+		System.Text.Json.JsonValueKind.Null => "null",
+		System.Text.Json.JsonValueKind.Object => $"an object with {valor.EnumerateObject().Count()} field(s)",
+		System.Text.Json.JsonValueKind.Array => $"an array of {valor.GetArrayLength()} item(s)",
+		_ => valor.GetRawText()
+	};
 
 	/// <summary>
 	/// Gets or adds a cached JSON schema for the specified type.
