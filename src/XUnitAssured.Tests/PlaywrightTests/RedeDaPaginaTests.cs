@@ -217,13 +217,43 @@ public class RedeDaPaginaTests : IClassFixture<RedeDaPaginaTests.NavegadorComDua
 
 		public void ZerarContagem() => Interlocked.Exchange(ref _chamadasDaApi, 0);
 
-		private void ResponderApp(HttpListenerContext c) => Escrever(c, 200,
-			$$"""
-			<!doctype html><html><body><script>
-			fetch('{{Api}}/api/a', { credentials: 'include' }).catch(() => {});
-			fetch('{{Api}}/api/b', { credentials: 'include' }).catch(() => {});
-			</script></body></html>
-			""", "text/html");
+		private void ResponderApp(HttpListenerContext c)
+		{
+			switch (c.Request.Url!.AbsolutePath)
+			{
+				// Um app com service worker, como um PWA: o worker passa a responder pelos pedidos
+				// à API -- que deixam de passar pelas rotas da página -- assim que controla a
+				// página, a partir do primeiro reload.
+				case "/pwa":
+					Escrever(c, 200,
+						$$"""
+						<!doctype html><html><body><script>
+						navigator.serviceWorker.register('/sw.js').catch(() => {});
+						fetch('{{Api}}/api/a', { credentials: 'include' }).catch(() => {});
+						</script></body></html>
+						""", "text/html");
+					break;
+				case "/sw.js":
+					Escrever(c, 200,
+						"""
+						self.addEventListener('install', () => self.skipWaiting());
+						self.addEventListener('activate', e => e.waitUntil(self.clients.claim()));
+						self.addEventListener('fetch', e => {
+							if (e.request.url.includes('/api/')) e.respondWith(fetch(e.request));
+						});
+						""", "text/javascript");
+					break;
+				default:
+					Escrever(c, 200,
+						$$"""
+						<!doctype html><html><body><script>
+						fetch('{{Api}}/api/a', { credentials: 'include' }).catch(() => {});
+						fetch('{{Api}}/api/b', { credentials: 'include' }).catch(() => {});
+						</script></body></html>
+						""", "text/html");
+					break;
+			}
+		}
 
 		private void ResponderApi(HttpListenerContext c)
 		{

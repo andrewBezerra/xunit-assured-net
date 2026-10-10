@@ -29,6 +29,7 @@ public class PlaywrightSettingsTests
 		settings.RecordTrace.ShouldBeFalse();
 		settings.TracePath.ShouldBe("traces");
 		settings.IgnoreHttpsErrors.ShouldBeFalse();
+		settings.BlockServiceWorkers.ShouldBeFalse();
 		settings.ExtraHttpHeaders.ShouldBeNull();
 		settings.TestIdAttribute.ShouldBe("data-testid");
 	}

@@ -101,7 +101,8 @@ public class PlaywrightTestFixture : IAsyncLifetime, IDisposable
 				Height = Settings.ViewportHeight
 			},
 			IgnoreHTTPSErrors = Settings.IgnoreHttpsErrors,
-			BaseURL = Settings.BaseUrl
+			BaseURL = Settings.BaseUrl,
+			ServiceWorkers = Settings.BlockServiceWorkers ? ServiceWorkerPolicy.Block : ServiceWorkerPolicy.Allow
 		};
 
 		if (Settings.ExtraHttpHeaders != null && Settings.ExtraHttpHeaders.Count > 0)

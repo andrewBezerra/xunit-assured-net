@@ -2,7 +2,14 @@
 
 All notable changes to the XUnitAssured packages. Upgrading from 5.1.x? See [UPGRADING.md](UPGRADING.md).
 
-## v6.4.0 (Current — the page's network, and browser tests in CI)
+## v6.4.1 (Current — service workers and fixed ports)
+
+Fixes from migrating a real consumer suite's browser tests to 6.4.0. Upgrading from 6.4.0 requires no code changes.
+
+- **`PlaywrightSettings.BlockServiceWorkers`** (`XUnitAssured.Playwright`, default `false`). The consumer app is a PWA whose service worker handles data requests, and a request a worker makes for the page bypasses the page's routes: from the first reload on, `InterceptRoute` answered nothing. With the setting on, the browser context blocks service workers and the route sees the requests again. `AssertIntercepted` failing with nothing answered now points to the setting.
+- **A clear error when a fixed port is taken** (`XUnitAssured.Playwright.AspNetCore`). With a fixed `ApiPort`, an `IClassFixture` per test class makes xUnit start two fixtures in parallel on the same port. `BrowserAppFixture` now says so and points to a collection fixture, instead of Kestrel's bare "address already in use". The package README shows the collection and the service worker setting.
+
+## v6.4.0 (the page's network, and browser tests in CI)
 
 Additive, plus one behavior fix: browser tests that reach the network, and browser tests that run in CI. Upgrading from 6.3.x requires no code changes, except where a browser-only chain relied on `And()` not starting a new step (see below).
 
