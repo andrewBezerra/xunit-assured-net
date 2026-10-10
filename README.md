@@ -61,13 +61,14 @@ The chain ends where it is: the last step was a browser step, so `ExecuteAsync()
 ## What it does
 
 - **One DSL across boundaries** — `Given().When().Then()` over HTTP, Kafka, RabbitMQ and the browser, with steps that share state (`SaveStep`, `Steps["name"]`, extracted values).
-- **HTTP** — full CRUD, JSON path assertions, contract validation, and authentication applied once from `testsettings.json`: Bearer, Basic, OAuth2, API key, client certificate (mTLS), custom headers.
+- **HTTP** — full CRUD, JSON path assertions over objects and lists (`$[*].id`), header, `Set-Cookie` and Problem Details assertions, `ExtractAsync` to arrange data in one line, and authentication applied once from `testsettings.json`: Bearer, Basic, OAuth2, API key, client certificate (mTLS), custom headers.
 - **Kafka** — produce and consume single messages and batches, headers and keys, SASL/PLAIN, SCRAM, SSL and mTLS, Schema Registry. Consume steps skip the consumer-group join, so a consume costs milliseconds instead of seconds.
 - **RabbitMQ** — publish and consume single messages and batches, declare queues, exchanges and bindings, reject to a dead-letter exchange; a publish that reaches no queue fails instead of passing in silence.
-- **Browser** — clicks, fills, checks, navigation and screenshots on Playwright, with locators by role, label, test id, text and CSS, and assertions that read like the DSL.
+- **Browser** — clicks, fills, checks, navigation and screenshots on Playwright, with locators by role, label, test id, text and CSS, and assertions that read like the DSL. The page's network too: intercept a route and prove it answered (`InterceptRoute`, `AssertIntercepted`), or call the API from inside the page with its cookies (`FetchFromPage`). `BrowserAppFixture` starts your own ASP.NET Core API and front-end inside `dotnet test`.
+- **What the system did besides answering** — `LogCapture` records what it logged (message, exception, structured values and scopes, so a leaked value has nowhere to hide), and `OutboundHttpCapture` stands in for the outside services it calls and records every request.
 - **AI-assisted authoring** — an MCP server with 10 tools that translate Playwright Inspector recordings into the DSL and scaffold HTTP and Kafka tests from your editor (GitHub Copilot, Claude Code, VS Code and any MCP client).
 - **Diagnostics when things fail** — status codes, broker logs, exception detail and, for browser steps, a screenshot at the moment of failure.
-- **Modular** — install only the packages you need; each targets `net8.0` through `net10.0`.
+- **Modular** — install only the packages you need; each targets `net8.0` through `net10.0`, except `XUnitAssured.Playwright.AspNetCore`, which needs .NET 10.
 
 ## Supported today
 
@@ -86,7 +87,7 @@ In order of intent, not of promise:
 1. **Azure Service Bus**, the next messaging system behind Kafka and RabbitMQ.
 2. **gRPC** alongside HTTP.
 
-## 📦 Packages
+## Packages
 
 ### Core Packages
 
@@ -110,9 +111,9 @@ In order of intent, not of promise:
 |---------|---------|-------------|
 | **XUnitAssured.Mcp** | [![NuGet](https://img.shields.io/nuget/v/XUnitAssured.Mcp.svg?label=)](https://www.nuget.org/packages/XUnitAssured.Mcp) | MCP server for AI-assisted test generation — install via `dnx XUnitAssured.Mcp` or `dotnet tool install XUnitAssured.Mcp` |
 
-## 🚀 Quick Start
+## Quick Start
 
-Every snippet in this section is compiled against the DSL on every build ([`ReadmeQuickStartExamplesTests.cs`](src/XUnitAssured.Tests/ReadmeQuickStartExamplesTests.cs)). They use `ExecuteAsync()`; the blocking `Execute()` still works if your suite is synchronous. `.When()` is optional: `Given()...ExecuteAsync()` and `Given()...When().ExecuteAsync()` describe the same scenario.
+Every test in this section is compiled against the DSL on every build ([`ReadmeQuickStartExamplesTests.cs`](src/XUnitAssured.Tests/ReadmeQuickStartExamplesTests.cs)); the codegen block is the one exception, since it shows raw Playwright code beside its translation. They use `ExecuteAsync()`; the blocking `Execute()` still works if your suite is synchronous. `.When()` is optional: `Given()...ExecuteAsync()` and `Given()...When().ExecuteAsync()` describe the same scenario.
 
 ### HTTP Testing
 
@@ -162,34 +163,36 @@ public class MyApiTests : HttpTestBase<MyApiFixture>, IClassFixture<MyApiFixture
 ### HTTP Authentication Examples
 
 ```csharp
-// Bearer Token
-Given().ApiResource("/api/secure")
+// Bearer token
+var bearer = await Given().ApiResource("/api/secure")
     .WithBearerToken("my-jwt-token")
     .Get()
-.When().Execute()
-.Then().AssertStatusCode(200);
+    .ExecuteAsync();
+bearer.Then().AssertStatusCode(200);
 
-// Basic Auth
-Given().ApiResource("/api/secure")
+// Basic auth
+var basic = await Given().ApiResource("/api/secure")
     .WithBasicAuth("username", "password")
     .Get()
-.When().Execute()
-.Then().AssertStatusCode(200);
+    .ExecuteAsync();
+basic.Then().AssertStatusCode(200);
 
-// API Key (Header or Query)
-Given().ApiResource("/api/secure")
+// API key, in a header or the query string
+var apiKey = await Given().ApiResource("/api/secure")
     .WithApiKey("X-API-Key", "my-api-key", ApiKeyLocation.Header)
     .Get()
-.When().Execute()
-.Then().AssertStatusCode(200);
+    .ExecuteAsync();
+apiKey.Then().AssertStatusCode(200);
 
-// OAuth2 Client Credentials
-Given().ApiResource("/api/secure")
+// OAuth2 client credentials
+var oauth = await Given().ApiResource("/api/secure")
     .WithOAuth2("https://auth.example.com/token", "client-id", "client-secret")
     .Get()
-.When().Execute()
-.Then().AssertStatusCode(200);
+    .ExecuteAsync();
+oauth.Then().AssertStatusCode(200);
 ```
+
+Behavior assertions — headers, cookies, Problem Details, lists in JSON paths — and capturing logs and outbound calls are in the [HTTP package README](src/XUnitAssured.Http/README.md).
 
 ### Playwright UI Testing
 
@@ -295,54 +298,49 @@ public class MyKafkaTests : KafkaTestBase<KafkaClassFixture>, IClassFixture<Kafk
 ### Kafka Batch Operations
 
 ```csharp
-// Produce batch
-Given()
-    .Topic("my-topic")
-    .ProduceBatch(messages)
-.When()
-    .Execute()
-.Then()
-    .AssertSuccess()
-    .AssertBatchCount(5);
+var topic = GenerateUniqueTopic("my-batch");
+var messages = new[] { "one", "two", "three", "four", "five" };
 
-// Consume batch
-Given()
-    .Topic("my-topic")
+var produced = await Given()
+    .Topic(topic)
+    .ProduceBatch(messages)
+    .ExecuteAsync();
+produced.Then().AssertSuccess().AssertBatchCount(5);
+
+var consumed = await Given()
+    .Topic(topic)
     .ConsumeBatch(5)
-    .WithGroupId(groupId)
-.When()
-    .Execute()
-.Then()
-    .AssertSuccess()
-    .AssertBatchCount(5);
+    .WithGroupId($"test-{Guid.NewGuid():N}")
+    .ExecuteAsync();
+consumed.Then().AssertSuccess().AssertBatchCount(5);
 ```
 
 ### Kafka Authentication Examples
 
 ```csharp
 // SASL/PLAIN
-Given().Topic("my-topic")
+var saslPlain = await Given().Topic("my-topic")
     .Produce("message")
     .WithBootstrapServers("localhost:29093")
     .WithAuth(auth => auth.UseSaslPlain("user", "password", useSsl: false))
-.When().Execute()
-.Then().AssertSuccess();
+    .ExecuteAsync();
+saslPlain.Then().AssertSuccess();
 
 // SSL (one-way)
-Given().Topic("my-topic")
+var ssl = await Given().Topic("my-topic")
     .Produce("message")
     .WithBootstrapServers("localhost:29096")
     .WithAuth(auth => auth.UseSsl("certs/ca-cert.pem"))
-.When().Execute()
-.Then().AssertSuccess();
+    .ExecuteAsync();
+ssl.Then().AssertSuccess();
 
-// Mutual TLS (mTLS)
-Given().Topic("my-topic")
+// Mutual TLS
+var mtls = await Given().Topic("my-topic")
     .Produce("message")
     .WithBootstrapServers("localhost:29097")
     .WithAuth(auth => auth.UseMutualTls("client-cert.pem", "client-key.pem", "ca-cert.pem"))
-.When().Execute()
-.Then().AssertSuccess();
+    .ExecuteAsync();
+mtls.Then().AssertSuccess();
 ```
 
 ### RabbitMQ Testing
@@ -377,7 +375,7 @@ public async Task Publish_And_Consume_Message()
 
 Topology, batches, dead-letter, and why prefetch is not a verb: see the [RabbitMQ package README](src/XUnitAssured.RabbitMq/README.md).
 
-## ⚙️ Configuration: `testsettings.json`
+## Configuration: `testsettings.json`
 
 Every protocol package reads its connection details and credentials from one file at the root of your test project, so tests never hard-code URLs, brokers or tokens:
 
@@ -405,6 +403,11 @@ Every protocol package reads its connection details and credentials from one fil
     "groupId": "my-tests",
     "securityProtocol": "Plaintext",       // Plaintext | Ssl | SaslPlaintext | SaslSsl
     "authentication": { "type": "None" }   // None | SaslPlain | SaslScram256 | SaslScram512 | Ssl | MutualTls
+  },
+
+  "rabbitmq": {
+    "connectionUri": "amqp://guest:guest@127.0.0.1:5672/",  // the last segment is the virtual host
+    "consumeTimeoutSeconds": 30
   }
 }
 ```
@@ -415,7 +418,7 @@ Comments are allowed. The full set of keys, with every authentication variant sp
 
 **Per-environment files.** With `TEST_ENV=staging` (or `"environment": "staging"`), `testsettings.staging.json` is loaded instead of `testsettings.json`. Keep secrets out of the file with `${ENV:...}`.
 
-**Kafka on Windows with Docker or Podman.** Prefer `"bootstrapServers": "127.0.0.1:9092"` over `localhost:9092`. On Windows, `localhost` resolves to IPv6 `::1` first, the container only forwards IPv4, and the Kafka client gives up on each attempt only after ~20 s — a test that should fail instantly hangs, and one that should pass may time out. The broker must also advertise the same address: with the official image, set `KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://127.0.0.1:9092`, otherwise its metadata sends the client back to `localhost`. The compose files under `src/XUnitAssured.Kafka.Samples.Remote.Test/docker` are set up this way.
+**Kafka and RabbitMQ on Windows with Docker or Podman.** Use `127.0.0.1` rather than `localhost` for both — for RabbitMQ, each connection otherwise pays about a minute before falling back to IPv4. For Kafka, prefer `"bootstrapServers": "127.0.0.1:9092"` over `localhost:9092`. On Windows, `localhost` resolves to IPv6 `::1` first, the container only forwards IPv4, and the Kafka client gives up on each attempt only after ~20 s — a test that should fail instantly hangs, and one that should pass may time out. The broker must also advertise the same address: with the official image, set `KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://127.0.0.1:9092`, otherwise its metadata sends the client back to `localhost`. The compose files under `src/XUnitAssured.Kafka.Samples.Remote.Test/docker` are set up this way.
 
 **How it reaches your tests.** A fixture loads the file once and hands it to the DSL:
 
@@ -458,7 +461,7 @@ The reference implementation of an HTTP fixture is [`HttpSamplesRemoteFixture.cs
 
 > **One more name you may meet in the code.** `httpsettings.json` is a fallback read only when an `HttpRequestStep` runs without a fixture or explicit authentication. Kafka has no such file: a Kafka step run without a fixture reads the same `kafka` section of `testsettings.json` the fixture does.
 
-## 🏗️ Architecture
+## Architecture
 
 ```
                                 XUnitAssured.Core
@@ -466,6 +469,9 @@ The reference implementation of an HTTP fixture is [`HttpSamplesRemoteFixture.cs
           ↓                  ↓                   ↓                    ↓
   XUnitAssured.Http   XUnitAssured.Kafka   XUnitAssured.RabbitMq   XUnitAssured.Playwright
   (REST APIs)         (Kafka)              (RabbitMQ)              (Browser UI)
+                                                                          ↓
+                                                         XUnitAssured.Playwright.AspNetCore
+                                                         (your API + front-end on real ports)
 
   XUnitAssured.Mcp — MCP server that writes tests in the DSL above (AI-assisted authoring)
 ```
@@ -508,52 +514,17 @@ Kafka predates this rule and still declares its verbs on `ITestScenario`. That i
 is written for new packages rather than claimed as true of all of them; moving the existing ones
 is a breaking change, and it is the only thing that would close the gap above.
 
-## 📚 Sample Projects
+## Sample Projects
 
-The repository includes comprehensive sample projects for both local and remote testing:
+| Project | What it covers |
+|---------|----------------|
+| `XUnitAssured.Http.Samples.Local.Test` | HTTP against a local `SampleWebApi` (WebApplicationFactory): CRUD, every authentication scheme (Bearer, Basic, API key, OAuth2, certificate, custom header), hybrid validation |
+| `XUnitAssured.Http.Samples.Remote.Test` | HTTP against a deployed API, configured from `testsettings.json` |
+| `XUnitAssured.Kafka.Samples.Remote.Test` | Kafka against Docker or remote clusters: strings, JSON, headers, keys, batches, and each authentication mode (plaintext, SASL/PLAIN, SCRAM-256/512, SSL, mTLS) |
+| `XunitAssured.PlayWright.Samples.Local.Test` | Playwright against a local Blazor `SampleWebApp`: navigation, forms, validation messages, data tables |
+| `XUnitAssured.Playwright.Samples.Remote.Test` | Playwright against a deployed web app, including a full CRUD flow |
 
-| Project | Description |
-|---------|-------------|
-| `XUnitAssured.Http.Samples.Local.Test` | HTTP tests against a local `SampleWebApi` (WebApplicationFactory) |
-| `XUnitAssured.Http.Samples.Remote.Test` | HTTP tests against a deployed remote API |
-| `XUnitAssured.Kafka.Samples.Remote.Test` | Kafka tests against local Docker or remote Kafka clusters |
-| `XunitAssured.PlayWright.Samples.Local.Test` | Playwright UI tests against a local Blazor `SampleWebApp` |
-| `XUnitAssured.Playwright.Samples.Remote.Test` | Playwright UI tests against a deployed remote web application |
-
-### HTTP Sample Test Categories
-
-- **SimpleIntegrationTests** — Basic GET/POST/PUT/DELETE operations
-- **CrudOperationsTests** — Full CRUD lifecycle with JSON path assertions
-- **BearerAuthTests** — Bearer token authentication
-- **BasicAuthTests** — Basic authentication
-- **ApiKeyAuthTests** — API Key via Header and Query parameter
-- **OAuth2AuthTests** — OAuth2 flows (Client Credentials, Password)
-- **CertificateAuthTests** — Certificate-based (mTLS) authentication
-- **CustomHeaderAuthTests** — Custom header authentication
-- **HybridValidationTests** — Mixed validation strategies
-- **DiagnosticTests** — Connectivity and diagnostic tests
-
-### Kafka Sample Test Categories
-
-- **ProducerConsumerBasicTests** — Produce/consume strings, JSON, headers, batches, keys, timeouts
-- **AuthenticationPlainTextTests** — Plaintext (no auth)
-- **AuthenticationSaslPlainTests** — SASL/PLAIN
-- **AuthenticationScramSha256Tests** — SASL/SCRAM-SHA-256
-- **AuthenticationScramSha512Tests** — SASL/SCRAM-SHA-512
-- **AuthenticationScramSha512SslTests** — SASL/SSL
-- **AuthenticationTests** — SSL, mTLS, invalid credentials
-
-### Playwright Sample Test Categories
-
-- **HomePageTests** — Page navigation, title verification, element visibility
-- **CounterPageTests** — Button clicks, state changes, counter increments
-- **LoginPageTests** — Form fills, authentication flows, error validation
-- **RegisterPageTests** — Multi-field forms, validation messages
-- **NavigationTests** — Menu navigation, URL assertions, page transitions
-- **WeatherPageTests** — Data table assertions, loading states
-- **TodoCrudTests** — Full CRUD UI operations (create, read, update, delete)
-
-## 🤖 MCP Server (AI-Assisted Test Generation)
+## MCP Server (AI-Assisted Test Generation)
 
 XUnitAssured includes an MCP (Model Context Protocol) server that integrates with GitHub Copilot Chat, VS Code, and any MCP-compatible AI client. It provides **10 tools** for test generation and code translation.
 
@@ -594,46 +565,7 @@ Add to your `.mcp.json` (repo root, `~/.mcp.json`, or `.vscode/mcp.json`):
 
 That's it — `dnx` downloads and runs the MCP server automatically. No build needed.
 
-#### Option B — From source (for contributors)
-
-##### 1. Build the MCP server
-
-```bash
-cd src/XunitAssured.MCP
-dotnet build -c Debug
-```
-
-##### 2. Configure `.mcp.json`
-
-**Repo-level** (relative path, recommended for team use):
-
-```json
-{
-  "servers": {
-    "xunitassured": {
-      "type": "stdio",
-      "command": "dotnet",
-      "args": ["run", "--no-build", "--project", "src/XunitAssured.MCP/XunitAssured.MCP.csproj"]
-    }
-  }
-}
-```
-
-**Global** (absolute path to compiled `.exe`, faster):
-
-```json
-{
-  "servers": {
-    "xunitassured": {
-      "type": "stdio",
-      "command": "<full-path-to-repo>/src/XunitAssured.MCP/bin/Debug/net10.0/XUnitAssured.Mcp.exe",
-      "args": []
-    }
-  }
-}
-```
-
-> **Tip:** Pointing directly to the `.exe` is faster than `dotnet run` because it skips project resolution.
+Building it from source instead is described in the [MCP package README](src/XunitAssured.MCP/README.md#option-c---from-source-contributors).
 
 #### Restart your IDE
 
@@ -653,7 +585,7 @@ In GitHub Copilot Chat, the XUnitAssured tools should appear as available. Try:
 
 > "Generate a Kafka produce-consume round-trip test for the orders topic"
 
-## 🔄 What's New
+## What's New
 
 **6.4.1** — fixes from the first real migration to 6.4.0: `BlockServiceWorkers` for apps with a service worker, whose requests bypassed `InterceptRoute`, and a clear error when a fixed port is taken. No code changes needed from 6.4.0.
 
@@ -661,32 +593,32 @@ In GitHub Copilot Chat, the XUnitAssured tools should appear as available. Try:
 
 The full history is in **[CHANGELOG.md](https://github.com/andrewBezerra/xunit-assured-net/blob/main/CHANGELOG.md)**. Coming from 5.x? Start with **[UPGRADING.md](https://github.com/andrewBezerra/xunit-assured-net/blob/main/UPGRADING.md)**.
 
-## 🤝 Contributing
+## Contributing
 
 Contributions are welcome — issues and pull requests alike.
 
 ```bash
 dotnet build src/XUnitAssured.Net.sln
-dotnet test src/XUnitAssured.Tests --filter "Requires!=Network&Requires!=Broker"
+dotnet test src/XUnitAssured.Tests --filter "Requires!=Network&Requires!=Broker&Requires!=Browser"
 ```
 
-The filter skips the tests that need the network or a running broker; CI runs those separately, the broker ones against its own RabbitMQ service. To run the Kafka samples locally, the compose files under `src/XUnitAssured.Kafka.Samples.Remote.Test/docker` start a broker per authentication mode. The certificates and keys committed there are **test-only fixtures** for those local brokers, not credentials for anything real.
+The filter skips the tests that need the network, a running broker or an installed browser; CI runs those separately — the broker ones against its own RabbitMQ service, the browser ones after installing Chromium (`pwsh src/XUnitAssured.Tests/bin/Debug/net10.0/playwright.ps1 install chromium` does the same locally). To run the Kafka samples locally, the compose files under `src/XUnitAssured.Kafka.Samples.Remote.Test/docker` start a broker per authentication mode. The certificates and keys committed there are **test-only fixtures** for those local brokers, not credentials for anything real.
 
 Adding a protocol package? Read [Adding a protocol package](#adding-a-protocol-package) first.
 
 **Releases.** Merging to `main` publishes, so every pull request raises `<Version>` in `src/Directory.Build.props` and adds `docs/releases/<version>.md` with what ships. The pull request check fails without both; on merge, the release workflow creates the tag and the GitHub release from that file, then publishes to NuGet after a manual approval.
 
-## 📄 License
+## License
 
 This project is licensed under the Apache License 2.0 - see the [LICENSE.md](LICENSE.md) file for details.
 
-## 👤 Author
+## Author
 
 **Carlos Andrew Costa Bezerra**
 - GitHub: [@andrewBezerra](https://github.com/andrewBezerra)
 - LinkedIn: [andrew-bezerra](https://www.linkedin.com/in/andrew-bezerra/)
 
-## 🔗 Links
+## Links
 
 - [GitHub Repository](https://github.com/andrewBezerra/xunit-assured-net)
 - [NuGet Packages](https://www.nuget.org/profiles/AndrewBezerra)

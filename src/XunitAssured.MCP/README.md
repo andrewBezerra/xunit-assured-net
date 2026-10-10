@@ -44,6 +44,43 @@ Then configure `.mcp.json`:
 }
 ```
 
+### Option C - From source (contributors)
+
+Build the server from the repository:
+
+```bash
+cd src/XunitAssured.MCP
+dotnet build -c Debug
+```
+
+Then point `.mcp.json` at it — through the project (relative path, good for a team):
+
+```json
+{
+  "servers": {
+    "xunitassured": {
+      "type": "stdio",
+      "command": "dotnet",
+      "args": ["run", "--no-build", "--project", "src/XunitAssured.MCP/XunitAssured.MCP.csproj"]
+    }
+  }
+}
+```
+
+or at the compiled executable, which starts faster because it skips project resolution:
+
+```json
+{
+  "servers": {
+    "xunitassured": {
+      "type": "stdio",
+      "command": "<full-path-to-repo>/src/XunitAssured.MCP/bin/Debug/net10.0/XUnitAssured.Mcp.exe",
+      "args": []
+    }
+  }
+}
+```
+
 ## Available Tools (10)
 
 ### Playwright (3 tools)
