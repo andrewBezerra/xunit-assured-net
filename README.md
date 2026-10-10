@@ -586,7 +586,7 @@ Add to your `.mcp.json` (repo root, `~/.mcp.json`, or `.vscode/mcp.json`):
     "xunitassured": {
       "type": "stdio",
       "command": "dnx",
-      "args": ["XUnitAssured.Mcp@6.4.0", "--yes"]
+      "args": ["XUnitAssured.Mcp@6.4.1", "--yes"]
     }
   }
 }
@@ -655,9 +655,9 @@ In GitHub Copilot Chat, the XUnitAssured tools should appear as available. Try:
 
 ## 🔄 What's New
 
-**6.4.0** — browser tests that run in CI: `BrowserAppFixture` (new package **XUnitAssured.Playwright.AspNetCore**, .NET 10) starts your API and built front-end on real ports inside `dotnet test`, and the page's network is in the DSL — `InterceptRoute` with `AssertIntercepted`, `Reload`, and `FetchFromPage` with the page's cookies. `And()` now starts a new step in browser-only chains.
+**6.4.1** — fixes from the first real migration to 6.4.0: `BlockServiceWorkers` for apps with a service worker, whose requests bypassed `InterceptRoute`, and a clear error when a fixed port is taken. No code changes needed from 6.4.0.
 
-**6.3.0** — assert what the system did besides answering: `LogCapture` for what it logged (including values that leak through scopes or exceptions) and `OutboundHttpCapture` for the outside services it called. No code changes needed from 6.2.x.
+**6.4.0** — browser tests that run in CI: `BrowserAppFixture` (new package **XUnitAssured.Playwright.AspNetCore**, .NET 10) starts your API and built front-end on real ports inside `dotnet test`, and the page's network is in the DSL — `InterceptRoute` with `AssertIntercepted`, `Reload`, and `FetchFromPage` with the page's cookies. `And()` now starts a new step in browser-only chains.
 
 The full history is in **[CHANGELOG.md](https://github.com/andrewBezerra/xunit-assured-net/blob/main/CHANGELOG.md)**. Coming from 5.x? Start with **[UPGRADING.md](https://github.com/andrewBezerra/xunit-assured-net/blob/main/UPGRADING.md)**.
 
