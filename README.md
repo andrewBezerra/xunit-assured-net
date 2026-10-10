@@ -568,7 +568,7 @@ Add to your `.mcp.json` (repo root, `~/.mcp.json`, or `.vscode/mcp.json`):
     "xunitassured": {
       "type": "stdio",
       "command": "dnx",
-      "args": ["XUnitAssured.Mcp@6.1.1", "--yes"]
+      "args": ["XUnitAssured.Mcp@6.2.0", "--yes"]
     }
   }
 }
@@ -637,9 +637,9 @@ In GitHub Copilot Chat, the XUnitAssured tools should appear as available. Try:
 
 ## 🔄 What's New
 
-**6.1.1** — a README rewritten for the first visit (asynchronous Quick Start compiled on every build, RabbitMQ throughout), and every release now ships with a tag and a GitHub release. No API changes.
+**6.2.0** — HTTP behavior tests without leaving the DSL: `ApiResource(() => ...)` to create and read back in one chain, lists in JSON paths (`$[*].id`, `AssertJsonPathContains`/`NotContains`/`Count`/`All`), header, cookie and Problem Details assertions, and `ExtractAsync` to arrange data in one line. No code changes needed from 6.1.x.
 
-**6.1.0** — a new `XUnitAssured.RabbitMq` package (publish/consume, topology, batches, dead-letter), and fixes for steps that ran twice or lost their authentication after 6.0.0. Upgrading from 6.0.0 needs no code changes.
+**6.1.1** — a README rewritten for the first visit (asynchronous Quick Start compiled on every build, RabbitMQ throughout), and every release now ships with a tag and a GitHub release. No API changes.
 
 The full history is in **[CHANGELOG.md](https://github.com/andrewBezerra/xunit-assured-net/blob/main/CHANGELOG.md)**. Coming from 5.x? Start with **[UPGRADING.md](https://github.com/andrewBezerra/xunit-assured-net/blob/main/UPGRADING.md)**.
 

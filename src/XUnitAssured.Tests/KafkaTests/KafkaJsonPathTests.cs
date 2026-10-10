@@ -76,6 +76,16 @@ public class KafkaJsonPathTests
 		secondPrice.ShouldBe(20.75m);
 	}
 
+	// O navegador é o mesmo do Http: uma mensagem que é uma lista na raiz passou a ser lida na
+	// 6.2.0. Antes, $[0] falhava em todos os pacotes.
+	[Fact(DisplayName = "JsonPath should index a message that is an array at the root")]
+	public void JsonPath_Should_Index_A_Root_Array()
+	{
+		var result = CreateKafkaResultWithJsonMessage(@"[{""sku"": ""A1""}, {""sku"": ""B2""}]");
+
+		result.JsonPath<string>("$[1].sku").ShouldBe("B2");
+	}
+
 	[Fact(DisplayName = "JsonPath should extract boolean property")]
 	public void JsonPath_Should_Extract_Boolean_Property()
 	{
