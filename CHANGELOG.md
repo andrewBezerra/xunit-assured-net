@@ -2,7 +2,16 @@
 
 All notable changes to the XUnitAssured packages. Upgrading from 5.1.x? See [UPGRADING.md](UPGRADING.md).
 
-## v6.6.1 (Current — failures that say why)
+## v6.7.0 (Current — a client per scenario, null or missing, the cookie set)
+
+Additive. Upgrading from 6.6.x requires no code changes. The rest of the usability pass driven by a real consumer suite's workarounds.
+
+- **`Given(httpClient)`** (#108), on `ScenarioDsl` and `HttpTestBase`, in place of `Given().WithHttpClient(client)`, which the consumer suite wrote 74 times and shortened with three local helpers. Every HTTP step of the scenario goes through the client, steps after `.And()` included; `WithHttpClient` only set it for the current step. The scenario does not dispose the client, and `HttpTestBase.Given(client)` leaves the fixture's client and authentication out. `WithHttpClient` stays. The READMEs use the new form.
+- **`AssertStatusCode(403, 404)`** (#109) accepts any of the codes, for a path that answers either way by design, and lists them on failure along with the body. With `Concurrently`, every response must be one of them. A single code works as before.
+- **`AssertJsonPathNull` and `AssertJsonPathMissing`** (#109) tell a field present with `null` from a field that is not there; each failure says which one the response had. `AssertJsonPathMissing` requires everything before the last part of the path to exist, so a typo earlier in the path fails instead of passing.
+- **`HttpStepResult.SetCookie(name)`** (#109) returns the cookie a response set, value and attributes, or null — to replay a session from another client without parsing `Set-Cookie` by hand. When the name is set twice, the last one wins, as for the client. `SetCookies` lists them all.
+
+## v6.6.1 (failures that say why)
 
 No API changes. Upgrading from 6.6.0 requires no code changes. The first two items of a usability pass driven by a real consumer suite's workarounds.
 

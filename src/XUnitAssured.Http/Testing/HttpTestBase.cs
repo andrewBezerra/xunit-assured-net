@@ -1,4 +1,5 @@
 using System;
+using System.Net.Http;
 using XUnitAssured.Core.Abstractions;
 using XUnitAssured.Core.DSL;
 using XUnitAssured.Core.Testing;
@@ -60,6 +61,32 @@ public abstract class HttpTestBase<TFixture> : FixtureTestBase<TFixture>
 	protected new ITestScenario Given()
 	{
 		return ScenarioDsl.Given(Fixture);
+	}
+
+	/// <summary>
+	/// Starts a new test scenario that sends through the given client instead of the fixture's —
+	/// a user with fewer permissions, a client that keeps cookies, a test-only host.
+	/// This is a convenience method that wraps ScenarioDsl.Given(httpClient).
+	/// </summary>
+	/// <param name="httpClient">The client every HTTP step of the scenario sends through.</param>
+	/// <returns>A new test scenario that sends through <paramref name="httpClient"/>.</returns>
+	/// <remarks>
+	/// The fixture's client and authentication are not used: the scenario goes out exactly
+	/// as <paramref name="httpClient"/> is configured.
+	/// </remarks>
+	/// <example>
+	/// <code>
+	/// (await Given(Fixture.ClientFor(("X-Test-User", "reader")))
+	///     .ApiResource("/orders/1")
+	///     .Delete()
+	///     .ExecuteAsync())
+	///     .Then()
+	///         .AssertStatusCode(403);
+	/// </code>
+	/// </example>
+	protected ITestScenario Given(HttpClient httpClient)
+	{
+		return ScenarioDsl.Given(httpClient);
 	}
 
 	/// <summary>

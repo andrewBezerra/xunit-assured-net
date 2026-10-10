@@ -1,3 +1,5 @@
+using System.Net.Http;
+
 using XUnitAssured.Core.Abstractions;
 
 namespace XUnitAssured.Core.DSL;
@@ -68,6 +70,36 @@ public static class ScenarioDsl
 	}
 
 	/// <summary>
+	/// Starts a new test scenario whose HTTP requests go through the given client —
+	/// a user with fewer permissions, a client that keeps cookies, a test-only host.
+	/// </summary>
+	/// <param name="httpClient">The client every HTTP step of the scenario sends through, including steps after <c>.And()</c>.</param>
+	/// <returns>A new test scenario that sends through <paramref name="httpClient"/>.</returns>
+	/// <remarks>
+	/// Same as <c>Given().WithHttpClient(httpClient)</c> for a single request. The scenario
+	/// does not dispose the client: whoever created it does. A <c>WithHttpClient</c> later in
+	/// the chain still overrides it for that step.
+	/// </remarks>
+	/// <example>
+	/// <code>
+	/// (await Given(api.ClientFor(("X-Test-User", "reader")))
+	///     .ApiResource("/orders/1")
+	///     .Delete()
+	///     .ExecuteAsync())
+	///     .Then()
+	///         .AssertStatusCode(403);
+	/// </code>
+	/// </example>
+	/// <exception cref="System.ArgumentNullException">Thrown when <paramref name="httpClient"/> is null.</exception>
+	public static ITestScenario Given(HttpClient httpClient)
+	{
+		if (httpClient == null)
+			throw new System.ArgumentNullException(nameof(httpClient));
+
+		return Given(new ClienteDado(httpClient));
+	}
+
+	/// <summary>
 	/// Starts a new test scenario whose context is populated by every provider given,
 	/// so one call configures a scenario that spans several boundaries.
 	/// </summary>
@@ -113,5 +145,14 @@ public static class ScenarioDsl
 		}
 
 		return scenario;
+	}
+
+	/// <summary>
+	/// O cliente que o teste deu, servido como provedor para que cada passo HTTP do cenário o use.
+	/// Devolve sempre a mesma instância e não a descarta.
+	/// </summary>
+	private sealed class ClienteDado(HttpClient cliente) : IHttpClientProvider
+	{
+		public HttpClient CreateClient() => cliente;
 	}
 }

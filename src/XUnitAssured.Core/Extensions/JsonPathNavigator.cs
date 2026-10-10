@@ -70,6 +70,61 @@ internal static class JsonPathNavigator
 		return atuais.Select(Deserialize<T>).ToList();
 	}
 
+	/// <summary>
+	/// Procura o caminho sem lançar quando ele falta, para quem precisa distinguir um campo
+	/// presente com null de um campo ausente. Para no primeiro trecho que não existe.
+	/// </summary>
+	/// <param name="element">O elemento onde a procura começa</param>
+	/// <param name="path">O caminho, sem [*]</param>
+	/// <returns>
+	/// O valor, quando achou; senão até onde chegou e o que havia lá, e se o que faltou foi só o
+	/// último trecho.
+	/// </returns>
+	/// <exception cref="InvalidOperationException">O caminho tem [*], que seleciona vários valores.</exception>
+	public static Procura Procurar(JsonElement element, string path)
+	{
+		var segmentos = Segmentos(path).ToList();
+		var alvo = element;
+		var alcancado = "$";
+
+		for (var i = 0; i < segmentos.Count; i++)
+		{
+			var segmento = segmentos[i];
+			if (segmento.Curinga)
+				throw new InvalidOperationException(
+					$"The path '{path}' has [*], which selects many values. Point it at a single value.");
+
+			JsonElement proximo = default;
+			var existe = segmento.Propriedade != null
+				? alvo.ValueKind == JsonValueKind.Object && alvo.TryGetProperty(segmento.Propriedade, out proximo)
+				: TentarIndice(alvo, segmento.Indice!.Value, out proximo);
+
+			if (!existe)
+				return new Procura(false, alvo.Clone(), alcancado, i == segmentos.Count - 1);
+
+			alvo = proximo;
+			alcancado += segmento.Propriedade != null ? $".{segmento.Propriedade}" : $"[{segmento.Indice}]";
+		}
+
+		return new Procura(true, alvo.Clone(), alcancado, false);
+	}
+
+	/// <summary>
+	/// O que <see cref="Procurar"/> encontrou. Quando não achou, <see cref="Valor"/> é o que havia
+	/// em <see cref="Alcancado"/>, o último trecho que existia.
+	/// </summary>
+	internal readonly record struct Procura(bool Achou, JsonElement Valor, string Alcancado, bool SoFaltouOUltimo);
+
+	private static bool TentarIndice(JsonElement elemento, int indice, out JsonElement item)
+	{
+		item = default;
+		if (elemento.ValueKind != JsonValueKind.Array || indice < 0 || indice >= elemento.GetArrayLength())
+			return false;
+
+		item = elemento[indice];
+		return true;
+	}
+
 	/// <summary>Um passo do caminho: uma propriedade, um índice, ou o curinga [*].</summary>
 	private readonly record struct Segmento(string? Propriedade, int? Indice, bool Curinga);
 

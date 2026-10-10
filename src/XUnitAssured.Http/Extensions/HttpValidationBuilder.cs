@@ -63,27 +63,55 @@ public class HttpValidationBuilder : ValidationBuilder<HttpStepResult>
 	///     .AssertStatusCode(404);
 	/// </code>
 	/// </example>
-	public HttpValidationBuilder AssertStatusCode(int expectedStatusCode)
+	public HttpValidationBuilder AssertStatusCode(int expectedStatusCode) =>
+		AssertStatusCodeIn(new[] { expectedStatusCode });
+
+	/// <summary>
+	/// Asserts that the HTTP status code is one of the accepted values — for a path that may
+	/// answer either way by design, such as 403 or 404 for a resource the caller may not see.
+	/// </summary>
+	/// <param name="accepted">An accepted status code</param>
+	/// <param name="alsoAccepted">The other accepted status codes</param>
+	/// <returns>The same HTTP validation builder for method chaining</returns>
+	/// <exception cref="ShouldAssertException">Thrown when the status code is none of them</exception>
+	/// <example>
+	/// <code>
+	/// .Then()
+	///     .AssertStatusCode(403, 404);
+	/// </code>
+	/// </example>
+	public HttpValidationBuilder AssertStatusCode(int accepted, params int[] alsoAccepted) =>
+		AssertStatusCodeIn(new[] { accepted }.Concat(alsoAccepted ?? Array.Empty<int>()).ToArray());
+
+	private HttpValidationBuilder AssertStatusCodeIn(int[] aceitos)
 	{
+		var esperado = DescreverCodigos(aceitos);
+
 		if (base.Result is ConcurrentHttpStepResult concorrente)
 		{
 			// Cada resposta que fugiu do esperado diz por quê; as que acertaram só ocupariam espaço.
 			var fora = concorrente.Responses
 				.Select((r, i) => (Resposta: r, Posicao: i + 1))
-				.Where(x => x.Resposta.StatusCode != expectedStatusCode)
+				.Where(x => !aceitos.Contains(x.Resposta.StatusCode))
 				.Select(x => $"Request {x.Posicao} ({x.Resposta.StatusCode}): {x.Resposta.Explicacao()}");
 
-			concorrente.StatusCodes.ShouldAllBe(codigo => codigo == expectedStatusCode,
+			concorrente.StatusCodes.ShouldAllBe(codigo => aceitos.Contains(codigo),
 				$"Expected every one of the {concorrente.Responses.Count} concurrent requests to get " +
-				$"{expectedStatusCode}, but they got: {string.Join(", ", concorrente.StatusCodes)}" +
+				$"{esperado}, but they got: {string.Join(", ", concorrente.StatusCodes)}" +
 				Environment.NewLine + string.Join(Environment.NewLine, fora));
 			return this;
 		}
 
-		Result.StatusCode.ShouldBe(expectedStatusCode,
-			$"Expected HTTP status code {expectedStatusCode} but got {Result.StatusCode}. {Result.Explicacao()}");
+		aceitos.Contains(Result.StatusCode).ShouldBeTrue(
+			$"Expected HTTP status code {esperado} but got {Result.StatusCode}. {Result.Explicacao()}");
 		return this;
 	}
+
+	// 404 / 403 or 404 / 400, 403 or 404
+	private static string DescreverCodigos(int[] codigos) =>
+		codigos.Length == 1
+			? codigos[0].ToString()
+			: $"{string.Join(", ", codigos.Take(codigos.Length - 1))} or {codigos[codigos.Length - 1]}";
 
 	/// <summary>
 	/// Runs the assertions on each response of requests sent with <c>Concurrently</c> — or on the
@@ -196,6 +224,34 @@ public class HttpValidationBuilder : ValidationBuilder<HttpStepResult>
 	}
 
 	/// <summary>
+	/// Asserts that the field is in the response with the value null — not missing. The failure
+	/// says which of the two it was.
+	/// </summary>
+	/// <param name="jsonPath">JSON path to a single value, e.g. "$.contactId"</param>
+	/// <returns>The same HTTP validation builder for method chaining</returns>
+	/// <example>
+	/// <code>
+	/// .Then()
+	///     .AssertJsonPathNull("$.contactId")       // "contactId": null
+	///     .AssertJsonPathMissing("$.password");    // no "password" at all
+	/// </code>
+	/// </example>
+	public HttpValidationBuilder AssertJsonPathNull(string jsonPath) =>
+		this.AssertJsonPathNull<HttpValidationBuilder>(Result, jsonPath);
+
+	/// <summary>
+	/// Asserts that the field is not in the response at all — not even with null.
+	/// </summary>
+	/// <remarks>
+	/// Everything before the last part of the path must exist: when an earlier part is missing
+	/// too, the path is more likely wrong than the field absent, and the assertion fails.
+	/// </remarks>
+	/// <param name="jsonPath">JSON path to a single value, e.g. "$.password"</param>
+	/// <returns>The same HTTP validation builder for method chaining</returns>
+	public HttpValidationBuilder AssertJsonPathMissing(string jsonPath) =>
+		this.AssertJsonPathMissing<HttpValidationBuilder>(Result, jsonPath);
+
+	/// <summary>
 	/// Asserts that the values a path selects include <paramref name="expected"/>.
 	/// </summary>
 	/// <remarks>
@@ -297,7 +353,7 @@ public class HttpValidationBuilder : ValidationBuilder<HttpStepResult>
 	/// <returns>The same HTTP validation builder for method chaining</returns>
 	public HttpValidationBuilder AssertSetCookie(string name, Func<SetCookie, bool>? predicate = null, string? failureMessage = null)
 	{
-		var cookie = CookieDefinido(name);
+		var cookie = Result.SetCookie(name);
 		cookie.ShouldNotBeNull($"Expected the response to set cookie {name}, but it set: {NomesDosCookies()}");
 
 		if (predicate != null)
@@ -437,13 +493,6 @@ public class HttpValidationBuilder : ValidationBuilder<HttpStepResult>
 	private string NomesDosCabecalhos() =>
 		string.Join(", ", (Result.Headers ?? new Dictionary<string, IEnumerable<string>>()).Keys);
 
-	private List<SetCookie> CookiesDefinidos() =>
-		ValoresDoCabecalho("Set-Cookie").Select(SetCookie.Parse).OfType<SetCookie>().ToList();
-
-	// O último Set-Cookie de um nome é o que vale para o cliente.
-	private SetCookie? CookieDefinido(string nome) =>
-		CookiesDefinidos().LastOrDefault(c => string.Equals(c.Name, nome, StringComparison.Ordinal));
-
 	private SentRequest PedidoEnviado() =>
 		Result.Request ?? throw new InvalidOperationException(
 			"No request was sent, so there is nothing to assert about it. " +
@@ -454,7 +503,7 @@ public class HttpValidationBuilder : ValidationBuilder<HttpStepResult>
 
 	private string NomesDosCookies()
 	{
-		var nomes = CookiesDefinidos().Select(c => c.Name).ToList();
+		var nomes = Result.SetCookies.Select(c => c.Name).ToList();
 		return nomes.Count == 0 ? "no cookies" : string.Join(", ", nomes);
 	}
 

@@ -48,9 +48,9 @@ optional and changes nothing: keep it only if you like the Given/When/Then readi
 ### Request Setup
 
 ```csharp
-Given()
+Given()                                    // Given(client): every request of the scenario goes through client
     .ApiResource("/api/endpoint")          // Set target URL
-    .WithHttpClient(client)                // Use custom HttpClient (e.g., WebApplicationFactory)
+    .WithHttpClient(client)                // Use a custom HttpClient for this request only
     .WithHeader("X-Custom", "value")       // Add request header
     .WithQueryParam("page", 1)             // Add query parameter
     .WithTimeout(30)                       // Set timeout in seconds
@@ -115,6 +115,7 @@ wrong type, XML, plain text. The Content-Type goes as given, parameters included
     .ExecuteAsync())
 .Then()
     .AssertStatusCode(200)                                              // the body is shown when it fails
+    .AssertStatusCode(403, 404)                                         // any of these, e.g. access denied by design
     .AssertSuccess()                                                    // Assert IsValid = true
     .ValidateContract<Product>()                                        // Validate JSON schema against type
     .AssertJsonPath<int>("$.id", id => id.ShouldBe(1))                  // Assert JSON value with Shouldly
@@ -123,6 +124,21 @@ wrong type, XML, plain text. The Content-Type goes as given, parameters included
     .Extract(r => myVar = r.StatusCode)                                 // Capture via callback
     .JsonPath<int>("$.id")                                              // Extract value from JSON
 ```
+
+### Null or missing
+
+A field present with `null` and a field that is not there are different answers, and each has its
+own assertion. The failure says which of the two the response had:
+
+```csharp
+.Then()
+    .AssertJsonPathNull("$.contactId")                                  // "contactId": null
+    .AssertJsonPathMissing("$.password")                                // no "password" at all
+```
+
+`AssertJsonPathMissing` needs everything before the last part of the path to exist. If an
+earlier part is missing too, the path is more likely wrong than the field absent, so the assertion
+fails.
 
 ### Lists
 
@@ -157,6 +173,14 @@ search that returned nothing would otherwise pass.
 `AssertCookieCleared` reads the expiry: checking that the header text mentions `expires=` is not the
 same thing, since a date in the future mentions it too.
 
+To use a cookie the response set, for example to replay a session from another client, read it from
+the result. `SetCookie` returns null when the response did not set it:
+
+```csharp
+var signIn = (await Given().ApiResource("/auth/login").Post(credentials).ExecuteAsync()).GetResult();
+var session = signIn.SetCookie("sid")!.Value;                           // attributes too: .HttpOnly, .Path, .Expires
+```
+
 ### The request that was sent
 
 `result.Request` is the request as it went out, read after the client sent it: method, address,
@@ -167,8 +191,7 @@ cookies puts the session in the `Cookie` header, and that is what a session test
 using var browser = api.ClientWithCookies();
 // ... sign in, then sign out ...
 
-(await Given()
-    .WithHttpClient(browser)
+(await Given(browser)
     .ApiResource("/auth/refresh")
     .Post()
     .ExecuteAsync())
