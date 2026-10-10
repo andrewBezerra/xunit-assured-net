@@ -113,6 +113,22 @@ A path can start at a root array (`$[0].id`), and `[*]` selects a value from eve
 `AssertJsonPathAll` fails when the path selects nothing: an empty list satisfies any condition, so a
 search that returned nothing would otherwise pass.
 
+### Headers, cookies, Problem Details and body text
+
+```csharp
+.Then()
+    .AssertHeader("Location", "/api/orders/42")                         // header names are case-insensitive
+    .AssertNoHeader("X-Powered-By")
+    .AssertSetCookie("session", c => c.HttpOnly && c.Secure && c.Path == "/auth")
+    .AssertCookieCleared("session")                                     // expiry in the past or Max-Age=0
+    .AssertProblemDetails(409, p => p.Extension<string>("code") == "ScheduleConflict")
+    .AssertBodyContains("not found")
+    .AssertBodyNotContains("invited@example.com")                       // the response must not leak it
+```
+
+`AssertCookieCleared` reads the expiry: checking that the header text mentions `expires=` is not the
+same thing, since a date in the future mentions it too.
+
 ## Authentication
 
 ### Bearer Token

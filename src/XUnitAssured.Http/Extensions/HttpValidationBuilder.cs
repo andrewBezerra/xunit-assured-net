@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Shouldly;
 using XUnitAssured.Core.Abstractions;
 using XUnitAssured.Core.Extensions;
@@ -170,6 +171,144 @@ public class HttpValidationBuilder : ValidationBuilder<HttpStepResult>
 	/// <returns>The same HTTP validation builder for method chaining</returns>
 	public HttpValidationBuilder AssertJsonPathAll<T>(string jsonPath, Func<T, bool> predicate, string? failureMessage = null) =>
 		this.AssertJsonPathAll<HttpValidationBuilder, T>(Result, jsonPath, predicate, failureMessage);
+
+	/// <summary>
+	/// Asserts that the response has a header with this exact value.
+	/// The name is matched case-insensitively, as HTTP requires.
+	/// </summary>
+	/// <param name="name">The header name, e.g. "Location"</param>
+	/// <param name="expectedValue">The value one of its entries must have</param>
+	/// <returns>The same HTTP validation builder for method chaining</returns>
+	public HttpValidationBuilder AssertHeader(string name, string expectedValue) =>
+		AssertHeader(name, valor => valor == expectedValue, $"Expected header {name} to be '{expectedValue}'");
+
+	/// <summary>
+	/// Asserts that the response has a header with an entry that satisfies <paramref name="predicate"/>.
+	/// </summary>
+	/// <param name="name">The header name, matched case-insensitively</param>
+	/// <param name="predicate">The condition one of its entries must satisfy</param>
+	/// <param name="failureMessage">Custom failure message</param>
+	/// <returns>The same HTTP validation builder for method chaining</returns>
+	public HttpValidationBuilder AssertHeader(string name, Func<string, bool> predicate, string? failureMessage = null)
+	{
+		var valores = ValoresDoCabecalho(name);
+		valores.ShouldNotBeEmpty($"Expected the response to have a {name} header, but it had: {NomesDosCabecalhos()}");
+		valores.Any(predicate).ShouldBeTrue(
+			$"{failureMessage ?? $"Header {name} did not satisfy the condition"}. Values: {string.Join(" | ", valores)}");
+		return this;
+	}
+
+	/// <summary>
+	/// Asserts that the response does not have the header at all.
+	/// </summary>
+	/// <param name="name">The header name, matched case-insensitively</param>
+	/// <returns>The same HTTP validation builder for method chaining</returns>
+	public HttpValidationBuilder AssertNoHeader(string name)
+	{
+		var valores = ValoresDoCabecalho(name);
+		valores.ShouldBeEmpty($"Expected no {name} header, but it was there: {string.Join(" | ", valores)}");
+		return this;
+	}
+
+	/// <summary>
+	/// Asserts that the response sets the cookie, and optionally that its attributes satisfy
+	/// <paramref name="predicate"/> — e.g. <c>c =&gt; c.HttpOnly &amp;&amp; c.Path == "/v1/auth"</c>.
+	/// </summary>
+	/// <param name="name">The cookie name</param>
+	/// <param name="predicate">The condition on the cookie's attributes; null to only require it</param>
+	/// <param name="failureMessage">Custom failure message</param>
+	/// <returns>The same HTTP validation builder for method chaining</returns>
+	public HttpValidationBuilder AssertSetCookie(string name, Func<SetCookie, bool>? predicate = null, string? failureMessage = null)
+	{
+		var cookie = CookieDefinido(name);
+		cookie.ShouldNotBeNull($"Expected the response to set cookie {name}, but it set: {NomesDosCookies()}");
+
+		if (predicate != null)
+			predicate(cookie).ShouldBeTrue(
+				$"{failureMessage ?? $"Cookie {name} did not satisfy the condition"}. It was: {cookie}");
+
+		return this;
+	}
+
+	/// <summary>
+	/// Asserts that the response tells the client to forget the cookie: a <c>Set-Cookie</c> for
+	/// it with an expiry in the past or a <c>Max-Age</c> of zero.
+	/// </summary>
+	/// <remarks>
+	/// Checking that the header text mentions <c>expires=</c> is not the same thing: a date in
+	/// the future also mentions it.
+	/// </remarks>
+	/// <param name="name">The cookie name</param>
+	/// <returns>The same HTTP validation builder for method chaining</returns>
+	public HttpValidationBuilder AssertCookieCleared(string name) =>
+		AssertSetCookie(name, c => c.IsExpired, $"Expected cookie {name} to be cleared (expiry in the past or Max-Age=0)");
+
+	/// <summary>
+	/// Asserts an RFC 7807 / 9457 error response: the status code, and optionally its body —
+	/// e.g. <c>p =&gt; p.Extension&lt;string&gt;("code") == "ScheduleConflict"</c>.
+	/// </summary>
+	/// <param name="expectedStatusCode">The expected HTTP status code</param>
+	/// <param name="predicate">The condition on the problem details; null to only check the status</param>
+	/// <param name="failureMessage">Custom failure message</param>
+	/// <returns>The same HTTP validation builder for method chaining</returns>
+	public HttpValidationBuilder AssertProblemDetails(int expectedStatusCode, Func<ProblemDetailsResponse, bool>? predicate = null, string? failureMessage = null)
+	{
+		AssertStatusCode(expectedStatusCode);
+
+		var corpo = Result.ResponseBody?.ToString() ?? string.Empty;
+		var problema = ProblemDetailsResponse.Parse(corpo);
+
+		if (predicate != null)
+			predicate(problema).ShouldBeTrue(
+				$"{failureMessage ?? "Problem details did not satisfy the condition"}. Body: {corpo}");
+
+		return this;
+	}
+
+	/// <summary>
+	/// Asserts that the response body contains the text (ordinal comparison).
+	/// </summary>
+	/// <param name="text">The text that must appear</param>
+	/// <returns>The same HTTP validation builder for method chaining</returns>
+	public HttpValidationBuilder AssertBodyContains(string text)
+	{
+		(Result.ResponseBody?.ToString() ?? string.Empty).ShouldContain(text, Case.Sensitive);
+		return this;
+	}
+
+	/// <summary>
+	/// Asserts that the response body does not contain the text — for "this response must not
+	/// leak X" (ordinal comparison).
+	/// </summary>
+	/// <param name="text">The text that must not appear</param>
+	/// <returns>The same HTTP validation builder for method chaining</returns>
+	public HttpValidationBuilder AssertBodyNotContains(string text)
+	{
+		(Result.ResponseBody?.ToString() ?? string.Empty).ShouldNotContain(text, Case.Sensitive);
+		return this;
+	}
+
+	private List<string> ValoresDoCabecalho(string nome) =>
+		(Result.Headers ?? new Dictionary<string, IEnumerable<string>>())
+			.Where(h => string.Equals(h.Key, nome, StringComparison.OrdinalIgnoreCase))
+			.SelectMany(h => h.Value)
+			.ToList();
+
+	private string NomesDosCabecalhos() =>
+		string.Join(", ", (Result.Headers ?? new Dictionary<string, IEnumerable<string>>()).Keys);
+
+	private List<SetCookie> CookiesDefinidos() =>
+		ValoresDoCabecalho("Set-Cookie").Select(SetCookie.Parse).OfType<SetCookie>().ToList();
+
+	// O último Set-Cookie de um nome é o que vale para o cliente.
+	private SetCookie? CookieDefinido(string nome) =>
+		CookiesDefinidos().LastOrDefault(c => string.Equals(c.Name, nome, StringComparison.Ordinal));
+
+	private string NomesDosCookies()
+	{
+		var nomes = CookiesDefinidos().Select(c => c.Name).ToList();
+		return nomes.Count == 0 ? "no cookies" : string.Join(", ", nomes);
+	}
 
 	/// <summary>
 	/// Extracts every value a path with [*] selects, e.g. the ids of a list.
