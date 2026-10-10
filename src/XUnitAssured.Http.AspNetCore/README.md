@@ -49,8 +49,7 @@ public class OrderTests(MyApi api) : HttpTestBase<MyApi>(api)
 
     [Fact]
     public async Task Reader_Cannot_Delete() =>
-        (await Given()
-            .WithHttpClient(Fixture.ClientFor(("X-Test-User", "reader")))
+        (await Given(Fixture.ClientFor(("X-Test-User", "reader")))   // this test's client
             .ApiResource("/orders/1")
             .Delete()
             .ExecuteAsync())
@@ -61,7 +60,7 @@ public class OrderTests(MyApi api) : HttpTestBase<MyApi>(api)
 | Member | What it is |
 |--------|------------|
 | `CreateClient()` | The shared client, the one `Given(fixture)` uses. Created once, with `ConfigureClient` applied |
-| `ClientFor(("Name", "value"), ...)` | A new client as someone else: `ConfigureClient`, then these headers, each replacing one of the same name |
+| `ClientFor(("Name", "value"), ...)` | A new client as someone else: `ConfigureClient`, then these headers, each replacing one of the same name. `Given(client)` sends the scenario through it |
 | `ClientWithCookies()` | A new client with its own cookie jar, for a session that lives in a cookie |
 | `ClientWithoutCookies()` | A new client that never keeps cookies, to see a session from outside |
 | `Services`, `CreateScope()` | The API's services, for the checks no endpoint shows |
@@ -119,8 +118,7 @@ public async Task Refused_Access_Is_Logged()
 {
     Fixture.Logs.Clear();
 
-    (await Given()
-        .WithHttpClient(Fixture.ClientFor(("X-Test-User", "reader")))
+    (await Given(Fixture.ClientFor(("X-Test-User", "reader")))
         .ApiResource("/orders/1")
         .Delete()
         .ExecuteAsync())
