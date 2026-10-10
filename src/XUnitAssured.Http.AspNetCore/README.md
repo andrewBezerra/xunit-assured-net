@@ -41,19 +41,19 @@ public class OrderTests(MyApi api) : HttpTestBase<MyApi>(api)
 {
     [Fact]
     public async Task Admin_Lists_Orders() =>
-        (await Given()                       // the shared client
+        await Given()                       // the shared client
             .ApiResource("/orders")
             .Get()
-            .ExecuteAsync())
-        .Then().AssertStatusCode(200);
+            .ExecuteAsync()
+            .AssertStatusCode(200);
 
     [Fact]
     public async Task Reader_Cannot_Delete() =>
-        (await Given(Fixture.ClientFor(("X-Test-User", "reader")))   // this test's client
+        await Given(Fixture.ClientFor(("X-Test-User", "reader")))   // this test's client
             .ApiResource("/orders/1")
             .Delete()
-            .ExecuteAsync())
-        .Then().AssertStatusCode(403);
+            .ExecuteAsync()
+            .AssertStatusCode(403);
 }
 ```
 
@@ -118,11 +118,11 @@ public async Task Refused_Access_Is_Logged()
 {
     Fixture.Logs.Clear();
 
-    (await Given(Fixture.ClientFor(("X-Test-User", "reader")))
+    await Given(Fixture.ClientFor(("X-Test-User", "reader")))
         .ApiResource("/orders/1")
         .Delete()
-        .ExecuteAsync())
-    .Then().AssertStatusCode(403);
+        .ExecuteAsync()
+        .AssertStatusCode(403);
 
     Fixture.Logs.AssertLoggedOnce(predicate: l => l.Message.Contains("access denied"));
 }
