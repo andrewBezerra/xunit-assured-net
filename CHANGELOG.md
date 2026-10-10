@@ -2,7 +2,14 @@
 
 All notable changes to the XUnitAssured packages. Upgrading from 5.1.x? See [UPGRADING.md](UPGRADING.md).
 
-## v6.6.0 (Current — requests at once, the request sent, raw bodies)
+## v6.6.1 (Current — failures that say why)
+
+No API changes. Upgrading from 6.6.0 requires no code changes. The first two items of a usability pass driven by a real consumer suite's workarounds.
+
+- **A failed `AssertStatusCode` shows the response body** (#106). The message used to say only "expected 201 but got 400"; the reason was in the body, and the consumer suite replaced the assertion with a `Validate` that repeated the check to add it. The body is cut at 1,000 characters, saying how many were left out; with no response, the message says why (connection refused, timeout). With `Concurrently`, each response that differed is listed with its position, status and body. `EnsureSuccessAsync` and `ExtractAsync` use the same description.
+- **The `XUnitAssured.Http` README teaches `ExecuteAsync`** (#107). It showed the synchronous `Execute()` 16 times and `.When()` in 17 examples, while the root README uses only `ExecuteAsync`. It now uses `ExecuteAsync` throughout, says once what `Execute()` is for and that `.When()` is optional, and points to `ApiFixture` for testing your own API. The XML doc examples follow. The mTLS example called a `WithCertificate` overload that does not exist, and ".NET 10" was listed twice; both fixed.
+
+## v6.6.0 (requests at once, the request sent, raw bodies)
 
 Additive. Upgrading from 6.5.x requires no code changes. The three things that still sent a real consumer suite from the DSL to a raw `HttpClient` (#101).
 
