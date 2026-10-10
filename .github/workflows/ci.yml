@@ -176,7 +176,7 @@ jobs:
       - name: Tests in a real browser
         run: dotnet test ${{ env.UNIT_TESTS }} --configuration Release --no-build --framework net10.0 --filter "Requires=Browser"
 
-  # Proves the five packages actually pack, and keeps the artifacts so a release
+  # Proves every package actually packs, and keeps the artifacts so a release
   # candidate can be inspected before any tag is cut.
   pack:
     name: Pack

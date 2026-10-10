@@ -14,6 +14,8 @@ After installing, run the Playwright browser install:
 pwsh bin/Debug/net10.0/playwright.ps1 install
 ```
 
+> Testing your own ASP.NET Core API and front-end? [XUnitAssured.Playwright.AspNetCore](https://www.nuget.org/packages/XUnitAssured.Playwright.AspNetCore) starts both on real ports inside `dotnet test`.
+
 ## Quick Start
 
 ```csharp
