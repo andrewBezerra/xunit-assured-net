@@ -28,8 +28,10 @@ public class CrudOperationsTests : HttpSamplesRemoteTestBase, IClassFixture<Http
 			.When()
 				.Execute()
 			.Then()
-				.AssertStatusCode(200);
-		// Note: Cannot validate array in root with current JsonPath implementation
+				.AssertStatusCode(200)
+				// The response is an array at the root: [*] selects a value from every item
+				.AssertJsonPathContains("$[*].id", 1)
+				.AssertJsonPathAll<decimal>("$[*].price", price => price > 0, "Every product should have a positive price");
 	}
 
 	[Fact(Skip = "Remote test - requires deployed API environment", DisplayName = "GET product by ID should return product details with 200 OK status")]

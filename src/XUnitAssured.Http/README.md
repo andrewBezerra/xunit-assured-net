@@ -96,6 +96,23 @@ A 201 alone proves the API answered; reading the resource back proves it was sto
     .JsonPath<int>("$.id")                                              // Extract value from JSON
 ```
 
+### Lists
+
+A path can start at a root array (`$[0].id`), and `[*]` selects a value from every item
+(`$[*].id`, `$.items[*].sku`). A filter is only tested when the test proves what it left out:
+
+```csharp
+.Then()
+    .AssertJsonPathContains("$[*].id", matchingId)                      // must be in the result
+    .AssertJsonPathNotContains("$[*].id", otherCityId)                  // must have been filtered out
+    .AssertJsonPathCount("$.items", 2)                                  // array length, or values [*] selects
+    .AssertJsonPathAll<string>("$[*].city", c => c == "Rio")           // every value; fails on an empty list
+    .JsonPathAll<string>("$[*].id")                                     // extract every selected value
+```
+
+`AssertJsonPathAll` fails when the path selects nothing: an empty list satisfies any condition, so a
+search that returned nothing would otherwise pass.
+
 ## Authentication
 
 ### Bearer Token

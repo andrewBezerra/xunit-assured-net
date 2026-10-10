@@ -253,6 +253,12 @@ public static class HttpTestGeneratorTools
 			    .ValidateContract<Product>()                     Validate JSON schema
 			    .AssertJsonPath<int>("$.id", id => id.ShouldBe(1))          Assert JSON value
 			    .AssertJsonPath<string>("$.name", n => n.ShouldNotBeEmpty()) Assert JSON string
+			    .AssertJsonPath<string>("$[0].id", id => ...)    Index a root array
+			    .AssertJsonPathContains("$[*].id", id)           A list includes a value ([*] = every item)
+			    .AssertJsonPathNotContains("$[*].id", id)        A list leaves a value out (what a filter excluded)
+			    .AssertJsonPathCount("$.items", 2)               Array length, or how many values [*] selects
+			    .AssertJsonPathAll<string>("$[*].city", c => ...) Every value matches; fails on an empty list
+			    .JsonPathAll<string>("$[*].id")                  Extract every value [*] selects
 			    .Extract(out var result)                         Capture result for later use
 			    .Extract(r => myVar = r.StatusCode)             Capture via callback
 			    .JsonPath<int>("$.id")                           Extract value from JSON

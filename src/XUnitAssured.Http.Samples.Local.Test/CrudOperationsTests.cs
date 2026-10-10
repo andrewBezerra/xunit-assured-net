@@ -29,8 +29,9 @@ public class CrudOperationsTests : HttpTestBase<HttpSamplesFixture>, IClassFixtu
 				.Execute()
 			.Then()
 				.AssertStatusCode(200)
-			.AssertStatusCode(200);
-		// Note: Cannot validate array in root with current JsonPath implementation
+				// The response is an array at the root: [*] selects a value from every item
+				.AssertJsonPathContains("$[*].id", 1)
+				.AssertJsonPathAll<decimal>("$[*].price", price => price > 0, "Every product should have a positive price");
 	}
 	[Fact(DisplayName = "GET product by ID should return product details with 200 OK status")]
 	public void Example02_GetProductById_ShouldReturnProduct()
