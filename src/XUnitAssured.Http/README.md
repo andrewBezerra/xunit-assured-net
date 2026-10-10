@@ -8,6 +8,8 @@ HTTP/REST API testing extensions for the [XUnitAssured.Net](https://github.com/a
 dotnet add package XUnitAssured.Http
 ```
 
+> Testing your own ASP.NET Core API? [XUnitAssured.Http.AspNetCore](https://www.nuget.org/packages/XUnitAssured.Http.AspNetCore) hosts it in memory with a client per identity, shared across the suite.
+
 ## Quick Start
 
 ```csharp

@@ -219,5 +219,35 @@ public static class ReadmeQuickStartExamples
 	{
 		protected override string? AppDirectory => "../../../../my-app/dist";
 	}
+
+	// O ApiFixture também, porque a SampleWebApi só entra no net10. Criar o fixture não sobe a API.
+	public sealed class MyApi : XUnitAssured.Http.AspNetCore.ApiFixture<Program>
+	{
+		protected override void ConfigureApi(Microsoft.AspNetCore.Hosting.IWebHostBuilder api) =>
+			Microsoft.AspNetCore.Hosting.HostingAbstractionsWebHostBuilderExtensions.UseEnvironment(api, "Testing");
+
+		protected override void ConfigureClient(HttpClient client) =>
+			client.DefaultRequestHeaders.Add("X-Test-User", "admin");
+	}
+
+	[CollectionDefinition("README API")]
+	public sealed class ApiCollection : ICollectionFixture<MyApi>;
+
+	[Collection("README API")]
+	[Trait("Category", "Examples")]
+	public class OrderTests(MyApi api) : HttpTestBase<MyApi>(api)
+	{
+		[Fact(Skip = "README example - requires the reader's API")]
+		public async Task Reader_Cannot_Delete()
+		{
+			var assertions = await Given()
+				.WithHttpClient(Fixture.ClientFor(("X-Test-User", "reader")))
+				.ApiResource("/orders/1")
+				.Delete()
+				.ExecuteAsync();
+
+			assertions.Then().AssertStatusCode(403);
+		}
+	}
 #endif
 }

@@ -1,0 +1,38 @@
+<Project Sdk="Microsoft.NET.Sdk">
+	<PropertyGroup>
+		<TargetFrameworks>net8.0;net9.0;net10.0</TargetFrameworks>
+		<SuppressTfmSupportBuildWarnings>true</SuppressTfmSupportBuildWarnings>
+		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+		<Description>HTTP tests against your own ASP.NET Core API with XUnitAssured.Http: ApiFixture hosts the API in memory with WebApplicationFactory and hands out a shared client, a new client per identity, clients with and without cookies, the API's services and its logs — one instance for the whole suite through a collection fixture.</Description>
+		<PackageId>XUnitAssured.Http.AspNetCore</PackageId>
+		<PackageTags>xunit;http;rest;aspnetcore;webapplicationfactory;api-testing;integration-testing</PackageTags>
+		<RootNamespace>XUnitAssured.Http.AspNetCore</RootNamespace>
+		<IsPackable>true</IsPackable>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<FrameworkReference Include="Microsoft.AspNetCore.App" />
+		<PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="8.0.11" Condition="'$(TargetFramework)' == 'net8.0'" />
+		<PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="9.0.1" Condition="'$(TargetFramework)' == 'net9.0'" />
+		<PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="10.0.3" Condition="'$(TargetFramework)' == 'net10.0'" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<None Include="..\..\package-icon.png">
+			<Pack>True</Pack>
+			<PackagePath>\</PackagePath>
+		</None>
+		<None Include="README.md">
+			<Pack>True</Pack>
+			<PackagePath>\</PackagePath>
+		</None>
+		<None Include="..\..\LICENSE.md">
+			<Pack>True</Pack>
+			<PackagePath>\</PackagePath>
+		</None>
+	</ItemGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\XUnitAssured.Http\XUnitAssured.Http.csproj" />
+	</ItemGroup>
+</Project>
