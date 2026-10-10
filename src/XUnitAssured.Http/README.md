@@ -68,6 +68,18 @@ readBack.Then().AssertStatusCode(200);
 
 A 201 alone proves the API answered; reading the resource back proves it was stored.
 
+### Arranging data
+
+Creating a parent resource and keeping its id fits in one line. `ExtractAsync` runs the chain,
+requires a 2xx, and returns the value; a failed arrange fails right there, with the status and the
+body, instead of handing the test an empty id:
+
+```csharp
+var customerId = await Given().ApiResource("/customers").Post(customer).ExtractAsync<string>("$.id");
+var (id, token) = await Given().ApiResource(route).Post(invite).ExtractAsync<string, string>("$.id", "$.token");
+await Given().ApiResource($"/orders/{id}").Delete().EnsureSuccessAsync();   // no value needed
+```
+
 ### HTTP Methods
 
 ```csharp
