@@ -16,7 +16,7 @@ Add to your `.mcp.json` (repo root, `~/.mcp.json`, or `.vscode/mcp.json`):
     "xunitassured": {
       "type": "stdio",
       "command": "dnx",
-      "args": ["XUnitAssured.Mcp@6.4.1", "--yes"]
+      "args": ["XUnitAssured.Mcp@6.4.2", "--yes"]
     }
   }
 }
@@ -38,6 +38,43 @@ Then configure `.mcp.json`:
     "xunitassured": {
       "type": "stdio",
       "command": "xunitassured-mcp",
+      "args": []
+    }
+  }
+}
+```
+
+### Option C - From source (contributors)
+
+Build the server from the repository:
+
+```bash
+cd src/XunitAssured.MCP
+dotnet build -c Debug
+```
+
+Then point `.mcp.json` at it — through the project (relative path, good for a team):
+
+```json
+{
+  "servers": {
+    "xunitassured": {
+      "type": "stdio",
+      "command": "dotnet",
+      "args": ["run", "--no-build", "--project", "src/XunitAssured.MCP/XunitAssured.MCP.csproj"]
+    }
+  }
+}
+```
+
+or at the compiled executable, which starts faster because it skips project resolution:
+
+```json
+{
+  "servers": {
+    "xunitassured": {
+      "type": "stdio",
+      "command": "<full-path-to-repo>/src/XunitAssured.MCP/bin/Debug/net10.0/XUnitAssured.Mcp.exe",
       "args": []
     }
   }
