@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net;
 using XUnitAssured.Core.Results;
 
@@ -110,6 +111,34 @@ public class HttpStepResult : TestStepResult
 			DataType = responseBody?.GetType(),
 			Properties = properties
 		};
+	}
+
+	/// <summary>
+	/// How many characters of the body a failure message shows. Enough for a validation error
+	/// or a Problem Details, short enough not to bury the line that failed.
+	/// </summary>
+	internal const int TamanhoDoResumo = 1000;
+
+	/// <summary>
+	/// What a failure message needs to say about this response: the body, cut to
+	/// <see cref="TamanhoDoResumo"/> characters, or — when no response came — why not.
+	/// </summary>
+	/// <remarks>
+	/// A status alone says that something is wrong; the reason is in the body, or, for a request
+	/// that got no answer, in the errors.
+	/// </remarks>
+	internal string Explicacao()
+	{
+		if (StatusCode == 0)
+			return $"No response: {string.Join("; ", Errors.DefaultIfEmpty("no reason given"))}";
+
+		var corpo = ResponseBody?.ToString();
+		if (string.IsNullOrEmpty(corpo))
+			return "Body: (empty)";
+
+		return corpo.Length <= TamanhoDoResumo
+			? $"Body: {corpo}"
+			: $"Body: {corpo.Substring(0, TamanhoDoResumo)}… ({corpo.Length - TamanhoDoResumo} more characters)";
 	}
 
 	/// <summary>

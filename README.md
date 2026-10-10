@@ -599,7 +599,7 @@ Add to your `.mcp.json` (repo root, `~/.mcp.json`, or `.vscode/mcp.json`):
     "xunitassured": {
       "type": "stdio",
       "command": "dnx",
-      "args": ["XUnitAssured.Mcp@6.6.0", "--yes"]
+      "args": ["XUnitAssured.Mcp@6.6.1", "--yes"]
     }
   }
 }
@@ -629,9 +629,9 @@ In GitHub Copilot Chat, the XUnitAssured tools should appear as available. Try:
 
 ## What's New
 
-**6.6.0** — HTTP: `Concurrently` sends a request several times at once and asserts on every response, `result.Request` is the request as it went out (cookies the client added included), and `PostRaw` sends malformed input on purpose. No code changes needed from 6.5.0.
+**6.6.1** — a failed `AssertStatusCode` shows the response body, where the reason usually is; the HTTP package README teaches `ExecuteAsync` throughout. No API changes.
 
-**6.5.0** — `XUnitAssured.Http.AspNetCore`: `ApiFixture` hosts your own ASP.NET Core API in memory, with a client per identity, clients with and without cookies, its services and its logs — one instance for the whole suite. No changes to existing packages.
+**6.6.0** — HTTP: `Concurrently` sends a request several times at once and asserts on every response, `result.Request` is the request as it went out (cookies the client added included), and `PostRaw` sends malformed input on purpose. No code changes needed from 6.5.0.
 
 The full history is in **[CHANGELOG.md](https://github.com/andrewBezerra/xunit-assured-net/blob/main/CHANGELOG.md)**. Coming from 5.x? Start with **[UPGRADING.md](https://github.com/andrewBezerra/xunit-assured-net/blob/main/UPGRADING.md)**.
 

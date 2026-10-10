@@ -67,14 +67,21 @@ public class HttpValidationBuilder : ValidationBuilder<HttpStepResult>
 	{
 		if (base.Result is ConcurrentHttpStepResult concorrente)
 		{
+			// Cada resposta que fugiu do esperado diz por quê; as que acertaram só ocupariam espaço.
+			var fora = concorrente.Responses
+				.Select((r, i) => (Resposta: r, Posicao: i + 1))
+				.Where(x => x.Resposta.StatusCode != expectedStatusCode)
+				.Select(x => $"Request {x.Posicao} ({x.Resposta.StatusCode}): {x.Resposta.Explicacao()}");
+
 			concorrente.StatusCodes.ShouldAllBe(codigo => codigo == expectedStatusCode,
 				$"Expected every one of the {concorrente.Responses.Count} concurrent requests to get " +
-				$"{expectedStatusCode}, but they got: {string.Join(", ", concorrente.StatusCodes)}");
+				$"{expectedStatusCode}, but they got: {string.Join(", ", concorrente.StatusCodes)}" +
+				Environment.NewLine + string.Join(Environment.NewLine, fora));
 			return this;
 		}
 
 		Result.StatusCode.ShouldBe(expectedStatusCode,
-			$"Expected HTTP status code {expectedStatusCode} but got {Result.StatusCode}");
+			$"Expected HTTP status code {expectedStatusCode} but got {Result.StatusCode}. {Result.Explicacao()}");
 		return this;
 	}
 
@@ -500,10 +507,10 @@ public class HttpValidationBuilder : ValidationBuilder<HttpStepResult>
 	/// <returns>The same HTTP validation builder for method chaining</returns>
 	/// <example>
 	/// <code>
-	/// Given()
+	/// (await Given()
 	///     .ApiResource("/api/products")
 	///     .Post(newProduct)
-	///     .When().Execute()
+	///     .ExecuteAsync())
 	///     .Then()
 	///         .AssertStatusCode(201)
 	///         .Extract(out var createResult);
@@ -527,10 +534,10 @@ public class HttpValidationBuilder : ValidationBuilder<HttpStepResult>
 	/// <example>
 	/// <code>
 	/// int statusCode = 0;
-	/// Given()
+	/// (await Given()
 	///     .ApiResource("/api/products/1")
 	///     .Get()
-	///     .When().Execute()
+	///     .ExecuteAsync())
 	///     .Then()
 	///         .Extract(result => statusCode = result.StatusCode)
 	///         .AssertStatusCode(200);
@@ -557,20 +564,20 @@ public class HttpValidationBuilder : ValidationBuilder<HttpStepResult>
 	/// <example>
 	/// <code>
 	/// // Create a product and capture its ID
-	/// Given()
+	/// (await Given()
 	///     .ApiResource("/api/products")
 	///     .Post(newProduct)
-	///     .When().Execute()
+	///     .ExecuteAsync())
 	///     .Then()
 	///         .AssertStatusCode(201)
 	///         .ExtractJsonPath&lt;int&gt;("$.id", out var createdId)
 	///         .ExtractJsonPath&lt;string&gt;("$.name", out var createdName);
 	///
 	/// // Use captured values in subsequent calls
-	/// Given()
+	/// (await Given()
 	///     .ApiResource($"/api/products/{createdId}")
 	///     .Get()
-	///     .When().Execute()
+	///     .ExecuteAsync())
 	///     .Then()
 	///         .AssertStatusCode(200)
 	///         .AssertJsonPath&lt;string&gt;("$.name", name =&gt; name == createdName);
