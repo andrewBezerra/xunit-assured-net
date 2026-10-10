@@ -26,11 +26,10 @@ namespace XUnitAssured.Http.Configuration;
 /// }
 /// 
 /// // Usage in tests - authentication applied automatically
-/// Given(fixture)
+/// (await Given(fixture)
 ///     .ApiResource("/api/protected")
 ///     .Get()
-/// .When()
-///     .Execute()
+///     .ExecuteAsync())
 /// .Then()
 ///     .AssertStatusCode(200);
 /// </code>

@@ -88,19 +88,10 @@ public static class HttpArrangeExtensions
 		// Sem status não houve resposta: tempo esgotado, conexão recusada, endereço que não
 		// resolve. O motivo está nos erros, e é ele que precisa aparecer.
 		if (resultado.StatusCode == 0)
-			throw new ShouldAssertException(
-				$"The arrange request got no response: {string.Join("; ", resultado.Errors.DefaultIfEmpty("no reason given"))}");
+			throw new ShouldAssertException($"The arrange request got no response. {resultado.Explicacao()}");
 
 		resultado.IsSuccessStatusCode.ShouldBeTrue(
 			$"The arrange request answered {resultado.StatusCode} {resultado.ReasonPhrase}, " +
-			$"so the test cannot rely on what it was meant to create. Body: {Resumo(resultado.ResponseBody?.ToString())}");
-	}
-
-	private static string Resumo(string? corpo)
-	{
-		if (string.IsNullOrEmpty(corpo))
-			return "(empty)";
-
-		return corpo.Length <= 500 ? corpo : corpo.Substring(0, 500) + "…";
+			$"so the test cannot rely on what it was meant to create. {resultado.Explicacao()}");
 	}
 }

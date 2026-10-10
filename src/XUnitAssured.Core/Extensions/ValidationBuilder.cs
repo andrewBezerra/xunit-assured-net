@@ -67,8 +67,10 @@ public class ValidationBuilder<TResult> where TResult : class, ITestStepResult
 	/// <returns>The same validation builder for method chaining</returns>
 	/// <example>
 	/// <code>
-	/// .When()
-	///     .Execute&lt;HttpStepResult&gt;()
+	/// (await Given()
+	///     .ApiResource("/api/products")
+	///     .Get()
+	///     .ExecuteAsync())
 	/// .Then()
 	///     .AssertSuccess();
 	/// </code>
@@ -173,10 +175,10 @@ public class ValidationBuilder<TResult> where TResult : class, ITestStepResult
 	/// <returns>The same validation builder for method chaining</returns>
 	/// <example>
 	/// <code>
-	/// Given()
+	/// (await Given()
 	///     .ApiResource("/api/products")
 	///     .Post(newProduct)
-	///     .When().Execute()
+	///     .ExecuteAsync())
 	///     .Then()
 	///         .AssertStatusCode(201)
 	///         .Extract(out var createResult);
@@ -197,10 +199,10 @@ public class ValidationBuilder<TResult> where TResult : class, ITestStepResult
 	/// <example>
 	/// <code>
 	/// int id = 0;
-	/// Given()
+	/// (await Given()
 	///     .ApiResource("/api/products")
 	///     .Post(newProduct)
-	///     .When().Execute()
+	///     .ExecuteAsync())
 	///     .Then()
 	///         .AssertStatusCode(201)
 	///         .Extract(result => id = result.GetProperty&lt;int&gt;("StatusCode"));

@@ -29,6 +29,61 @@ public class AssercoesDeRespostaTests
 {
 	private const string Sessao = "session=abc; Path=/auth; HttpOnly; Secure; SameSite=Strict";
 
+	// ---------- Status ----------
+
+	[Fact(DisplayName = "AssertStatusCode failing shows the body, where the reason is")]
+	public async Task Status_Failure_Shows_The_Body()
+	{
+		var resposta = await Pedir(ServidorDeMentira.Responder(HttpStatusCode.BadRequest,
+			"""{"title":"Validation failed","errors":{"city":["City is required"]}}"""));
+
+		var erro = Should.Throw<ShouldAssertException>(() => resposta.AssertStatusCode(201));
+		erro.Message.ShouldContain("but got 400");
+		erro.Message.ShouldContain("City is required");
+	}
+
+	[Fact(DisplayName = "AssertStatusCode cuts a long body and says how much was left out")]
+	public async Task Status_Failure_Cuts_A_Long_Body()
+	{
+		var corpo = new string('x', 1500);
+		var resposta = await Pedir(ServidorDeMentira.Responder(HttpStatusCode.InternalServerError, corpo, "text/plain"));
+
+		var erro = Should.Throw<ShouldAssertException>(() => resposta.AssertStatusCode(200));
+		erro.Message.ShouldContain(new string('x', 1000) + "… (500 more characters)");
+		erro.Message.ShouldNotContain(new string('x', 1001));
+	}
+
+	[Fact(DisplayName = "AssertStatusCode with no response says why there was none")]
+	public async Task Status_Failure_Without_Response()
+	{
+		var execucao = await ScenarioDsl.Given(new ProvedorDeMentira(new Recusa()))
+			.ApiResource("/qualquer")
+			.Get()
+			.ExecuteAsync();
+
+		var erro = Should.Throw<ShouldAssertException>(() => execucao.Then().AssertStatusCode(200));
+		erro.Message.ShouldContain("but got 0");
+		erro.Message.ShouldContain("No response: conexão recusada");
+	}
+
+	[Fact(DisplayName = "AssertStatusCode on concurrent requests explains each one that differed")]
+	public async Task Concurrent_Status_Failure_Explains_Each()
+	{
+		var servidor = new ServidorDeMentira(p => p.RequestUri!.Query.Contains("falha")
+			? ServidorDeMentira.Responder(HttpStatusCode.Conflict, """{"detail":"Already taken"}""")
+			: ServidorDeMentira.Responder(HttpStatusCode.Created, "{}"));
+		var resposta = (await ScenarioDsl.Given(new ProvedorDeMentira(servidor))
+			.ApiResource("/qualquer")
+			.WithQueryParam("modo", "falha")
+			.Get()
+			.Concurrently(2)
+			.ExecuteAsync()).Then();
+
+		var erro = Should.Throw<ShouldAssertException>(() => resposta.AssertStatusCode(201));
+		erro.Message.ShouldContain("Request 1 (409): Body: {\"detail\":\"Already taken\"}");
+		erro.Message.ShouldContain("Request 2 (409)");
+	}
+
 	// ---------- Cabeçalhos ----------
 
 	[Fact(DisplayName = "AssertHeader matches the name case-insensitively")]
@@ -180,6 +235,13 @@ public class AssercoesDeRespostaTests
 	}
 
 	// ---------- Apoio ----------
+
+	private sealed class Recusa : System.Net.Http.HttpMessageHandler
+	{
+		protected override Task<System.Net.Http.HttpResponseMessage> SendAsync(
+			System.Net.Http.HttpRequestMessage request, System.Threading.CancellationToken cancellationToken) =>
+			throw new System.Net.Http.HttpRequestException("conexão recusada");
+	}
 
 	private static System.Net.Http.HttpResponseMessage Resposta(HttpStatusCode status, params (string, string)[] cabecalhos) =>
 		ServidorDeMentira.Responder(status, "{}", "application/json", cabecalhos);
