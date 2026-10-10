@@ -27,7 +27,7 @@ namespace XUnitAssured.Tests.HttpTests;
 [Trait("Component", "Assertions")]
 public class AssercoesDeRespostaTests
 {
-	private const string Sessao = "lh_sessao=abc; Path=/v1/auth; HttpOnly; Secure; SameSite=Strict";
+	private const string Sessao = "session=abc; Path=/auth; HttpOnly; Secure; SameSite=Strict";
 
 	// ---------- Cabeçalhos ----------
 
@@ -65,16 +65,16 @@ public class AssercoesDeRespostaTests
 	{
 		var resposta = await Pedir(Resposta(HttpStatusCode.OK, ("Set-Cookie", "outro=1; Path=/"), ("Set-Cookie", Sessao)));
 
-		resposta.AssertSetCookie("lh_sessao", c =>
-			c.Value == "abc" && c.HttpOnly && c.Secure && c.Path == "/v1/auth" && c.SameSite == "Strict");
+		resposta.AssertSetCookie("session", c =>
+			c.Value == "abc" && c.HttpOnly && c.Secure && c.Path == "/auth" && c.SameSite == "Strict");
 	}
 
 	[Fact(DisplayName = "AssertSetCookie fails when an attribute is missing, and shows the cookie")]
 	public async Task Set_Cookie_Fails_On_Missing_Attribute()
 	{
-		var resposta = await Pedir(Resposta(HttpStatusCode.OK, ("Set-Cookie", "lh_sessao=abc; Path=/")));
+		var resposta = await Pedir(Resposta(HttpStatusCode.OK, ("Set-Cookie", "session=abc; Path=/")));
 
-		var erro = Should.Throw<ShouldAssertException>(() => resposta.AssertSetCookie("lh_sessao", c => c.HttpOnly));
+		var erro = Should.Throw<ShouldAssertException>(() => resposta.AssertSetCookie("session", c => c.HttpOnly));
 		erro.Message.ShouldContain("HttpOnly = False");
 	}
 
@@ -83,7 +83,7 @@ public class AssercoesDeRespostaTests
 	{
 		var resposta = await Pedir(Resposta(HttpStatusCode.OK, ("Set-Cookie", "outro=1")));
 
-		var erro = Should.Throw<ShouldAssertException>(() => resposta.AssertSetCookie("lh_sessao"));
+		var erro = Should.Throw<ShouldAssertException>(() => resposta.AssertSetCookie("session"));
 		erro.Message.ShouldContain("outro");
 	}
 
@@ -93,11 +93,11 @@ public class AssercoesDeRespostaTests
 	public async Task Cookie_Cleared_By_Past_Expiry_Or_Max_Age()
 	{
 		var porData = await Pedir(Resposta(HttpStatusCode.Unauthorized,
-			("Set-Cookie", "lh_sessao=; Path=/v1/auth; Expires=Thu, 01 Jan 1970 00:00:00 GMT; HttpOnly")));
-		porData.AssertCookieCleared("lh_sessao");
+			("Set-Cookie", "session=; Path=/auth; Expires=Thu, 01 Jan 1970 00:00:00 GMT; HttpOnly")));
+		porData.AssertCookieCleared("session");
 
-		var porMaxAge = await Pedir(Resposta(HttpStatusCode.Unauthorized, ("Set-Cookie", "lh_sessao=; Max-Age=0")));
-		porMaxAge.AssertCookieCleared("lh_sessao");
+		var porMaxAge = await Pedir(Resposta(HttpStatusCode.Unauthorized, ("Set-Cookie", "session=; Max-Age=0")));
+		porMaxAge.AssertCookieCleared("session");
 	}
 
 	// O teste que um Contains("expires=") deixava passar.
@@ -105,9 +105,9 @@ public class AssercoesDeRespostaTests
 	public async Task Cookie_Not_Cleared_By_Future_Expiry()
 	{
 		var resposta = await Pedir(Resposta(HttpStatusCode.OK,
-			("Set-Cookie", $"lh_sessao=abc; Expires={DateTimeOffset.UtcNow.AddDays(30):R}")));
+			("Set-Cookie", $"session=abc; Expires={DateTimeOffset.UtcNow.AddDays(30):R}")));
 
-		Should.Throw<ShouldAssertException>(() => resposta.AssertCookieCleared("lh_sessao"));
+		Should.Throw<ShouldAssertException>(() => resposta.AssertCookieCleared("session"));
 	}
 
 	// ---------- Problem Details ----------

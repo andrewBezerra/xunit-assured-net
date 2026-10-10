@@ -212,7 +212,7 @@ public class HttpValidationBuilder : ValidationBuilder<HttpStepResult>
 
 	/// <summary>
 	/// Asserts that the response sets the cookie, and optionally that its attributes satisfy
-	/// <paramref name="predicate"/> — e.g. <c>c =&gt; c.HttpOnly &amp;&amp; c.Path == "/v1/auth"</c>.
+	/// <paramref name="predicate"/> — e.g. <c>c =&gt; c.HttpOnly &amp;&amp; c.Path == "/auth"</c>.
 	/// </summary>
 	/// <param name="name">The cookie name</param>
 	/// <param name="predicate">The condition on the cookie's attributes; null to only require it</param>

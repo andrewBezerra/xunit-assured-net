@@ -247,6 +247,9 @@ public static class HttpTestGeneratorTools
 			  .When().Execute()                                 Execute the request
 			  await ... .ExecuteAsync()                          Execute asynchronously (6.0.0; the chain
 			                                                      only describes until this call)
+			  await ... .ExtractAsync<string>("$.id")            Arrange: run, require 2xx, return the value
+			  await ... .ExtractAsync<string, string>("$.id", "$.token")  Two values at once
+			  await ... .EnsureSuccessAsync()                    Arrange with no value: run and require 2xx
 			  .Then()
 			    .AssertStatusCode(200)                           Assert HTTP status code
 			    .AssertSuccess()                                 Assert IsValid = true
