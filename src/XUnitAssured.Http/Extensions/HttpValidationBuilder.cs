@@ -1,9 +1,13 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using Shouldly;
 using XUnitAssured.Core.Abstractions;
+using XUnitAssured.Core.DSL;
 using XUnitAssured.Core.Extensions;
+using XUnitAssured.Core.Results;
 using XUnitAssured.Http.Results;
 
 namespace XUnitAssured.Http.Extensions;
@@ -21,6 +25,19 @@ public class HttpValidationBuilder : ValidationBuilder<HttpStepResult>
 	public HttpValidationBuilder(ITestScenario scenario) : base(scenario)
 	{
 	}
+
+	/// <summary>
+	/// The one response the assertions below are about. Requests sent with <c>Concurrently</c>
+	/// have one response each, and an assertion on "the" body or header of them would pick one at
+	/// random — so it says where to go instead.
+	/// </summary>
+	private new HttpStepResult Result =>
+		base.Result is ConcurrentHttpStepResult concorrente
+			? throw new InvalidOperationException(
+				$"The step sent {concorrente.Responses.Count} requests at once (Concurrently), so there is no " +
+				"single response to assert on. Use AssertStatusCode for all of them, AssertEach(r => ...) for " +
+				"any other assertion, or GetResult() and its Responses.")
+			: base.Result;
 
 	/// <summary>
 	/// Marks the transition from "When" (action) to "Then" (assertions) in BDD-style tests.
@@ -48,8 +65,61 @@ public class HttpValidationBuilder : ValidationBuilder<HttpStepResult>
 	/// </example>
 	public HttpValidationBuilder AssertStatusCode(int expectedStatusCode)
 	{
+		if (base.Result is ConcurrentHttpStepResult concorrente)
+		{
+			concorrente.StatusCodes.ShouldAllBe(codigo => codigo == expectedStatusCode,
+				$"Expected every one of the {concorrente.Responses.Count} concurrent requests to get " +
+				$"{expectedStatusCode}, but they got: {string.Join(", ", concorrente.StatusCodes)}");
+			return this;
+		}
+
 		Result.StatusCode.ShouldBe(expectedStatusCode,
 			$"Expected HTTP status code {expectedStatusCode} but got {Result.StatusCode}");
+		return this;
+	}
+
+	/// <summary>
+	/// Runs the assertions on each response of requests sent with <c>Concurrently</c> — or on the
+	/// one response of a single request. Every response is checked, and the failure lists each one
+	/// that failed, by position.
+	/// </summary>
+	/// <param name="assertions">The assertions for one response</param>
+	/// <returns>The same HTTP validation builder for method chaining</returns>
+	/// <example>
+	/// <code>
+	/// .Then().AssertEach(r =&gt; r
+	///     .AssertStatusCode(201)
+	///     .AssertHeader("Location", l =&gt; l.StartsWith("/api/members/")));
+	/// </code>
+	/// </example>
+	public HttpValidationBuilder AssertEach(Action<HttpValidationBuilder> assertions)
+	{
+		if (assertions == null)
+			throw new ArgumentNullException(nameof(assertions));
+
+		IReadOnlyList<HttpStepResult> respostas = base.Result is ConcurrentHttpStepResult concorrente
+			? concorrente.Responses
+			: new[] { base.Result };
+
+		var falhas = new List<string>();
+		for (var i = 0; i < respostas.Count; i++)
+		{
+			var cenario = new TestScenario();
+			cenario.SetCurrentStep(new PassoJaExecutado(respostas[i]));
+
+			try
+			{
+				assertions(new HttpValidationBuilder(cenario));
+			}
+			catch (ShouldAssertException ex)
+			{
+				falhas.Add($"Request {i + 1} of {respostas.Count} (status {respostas[i].StatusCode}): {ex.Message}");
+			}
+		}
+
+		if (falhas.Count > 0)
+			throw new ShouldAssertException(string.Join(Environment.NewLine + Environment.NewLine, falhas));
+
 		return this;
 	}
 
@@ -244,6 +314,69 @@ public class HttpValidationBuilder : ValidationBuilder<HttpStepResult>
 		AssertSetCookie(name, c => c.IsExpired, $"Expected cookie {name} to be cleared (expiry in the past or Max-Age=0)");
 
 	/// <summary>
+	/// Asserts that the request was sent with a header of this exact value — read after the client
+	/// sent it, so it includes what the client added on the way.
+	/// </summary>
+	/// <param name="name">The header name, matched case-insensitively</param>
+	/// <param name="expectedValue">The value one of its entries must have</param>
+	/// <returns>The same HTTP validation builder for method chaining</returns>
+	public HttpValidationBuilder AssertRequestHeader(string name, string expectedValue) =>
+		AssertRequestHeader(name, valor => valor == expectedValue, $"Expected request header {name} to be '{expectedValue}'");
+
+	/// <summary>
+	/// Asserts that the request was sent with a header that has an entry satisfying
+	/// <paramref name="predicate"/>.
+	/// </summary>
+	/// <param name="name">The header name, matched case-insensitively</param>
+	/// <param name="predicate">The condition one of its entries must satisfy</param>
+	/// <param name="failureMessage">Custom failure message</param>
+	/// <returns>The same HTTP validation builder for method chaining</returns>
+	public HttpValidationBuilder AssertRequestHeader(string name, Func<string, bool> predicate, string? failureMessage = null)
+	{
+		var pedido = PedidoEnviado();
+		var valores = pedido.Header(name);
+		valores.ShouldNotBeEmpty(
+			$"Expected the request to be sent with a {name} header, but it had: {string.Join(", ", pedido.Headers.Keys)}");
+		valores.Any(predicate).ShouldBeTrue(
+			$"{failureMessage ?? $"Request header {name} did not satisfy the condition"}. Values: {string.Join(" | ", valores)}");
+		return this;
+	}
+
+	/// <summary>
+	/// Asserts that the client sent the cookie with the request, and optionally that its value
+	/// satisfies <paramref name="predicate"/> — the session a client that keeps cookies carries.
+	/// </summary>
+	/// <param name="name">The cookie name, matched exactly</param>
+	/// <param name="predicate">The condition on its value; null to only require it</param>
+	/// <param name="failureMessage">Custom failure message</param>
+	/// <returns>The same HTTP validation builder for method chaining</returns>
+	public HttpValidationBuilder AssertSentCookie(string name, Func<string, bool>? predicate = null, string? failureMessage = null)
+	{
+		var pedido = PedidoEnviado();
+		var valor = pedido.Cookie(name);
+		valor.ShouldNotBeNull($"Expected the request to carry cookie {name}, but it carried: {NomesDosCookiesEnviados(pedido)}");
+
+		if (predicate != null)
+			predicate(valor).ShouldBeTrue(
+				$"{failureMessage ?? $"Cookie {name} sent did not satisfy the condition"}. It was: {valor}");
+
+		return this;
+	}
+
+	/// <summary>
+	/// Asserts that the client did not send the cookie — e.g. a session the server told it to
+	/// forget is no longer carried.
+	/// </summary>
+	/// <param name="name">The cookie name, matched exactly</param>
+	/// <returns>The same HTTP validation builder for method chaining</returns>
+	public HttpValidationBuilder AssertNoSentCookie(string name)
+	{
+		var valor = PedidoEnviado().Cookie(name);
+		valor.ShouldBeNull($"Expected the request not to carry cookie {name}, but it did: {name}={valor}");
+		return this;
+	}
+
+	/// <summary>
 	/// Asserts an RFC 7807 / 9457 error response: the status code, and optionally its body —
 	/// e.g. <c>p =&gt; p.Extension&lt;string&gt;("code") == "ScheduleConflict"</c>.
 	/// </summary>
@@ -304,6 +437,14 @@ public class HttpValidationBuilder : ValidationBuilder<HttpStepResult>
 	private SetCookie? CookieDefinido(string nome) =>
 		CookiesDefinidos().LastOrDefault(c => string.Equals(c.Name, nome, StringComparison.Ordinal));
 
+	private SentRequest PedidoEnviado() =>
+		Result.Request ?? throw new InvalidOperationException(
+			"No request was sent, so there is nothing to assert about it. " +
+			$"The step failed before sending: {string.Join("; ", Result.Errors)}");
+
+	private static string NomesDosCookiesEnviados(SentRequest pedido) =>
+		pedido.Cookies.Count == 0 ? "no cookies" : string.Join(", ", pedido.Cookies.Keys);
+
 	private string NomesDosCookies()
 	{
 		var nomes = CookiesDefinidos().Select(c => c.Name).ToList();
@@ -348,7 +489,7 @@ public class HttpValidationBuilder : ValidationBuilder<HttpStepResult>
 	/// <returns>The HTTP step result</returns>
 	public new HttpStepResult GetResult()
 	{
-		return Result;
+		return base.Result;
 	}
 
 	/// <summary>
@@ -373,7 +514,7 @@ public class HttpValidationBuilder : ValidationBuilder<HttpStepResult>
 	/// </example>
 	public new HttpValidationBuilder Extract(out HttpStepResult result)
 	{
-		result = Result;
+		result = base.Result;
 		return this;
 	}
 
@@ -400,7 +541,7 @@ public class HttpValidationBuilder : ValidationBuilder<HttpStepResult>
 		if (extractor == null)
 			throw new ArgumentNullException(nameof(extractor));
 
-		extractor(Result);
+		extractor(base.Result);
 		return this;
 	}
 
@@ -439,5 +580,25 @@ public class HttpValidationBuilder : ValidationBuilder<HttpStepResult>
 	{
 		value = Result.JsonPath<T>(jsonPath);
 		return this;
+	}
+
+	// Uma resposta já recebida, posta num cenário só para que o AssertEach entregue a ela o
+	// construtor inteiro de asserções.
+	private sealed class PassoJaExecutado(HttpStepResult resultado) : ITestStep
+	{
+		public string? Name => null;
+
+		public string StepType => "Http";
+
+		public ITestStepResult? Result => resultado;
+
+		public bool IsExecuted => true;
+
+		public bool IsValid => resultado.Success;
+
+		public Task<ITestStepResult> ExecuteAsync(ITestContext context, CancellationToken cancellationToken = default) =>
+			Task.FromResult<ITestStepResult>(resultado);
+
+		public void Validate(Action<ITestStepResult> validation) => validation(resultado);
 	}
 }

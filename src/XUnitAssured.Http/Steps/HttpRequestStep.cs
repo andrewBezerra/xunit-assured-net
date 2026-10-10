@@ -92,6 +92,22 @@ public class HttpRequestStep : ITestStep
 	/// </summary>
 	public HttpClient? CustomHttpClient { get; init; }
 
+	/// <summary>
+	/// How many copies of this request to send at once, each with <see cref="Body"/>. Null (the
+	/// default) sends it once.
+	/// </summary>
+	/// <remarks>
+	/// Sent at once, the result is a <see cref="ConcurrentHttpStepResult"/>. <see cref="ConcurrentBodies"/>
+	/// takes precedence when both are set.
+	/// </remarks>
+	public int? ConcurrentCount { get; init; }
+
+	/// <summary>
+	/// The bodies to send at once, one request each, in place of <see cref="Body"/>. Null (the
+	/// default) sends a single request.
+	/// </summary>
+	public IReadOnlyList<object?>? ConcurrentBodies { get; init; }
+
 	private HttpAuthConfig? _effectiveAuthConfig;
 	private bool _authConfigResolved;
 
@@ -150,11 +166,16 @@ public class HttpRequestStep : ITestStep
 		TimeoutSeconds = source.TimeoutSeconds;
 		AuthConfig = source.AuthConfig;
 		CustomHttpClient = source.CustomHttpClient;
+		ConcurrentCount = source.ConcurrentCount;
+		ConcurrentBodies = source.ConcurrentBodies;
 	}
 
 	/// <inheritdoc />
 	public async Task<ITestStepResult> ExecuteAsync(ITestContext context, CancellationToken cancellationToken = default)
 	{
+		if (ConcurrentBodies != null || ConcurrentCount != null)
+			return await ExecuteConcurrentlyAsync(context, cancellationToken);
+
 		try
 		{
 			var url = ResolveUrl();
@@ -204,6 +225,7 @@ public class HttpRequestStep : ITestStep
 
 			// Execute request based on method
 			IFlurlResponse response;
+			var conteudo = CriarConteudo();
 
 			if (Method == HttpMethod.Get)
 			{
@@ -211,10 +233,10 @@ public class HttpRequestStep : ITestStep
 			}
 			else if (Method == HttpMethod.Post)
 			{
-				// Check if Body is HttpContent (e.g., FormUrlEncodedContent)
-				if (Body is HttpContent httpContent)
+				// HttpContent (e.g., FormUrlEncodedContent) or a raw body goes as it is; anything else as JSON
+				if (conteudo != null)
 				{
-					response = await request.SendAsync(HttpMethod.Post, httpContent, cancellationToken: cancellationToken);
+					response = await request.SendAsync(HttpMethod.Post, conteudo, cancellationToken: cancellationToken);
 				}
 				else
 				{
@@ -224,9 +246,9 @@ public class HttpRequestStep : ITestStep
 			else if (Method == HttpMethod.Put)
 			{
 				// Check if Body is HttpContent
-				if (Body is HttpContent httpContentPut)
+				if (conteudo != null)
 				{
-					response = await request.SendAsync(HttpMethod.Put, httpContentPut, cancellationToken: cancellationToken);
+					response = await request.SendAsync(HttpMethod.Put, conteudo, cancellationToken: cancellationToken);
 				}
 				else
 				{
@@ -240,9 +262,9 @@ public class HttpRequestStep : ITestStep
 			else if (Method == HttpMethod.Patch)
 			{
 				// Check if Body is HttpContent
-				if (Body is HttpContent httpContentPatch)
+				if (conteudo != null)
 				{
-					response = await request.SendAsync(HttpMethod.Patch, httpContentPatch, cancellationToken: cancellationToken);
+					response = await request.SendAsync(HttpMethod.Patch, conteudo, cancellationToken: cancellationToken);
 				}
 				else
 				{
@@ -284,7 +306,7 @@ public class HttpRequestStep : ITestStep
 				headers: headers,
 				contentType: contentType,
 				reasonPhrase: reasonPhrase
-			);
+			).ComPedido(await PedidoEnviadoAsync(response.ResponseMessage.RequestMessage));
 
 			return Result;
 		}
@@ -298,7 +320,7 @@ public class HttpRequestStep : ITestStep
 			// desta exceção.
 			if (ex.StatusCode is null)
 			{
-				Result = HttpStepResult.CreateFailure(ex);
+				Result = HttpStepResult.CreateFailure(ex).ComPedido(await PedidoEnviadoAsync(ex.Call?.HttpRequestMessage));
 				return Result;
 			}
 
@@ -322,7 +344,7 @@ public class HttpRequestStep : ITestStep
 				headers: headers,
 				contentType: ex.Call?.Response?.ResponseMessage?.Content?.Headers?.ContentType?.ToString(),
 				reasonPhrase: ex.Call?.Response?.ResponseMessage?.ReasonPhrase
-			);
+			).ComPedido(await PedidoEnviadoAsync(ex.Call?.HttpRequestMessage));
 
 			return Result;
 		}
@@ -332,6 +354,25 @@ public class HttpRequestStep : ITestStep
 			Result = HttpStepResult.CreateFailure(ex);
 			return Result;
 		}
+	}
+
+	/// <summary>
+	/// Sends a copy of this request per body, all started before any is awaited, so they reach
+	/// the API together.
+	/// </summary>
+	private async Task<ITestStepResult> ExecuteConcurrentlyAsync(ITestContext context, CancellationToken cancellationToken)
+	{
+		var inicio = DateTimeOffset.UtcNow;
+		var corpos = ConcurrentBodies ?? Enumerable.Repeat(Body, ConcurrentCount!.Value).ToList();
+
+		var envios = corpos
+			.Select(corpo => new HttpRequestStep(this) { ConcurrentCount = null, ConcurrentBodies = null, Body = corpo })
+			.Select(copia => copia.ExecuteAsync(context, cancellationToken))
+			.ToList();
+		var respostas = await Task.WhenAll(envios);
+
+		Result = ConcurrentHttpStepResult.De(respostas.Cast<HttpStepResult>().ToList(), inicio);
+		return Result;
 	}
 
 	/// <inheritdoc />
@@ -369,6 +410,24 @@ public class HttpRequestStep : ITestStep
 
 		return null;
 	}
+
+	/// <summary>
+	/// The body as content of its own, when it is not an object to serialize: an
+	/// <see cref="HttpContent"/> as given, or a raw body made anew for each send.
+	/// </summary>
+	/// <remarks>
+	/// The raw body is made here, and not when the chain is written, so a step that runs more than
+	/// once — <c>Concurrently</c> sends copies of it — never shares one content between sends.
+	/// </remarks>
+	private HttpContent? CriarConteudo() => Body switch
+	{
+		HttpContent conteudo => conteudo,
+		CorpoCru cru => cru.Criar(),
+		_ => null
+	};
+
+	private static async Task<SentRequest?> PedidoEnviadoAsync(HttpRequestMessage? pedido) =>
+		pedido == null ? null : await SentRequest.FromAsync(pedido).ConfigureAwait(false);
 
 	/// <summary>
 	/// The URL for this execution: the provider's, when there is one, otherwise <see cref="Url"/>.
@@ -443,10 +502,11 @@ public class HttpRequestStep : ITestStep
 		// Add body if present
 		if (Body != null && (Method == HttpMethod.Post || Method == HttpMethod.Put || Method == HttpMethod.Patch))
 		{
-			// Check if Body is already HttpContent (e.g., FormUrlEncodedContent)
-			if (Body is HttpContent httpContent)
+			// HttpContent (e.g., FormUrlEncodedContent) or a raw body goes as it is
+			var conteudo = CriarConteudo();
+			if (conteudo != null)
 			{
-				httpRequest.Content = httpContent;
+				httpRequest.Content = conteudo;
 			}
 			else
 			{
@@ -483,7 +543,7 @@ public class HttpRequestStep : ITestStep
 				headers: headers,
 				contentType: httpResponse.Content.Headers.ContentType?.ToString(),
 				reasonPhrase: httpResponse.ReasonPhrase
-			);
+			).ComPedido(await PedidoEnviadoAsync(httpResponse.RequestMessage ?? httpRequest));
 
 			return Result;
 		}
@@ -491,12 +551,12 @@ public class HttpRequestStep : ITestStep
 		// duas são falha do passo, e a mensagem é o que distingue uma da outra para quem lê.
 		catch (OperationCanceledException ex)
 		{
-			Result = HttpStepResult.CreateFailure(ex);
+			Result = HttpStepResult.CreateFailure(ex).ComPedido(await PedidoEnviadoAsync(httpRequest));
 			return Result;
 		}
 		catch (HttpRequestException ex)
 		{
-			Result = HttpStepResult.CreateFailure(ex);
+			Result = HttpStepResult.CreateFailure(ex).ComPedido(await PedidoEnviadoAsync(httpRequest));
 			return Result;
 		}
 	}

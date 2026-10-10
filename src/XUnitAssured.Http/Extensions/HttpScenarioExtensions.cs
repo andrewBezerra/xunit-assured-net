@@ -2,6 +2,7 @@
 using XUnitAssured.Http.DSL;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net.Http;
 
 using XUnitAssured.Core.Abstractions;
@@ -203,6 +204,120 @@ public static class HttpScenarioExtensions
 	}
 
 	/// <summary>
+	/// Sets the HTTP method to POST with a body sent exactly as written, without serialization —
+	/// for what a serializer would never produce: malformed JSON, a wrong type, XML, plain text.
+	/// </summary>
+	/// <example>
+	/// <code>
+	/// // An invalid body, on purpose: the API must refuse it without quoting it back.
+	/// Given(api)
+	///     .ApiResource("/api/patients")
+	///     .PostRaw("{\"city\": [\"Lisbon\"]")
+	///     .ExecuteAsync();
+	/// </code>
+	/// </example>
+	/// <param name="scenario">The test scenario</param>
+	/// <param name="content">The body, as it must go</param>
+	/// <param name="contentType">The Content-Type, parameters included if any, e.g. "text/plain; charset=utf-8"</param>
+	/// <returns>The test scenario for method chaining</returns>
+	public static IHttpScenario PostRaw(this ITestScenario scenario, string content, string contentType = "application/json")
+	{
+		UpdateHttpMethod(scenario, HttpMethod.Post, CorpoCru(content, contentType));
+		return HttpScenario.De(scenario);
+	}
+
+	/// <summary>
+	/// Sets the HTTP method to PUT with a body sent exactly as written, without serialization.
+	/// </summary>
+	/// <inheritdoc cref="PostRaw" path="/param"/>
+	/// <returns>The test scenario for method chaining</returns>
+	public static IHttpScenario PutRaw(this ITestScenario scenario, string content, string contentType = "application/json")
+	{
+		UpdateHttpMethod(scenario, HttpMethod.Put, CorpoCru(content, contentType));
+		return HttpScenario.De(scenario);
+	}
+
+	/// <summary>
+	/// Sets the HTTP method to PATCH with a body sent exactly as written, without serialization.
+	/// </summary>
+	/// <inheritdoc cref="PostRaw" path="/param"/>
+	/// <returns>The test scenario for method chaining</returns>
+	public static IHttpScenario PatchRaw(this ITestScenario scenario, string content, string contentType = "application/json")
+	{
+		UpdateHttpMethod(scenario, HttpMethod.Patch, CorpoCru(content, contentType));
+		return HttpScenario.De(scenario);
+	}
+
+	/// <summary>
+	/// Sends the request <paramref name="times"/> times at once, each with the same body — for a
+	/// test whose subject is the concurrency itself: a double submit, a race on a counter.
+	/// </summary>
+	/// <remarks>
+	/// All copies are started before any is awaited, through the same client. The result is a
+	/// <see cref="Results.ConcurrentHttpStepResult"/>: <c>AssertStatusCode</c> then checks every
+	/// response, and <c>AssertEach</c> runs any other assertion on each.
+	/// </remarks>
+	/// <example>
+	/// <code>
+	/// (await Given(api)
+	///     .ApiResource("/api/orders/7/pay")
+	///     .Post(payment)
+	///     .Concurrently(2)
+	///     .ExecuteAsync())
+	/// .Then().AssertEach(r =&gt; r.AssertStatusCode(200));
+	/// </code>
+	/// </example>
+	/// <param name="scenario">The test scenario</param>
+	/// <param name="times">How many requests to send at once; at least one</param>
+	/// <returns>The test scenario for method chaining</returns>
+	public static IHttpScenario Concurrently(this ITestScenario scenario, int times)
+	{
+		if (times < 1)
+			throw new ArgumentOutOfRangeException(nameof(times), times, "Concurrently needs at least one request to send.");
+
+		var passo = PassoHttp(scenario);
+		scenario.SetCurrentStep(new HttpRequestStep(passo) { ConcurrentCount = times, ConcurrentBodies = null });
+		return HttpScenario.De(scenario);
+	}
+
+	/// <summary>
+	/// Sends one request per body, all at once, each with the method, address and headers already
+	/// described — for simultaneous creates that must each persist.
+	/// </summary>
+	/// <remarks>
+	/// The bodies replace the one given to <c>Post</c>, <c>Put</c> or <c>Patch</c>; the method is
+	/// theirs. The responses come in the order of the bodies.
+	/// </remarks>
+	/// <example>
+	/// <code>
+	/// var names = Enumerable.Range(1, 6).Select(i =&gt; $"Member {i}").ToList();
+	///
+	/// (await Given(api)
+	///     .ApiResource($"/api/teams/{teamId}/members")
+	///     .Post()
+	///     .Concurrently(names.Select(n =&gt; new { Name = n }))
+	///     .ExecuteAsync())
+	/// .Then().AssertStatusCode(201);   // every one of the six
+	/// </code>
+	/// </example>
+	/// <param name="scenario">The test scenario</param>
+	/// <param name="bodies">One body per request; at least one</param>
+	/// <returns>The test scenario for method chaining</returns>
+	public static IHttpScenario Concurrently(this ITestScenario scenario, IEnumerable<object?> bodies)
+	{
+		if (bodies == null)
+			throw new ArgumentNullException(nameof(bodies));
+
+		var lista = bodies.ToList();
+		if (lista.Count == 0)
+			throw new ArgumentException("Concurrently needs at least one body to send.", nameof(bodies));
+
+		var passo = PassoHttp(scenario);
+		scenario.SetCurrentStep(new HttpRequestStep(passo) { ConcurrentCount = null, ConcurrentBodies = lista });
+		return HttpScenario.De(scenario);
+	}
+
+	/// <summary>
 	/// Adds a custom header to the HTTP request.
 	/// </summary>
 	public static IHttpScenario WithHeader(this ITestScenario scenario, string name, string value)
@@ -301,6 +416,20 @@ public static class HttpScenarioExtensions
 
 		return HttpScenario.De(scenario);
 	}
+
+	private static CorpoCru CorpoCru(string content, string contentType)
+	{
+		if (content == null)
+			throw new ArgumentNullException(nameof(content));
+		if (string.IsNullOrWhiteSpace(contentType))
+			throw new ArgumentException("A raw body needs a Content-Type.", nameof(contentType));
+
+		return new CorpoCru(content, contentType);
+	}
+
+	private static HttpRequestStep PassoHttp(ITestScenario scenario) =>
+		scenario.CurrentStep as HttpRequestStep
+			?? throw new InvalidOperationException("Current step is not an HTTP step. Call ApiResource() first.");
 
 	// Helper method to update HTTP method
 	private static void UpdateHttpMethod(ITestScenario scenario, HttpMethod method, object? body = null)
