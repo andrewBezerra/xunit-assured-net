@@ -2,7 +2,18 @@
 
 All notable changes to the XUnitAssured packages. Upgrading from 5.1.x? See [UPGRADING.md](UPGRADING.md).
 
-## v6.2.0 (Current — HTTP behavior tests in the DSL)
+## v6.3.0 (Current — capturing logs and outbound calls)
+
+Additive: capturing what the system did besides answering — what it logged, and which outside services it called. Upgrading from 6.2.x requires no code changes.
+
+Some of the most valuable E2E tests guard privacy, security and observability, and in a real consumer suite each of them rebuilt the capture by hand: three test classes wrote their own `ILoggerProvider`, and two tests built a stand-in for an outside service at the HTTP boundary.
+
+- **`LogCapture`** (#81, `XUnitAssured.Core.Logging`). An `ILoggerProvider` that records category, level, event id, message, exception, structured values and scopes. `AssertLogged`, `AssertLoggedOnce` (“one error opens one alert, not three”), `AssertNotLogged`, and `AssertNothingContains`, which looks at the message, the exception, the structured values and the scopes — a value kept out of the message can still ride in a scope. `Clear()` for fixtures shared by many tests.
+- **`OutboundHttpCapture`** (#81, `XUnitAssured.Http.Testing`). An `HttpMessageHandler` that stands in for an outside service: it answers what the test configures (`RespondWith`, `When(pattern, ...)` with `*` wildcards) and records every request. `AssertSent(pattern, times, predicate)` and `AssertNotSent`, listing what was sent on failure. It works as the primary handler of a named `IHttpClientFactory` client and keeps working after a client that owns it is disposed.
+
+`XUnitAssured.Core` now depends on `Microsoft.Extensions.Logging.Abstractions` 9.0.8.
+
+## v6.2.0 (HTTP behavior tests in the DSL)
 
 Additive: four HTTP additions for writing behavior tests in the DSL, and one fix. Upgrading from 6.1.x requires no code changes.
 
