@@ -10,19 +10,12 @@ namespace SampleWebApi.Controllers;
 [Route("api/[controller]")]
 public class ProductsController : ControllerBase
 {
-	private static readonly object _lock = new();
-	private static readonly List<Product> _products = new()
-	{
-		new Product { Id = 1, Name = "Laptop", Description = "High-performance laptop", Price = 1299.99m, CreatedAt = DateTime.UtcNow },
-		new Product { Id = 2, Name = "Mouse", Description = "Wireless mouse", Price = 29.99m, CreatedAt = DateTime.UtcNow },
-		new Product { Id = 3, Name = "Keyboard", Description = "Mechanical keyboard", Price = 89.99m, CreatedAt = DateTime.UtcNow }
-	};
-
-	private static int _nextId = 4;
+	private readonly ProductStore _store;
 	private readonly ILogger<ProductsController> _logger;
 
-	public ProductsController(ILogger<ProductsController> logger)
+	public ProductsController(ProductStore store, ILogger<ProductsController> logger)
 	{
+		_store = store;
 		_logger = logger;
 	}
 
@@ -34,10 +27,10 @@ public class ProductsController : ControllerBase
 	[ProducesResponseType(typeof(IEnumerable<Product>), StatusCodes.Status200OK)]
 	public ActionResult<IEnumerable<Product>> GetAll()
 	{
-		lock (_lock)
+		lock (_store.Lock)
 		{
-			_logger.LogInformation("Fetching all products. Count: {Count}", _products.Count);
-			return Ok(_products.ToList());
+			_logger.LogInformation("Fetching all products. Count: {Count}", _store.Products.Count);
+			return Ok(_store.Products.ToList());
 		}
 	}
 
@@ -51,11 +44,11 @@ public class ProductsController : ControllerBase
 	[ProducesResponseType(StatusCodes.Status404NotFound)]
 	public ActionResult<Product> GetById(int id)
 	{
-		lock (_lock)
+		lock (_store.Lock)
 		{
 			_logger.LogInformation("Fetching product with ID: {Id}", id);
 
-			var product = _products.FirstOrDefault(p => p.Id == id);
+			var product = _store.Products.FirstOrDefault(p => p.Id == id);
 
 			if (product == null)
 			{
@@ -89,13 +82,13 @@ public class ProductsController : ControllerBase
 			return BadRequest(new { message = "Product price must be non-negative" });
 		}
 
-		lock (_lock)
+		lock (_store.Lock)
 		{
-			product.Id = _nextId++;
+			product.Id = _store.NextId++;
 			product.CreatedAt = DateTime.UtcNow;
 			product.UpdatedAt = null;
 
-			_products.Add(product);
+			_store.Products.Add(product);
 
 			_logger.LogInformation("Created product with ID: {Id}, Name: {Name}", product.Id, product.Name);
 
@@ -129,9 +122,9 @@ public class ProductsController : ControllerBase
 			return BadRequest(new { message = "Product price must be non-negative" });
 		}
 
-		lock (_lock)
+		lock (_store.Lock)
 		{
-			var product = _products.FirstOrDefault(p => p.Id == id);
+			var product = _store.Products.FirstOrDefault(p => p.Id == id);
 
 			if (product == null)
 			{
@@ -161,11 +154,11 @@ public class ProductsController : ControllerBase
 	[ProducesResponseType(StatusCodes.Status404NotFound)]
 	public IActionResult Delete(int id)
 	{
-		lock (_lock)
+		lock (_store.Lock)
 		{
 			_logger.LogInformation("Deleting product with ID: {Id}", id);
 
-			var product = _products.FirstOrDefault(p => p.Id == id);
+			var product = _store.Products.FirstOrDefault(p => p.Id == id);
 
 			if (product == null)
 			{
@@ -173,7 +166,7 @@ public class ProductsController : ControllerBase
 				return NotFound(new { message = $"Product with ID {id} not found" });
 			}
 
-			_products.Remove(product);
+			_store.Products.Remove(product);
 
 			_logger.LogInformation("Deleted product with ID: {Id}", id);
 
@@ -188,21 +181,13 @@ public class ProductsController : ControllerBase
 	[ProducesResponseType(StatusCodes.Status200OK)]
 	public IActionResult Reset()
 	{
-		lock (_lock)
+		lock (_store.Lock)
 		{
 			_logger.LogInformation("Resetting products to initial state");
 
-			_products.Clear();
-			_products.AddRange(new[]
-			{
-				new Product { Id = 1, Name = "Laptop", Description = "High-performance laptop", Price = 1299.99m, CreatedAt = DateTime.UtcNow },
-				new Product { Id = 2, Name = "Mouse", Description = "Wireless mouse", Price = 29.99m, CreatedAt = DateTime.UtcNow },
-				new Product { Id = 3, Name = "Keyboard", Description = "Mechanical keyboard", Price = 89.99m, CreatedAt = DateTime.UtcNow }
-			});
+			_store.Reset();
 
-			_nextId = 4;
-
-			return Ok(new { message = "Products reset successfully", count = _products.Count });
+			return Ok(new { message = "Products reset successfully", count = _store.Products.Count });
 		}
 	}
 }
