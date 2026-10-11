@@ -2,7 +2,14 @@
 
 All notable changes to the XUnitAssured packages. Upgrading from 5.1.x? See [UPGRADING.md](UPGRADING.md).
 
-## v6.10.1 (Current — a build with no warnings)
+## v6.11.0 (Current — assertions before the await in every package)
+
+Additive. Upgrading from 6.10.x requires no code changes.
+
+- **Kafka, RabbitMQ and Playwright: the assertions chain before the `await`** (#127), as HTTP has since 6.8.0 (#115): `await Given()...ExecuteAsync().AssertSuccess().AssertJsonPath(...)`, without `(await ...ExecuteAsync()).Then()`. The browser tests of the consumer suite wrote `var x = await ...ExecuteAsync(); x.Then().AssertFetchStatus(200);` 5 times in 3 tests (#126). The extensions are generated from each builder at compile time — the Playwright builder has 181 public methods, and a hand-written copy would drift on the first new one — so every public method has its counterpart on the `Task`, with the same name and documentation; methods with an `out` parameter stay on the builder. The generator runs only while the packages compile and is not a package dependency. The Kafka, RabbitMQ, Playwright and Playwright.AspNetCore READMEs teach `ExecuteAsync`; the Kafka one taught the synchronous `Execute()` 14 times.
+- **Playwright: `ExpectFetchStatus`** (#132) checks the status of the last `FetchFromPage` of a step before the last one of a scenario, right after it runs, and stops the scenario there when it is another — the counterpart of `ExpectStatusCode` (#121). Same message as `AssertFetchStatus`, which now shares its check; accepts several codes.
+
+## v6.10.1 (a build with no warnings)
 
 Maintenance. Upgrading from 6.10.0 requires no code changes.
 

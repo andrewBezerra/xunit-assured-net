@@ -40,4 +40,10 @@
 	<ItemGroup>
 		<ProjectReference Include="..\XUnitAssured.Core\XUnitAssured.Core.csproj" />
 	</ItemGroup>
+
+	<!-- Gera as asserções sobre a Task do builder (ver a classe *ValidationTaskExtensions). Só na compilação. -->
+	<ItemGroup>
+		<ProjectReference Include="..\XUnitAssured.SourceGenerators\XUnitAssured.SourceGenerators.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" PrivateAssets="all" />
+	</ItemGroup>
+
 </Project>

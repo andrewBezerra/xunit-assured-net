@@ -2221,9 +2221,7 @@ public class PlaywrightValidationBuilder : ValidationBuilder<PlaywrightStepResul
 	/// <returns>The validation builder, for chaining</returns>
 	public PlaywrightValidationBuilder AssertFetchStatus(int expectedStatus)
 	{
-		var busca = UltimaBusca();
-		busca.Status.ShouldBe(expectedStatus,
-			$"Expected {busca.Method} {busca.Url} from the page to answer {expectedStatus}, but it answered {busca.Status}. Body: {busca.Body}");
+		VerificacaoDeBusca.Verificar(UltimaBusca(), new[] { expectedStatus });
 		return this;
 	}
 

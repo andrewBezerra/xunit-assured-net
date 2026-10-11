@@ -16,17 +16,17 @@ await Given()
     .Publish(new { id = 42, status = "Created" })
     .ExecuteAsync();
 
-var assertions = await Given()
+await Given()
     .Queue("orders")
     .Consume()
     .WithTimeout(TimeSpan.FromSeconds(5))
-    .ExecuteAsync();
-
-assertions
-    .Then()
+    .ExecuteAsync()
     .AssertSuccess()
     .AssertMessage<Order>(order => order.Status.ShouldBe("Created"));
 ```
+
+The assertions chain right after `ExecuteAsync()`, and the chain is awaited once, at the start.
+Await it: without `await` the step still runs, but a failed assertion is never seen.
 
 ## Configuration
 
@@ -118,9 +118,9 @@ await Given()
 ## Consuming a batch
 
 ```csharp
-var assertions = await Given().Queue("pedidos").ConsumeBatch(3).ExecuteAsync();
-
-assertions.Then().AssertSuccess().AssertMessageCount(3);
+await Given().Queue("pedidos").ConsumeBatch(3).ExecuteAsync()
+    .AssertSuccess()
+    .AssertMessageCount(3);
 ```
 
 The timeout covers the whole batch, not each message. Finding fewer than asked is a success with

@@ -16,22 +16,23 @@
   <PropertyGroup>
     <!--
       True for the five published packages (Core, Http, Kafka, Playwright, Mcp)
-      and false for test and sample projects. Set it explicitly in a .csproj to
+      and false for test and sample projects, and for the source generator, which
+      runs only while the packages compile. Set it explicitly in a .csproj to
       override this inference.
     -->
-    <IsShippingLibrary Condition="'$(IsShippingLibrary)' == '' AND !$(MSBuildProjectName.Contains('Test')) AND !$(MSBuildProjectName.Contains('Sample'))">true</IsShippingLibrary>
+    <IsShippingLibrary Condition="'$(IsShippingLibrary)' == '' AND !$(MSBuildProjectName.Contains('Test')) AND !$(MSBuildProjectName.Contains('Sample')) AND !$(MSBuildProjectName.EndsWith('SourceGenerators'))">true</IsShippingLibrary>
     <IsShippingLibrary Condition="'$(IsShippingLibrary)' == ''">false</IsShippingLibrary>
   </PropertyGroup>
 
   <PropertyGroup>
-    <Version>6.10.1</Version>
+    <Version>6.11.0</Version>
 
     <!--
       O que a página do pacote no nuget.org mostra. Sem isto ela fica muda, e quem atualiza
       por `dotnet add package` não recebe nenhum aviso de que a major quebra coisas.
       Trocar a cada versão, junto do número acima.
     -->
-    <PackageReleaseNotes>Maintenance: the build has no warnings and treats new ones as errors; SourceLink updated (the previous build-time dependency had a moderate advisory). Kafka: KafkaStepResultExtensions.JsonPath, which the instance method KafkaStepResult.JsonPath always took precedence over, is obsolete and removed in 7.0; it now gives the same result. No code changes needed from 6.10.0. Upgrade guide: https://github.com/andrewBezerra/xunit-assured-net/blob/main/UPGRADING.md</PackageReleaseNotes>
+    <PackageReleaseNotes>Kafka, RabbitMQ and Playwright: the assertions chain before the await, as in HTTP since 6.8.0: await Given()...ExecuteAsync().AssertSuccess(). They are generated from each builder, so every public method has its counterpart on the Task. Playwright: ExpectFetchStatus(200) checks the status of a FetchFromPage step before the last one of a scenario, and stops it there. Additive: no code changes needed from 6.10.1. Upgrade guide: https://github.com/andrewBezerra/xunit-assured-net/blob/main/UPGRADING.md</PackageReleaseNotes>
     <Authors>Carlos Andrew Costa Bezerra</Authors>
     <Company>Carlos Andrew Costa Bezerra</Company>
     <Copyright>Copyright (c) Carlos Andrew Costa Bezerra</Copyright>
