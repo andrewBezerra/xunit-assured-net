@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json;
 
@@ -170,6 +171,41 @@ public class JsonPathFiltroTests
 				Cadeia.AssertJsonPathAny<object, JsonElement>(Resposta(Escala), "$.drafts[?(@.order==9)]", _ => true))
 			.Message.ShouldContain("The path selected no values.");
 	}
+
+	// ---------- Lacunas da rodada de mutação (#141) ----------
+
+	[Fact(DisplayName = "Null and Missing read through an index, and an index past the end is a missing item")]
+	public void Null_And_Missing_Through_An_Index()
+	{
+		var resposta = Resposta(Escala);
+
+		Cadeia.AssertJsonPathNull(resposta, "$.drafts[1].incomplete");
+		Cadeia.AssertJsonPathMissing(resposta, "$.drafts[2].incomplete");
+		Cadeia.AssertJsonPathMissing(resposta, "$.drafts[5]");
+		Should.Throw<ShouldAssertException>(() => Cadeia.AssertJsonPathMissing(resposta, "$.drafts[5].incomplete"))
+			.Message.ShouldContain("the path already stops at $.drafts, which is an array of 3 item(s)");
+	}
+
+	[Fact(DisplayName = "Where the path stops includes the filter it went through")]
+	public void Where_The_Path_Stops_Includes_The_Filter()
+	{
+		Should.Throw<ShouldAssertException>(() =>
+				Cadeia.AssertJsonPathMissing(Resposta(Escala), "$.drafts[?(@.weekStart=='2026-10-19')].incomplete.requested"))
+			.Message.ShouldContain("stops at $.drafts[?(@.weekStart=='2026-10-19')], which is");
+	}
+
+	[Fact(DisplayName = "JsonPath reads an object or a list into a type, not only primitives")]
+	public void JsonPath_Reads_Complex_Types()
+	{
+		Ler<List<string>>("$.drafts[1].memberIds").ShouldBe(new[] { "c", "d", "e" });
+		Ler<Dictionary<string, int>>("$.drafts[0].incomplete")["requested"].ShouldBe(3);
+		Ler<Rascunho>("$.drafts[?(@.order==1)]").ShouldBe(new Rascunho("2026-10-05", 1, true));
+	}
+
+	private sealed record Rascunho(
+		[property: System.Text.Json.Serialization.JsonPropertyName("weekStart")] string WeekStart,
+		[property: System.Text.Json.Serialization.JsonPropertyName("order")] int Order,
+		[property: System.Text.Json.Serialization.JsonPropertyName("published")] bool Published);
 
 	// ---------- Apoio ----------
 

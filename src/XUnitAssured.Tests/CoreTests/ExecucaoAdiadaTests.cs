@@ -144,6 +144,40 @@ public class ExecucaoAdiadaTests
 		passo.Execucoes.ShouldBe(1);
 	}
 
+	// Uma cadeia que executa, ganha outro passo e executa de novo não pode repetir as
+	// verificações do primeiro: quem guarda um valor dentro do Validate o veria duas vezes.
+	[Fact(DisplayName = "Executing again should not re-run the checks of a step that already ran")]
+	public async Task Executing_Again_Should_Not_Rerun_Checks()
+	{
+		var cenario = new TestScenario();
+		cenario.SetCurrentStep(new PassoDeMentira());
+		var vezes = 0;
+		cenario.AddValidation(_ => vezes++);
+		await cenario.ExecutePendingAsync();
+
+		cenario.And();
+		cenario.SetCurrentStep(new PassoDeMentira());
+		await cenario.ExecutePendingAsync();
+
+		vezes.ShouldBe(1);
+	}
+
+	[Fact(DisplayName = "A check registered after execution should run once, also when the chain executes again")]
+	public async Task Check_After_Execution_Should_Run_Once()
+	{
+		var cenario = new TestScenario();
+		cenario.SetCurrentStep(new PassoDeMentira());
+		await cenario.ExecutePendingAsync();
+
+		var vezes = 0;
+		cenario.AddValidation(_ => vezes++);
+		cenario.And();
+		cenario.SetCurrentStep(new PassoDeMentira());
+		await cenario.ExecutePendingAsync();
+
+		vezes.ShouldBe(1);
+	}
+
 	[Fact(DisplayName = "Cancellation should reach the step")]
 	public async Task Cancellation_Should_Reach_The_Step()
 	{

@@ -61,6 +61,13 @@ public class LogCaptureTests
 
 		var erro = Should.Throw<ShouldAssertException>(() => logs.AssertLogged("App.Seguranca", LogLevel.Error));
 		erro.Message.ShouldContain("Nothing was logged in App.Seguranca*");
+
+		// O quase: logou ali, mas não o que se procurava. A falha mostra o que havia, e a
+		// mensagem de quem escreveu o teste vem antes.
+		erro = Should.Throw<ShouldAssertException>(
+			() => logs.AssertLogged("App.Seguranca", LogLevel.Warning, e => e.EventId.Id == 9002, "o acesso recusado vira evento 9002"));
+		erro.Message.ShouldContain("o acesso recusado vira evento 9002");
+		erro.Message.ShouldContain("[Warning] App.Seguranca.Acesso (9001): Acesso a outra COLIH recusado");
 	}
 
 	// O caso que originou a captura: um 500 abria três alertas, e o teste exige um só.
@@ -74,8 +81,23 @@ public class LogCaptureTests
 		logs.AssertLoggedOnce("App.Erros", LogLevel.Error);
 
 		log.LogError("Excecao nao tratada");
-		var erro = Should.Throw<ShouldAssertException>(() => logs.AssertLoggedOnce("App.Erros", LogLevel.Error));
+		var erro = Should.Throw<ShouldAssertException>(() => logs.AssertLoggedOnce("App.Erros", LogLevel.Error, failureMessage: "um 500 abre um alerta"));
+		erro.Message.ShouldContain("um 500 abre um alerta");
 		erro.Message.ShouldContain("found 2");
+		erro.Message.ShouldContain("[Error] App.Erros (0): Excecao nao tratada | [Error] App.Erros (0): Excecao nao tratada");
+	}
+
+	[Fact(DisplayName = "AssertNotLogged shows what matched, after the custom message")]
+	public void Assert_Not_Logged_Shows_What_Matched()
+	{
+		var (logs, fabrica) = Montar();
+		fabrica.CreateLogger("App.Cadastro").LogInformation("CPF 123 gravado");
+
+		var erro = Should.Throw<ShouldAssertException>(
+			() => logs.AssertNotLogged(e => e.FullText.Contains("123"), "o CPF não vai para o log"));
+
+		erro.Message.ShouldContain("o CPF não vai para o log");
+		erro.Message.ShouldContain("[Information] App.Cadastro (0): CPF 123 gravado");
 	}
 
 	[Fact(DisplayName = "AssertNothingContains finds a value that rode in a scope, not in the message")]
