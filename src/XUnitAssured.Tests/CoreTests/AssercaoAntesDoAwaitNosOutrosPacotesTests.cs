@@ -95,6 +95,19 @@ public class AssercaoAntesDoAwaitNosOutrosPacotesTests
 		erro.Message.ShouldContain("status should be closed");
 	}
 
+	// O Validate dos três pacotes é o herdado de ValidationBuilder<T>. Uma verificação que só
+	// passa não prova que ele roda: se deixasse de rodar, todo Validate viraria teste verde.
+	[Fact(DisplayName = "Validate runs the check, so a failing one fails the chain")]
+	public async Task Validate_Runs_The_Check()
+	{
+		KafkaStepResult? visto = null;
+		await Kafka("""{"id":7}""").Validate(r => visto = r);
+		visto.ShouldNotBeNull();
+
+		(await Falha(() => Kafka("""{"id":7}""").Validate(r => r.JsonPath<int>("$.id").ShouldBe(8, "the id should be 8"))))
+			.Message.ShouldContain("the id should be 8");
+	}
+
 	// ---------- RabbitMQ ----------
 
 	[Fact(DisplayName = "RabbitMQ: assertions chain before the await")]
