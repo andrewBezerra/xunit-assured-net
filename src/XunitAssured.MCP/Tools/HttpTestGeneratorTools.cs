@@ -261,6 +261,8 @@ public static class HttpTestGeneratorTools
 			    .AssertJsonPathNotContains("$[*].id", id)        A list leaves a value out (what a filter excluded)
 			    .AssertJsonPathCount("$.items", 2)               Array length, or how many values [*] selects
 			    .AssertJsonPathAll<string>("$[*].city", c => ...) Every value matches; fails on an empty list
+			    .AssertJsonPathAny<JsonElement>("$.items[*]", i => ...) Some item matches (several fields at once)
+			    .AssertJsonPath<string>("$.items[?(@.id=='42')].name", ...) Find an item by a field (== or !=)
 			    .JsonPathAll<string>("$[*].id")                  Extract every value [*] selects
 			    .AssertHeader("Location", "/orders/1")           Header value (name is case-insensitive)
 			    .AssertNoHeader("X-Powered-By")                  Header must be absent

@@ -51,10 +51,6 @@ public static class KafkaStepResultExtensions
 		using var document = JsonDocument.Parse(messageJson);
 		var root = document.RootElement;
 
-		// Remove leading $. if present
-		if (path.StartsWith("$."))
-			path = path.Substring(2);
-
 		return JsonPathNavigator.Navigate<T>(root, path);
 	}
 }

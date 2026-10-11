@@ -93,9 +93,6 @@ public class KafkaStepResult : TestStepResult
 		using var document = JsonDocument.Parse(messageBody);
 		var root = document.RootElement;
 
-		if (path.StartsWith("$."))
-			path = path.Substring(2);
-
 		return JsonPathNavigator.Navigate<T>(root, path);
 	}
 
