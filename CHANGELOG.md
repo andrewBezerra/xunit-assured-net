@@ -2,7 +2,15 @@
 
 All notable changes to the XUnitAssured packages. Upgrading from 5.1.x? See [UPGRADING.md](UPGRADING.md).
 
-## v6.11.0 (Current — assertions before the await in every package)
+## v6.12.0 (Current — generated tests in the documented form, and 7.0 ahead of time)
+
+Additive. Upgrading from 6.11.x requires no code changes.
+
+- **The MCP server and the Playwright recording translator generate async tests** (#134): `public async Task`, `await Given()...ExecuteAsync()` and the assertions right after it, the form every README teaches since 6.11.0. They wrote `.When().Execute().Then()`, which keeps working. The `list_http_dsl_methods` and `list_kafka_dsl_methods` tables show `ExecuteAsync` first. `PlaywrightCodeTranslator.TranslateToGivenBlock` returns the awaited block, for the body of an async test method.
+- **`UPGRADING.md` opens with 7.0.0, planned** (#129): what the major removes or changes, and for each the form that works in 6.x and keeps working in 7.0, compiled in the test suite. A test fails when an `[Obsolete]` in a package does not say when it is removed, or breaks the build.
+- **Mutation testing, nightly** (#128): Stryker.NET runs on Core and Http on a schedule, with the surviving mutants published as a report. Not on pull requests, and with no score gate.
+
+## v6.11.0 (assertions before the await in every package)
 
 Additive. Upgrading from 6.10.x requires no code changes.
 
