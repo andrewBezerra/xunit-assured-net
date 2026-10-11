@@ -1,6 +1,4 @@
-using XUnitAssured.Core.Extensions;
 using System;
-using System.Text.Json;
 using XUnitAssured.Kafka.Results;
 
 namespace XUnitAssured.Kafka.Extensions;
@@ -28,29 +26,16 @@ public static class KafkaStepResultExtensions
 	/// </example>
 	/// <exception cref="InvalidOperationException">Thrown when message is null or not a string</exception>
 	/// <exception cref="System.Collections.Generic.KeyNotFoundException">Thrown when the JSON path doesn't exist</exception>
+	[Obsolete("KafkaStepResult has its own JsonPath<T>(path), which a call written as result.JsonPath<T>(path) " +
+		"already reaches. Call that one; this extension is removed in 7.0.")]
 	public static T JsonPath<T>(this KafkaStepResult result, string path)
 	{
-		if (result.Message == null)
-			throw new InvalidOperationException("Message is null");
+		if (result == null)
+			throw new ArgumentNullException(nameof(result));
 
-		// Get the message as a JSON string
-		string messageJson;
-		if (result.Message is string str)
-		{
-			messageJson = str;
-		}
-		else
-		{
-			// If the message is already a deserialized object, serialize it back to JSON
-			messageJson = JsonSerializer.Serialize(result.Message);
-		}
-
-		if (string.IsNullOrWhiteSpace(messageJson))
-			throw new InvalidOperationException("Message content is empty");
-
-		using var document = JsonDocument.Parse(messageJson);
-		var root = document.RootElement;
-
-		return JsonPathNavigator.Navigate<T>(root, path);
+		// O método da própria classe sempre vence a extensão, então esta só era alcançada como
+		// KafkaStepResultExtensions.JsonPath(result, ...), com outra implementação e outras
+		// mensagens. Agora as duas formas dão o mesmo resultado (#125).
+		return result.JsonPath<T>(path);
 	}
 }

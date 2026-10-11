@@ -24,14 +24,14 @@
   </PropertyGroup>
 
   <PropertyGroup>
-    <Version>6.10.0</Version>
+    <Version>6.10.1</Version>
 
     <!--
       O que a página do pacote no nuget.org mostra. Sem isto ela fica muda, e quem atualiza
       por `dotnet add package` não recebe nenhum aviso de que a major quebra coisas.
       Trocar a cada versão, junto do número acima.
     -->
-    <PackageReleaseNotes>HTTP DSL: ExpectStatusCode(201) checks the status of a step before the last one of a scenario, right after it runs, such as the POST that creates what the next step reads back. When the status is another, the scenario stops there, and the failure names the request and shows the body. Additive: no code changes are needed from 6.9.0. Upgrade guide: https://github.com/andrewBezerra/xunit-assured-net/blob/main/UPGRADING.md</PackageReleaseNotes>
+    <PackageReleaseNotes>Maintenance: the build has no warnings and treats new ones as errors; SourceLink updated (the previous build-time dependency had a moderate advisory). Kafka: KafkaStepResultExtensions.JsonPath, which the instance method KafkaStepResult.JsonPath always took precedence over, is obsolete and removed in 7.0; it now gives the same result. No code changes needed from 6.10.0. Upgrade guide: https://github.com/andrewBezerra/xunit-assured-net/blob/main/UPGRADING.md</PackageReleaseNotes>
     <Authors>Carlos Andrew Costa Bezerra</Authors>
     <Company>Carlos Andrew Costa Bezerra</Company>
     <Copyright>Copyright (c) Carlos Andrew Costa Bezerra</Copyright>
@@ -47,6 +47,16 @@
     <LangVersion>12</LangVersion>
     <ImplicitUsings>disable</ImplicitUsings>
     <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <!--
+    Aviso vira erro, em todos os projetos: o build chegou a 380 avisos, e o próximo aviso de
+    verdade não teria sido visto no meio deles (#124). Os de vulnerabilidade de pacote ficam como
+    aviso: um alerta publicado amanhã não pode quebrar um build que ninguém mudou.
+  -->
+  <PropertyGroup>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <WarningsNotAsErrors>$(WarningsNotAsErrors);NU1901;NU1902;NU1903;NU1904</WarningsNotAsErrors>
   </PropertyGroup>
 
   <!--
@@ -76,7 +86,7 @@
   </PropertyGroup>
 
   <ItemGroup Condition="'$(IsShippingLibrary)' == 'true'">
-    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="All" />
+    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="10.0.401" PrivateAssets="All" />
   </ItemGroup>
 
 </Project>

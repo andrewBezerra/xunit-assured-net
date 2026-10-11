@@ -2,7 +2,14 @@
 
 All notable changes to the XUnitAssured packages. Upgrading from 5.1.x? See [UPGRADING.md](UPGRADING.md).
 
-## v6.10.0 (Current — the status of a step before the last)
+## v6.10.1 (Current — a build with no warnings)
+
+Maintenance. Upgrading from 6.10.0 requires no code changes.
+
+- **The build has no warnings, and a new one fails it** (#124). The Release build carried 380: a build-time dependency with a moderate advisory (`Microsoft.Build.Tasks.Git` 8.0.0, through SourceLink, now 10.0.401; it never reached the packages), the sample API on EF Core and ASP.NET Core 7 (out of support, now 8.0.31, which drops a vulnerable `Azure.Identity`), an xUnit version mismatch, nullable and documentation warnings. `TreatWarningsAsErrors` now holds the line, except for package vulnerability warnings, so a new advisory does not break a build nobody changed.
+- **Kafka: `KafkaStepResultExtensions.JsonPath` is obsolete** (#125), and removed in 7.0. `KafkaStepResult` has its own `JsonPath<T>`, which a call written as `result.JsonPath<T>(...)` always reached; the extension was only reachable by its class name, with another implementation and other messages. It now delegates, so both give the same result.
+
+## v6.10.0 (the status of a step before the last)
 
 Additive. Upgrading from 6.9.x requires no code changes.
 
