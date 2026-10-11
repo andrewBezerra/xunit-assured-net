@@ -37,16 +37,16 @@ public static class PlaywrightTranslatorTools
 	}
 
 	/// <summary>
-	/// Same translation as the DSL tool, wrapped in a complete Given/When/Then test method
-	/// body, for when the recording should become a whole test rather than a fragment.
+	/// Same translation as the DSL tool, wrapped in a complete awaited chain for the body of an
+	/// async test method, for when the recording should become a whole test rather than a fragment.
 	/// </summary>
 	[McpServerTool(Name = "translate_playwright_to_test"),
-	 Description("Translates Playwright C# Library code into a complete XUnitAssured test method body with Given/When/Then structure. " +
+	 Description("Translates Playwright C# Library code into a complete XUnitAssured test method body: await Given()...ExecuteAsync().AssertSuccess(), for an async test method. " +
 	             "Returns C# source text, ready to paste; unsupported calls come back as commented TODO lines rather than being dropped. " +
 	             "It does not write files, compile, or run anything, and it does not emit the test class or its fixture. " +
 	             "When the surrounding test already exists and only the chain is wanted, use translate_playwright_to_dsl.")]
 	public static string TranslatePlaywrightToTest(
-		[Description("The Playwright C# Library code to translate into a complete Given/When/Then test block.")] string playwrightCode)
+		[Description("The Playwright C# Library code to translate into a complete awaited test block.")] string playwrightCode)
 	{
 		if (string.IsNullOrWhiteSpace(playwrightCode))
 			return "No code provided. Paste Playwright C# Library code to translate.";
