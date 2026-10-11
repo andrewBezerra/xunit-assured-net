@@ -24,14 +24,14 @@
   </PropertyGroup>
 
   <PropertyGroup>
-    <Version>6.8.0</Version>
+    <Version>6.9.0</Version>
 
     <!--
       O que a página do pacote no nuget.org mostra. Sem isto ela fica muda, e quem atualiza
       por `dotnet add package` não recebe nenhum aviso de que a major quebra coisas.
       Trocar a cada versão, junto do número acima.
     -->
-    <PackageReleaseNotes>HTTP DSL: the assertions chain before the await, without (await ...ExecuteAsync()).Then(): await Given()...ExecuteAsync().AssertStatusCode(201).JsonPath&lt;string&gt;("$.id"). Every public method of HttpValidationBuilder has a counterpart on Task&lt;HttpValidationBuilder&gt;, except the two with an out parameter. Additive: the parenthesized form keeps working, and no code changes are needed from 6.7.0. Upgrade guide: https://github.com/andrewBezerra/xunit-assured-net/blob/main/UPGRADING.md</PackageReleaseNotes>
+    <PackageReleaseNotes>JSON path: a filter finds the item of a list by a field, and the path goes on inside it: $.members[?(@.id=='42')].name. Equality only (== and !=) against a text, number, true, false or null; in every protocol. HTTP: AssertJsonPathAny, the counterpart of AssertJsonPathAll, for conditions on several fields of the same item. Additive: no code changes are needed from 6.8.0. Upgrade guide: https://github.com/andrewBezerra/xunit-assured-net/blob/main/UPGRADING.md</PackageReleaseNotes>
     <Authors>Carlos Andrew Costa Bezerra</Authors>
     <Company>Carlos Andrew Costa Bezerra</Company>
     <Copyright>Copyright (c) Carlos Andrew Costa Bezerra</Copyright>
