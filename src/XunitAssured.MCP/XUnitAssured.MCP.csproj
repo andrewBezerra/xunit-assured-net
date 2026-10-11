@@ -15,6 +15,12 @@
     <PackageId>XUnitAssured.Mcp</PackageId>
     <PackageType>McpServer</PackageType>
     <IsPackable>true</IsPackable>
+    <!--
+      NU5111: os scripts .ps1 que o Microsoft.Playwright copia para a saída entram no pacote
+      da ferramenta, e o NuGet avisa que não os executa na instalação. Ninguém espera que
+      execute: são do Playwright, rodados por ele.
+    -->
+    <NoWarn>$(NoWarn);NU5111</NoWarn>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
 
     <!-- NuGet metadata -->

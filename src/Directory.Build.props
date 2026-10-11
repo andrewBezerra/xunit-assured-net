@@ -50,6 +50,16 @@
   </PropertyGroup>
 
   <!--
+    Aviso vira erro, em todos os projetos: o build chegou a 380 avisos, e o próximo aviso de
+    verdade não teria sido visto no meio deles (#124). Os de vulnerabilidade de pacote ficam como
+    aviso: um alerta publicado amanhã não pode quebrar um build que ninguém mudou.
+  -->
+  <PropertyGroup>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <WarningsNotAsErrors>$(WarningsNotAsErrors);NU1901;NU1902;NU1903;NU1904</WarningsNotAsErrors>
+  </PropertyGroup>
+
+  <!--
     Reproducible builds. ContinuousIntegrationBuild normalises the source paths
     embedded in the assembly so a package built from a given commit on CI is
     reproducible. It is only set on CI, where the sources genuinely come from
@@ -76,7 +86,7 @@
   </PropertyGroup>
 
   <ItemGroup Condition="'$(IsShippingLibrary)' == 'true'">
-    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="All" />
+    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="10.0.401" PrivateAssets="All" />
   </ItemGroup>
 
 </Project>

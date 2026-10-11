@@ -73,7 +73,7 @@ public class PlaywrightScenarioExtensionsTests
 		step!.Actions.Count.ShouldBe(2);
 		step.Actions[1].ActionType.ShouldBe(PageActionType.Click);
 		step.Actions[1].Locator!.Type.ShouldBe(LocatorType.Css);
-		step.Actions[1].Locator.Selector.ShouldBe("#submit-btn");
+		step.Actions[1].Locator!.Selector.ShouldBe("#submit-btn");
 	}
 
 	[Fact(DisplayName = "ClickByRole should create Click action with Role locator")]
@@ -89,7 +89,7 @@ public class PlaywrightScenarioExtensionsTests
 		var step = scenario.CurrentStep as PlaywrightStep;
 		step!.Actions[1].ActionType.ShouldBe(PageActionType.Click);
 		step.Actions[1].Locator!.Type.ShouldBe(LocatorType.Role);
-		step.Actions[1].Locator.Name.ShouldBe("Sign In");
+		step.Actions[1].Locator!.Name.ShouldBe("Sign In");
 	}
 
 	[Fact(DisplayName = "ClickByText should create Click action with Text locator")]
@@ -104,7 +104,7 @@ public class PlaywrightScenarioExtensionsTests
 		// Assert
 		var step = scenario.CurrentStep as PlaywrightStep;
 		step!.Actions[1].Locator!.Type.ShouldBe(LocatorType.Text);
-		step.Actions[1].Locator.Selector.ShouldBe("Submit form");
+		step.Actions[1].Locator!.Selector.ShouldBe("Submit form");
 	}
 
 	[Fact(DisplayName = "ClickByLabel should create Click action with Label locator")]
@@ -119,7 +119,7 @@ public class PlaywrightScenarioExtensionsTests
 		// Assert
 		var step = scenario.CurrentStep as PlaywrightStep;
 		step!.Actions[1].Locator!.Type.ShouldBe(LocatorType.Label);
-		step.Actions[1].Locator.Selector.ShouldBe("Remember me");
+		step.Actions[1].Locator!.Selector.ShouldBe("Remember me");
 	}
 
 	[Fact(DisplayName = "ClickByTestId should create Click action with TestId locator")]
@@ -134,7 +134,7 @@ public class PlaywrightScenarioExtensionsTests
 		// Assert
 		var step = scenario.CurrentStep as PlaywrightStep;
 		step!.Actions[1].Locator!.Type.ShouldBe(LocatorType.TestId);
-		step.Actions[1].Locator.Selector.ShouldBe("submit-btn");
+		step.Actions[1].Locator!.Selector.ShouldBe("submit-btn");
 	}
 
 	[Fact(DisplayName = "ClickByTitle should create Click action with Title locator")]
@@ -149,7 +149,7 @@ public class PlaywrightScenarioExtensionsTests
 		// Assert
 		var step = scenario.CurrentStep as PlaywrightStep;
 		step!.Actions[1].Locator!.Type.ShouldBe(LocatorType.Title);
-		step.Actions[1].Locator.Selector.ShouldBe("Close");
+		step.Actions[1].Locator!.Selector.ShouldBe("Close");
 	}
 
 	// ──────────────────────────────────────────────
@@ -203,7 +203,7 @@ public class PlaywrightScenarioExtensionsTests
 		var step = scenario.CurrentStep as PlaywrightStep;
 		step!.Actions[1].ActionType.ShouldBe(PageActionType.Fill);
 		step.Actions[1].Locator!.Type.ShouldBe(LocatorType.Css);
-		step.Actions[1].Locator.Selector.ShouldBe("#email");
+		step.Actions[1].Locator!.Selector.ShouldBe("#email");
 		step.Actions[1].Value.ShouldBe("user@test.com");
 	}
 
@@ -220,7 +220,7 @@ public class PlaywrightScenarioExtensionsTests
 		var step = scenario.CurrentStep as PlaywrightStep;
 		step!.Actions[1].ActionType.ShouldBe(PageActionType.Fill);
 		step.Actions[1].Locator!.Type.ShouldBe(LocatorType.Label);
-		step.Actions[1].Locator.Selector.ShouldBe("Email");
+		step.Actions[1].Locator!.Selector.ShouldBe("Email");
 		step.Actions[1].Value.ShouldBe("user@test.com");
 	}
 
@@ -236,7 +236,7 @@ public class PlaywrightScenarioExtensionsTests
 		// Assert
 		var step = scenario.CurrentStep as PlaywrightStep;
 		step!.Actions[1].Locator!.Type.ShouldBe(LocatorType.Placeholder);
-		step.Actions[1].Locator.Selector.ShouldBe("Enter your email");
+		step.Actions[1].Locator!.Selector.ShouldBe("Enter your email");
 		step.Actions[1].Value.ShouldBe("user@test.com");
 	}
 
@@ -252,7 +252,7 @@ public class PlaywrightScenarioExtensionsTests
 		// Assert
 		var step = scenario.CurrentStep as PlaywrightStep;
 		step!.Actions[1].Locator!.Type.ShouldBe(LocatorType.Role);
-		step.Actions[1].Locator.Name.ShouldBe("Search");
+		step.Actions[1].Locator!.Name.ShouldBe("Search");
 		step.Actions[1].Value.ShouldBe("playwright");
 	}
 
@@ -268,7 +268,7 @@ public class PlaywrightScenarioExtensionsTests
 		// Assert
 		var step = scenario.CurrentStep as PlaywrightStep;
 		step!.Actions[1].Locator!.Type.ShouldBe(LocatorType.TestId);
-		step.Actions[1].Locator.Selector.ShouldBe("email-input");
+		step.Actions[1].Locator!.Selector.ShouldBe("email-input");
 		step.Actions[1].Value.ShouldBe("user@test.com");
 	}
 
@@ -405,7 +405,7 @@ public class PlaywrightScenarioExtensionsTests
 		var step = scenario.CurrentStep as PlaywrightStep;
 		step!.Actions[1].ActionType.ShouldBe(PageActionType.Check);
 		step.Actions[1].Locator!.Type.ShouldBe(LocatorType.Label);
-		step.Actions[1].Locator.Selector.ShouldBe("I agree to the terms");
+		step.Actions[1].Locator!.Selector.ShouldBe("I agree to the terms");
 	}
 
 	[Fact(DisplayName = "CheckByRole should create Check action with Role locator")]
@@ -546,7 +546,7 @@ public class PlaywrightScenarioExtensionsTests
 		// Assert
 		var step = scenario.CurrentStep as PlaywrightStep;
 		step!.Actions[1].Locator!.Type.ShouldBe(LocatorType.Role);
-		step.Actions[1].Locator.Name.ShouldBe("Settings");
+		step.Actions[1].Locator!.Name.ShouldBe("Settings");
 	}
 
 	[Fact(DisplayName = "HoverByTestId should create Hover with TestId locator")]
@@ -759,7 +759,7 @@ public class PlaywrightScenarioExtensionsTests
 		step.Actions[1].Locator!.Type.ShouldBe(LocatorType.Css);
 		step.Actions[1].FilePaths.ShouldNotBeNull();
 		step.Actions[1].FilePaths!.Length.ShouldBe(1);
-		step.Actions[1].FilePaths[0].ShouldBe(@"C:\docs\resume.pdf");
+		step.Actions[1].FilePaths![0].ShouldBe(@"C:\docs\resume.pdf");
 	}
 
 	[Fact(DisplayName = "UploadFileByLabel should create UploadFile action with Label locator")]
@@ -838,7 +838,7 @@ public class PlaywrightScenarioExtensionsTests
 		var step = scenario.CurrentStep as PlaywrightStep;
 		step!.Actions[1].ActionType.ShouldBe(PageActionType.DragTo);
 		step.Actions[1].Locator!.Type.ShouldBe(LocatorType.Css);
-		step.Actions[1].Locator.Selector.ShouldBe("#draggable");
+		step.Actions[1].Locator!.Selector.ShouldBe("#draggable");
 		step.Actions[1].TargetLocator.ShouldNotBeNull();
 		step.Actions[1].TargetLocator!.Selector.ShouldBe("#droppable");
 	}
@@ -1105,7 +1105,7 @@ public class PlaywrightScenarioExtensionsTests
 		step!.Actions[1].ActionType.ShouldBe(PageActionType.Click);
 		step.Actions[1].Modifiers.ShouldNotBeNull();
 		step.Actions[1].Modifiers!.Length.ShouldBe(1);
-		step.Actions[1].Modifiers[0].ShouldBe("Shift");
+		step.Actions[1].Modifiers![0].ShouldBe("Shift");
 	}
 
 	[Fact(DisplayName = "ClickWithModifiers should support multiple modifiers")]
