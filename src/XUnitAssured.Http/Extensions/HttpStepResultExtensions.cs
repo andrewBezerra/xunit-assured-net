@@ -36,14 +36,10 @@ public static class HttpStepResultExtensions
 		if (string.IsNullOrWhiteSpace(responseBody))
 			throw new InvalidOperationException("Response body is empty");
 
+		// O caminho vai como foi escrito, com o $: o navegador o aceita, e as mensagens de erro
+		// mostram o que o teste escreveu.
 		using var document = JsonDocument.Parse(responseBody);
-		var root = document.RootElement;
-
-		// Remove leading $. if present
-		if (path.StartsWith("$."))
-			path = path.Substring(2);
-
-		return JsonPathNavigator.Navigate<T>(root, path);
+		return JsonPathNavigator.Navigate<T>(document.RootElement, path);
 	}
 
 	/// <summary>
@@ -86,12 +82,12 @@ public static class HttpStepResultExtensions
 	}
 
 	/// <summary>
-	/// How many items there are at a path: the values a [*] selects, or the length of the
-	/// array the path points to.
+	/// How many items there are at a path: the values a [*] or a filter at the end selects, or
+	/// the length of the array the path points to.
 	/// </summary>
 	internal static int JsonPathCount(this HttpStepResult result, string path)
 	{
-		if (path.Contains("[*]"))
+		if (JsonPathNavigator.ContaASelecao(path))
 			return result.JsonPathAll<JsonElement>(path).Count;
 
 		var responseBody = result.ResponseBody?.ToString() ?? string.Empty;

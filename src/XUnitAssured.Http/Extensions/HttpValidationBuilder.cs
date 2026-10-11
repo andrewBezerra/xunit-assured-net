@@ -284,10 +284,11 @@ public class HttpValidationBuilder : ValidationBuilder<HttpStepResult>
 		this.AssertJsonPathNotContains<HttpValidationBuilder, T>(Result, jsonPath, unexpected);
 
 	/// <summary>
-	/// Asserts how many items there are at a path: the values a [*] selects
-	/// ("$.items[*]"), or the length of the array the path points to ("$.items", "$").
+	/// Asserts how many items there are at a path: the values a [*] or a filter at the end
+	/// selects ("$.items[*]", "$.items[?(@.active==true)]"), or the length of the array the path
+	/// points to ("$.items", "$", "$.orders[?(@.id=='42')].lines").
 	/// </summary>
-	/// <param name="jsonPath">A path to an array, or a path with [*]</param>
+	/// <param name="jsonPath">A path to an array, or a path with [*] or ending in a filter</param>
 	/// <param name="expectedCount">The expected number of items</param>
 	/// <returns>The same HTTP validation builder for method chaining</returns>
 	public HttpValidationBuilder AssertJsonPathCount(string jsonPath, int expectedCount) =>
@@ -304,6 +305,30 @@ public class HttpValidationBuilder : ValidationBuilder<HttpStepResult>
 	/// <returns>The same HTTP validation builder for method chaining</returns>
 	public HttpValidationBuilder AssertJsonPathAll<T>(string jsonPath, Func<T, bool> predicate, string? failureMessage = null) =>
 		this.AssertJsonPathAll<HttpValidationBuilder, T>(Result, jsonPath, predicate, failureMessage);
+
+	/// <summary>
+	/// Asserts that at least one value a path selects satisfies <paramref name="predicate"/>.
+	/// </summary>
+	/// <remarks>
+	/// To find an item by one field, a filter in the path is shorter:
+	/// <c>AssertJsonPath&lt;string&gt;("$.members[?(@.id=='42')].name", n =&gt; n == "Maria")</c>.
+	/// Use this when the condition spans several fields of the same item, which a filter cannot
+	/// combine.
+	/// </remarks>
+	/// <typeparam name="T">The type of each value; JsonElement to test whole items</typeparam>
+	/// <param name="jsonPath">A path with [*] or a filter, e.g. "$.items[*]"</param>
+	/// <param name="predicate">The condition some value must satisfy</param>
+	/// <param name="failureMessage">Custom failure message</param>
+	/// <returns>The same HTTP validation builder for method chaining</returns>
+	/// <example>
+	/// <code>
+	/// .AssertJsonPathAny&lt;JsonElement&gt;("$.items[*]", item =&gt;
+	///     item.GetProperty("action").GetInt32() == 1 &amp;&amp;
+	///     item.GetProperty("changes").EnumerateArray().Any(c =&gt; c.GetProperty("field").GetString() == "Name"))
+	/// </code>
+	/// </example>
+	public HttpValidationBuilder AssertJsonPathAny<T>(string jsonPath, Func<T, bool> predicate, string? failureMessage = null) =>
+		this.AssertJsonPathAny<HttpValidationBuilder, T>(Result, jsonPath, predicate, failureMessage);
 
 	/// <summary>
 	/// Asserts that the response has a header with this exact value.

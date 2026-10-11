@@ -149,8 +149,8 @@ public static class ValidationBuilderExtensions
 	}
 
 	/// <summary>
-	/// Asserts how many items there are at a path: the values a [*] selects, or the length
-	/// of the array the path points to.
+	/// Asserts how many items there are at a path: the values a [*] or a filter at the end
+	/// selects, or the length of the array the path points to.
 	/// </summary>
 	public static TBuilder AssertJsonPathCount<TBuilder>(
 		this TBuilder builder,
@@ -190,6 +190,31 @@ public static class ValidationBuilderExtensions
 		falham.ShouldBeEmpty(
 			$"{failureMessage ?? $"Every value at {jsonPath} should satisfy the condition"}. " +
 			$"These did not: {Formatar(falham)}");
+		return builder;
+	}
+
+	/// <summary>
+	/// Asserts that at least one value a path selects satisfies <paramref name="predicate"/>.
+	/// </summary>
+	/// <remarks>
+	/// For conditions on several fields of the same item, which a filter in the path cannot
+	/// combine: select the items ("$.items[*]") as JsonElement and test them whole.
+	/// </remarks>
+	public static TBuilder AssertJsonPathAny<TBuilder, T>(
+		this TBuilder builder,
+		HttpStepResult result,
+		string jsonPath,
+		Func<T, bool> predicate,
+		string? failureMessage = null)
+		where TBuilder : class
+	{
+		var valores = result.JsonPathAll<T>(jsonPath);
+
+		valores.Any(predicate).ShouldBeTrue(
+			$"{failureMessage ?? $"Some value at {jsonPath} should satisfy the condition"}. " +
+			(valores.Count == 0
+				? "The path selected no values."
+				: $"None of the {valores.Count} did: {Formatar(valores)}"));
 		return builder;
 	}
 

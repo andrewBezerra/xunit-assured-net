@@ -93,6 +93,10 @@ public static class HttpValidationTaskExtensions
 	public static async Task<HttpValidationBuilder> AssertJsonPathAll<T>(this Task<HttpValidationBuilder> validation, string jsonPath, Func<T, bool> predicate, string? failureMessage = null) =>
 		(await Pronto(validation)).AssertJsonPathAll(jsonPath, predicate, failureMessage);
 
+	/// <inheritdoc cref="HttpValidationBuilder.AssertJsonPathAny{T}"/>
+	public static async Task<HttpValidationBuilder> AssertJsonPathAny<T>(this Task<HttpValidationBuilder> validation, string jsonPath, Func<T, bool> predicate, string? failureMessage = null) =>
+		(await Pronto(validation)).AssertJsonPathAny(jsonPath, predicate, failureMessage);
+
 	/// <inheritdoc cref="HttpValidationBuilder.AssertHeader(string, string)"/>
 	public static async Task<HttpValidationBuilder> AssertHeader(this Task<HttpValidationBuilder> validation, string name, string expectedValue) =>
 		(await Pronto(validation)).AssertHeader(name, expectedValue);

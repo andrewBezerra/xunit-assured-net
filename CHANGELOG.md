@@ -2,7 +2,15 @@
 
 All notable changes to the XUnitAssured packages. Upgrading from 5.1.x? See [UPGRADING.md](UPGRADING.md).
 
-## v6.8.0 (Current — assertions before the await)
+## v6.9.0 (Current — a filter in the JSON path)
+
+Additive. Upgrading from 6.8.x requires no code changes.
+
+- **A filter in the JSON path finds the item of a list by a field** (#118). The consumer suite read whole lists as `JsonElement`, picked the item with LINQ and read each field with `GetProperty` in 7 places; five comments said "the JSON path does not filter". The path now takes `[?(@.field=='value')]` and goes on inside the item: `$.drafts[?(@.weekStart=='2026-10-05')].incomplete.requested`. Equality only, `==` and `!=`, against a text in quotes, a number, `true`, `false` or `null`; `@.a.b` reads a nested field and `@` alone the item itself. As in RFC 9535, `!=` is the opposite of `==`, and text and number do not mix. Where one value is read, the filter must match exactly one item, and the error says how many it matched out of how many; `JsonPathAll` and the list assertions take every match. `AssertJsonPathCount` counts the matches of a filter at the end, and the list of the item a filter in the middle finds. The navigator is shared, so Kafka, RabbitMQ and Playwright paths filter too.
+- **`AssertJsonPathAny`** (#118), the counterpart of `AssertJsonPathAll`, for a condition on several fields of the same item, which a filter cannot combine. Fails listing the values when none satisfies it, and when the path selects nothing.
+- JSON path errors show the path as the test wrote it, with the `$.`; the HTTP, Kafka and RabbitMQ results used to strip it before navigating.
+
+## v6.8.0 (assertions before the await)
 
 Additive. Upgrading from 6.7.x requires no code changes.
 
