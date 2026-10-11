@@ -25,14 +25,14 @@
   </PropertyGroup>
 
   <PropertyGroup>
-    <Version>6.12.1</Version>
+    <Version>6.12.2</Version>
 
     <!--
       O que a página do pacote no nuget.org mostra. Sem isto ela fica muda, e quem atualiza
       por `dotnet add package` não recebe nenhum aviso de que a major quebra coisas.
       Trocar a cada versão, junto do número acima.
     -->
-    <PackageReleaseNotes>Maintenance: tests for Core behaviours the nightly mutation run found unguarded. The packages behave as in 6.12.0. No code changes needed from 6.12.0. Upgrade guide: https://github.com/andrewBezerra/xunit-assured-net/blob/main/UPGRADING.md</PackageReleaseNotes>
+    <PackageReleaseNotes>Maintenance: tests for Http behaviours the nightly mutation run found unguarded, including the authentication handlers; CI runs the HTTP local samples. The packages behave as in 6.12.1. No code changes needed from 6.12.1. Upgrade guide: https://github.com/andrewBezerra/xunit-assured-net/blob/main/UPGRADING.md</PackageReleaseNotes>
     <Authors>Carlos Andrew Costa Bezerra</Authors>
     <Company>Carlos Andrew Costa Bezerra</Company>
     <Copyright>Copyright (c) Carlos Andrew Costa Bezerra</Copyright>
