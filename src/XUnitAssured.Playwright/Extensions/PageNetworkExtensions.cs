@@ -1,8 +1,10 @@
 using System;
+using System.Linq;
 
 using XUnitAssured.Core.Abstractions;
 using XUnitAssured.Playwright.Abstractions;
 using XUnitAssured.Playwright.DSL;
+using XUnitAssured.Playwright.Results;
 using XUnitAssured.Playwright.Steps;
 
 namespace XUnitAssured.Playwright.Extensions;
@@ -109,6 +111,7 @@ public static class PageNetworkExtensions
 	///
 	/// await Given(browser)
 	///     .FetchFromPage($"{api}/auth/refresh", "POST")
+	///     .ExpectFetchStatus(200)
 	///     .Validate((PlaywrightStepResult r) =&gt; token = r.LastFetch!.JsonPath&lt;string&gt;("$.accessToken"))
 	///     .And()
 	///     .FetchFromPage(() =&gt; $"{api}/auth/refresh", "POST", () =&gt; new { accessToken = token })
@@ -126,6 +129,51 @@ public static class PageNetworkExtensions
 			SecondValue = method,
 			BodyProvider = body
 		});
+	}
+
+	/// <summary>
+	/// Expects the status of the last <c>FetchFromPage</c> of the step being described, checked
+	/// right after the step runs — for a step before the last one of a scenario, such as the
+	/// request whose token the next step sends. When the status is another, the scenario stops
+	/// there, and the later steps do not run.
+	/// </summary>
+	/// <remarks>
+	/// The failure is <c>AssertFetchStatus</c>'s: the request, the accepted codes, the status and
+	/// the body. Named <c>Expect</c> and not <c>Assert</c> because it checks nothing yet: it
+	/// registers a check for when the step runs. The last step is asserted after
+	/// <c>ExecuteAsync()</c>, as always.
+	/// </remarks>
+	/// <param name="scenario">The scenario whose current step is being described</param>
+	/// <param name="accepted">An accepted status code</param>
+	/// <param name="alsoAccepted">The other accepted status codes</param>
+	/// <returns>The scenario, typed as a browser scenario</returns>
+	/// <example>
+	/// <code>
+	/// await Given(browser)
+	///     .FetchFromPage($"{api}/auth/refresh", "POST")
+	///     .ExpectFetchStatus(200)
+	///     .Validate((PlaywrightStepResult r) =&gt; token = r.LastFetch!.JsonPath&lt;string&gt;("$.accessToken"))
+	///     .And()
+	///     .FetchFromPage(() =&gt; $"{api}/auth/refresh", "POST", () =&gt; new { accessToken = token })
+	///     .ExecuteAsync()
+	///     .AssertFetchStatus(200);
+	/// </code>
+	/// </example>
+	public static IBrowserScenario ExpectFetchStatus(this ITestScenario scenario, int accepted, params int[] alsoAccepted)
+	{
+		if (scenario == null) throw new ArgumentNullException(nameof(scenario));
+
+		var aceitos = new[] { accepted }.Concat(alsoAccepted ?? Array.Empty<int>()).ToArray();
+		scenario.AddValidation(resultado =>
+		{
+			if (resultado is not PlaywrightStepResult navegador)
+				throw new InvalidOperationException($"Expected PlaywrightStepResult but got {resultado?.GetType().Name ?? "null"}");
+
+			VerificacaoDeBusca.Verificar(navegador.LastFetch ?? throw new InvalidOperationException(
+				"ExpectFetchStatus follows a step that made no request with FetchFromPage, so there is no status to check."), aceitos);
+		});
+
+		return BrowserScenario.De(scenario);
 	}
 
 	private static IBrowserScenario AdicionarBusca(ITestScenario scenario, PageAction acao)

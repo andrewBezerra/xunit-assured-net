@@ -202,6 +202,7 @@ string? token = null;
 
 await Given(browser)
     .FetchFromPage($"{apiUrl}/auth/refresh", "POST")
+    .ExpectFetchStatus(200)                 // checked right after this step; stops the scenario if not
     .Validate((PlaywrightStepResult r) => token = r.LastFetch!.JsonPath<string>("$.accessToken"))
     .And()
     .FetchFromPage(() => $"{apiUrl}/auth/refresh", "POST", () => new { AccessToken = token })

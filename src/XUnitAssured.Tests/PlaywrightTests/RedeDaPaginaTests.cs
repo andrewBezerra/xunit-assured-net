@@ -152,6 +152,55 @@ public class RedeDaPaginaTests : IClassFixture<RedeDaPaginaTests.NavegadorComDua
 		resultado.Then().AssertFetchJsonPath<string>("$.accessToken", t => t == "primeiro-renovado");
 	}
 
+	// O status de um passo do meio (#132): a segunda requisição depende da primeira ter dado certo.
+	[Fact(DisplayName = "ExpectFetchStatus passes and the next step runs")]
+	public async Task Expect_Fetch_Status_Passes()
+	{
+		await using var pagina = await _ambiente.OpenPageAsync();
+		string? token = null;
+
+		await ScenarioDsl.Given(pagina)
+			.NavigateTo(_ambiente.Origens.App)
+			.FetchFromPage($"{Api}/echo", "POST", new { AccessToken = "primeiro" })
+			.ExpectFetchStatus(200)
+			.Validate((PlaywrightStepResult r) => token = r.LastFetch!.JsonPath<string>("$.accessToken"))
+			.And()
+			.FetchFromPage(() => $"{Api}/echo", "POST", () => new { AccessToken = token + "-renovado" })
+			.ExecuteAsync()
+			.AssertFetchJsonPath<string>("$.accessToken", t => t == "primeiro-renovado");
+	}
+
+	[Fact(DisplayName = "ExpectFetchStatus stops the scenario at its step, naming the request, with the body")]
+	public async Task Expect_Fetch_Status_Stops_The_Scenario()
+	{
+		await using var pagina = await _ambiente.OpenPageAsync();
+		var segundaMontada = false;
+
+		var erro = await Falha(() => ScenarioDsl.Given(pagina)
+			.NavigateTo(_ambiente.Origens.App)
+			.FetchFromPage($"{Api}/me")
+			.ExpectFetchStatus(200, 204)
+			.And()
+			.FetchFromPage(() => { segundaMontada = true; return $"{Api}/me"; })
+			.ExecuteAsync());
+
+		erro.Message.ShouldContain($"Expected GET {Api}/me from the page to answer 200 or 204, but it answered 401");
+		segundaMontada.ShouldBeFalse("the next step must not run after a failed one");
+	}
+
+	[Fact(DisplayName = "ExpectFetchStatus after a step with no FetchFromPage says so")]
+	public async Task Expect_Fetch_Status_Without_A_Fetch()
+	{
+		await using var pagina = await _ambiente.OpenPageAsync();
+
+		var erro = await Should.ThrowAsync<InvalidOperationException>(() => ScenarioDsl.Given(pagina)
+			.NavigateTo(_ambiente.Origens.App)
+			.ExpectFetchStatus(200)
+			.ExecuteAsync());
+
+		erro.Message.ShouldContain("made no request with FetchFromPage");
+	}
+
 	[Fact(DisplayName = "A request CORS refuses comes back with status 0, not as a success")]
 	public async Task Cors_Refusal_Is_Status_Zero()
 	{
@@ -163,6 +212,22 @@ public class RedeDaPaginaTests : IClassFixture<RedeDaPaginaTests.NavegadorComDua
 			.ExecuteAsync();
 
 		resultado.Then().AssertFetchStatus(0);
+	}
+
+	// O Should.ThrowAsync do Shouldly deixa passar a própria ShouldAssertException em vez de
+	// capturá-la, então a falha esperada é apanhada aqui.
+	private static async Task<ShouldAssertException> Falha(Func<Task> cadeia)
+	{
+		try
+		{
+			await cadeia();
+		}
+		catch (ShouldAssertException ex)
+		{
+			return ex;
+		}
+
+		throw new InvalidOperationException("Expected the chain to fail, and it passed.");
 	}
 
 	// ---------- Ambiente ----------
