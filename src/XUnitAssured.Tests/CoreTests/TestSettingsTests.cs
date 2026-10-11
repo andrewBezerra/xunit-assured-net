@@ -160,28 +160,33 @@ public class TestSettingsTests
 		((int)settings.TestMode).ShouldBe(0);
 	}
 
-	[Fact(DisplayName = "TestSettingsLoader should support TEST_ENV environment variable")]
+	// TEST_ENV escolhe testsettings.{ambiente}.json, procurado nos mesmos lugares do
+	// testsettings.json. A versão anterior deste teste só verificava que algo voltava, e a escolha
+	// do arquivo podia quebrar sem ninguém notar (#141).
+	[Fact(DisplayName = "TestSettingsLoader should load testsettings.{TEST_ENV}.json, and not cache it as the default")]
 	public void TestSettingsLoader_Should_Support_TEST_ENV_Variable()
 	{
-		// Arrange
+		var ambiente = $"mutacao{Guid.NewGuid():N}";
+		var arquivo = Path.Combine(Directory.GetCurrentDirectory(), $"testsettings.{ambiente}.json");
+		File.WriteAllText(arquivo, """{ "testMode": "Remote" }""");
 		TestSettingsLoader.ClearCache();
-		Environment.SetEnvironmentVariable("TEST_ENV", "production");
+		Environment.SetEnvironmentVariable("TEST_ENV", ambiente);
 
 		try
 		{
-			// Act
 			var settings = TestSettingsLoader.Load();
 
-			// Assert
-			settings.ShouldNotBeNull();
-			// If testsettings.production.json exists, Environment would be set
-			// Otherwise, settings are still valid with defaults
+			settings.TestMode.ShouldBe(TestMode.Remote);
+			settings.Environment.ShouldBe(ambiente);
+
+			Environment.SetEnvironmentVariable("TEST_ENV", null);
+			TestSettingsLoader.Load().Environment.ShouldNotBe(ambiente);
 		}
 		finally
 		{
-			// Cleanup
 			Environment.SetEnvironmentVariable("TEST_ENV", null);
 			TestSettingsLoader.ClearCache();
+			File.Delete(arquivo);
 		}
 	}
 
