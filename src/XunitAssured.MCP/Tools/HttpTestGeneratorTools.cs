@@ -21,7 +21,7 @@ public static class HttpTestGeneratorTools
 	/// </summary>
 	[McpServerTool(Name = "generate_http_test"),
 	 Description("Generates one XUnitAssured.Http test method for a single REST endpoint and HTTP method. " +
-	             "Returns C# source text: a [Fact] method with Given/When/Then structure, ready to paste into a test class. " +
+	             "Returns C# source text: an async [Fact] method — await Given()...ExecuteAsync() with the assertions chained after it, ready to paste into a test class. " +
 	             "It does not write files, compile, or run anything, and it does not create the test class or its fixture. " +
 	             "For a whole resource (list, read, create, update, delete) use generate_http_crud_tests instead of calling this five times.")]
 	public static string GenerateHttpTest(
@@ -43,7 +43,7 @@ public static class HttpTestGeneratorTools
 		var sb = new StringBuilder();
 
 		sb.AppendLine($"\t[Fact(DisplayName = \"{displayName}\")]");
-		sb.AppendLine($"\tpublic void {methodName}()");
+		sb.AppendLine($"\tpublic async Task {methodName}()");
 		sb.AppendLine("\t{");
 
 		// Body variable for POST/PUT/PATCH
@@ -62,7 +62,7 @@ public static class HttpTestGeneratorTools
 
 		// Given
 		sb.AppendLine("\t\t// Act & Assert");
-		sb.AppendLine("\t\tGiven()");
+		sb.AppendLine("\t\tawait Given()");
 
 		// Auth
 		switch (auth)
@@ -104,10 +104,8 @@ public static class HttpTestGeneratorTools
 				break;
 		}
 
-		// When/Then
-		sb.AppendLine("\t\t.When()");
-		sb.AppendLine("\t\t\t.Execute()");
-		sb.AppendLine("\t\t.Then()");
+		// Execute, and the assertions chain right after it, before the await
+		sb.AppendLine("\t\t\t.ExecuteAsync()");
 		sb.Append($"\t\t\t.AssertStatusCode({expectedStatus})");
 
 		// Assertions
@@ -245,13 +243,13 @@ public static class HttpTestGeneratorTools
 		{
 			sections.Add("""
 			== Execution & Assertions ==
-			  .When().Execute()                                 Execute the request
-			  await ... .ExecuteAsync()                          Execute asynchronously (6.0.0; the chain
-			                                                      only describes until this call)
+			  await ... .ExecuteAsync()                          Execute; the chain only describes until this call,
+			                                                      and the assertions below chain right after it
+			  .When().Execute().Then()                          Synchronous alternative
 			  await ... .ExtractAsync<string>("$.id")            Arrange: run, require 2xx, return the value
 			  await ... .ExtractAsync<string, string>("$.id", "$.token")  Two values at once
 			  await ... .EnsureSuccessAsync()                    Arrange with no value: run and require 2xx
-			  .Then()
+			  .ExecuteAsync()
 			    .AssertStatusCode(200)                           Assert HTTP status code
 			    .AssertSuccess()                                 Assert IsValid = true
 			    .ValidateContract<Product>()                     Validate JSON schema
@@ -282,12 +280,10 @@ public static class HttpTestGeneratorTools
 		{
 			sections.Add("""
 			== Complete Example ==
-			  Given()
+			  await Given()
 			      .ApiResource("/api/products/1")
 			      .Get()
-			  .When()
-			      .Execute()
-			  .Then()
+			      .ExecuteAsync()
 			      .AssertStatusCode(200)
 			      .AssertJsonPath<string>("$.name", name => name.ShouldNotBeEmpty())
 			      .ValidateContract<Product>();

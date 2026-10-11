@@ -1,3 +1,19 @@
+# Upgrading to 7.0.0 (planned)
+
+7.0.0 is not released. This section lists what it will remove or change, so a 6.x codebase can be
+ready before it ships (#129). The rule for the major: everything it removes is marked `[Obsolete]`
+in a 6.x release first, with the replacement in the warning, so the build says what to change
+before anything breaks. A test in the suite fails if an `[Obsolete]` does not say when it goes.
+
+| In 6.x | In 7.0.0 | Do now, and it keeps working in both |
+|---|---|---|
+| `KafkaStepResultExtensions.JsonPath(result, path)`, obsolete since 6.10.1 (#125) | Removed | `result.JsonPath<T>(path)`, the method on `KafkaStepResult` |
+| `Validate(r => ...)` with an untyped lambda binds to the protocol-agnostic overload in `XUnitAssured.Http`, and types the chain for HTTP (#52) | That overload moves to `XUnitAssured.Core.Extensions` and returns `ITestScenario` | Name the result type in the lambda: `Validate((KafkaStepResult r) => ...)`, `Validate((HttpStepResult r) => ...)` |
+
+Both "do now" forms are compiled in `src/XUnitAssured.Tests/UpgradingExamplesTests.cs`.
+
+---
+
 # Upgrading to 6.0.0
 
 From 5.1.x. Most chains compile and run unchanged, because the shape of the DSL did not change.
