@@ -24,14 +24,14 @@
   </PropertyGroup>
 
   <PropertyGroup>
-    <Version>6.9.0</Version>
+    <Version>6.10.0</Version>
 
     <!--
       O que a página do pacote no nuget.org mostra. Sem isto ela fica muda, e quem atualiza
       por `dotnet add package` não recebe nenhum aviso de que a major quebra coisas.
       Trocar a cada versão, junto do número acima.
     -->
-    <PackageReleaseNotes>JSON path: a filter finds the item of a list by a field, and the path goes on inside it: $.members[?(@.id=='42')].name. Equality only (== and !=) against a text, number, true, false or null; in every protocol. HTTP: AssertJsonPathAny, the counterpart of AssertJsonPathAll, for conditions on several fields of the same item. Additive: no code changes are needed from 6.8.0. Upgrade guide: https://github.com/andrewBezerra/xunit-assured-net/blob/main/UPGRADING.md</PackageReleaseNotes>
+    <PackageReleaseNotes>HTTP DSL: ExpectStatusCode(201) checks the status of a step before the last one of a scenario, right after it runs, such as the POST that creates what the next step reads back. When the status is another, the scenario stops there, and the failure names the request and shows the body. Additive: no code changes are needed from 6.9.0. Upgrade guide: https://github.com/andrewBezerra/xunit-assured-net/blob/main/UPGRADING.md</PackageReleaseNotes>
     <Authors>Carlos Andrew Costa Bezerra</Authors>
     <Company>Carlos Andrew Costa Bezerra</Company>
     <Copyright>Copyright (c) Carlos Andrew Costa Bezerra</Copyright>
