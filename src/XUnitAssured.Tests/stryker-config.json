@@ -1,0 +1,9 @@
+{
+  "stryker-config": {
+    "test-projects": [ "XUnitAssured.Tests.csproj" ],
+    "target-framework": "net10.0",
+    "test-case-filter": "Requires!=Network&Requires!=Broker&Requires!=Browser",
+    "reporters": [ "html", "markdown", "progress" ],
+    "thresholds": { "high": 80, "low": 60, "break": 0 }
+  }
+}
