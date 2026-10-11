@@ -85,33 +85,9 @@ public class HttpValidationBuilder : ValidationBuilder<HttpStepResult>
 
 	private HttpValidationBuilder AssertStatusCodeIn(int[] aceitos)
 	{
-		var esperado = DescreverCodigos(aceitos);
-
-		if (base.Result is ConcurrentHttpStepResult concorrente)
-		{
-			// Cada resposta que fugiu do esperado diz por quê; as que acertaram só ocupariam espaço.
-			var fora = concorrente.Responses
-				.Select((r, i) => (Resposta: r, Posicao: i + 1))
-				.Where(x => !aceitos.Contains(x.Resposta.StatusCode))
-				.Select(x => $"Request {x.Posicao} ({x.Resposta.StatusCode}): {x.Resposta.Explicacao()}");
-
-			concorrente.StatusCodes.ShouldAllBe(codigo => aceitos.Contains(codigo),
-				$"Expected every one of the {concorrente.Responses.Count} concurrent requests to get " +
-				$"{esperado}, but they got: {string.Join(", ", concorrente.StatusCodes)}" +
-				Environment.NewLine + string.Join(Environment.NewLine, fora));
-			return this;
-		}
-
-		aceitos.Contains(Result.StatusCode).ShouldBeTrue(
-			$"Expected HTTP status code {esperado} but got {Result.StatusCode}. {Result.Explicacao()}");
+		VerificacaoDeStatus.Verificar(base.Result, aceitos);
 		return this;
 	}
-
-	// 404 / 403 or 404 / 400, 403 or 404
-	private static string DescreverCodigos(int[] codigos) =>
-		codigos.Length == 1
-			? codigos[0].ToString()
-			: $"{string.Join(", ", codigos.Take(codigos.Length - 1))} or {codigos[codigos.Length - 1]}";
 
 	/// <summary>
 	/// Runs the assertions on each response of requests sent with <c>Concurrently</c> — or on the

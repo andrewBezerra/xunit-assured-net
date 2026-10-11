@@ -2,7 +2,13 @@
 
 All notable changes to the XUnitAssured packages. Upgrading from 5.1.x? See [UPGRADING.md](UPGRADING.md).
 
-## v6.9.0 (Current — a filter in the JSON path)
+## v6.10.0 (Current — the status of a step before the last)
+
+Additive. Upgrading from 6.9.x requires no code changes.
+
+- **`ExpectStatusCode` checks the status of a step before the last one of a scenario** (#121). Creating and reading back is a two-step scenario, and the consumer suite checked the creation's status by hand in 3 places, in a `Validate` with the body appended to the message; the README example did not check it at all, and a failed creation made the read-back go to `/products/0` and fail for a reason that was not its own. `ExpectStatusCode(201)` registers the check on the step being described, run right after that step: when the status is another, the scenario stops there, and the failure is `AssertStatusCode`'s, prefixed with the request — `After POST /orders: Expected HTTP status code 201 but got 400. Body: ...`. It accepts several codes and checks every response of `Concurrently` requests. Named `Expect` because it registers a check instead of making one: `Given()...Get().AssertStatusCode(200)` without `ExecuteAsync` keeps failing to compile. The create-and-read-back example in the HTTP README and the local sample check the creation's 201.
+
+## v6.9.0 (a filter in the JSON path)
 
 Additive. Upgrading from 6.8.x requires no code changes.
 
