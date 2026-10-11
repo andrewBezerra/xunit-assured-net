@@ -16,10 +16,11 @@
   <PropertyGroup>
     <!--
       True for the five published packages (Core, Http, Kafka, Playwright, Mcp)
-      and false for test and sample projects. Set it explicitly in a .csproj to
+      and false for test and sample projects, and for the source generator, which
+      runs only while the packages compile. Set it explicitly in a .csproj to
       override this inference.
     -->
-    <IsShippingLibrary Condition="'$(IsShippingLibrary)' == '' AND !$(MSBuildProjectName.Contains('Test')) AND !$(MSBuildProjectName.Contains('Sample'))">true</IsShippingLibrary>
+    <IsShippingLibrary Condition="'$(IsShippingLibrary)' == '' AND !$(MSBuildProjectName.Contains('Test')) AND !$(MSBuildProjectName.Contains('Sample')) AND !$(MSBuildProjectName.EndsWith('SourceGenerators'))">true</IsShippingLibrary>
     <IsShippingLibrary Condition="'$(IsShippingLibrary)' == ''">false</IsShippingLibrary>
   </PropertyGroup>
 
