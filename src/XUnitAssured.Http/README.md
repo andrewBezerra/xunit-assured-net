@@ -73,6 +73,7 @@ int productId = 0;
 
 var readBack = await Given()
     .ApiResource("/api/products").Post(newProduct)
+    .ExpectStatusCode(201)
     .Validate((HttpStepResult created) => productId = created.JsonPath<int>("$.id"))
     .And()
     .ApiResource(() => $"/api/products/{productId}").Get()
@@ -82,6 +83,12 @@ readBack.Then().AssertStatusCode(200);
 ```
 
 A 201 alone proves the API answered; reading the resource back proves it was stored.
+
+`ExpectStatusCode` checks the step it follows right after that step runs. When the creation gets
+another status, the scenario stops there, and the failure names the request and shows the body —
+`After POST /api/products: Expected HTTP status code 201 but got 400. Body: ...` — instead of a
+read-back of `/api/products/0` failing for a reason that is not its own. It accepts several codes,
+like `AssertStatusCode(403, 404)`. The last step is asserted after `ExecuteAsync()`, as always.
 
 ### Arranging data
 

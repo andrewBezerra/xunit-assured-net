@@ -367,6 +367,7 @@ public class CrudOperationsTests : HttpTestBase<HttpSamplesFixture>, IClassFixtu
 		var readBack = await Given()
 			.ApiResource("/api/products")
 			.Post(newProduct)
+			.ExpectStatusCode(201)
 			.Validate((HttpStepResult created) => productId = created.JsonPath<int>("$.id"))
 			.And()
 			.ApiResource(() => $"/api/products/{productId}")

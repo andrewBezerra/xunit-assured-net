@@ -210,6 +210,7 @@ public static class HttpTestGeneratorTools
 			  Given(fixture)                                    Start with IHttpClientProvider fixture
 			    .ApiResource("/api/endpoint")                   Set the target URL
 			    .ApiResource(() => $"/api/orders/{id}")         URL built when the step runs (value from an earlier step)
+			    .ExpectStatusCode(201)                          Status of a step before the last; stops the scenario there
 			    .WithHttpClient(client)                         Use a custom HttpClient
 			    .WithHeader("X-Custom", "value")                Add request header
 			    .WithQueryParam("page", 1)                      Add query parameter
