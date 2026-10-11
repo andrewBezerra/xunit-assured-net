@@ -13,6 +13,7 @@ using XUnitAssured.Http.Extensions;
 using XUnitAssured.Http.Results;
 using XUnitAssured.Kafka.Abstractions;
 using XUnitAssured.Kafka.Extensions;
+using XUnitAssured.Kafka.Results;
 using XUnitAssured.Playwright.Extensions;
 
 namespace XUnitAssured.Tests;
@@ -48,6 +49,34 @@ public class UpgradingExamplesTests
 		public int OrderId { get; set; }
 
 		public string Status { get; set; } = string.Empty;
+	}
+
+	// ──────────────────────────────────────────────
+	// Ready for 7.0.0: forms that work in 6.x and keep working
+	// ──────────────────────────────────────────────
+
+	[Fact(DisplayName = "Upgrading to 7.0: read a Kafka message with the method on the result")]
+	public void Kafka_JsonPath_On_The_Result()
+	{
+		var result = new KafkaStepResult
+		{
+			Success = true,
+			Data = """{"id":42}""",
+			Properties = new System.Collections.Generic.Dictionary<string, object?>(),
+			Metadata = new StepMetadata { StartedAt = DateTimeOffset.UtcNow, CompletedAt = DateTimeOffset.UtcNow, Status = StepStatus.Succeeded }
+		};
+
+		result.JsonPath<int>("$.id").ShouldBe(42);
+	}
+
+	[Fact(Skip = "Guide example — requires a broker", DisplayName = "Upgrading to 7.0: name the result type in Validate")]
+	public async Task Validate_Names_The_Result_Type()
+	{
+		await ScenarioDsl.Given()
+			.Topic("orders.created")
+			.Consume()
+			.Validate((KafkaStepResult r) => r.Success.ShouldBeTrue())
+			.ExecuteAsync();
 	}
 
 	// ──────────────────────────────────────────────
