@@ -2,7 +2,15 @@
 
 All notable changes to the XUnitAssured packages. Upgrading from 5.1.x? See [UPGRADING.md](UPGRADING.md).
 
-## v6.12.1 (Current — what the mutation run found unguarded)
+## v6.12.2 (Current — what the mutation run found unguarded in Http)
+
+Maintenance. Upgrading from 6.12.1 requires no code changes; the packages behave as before.
+
+- **Tests for the Http behaviours the nightly mutation run found unguarded** (#145). Assertions that could stop failing, because the tests only had conditions that pass: `AssertJsonPath` with a predicate, `AssertJsonPathAll`, `AssertJsonPathAny`, the predicates of the header, cookie and problem details assertions, and `AssertSuccess` and `Validate` before the await. Behaviour: query parameters on a URL that already has one, the last verb winning, content headers, status class edges, concurrent and arrange failures, settings merging, `Set-Cookie` and problem details parsing. The authentication handlers, which nothing applied, now are, with OAuth2's token call faked.
+- **CI runs the HTTP local samples** (#144), the suite that sends requests through a custom `HttpClient` with each kind of authentication; the nightly mutation run includes them for Http.
+- Found on the way, for a later release: authentication differs between the Flurl and the custom `HttpClient` paths (#147), and settings merging cannot tell a field left out from its default (#146).
+
+## v6.12.1 (what the mutation run found unguarded)
 
 Maintenance. Upgrading from 6.12.0 requires no code changes; the packages behave as before.
 
