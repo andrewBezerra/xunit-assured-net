@@ -30,12 +30,23 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        project: [XUnitAssured.Core, XUnitAssured.Http]
+        include:
+          - project: XUnitAssured.Core
+            extra: ''
+          # Os exemplos HTTP locais são a única suíte que manda um pedido por um HttpClient
+          # próprio com cada tipo de autenticação (#144). O projeto é só net8.0, e o Stryker
+          # roda os testes num framework só, então o job do Http roda no net8.0.
+          - project: XUnitAssured.Http
+            extra: >-
+              --target-framework net8.0
+              --test-project XUnitAssured.Tests.csproj
+              --test-project ../XUnitAssured.Http.Samples.Local.Test/XUnitAssured.Http.Samples.Local.Test.csproj
 
     steps:
       - uses: actions/checkout@v4
 
-      # O projeto de testes compila para os três; o Stryker roda no net10.0 (stryker-config.json).
+      # O projeto de testes compila para os três; o Stryker roda no net10.0 (stryker-config.json),
+      # menos o Http, no net8.0 (acima).
       - name: Set up .NET
         uses: actions/setup-dotnet@v4
         with:
@@ -49,7 +60,7 @@ jobs:
 
       - name: Stryker
         working-directory: src/XUnitAssured.Tests
-        run: dotnet stryker --project ${{ matrix.project }}.csproj --output "${{ github.workspace }}/mutation/${{ matrix.project }}"
+        run: dotnet stryker --project ${{ matrix.project }}.csproj ${{ matrix.extra }} --output "${{ github.workspace }}/mutation/${{ matrix.project }}"
 
       # O relatório em markdown vai para o resumo da execução; o HTML, com cada mutante
       # sobrevivente no código, vai como artefato.
