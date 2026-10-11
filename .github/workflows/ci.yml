@@ -66,8 +66,9 @@ jobs:
         id: build
         run: dotnet build ${{ env.SOLUTION }} --configuration Release --no-restore
 
-      # Only the unit test project runs. The sample test projects need a live API,
-      # a Kafka broker or a browser, so they are not gating material.
+      # The unit test project, and the HTTP local samples below. The other sample test
+      # projects need a live API, a Kafka broker or a browser, so they are not gating
+      # material.
       - name: Test (net8.0)
         if: ${{ !cancelled() && steps.build.outcome == 'success' }}
         run: dotnet test ${{ env.UNIT_TESTS }} --configuration Release --no-build --framework net8.0 --filter "Requires!=Network&Requires!=Broker&Requires!=Browser" --logger "trx;LogFileName=net8.0.trx" --results-directory TestResults
@@ -79,6 +80,13 @@ jobs:
       - name: Test (net10.0)
         if: ${{ !cancelled() && steps.build.outcome == 'success' }}
         run: dotnet test ${{ env.UNIT_TESTS }} --configuration Release --no-build --framework net10.0 --filter "Requires!=Network&Requires!=Broker&Requires!=Browser" --logger "trx;LogFileName=net10.0.trx" --results-directory TestResults
+
+      # In process (WebApplicationFactory over SampleWebApi), no network. The only
+      # suite that sends a request through a custom HttpClient with each kind of
+      # authentication (#144). The project targets net8.0.
+      - name: Test (HTTP local samples)
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
+        run: dotnet test src/XUnitAssured.Http.Samples.Local.Test/XUnitAssured.Http.Samples.Local.Test.csproj --configuration Release --no-build --logger "trx;LogFileName=http-samples.trx" --results-directory TestResults
 
       - name: Upload test results
         if: always()
