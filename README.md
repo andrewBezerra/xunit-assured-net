@@ -598,7 +598,7 @@ Add to your `.mcp.json` (repo root, `~/.mcp.json`, or `.vscode/mcp.json`):
     "xunitassured": {
       "type": "stdio",
       "command": "dnx",
-      "args": ["XUnitAssured.Mcp@6.10.1", "--yes"]
+      "args": ["XUnitAssured.Mcp@6.11.0", "--yes"]
     }
   }
 }
@@ -628,9 +628,9 @@ In GitHub Copilot Chat, the XUnitAssured tools should appear as available. Try:
 
 ## What's New
 
-**6.10.1** — maintenance: a build with no warnings, and new ones fail it; the duplicate Kafka `JsonPath` extension is obsolete. No code changes needed from 6.10.0.
+**6.11.0** — Kafka, RabbitMQ and Playwright: the assertions chain before the `await`, as in HTTP — `await Given()...ExecuteAsync().AssertSuccess()`; Playwright gets `ExpectFetchStatus` for a step before the last. No code changes needed from 6.10.1.
 
-**6.10.0** — HTTP: `ExpectStatusCode(201)` checks the status of a step before the last one of a scenario, and stops the scenario there when it is another, naming the request. No code changes needed from 6.9.0.
+**6.10.1** — maintenance: a build with no warnings, and new ones fail it; the duplicate Kafka `JsonPath` extension is obsolete. No code changes needed from 6.10.0.
 
 The full history is in **[CHANGELOG.md](https://github.com/andrewBezerra/xunit-assured-net/blob/main/CHANGELOG.md)**. Coming from 5.x? Start with **[UPGRADING.md](https://github.com/andrewBezerra/xunit-assured-net/blob/main/UPGRADING.md)**.
 
