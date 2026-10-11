@@ -74,6 +74,7 @@ public class TestScenario : ITestScenario, IFronteiraDePasso
 	/// <inheritdoc />
 	bool IFronteiraDePasso.ComecaPassoNovo => _comecarNovoPasso;
 
+	/// <inheritdoc />
 	public ITestScenario And()
 	{
 		_comecarNovoPasso = true;

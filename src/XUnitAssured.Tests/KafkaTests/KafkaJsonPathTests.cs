@@ -243,6 +243,38 @@ public class KafkaJsonPathTests
 
 	#endregion
 
+	#region The deprecated extension (#125)
+
+	// KafkaStepResult tinha dois JsonPath: o da classe, que sempre vence, e uma extensão com outra
+	// implementação, só alcançável chamada pelo nome da classe. A extensão fica obsoleta até a 7.0
+	// e passa a dar o mesmo resultado que o da classe.
+
+	[Fact(DisplayName = "The JsonPath extension is obsolete, pointing at the instance method")]
+	public void Extension_Is_Obsolete()
+	{
+		var obsoleto = typeof(KafkaStepResultExtensions).GetMethod(nameof(KafkaStepResultExtensions.JsonPath))!
+			.GetCustomAttributes(typeof(ObsoleteAttribute), false);
+
+		((ObsoleteAttribute)obsoleto.ShouldHaveSingleItem()).Message.ShouldNotBeNull().ShouldContain("removed in 7.0");
+	}
+
+	[Fact(DisplayName = "The JsonPath extension gives what the instance method gives, failures included")]
+	public void Extension_Delegates_To_The_Instance_Method()
+	{
+		var result = CreateKafkaResultWithJsonMessage("""{"user":{"id":7}}""");
+
+#pragma warning disable CS0618 // o que se testa é justamente a extensão obsoleta
+		KafkaStepResultExtensions.JsonPath<int>(result, "$.user.id").ShouldBe(result.JsonPath<int>("$.user.id"));
+
+		var daExtensao = Should.Throw<Exception>(() => KafkaStepResultExtensions.JsonPath<int>(result, "$.user[?(@.id==9)]"));
+#pragma warning restore CS0618
+		var doMetodo = Should.Throw<Exception>(() => result.JsonPath<int>("$.user[?(@.id==9)]"));
+
+		daExtensao.Message.ShouldBe(doMetodo.Message);
+	}
+
+	#endregion
+
 	#region Helper Methods
 
 	private KafkaStepResult CreateKafkaResultWithJsonMessage(string jsonMessage)
