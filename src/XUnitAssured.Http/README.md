@@ -161,6 +161,33 @@ A path can start at a root array (`$[0].id`), and `[*]` selects a value from eve
 `AssertJsonPathAll` fails when the path selects nothing: an empty list satisfies any condition, so a
 search that returned nothing would otherwise pass.
 
+To find one item of a list by a field, filter it in the path, and go on reading inside it:
+
+```csharp
+.Then()
+    .AssertJsonPath<string>("$.members[?(@.id=='" + memberId + "')].name", n => n == "Maria Silva")
+    .AssertJsonPathNull("$.drafts[?(@.weekStart=='2026-10-12')].incomplete")
+    .AssertJsonPathCount("$.drafts[?(@.published==false)]", 2)          // a filter at the end: how many match
+    .AssertJsonPathCount("$.drafts[?(@.weekStart=='2026-10-12')].memberIds", 3) // in the middle: finds the item
+```
+
+- The filter compares one field with `==` or `!=`, against a text in quotes, a number, `true`,
+  `false` or `null`. `@.a.b` reads a nested field, and `@` alone the item itself (`$.tags[?(@=='rio')]`).
+- Text and number do not mix: `'1'` is not `1`. As in RFC 9535, `!=` is the opposite of `==`, so an
+  item without the field is selected by `!=`.
+- Where one value is read (`JsonPath<T>`, `AssertJsonPath`, `AssertJsonPathNull`), the filter must
+  match exactly one item. The error says how many it matched, out of how many. `JsonPathAll` and the
+  list assertions take every match.
+
+When the condition spans several fields of the same item, which a filter cannot combine, test the
+items whole with `AssertJsonPathAny`:
+
+```csharp
+.AssertJsonPathAny<JsonElement>("$.items[*]", item =>
+    item.GetProperty("action").GetInt32() == 1 &&
+    item.GetProperty("changes").EnumerateArray().Any(c => c.GetProperty("field").GetString() == "Name"))
+```
+
 ### Headers, cookies, Problem Details and body text
 
 ```csharp

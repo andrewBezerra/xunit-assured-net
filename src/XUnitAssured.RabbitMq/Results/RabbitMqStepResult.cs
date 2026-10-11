@@ -85,9 +85,6 @@ public class RabbitMqStepResult : TestStepResult
 		using var documento = JsonDocument.Parse(Message!);
 		var raiz = documento.RootElement;
 
-		if (path.StartsWith("$."))
-			path = path.Substring(2);
-
 		return JsonPathNavigator.Navigate<T>(raiz, path);
 	}
 
