@@ -41,14 +41,13 @@ public class SessionTests(MyApp app) : IClassFixture<MyApp>
     {
         await using var page = await app.OpenPageAsync();
 
-        var result = await ScenarioDsl.Given(page)
+        await ScenarioDsl.Given(page)
             .NavigateTo("/login")              // relative to app.AppUrl
             .FillByLabel("Email", "user@test.com")
             .ClickByRole(AriaRole.Button, "Sign in")
             .WaitForSelector("[data-testid=dashboard]")
-            .ExecuteAsync();
-
-        result.Then().AssertUrlContains("/dashboard");
+            .ExecuteAsync()
+            .AssertUrlContains("/dashboard");
     }
 }
 ```

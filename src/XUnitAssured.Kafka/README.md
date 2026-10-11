@@ -19,33 +19,38 @@ public class OrderTests : KafkaTestBase<KafkaClassFixture>, IClassFixture<KafkaC
     public OrderTests(KafkaClassFixture fixture) : base(fixture) { }
 
     [Fact]
-    public void Produce_And_Consume_Order()
+    public async Task Produce_And_Consume_Order()
     {
         var topic = GenerateUniqueTopic("orders");
         var groupId = $"test-{Guid.NewGuid():N}";
 
         // Produce
-        Given()
+        await Given()
             .Topic(topic)
             .Produce(new { id = 1, product = "Laptop", price = 999.99m })
-        .When()
-            .Execute()
-        .Then()
+            .ExecuteAsync()
             .AssertSuccess();
 
         // Consume
-        Given()
+        await Given()
             .Topic(topic)
             .Consume()
             .WithGroupId(groupId)
-        .When()
-            .Execute()
-        .Then()
+            .ExecuteAsync()
             .AssertSuccess()
             .AssertMessage<string>(msg => msg.ShouldNotBeNullOrEmpty());
     }
 }
 ```
+
+The assertions chain right after `ExecuteAsync()`, and the chain is awaited once, at the start.
+Await it: without `await` the step still runs, but a failed assertion is never seen. `.When()`
+and `.Then()` still read the same, and are optional. The synchronous `Execute()` keeps working; it
+holds the thread until the broker answers.
+
+The methods with an `out` parameter, such as `Extract(out var result)`, cannot be asynchronous:
+use them on the builder, after the `await` — `(await ...ExecuteAsync()).Extract(out var result)` —
+or end the chain with `GetResult()`, which returns the result.
 
 ## Fluent DSL Reference
 
@@ -92,9 +97,7 @@ Given()
 ### Assertions
 
 ```csharp
-.When()
-    .Execute()
-.Then()
+await Given().Topic("my-topic").Consume().ExecuteAsync()
     .AssertSuccess()                                   // Assert operation succeeded
     .AssertMessage<string>(msg => msg.ShouldBe("expected"))  // Assert message content
     .AssertBatchCount(5)                               // Assert batch message count
@@ -105,61 +108,61 @@ Given()
 ### SASL/PLAIN
 
 ```csharp
-Given()
+await Given()
     .Topic("my-topic")
     .Produce("message")
     .WithBootstrapServers("localhost:29093")
     .WithAuth(auth => auth.UseSaslPlain("user", "password", useSsl: false))
-.When().Execute()
-.Then().AssertSuccess();
+    .ExecuteAsync()
+    .AssertSuccess();
 ```
 
 ### SASL/SCRAM-SHA-256
 
 ```csharp
-Given()
+await Given()
     .Topic("my-topic")
     .Produce("message")
     .WithBootstrapServers("localhost:29094")
     .WithAuth(auth => auth.UseSaslScram256("user", "password"))
-.When().Execute()
-.Then().AssertSuccess();
+    .ExecuteAsync()
+    .AssertSuccess();
 ```
 
 ### SASL/SCRAM-SHA-512
 
 ```csharp
-Given()
+await Given()
     .Topic("my-topic")
     .Produce("message")
     .WithBootstrapServers("localhost:29095")
     .WithAuth(auth => auth.UseSaslScram512("user", "password"))
-.When().Execute()
-.Then().AssertSuccess();
+    .ExecuteAsync()
+    .AssertSuccess();
 ```
 
 ### SSL (One-Way)
 
 ```csharp
-Given()
+await Given()
     .Topic("my-topic")
     .Produce("message")
     .WithBootstrapServers("localhost:29096")
     .WithAuth(auth => auth.UseSsl("certs/ca-cert.pem"))
-.When().Execute()
-.Then().AssertSuccess();
+    .ExecuteAsync()
+    .AssertSuccess();
 ```
 
 ### Mutual TLS (mTLS)
 
 ```csharp
-Given()
+await Given()
     .Topic("my-topic")
     .Produce("message")
     .WithBootstrapServers("localhost:29097")
     .WithAuth(auth => auth.UseMutualTls("client-cert.pem", "client-key.pem", "ca-cert.pem"))
-.When().Execute()
-.Then().AssertSuccess();
+    .ExecuteAsync()
+    .AssertSuccess();
 ```
 
 ### Automatic Authentication via testsettings.json
@@ -185,23 +188,19 @@ Given()
 // Produce batch
 var messages = new[] { "order-1", "order-2", "order-3", "order-4", "order-5" };
 
-Given()
+await Given()
     .Topic("orders")
     .ProduceBatch(messages)
-.When()
-    .Execute()
-.Then()
+    .ExecuteAsync()
     .AssertSuccess()
     .AssertBatchCount(5);
 
 // Consume batch
-Given()
+await Given()
     .Topic("orders")
     .ConsumeBatch(5)
     .WithGroupId("batch-consumer")
-.When()
-    .Execute()
-.Then()
+    .ExecuteAsync()
     .AssertSuccess()
     .AssertBatchCount(5);
 ```
@@ -210,46 +209,45 @@ Given()
 
 ```csharp
 // Produce with key
-Given()
+await Given()
     .Topic("user-events")
     .Produce(new { action = "login", userId = 42 })
     .WithKey("user-42")
-.When().Execute()
-.Then().AssertSuccess();
+    .ExecuteAsync()
+    .AssertSuccess();
 
 // Produce with headers
-Given()
+await Given()
     .Topic("user-events")
     .Produce("event-data")
     .WithHeader("correlation-id", "abc-123")
     .WithHeader("source", "test-suite")
-.When().Execute()
-.Then().AssertSuccess();
+    .ExecuteAsync()
+    .AssertSuccess();
 ```
 
 ## Round-Trip Example (Produce → Consume)
 
 ```csharp
 [Fact]
-public void RoundTrip_ProduceAndConsume()
+public async Task RoundTrip_ProduceAndConsume()
 {
     var topic = GenerateUniqueTopic("roundtrip");
     var groupId = $"test-{Guid.NewGuid():N}";
 
     // Produce
-    Given()
+    await Given()
         .Topic(topic)
         .Produce("Hello, Kafka!")
-    .When().Execute()
-    .Then().AssertSuccess();
+        .ExecuteAsync()
+        .AssertSuccess();
 
     // Consume and validate
-    Given()
+    await Given()
         .Topic(topic)
         .Consume()
         .WithGroupId(groupId)
-    .When().Execute()
-    .Then()
+        .ExecuteAsync()
         .AssertSuccess()
         .AssertMessage<string>(msg => msg.ShouldBe("Hello, Kafka!"));
 }

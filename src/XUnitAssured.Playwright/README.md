@@ -27,21 +27,24 @@ public class LoginTests : PlaywrightTestBase<MyPlaywrightFixture>, IClassFixture
     public LoginTests(MyPlaywrightFixture fixture) : base(fixture) { }
 
     [Fact]
-    public void Login_Should_Navigate_To_Dashboard()
+    public async Task Login_Should_Navigate_To_Dashboard()
     {
-        Given()
+        await Given()
             .NavigateTo("/login")
             .FillByLabel("Email", "user@test.com")
             .FillByLabel("Password", "secret")
             .ClickByRole(AriaRole.Button, "Sign in")
-        .When()
-            .Execute()
-        .Then()
+            .ExecuteAsync()
             .AssertSuccess()
             .AssertUrl("/dashboard");
     }
 }
 ```
+
+The assertions chain right after `ExecuteAsync()`, and the chain is awaited once, at the start.
+Await it: without `await` the steps still run, but a failed assertion is never seen. `.When()` and
+`.Then()` still read the same, and are optional. The synchronous `Execute()` keeps working; it holds
+the thread until the browser is done.
 
 ## Fluent DSL Reference
 
@@ -159,9 +162,7 @@ Given()
 ## Assertions
 
 ```csharp
-.When()
-    .Execute()
-.Then()
+await Given().NavigateTo("/dashboard").ExecuteAsync()
     .AssertSuccess()                                    // Assert step succeeded
     .AssertUrl("/dashboard")                            // Assert exact URL
     .AssertUrlContains("/dash")                         // Assert URL contains
@@ -188,27 +189,23 @@ an app reacting to several requests failing at once. These verbs reach them with
 
 ```csharp
 // Several requests come back 401 at once; the app should renew the session a single time.
-var reloaded = await Given(browser)
+await Given(browser)
     .NavigateTo("/dashboard")
     .InterceptRoute($"{apiUrl}/**", status: 401, times: 10)   // the first 10 matching, then through
     .Reload()
-    .ExecuteAsync();
-
-reloaded.Then()
+    .ExecuteAsync()
     .AssertIntercepted(atLeast: 2)          // the scenario actually happened
     .AssertRequestedOnce("/auth/refresh");
 
 // A request from inside the page, with its cookies, across origins.
 string? token = null;
 
-var renewed = await Given(browser)
+await Given(browser)
     .FetchFromPage($"{apiUrl}/auth/refresh", "POST")
     .Validate((PlaywrightStepResult r) => token = r.LastFetch!.JsonPath<string>("$.accessToken"))
     .And()
     .FetchFromPage(() => $"{apiUrl}/auth/refresh", "POST", () => new { AccessToken = token })
-    .ExecuteAsync();
-
-renewed.Then()
+    .ExecuteAsync()
     .AssertFetchStatus(200)
     .AssertFetchJsonPath<string>("$.accessToken", t => t != token);
 ```
