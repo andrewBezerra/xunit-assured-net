@@ -20,7 +20,7 @@ public static class KafkaTestGeneratorTools
 	/// </summary>
 	[McpServerTool(Name = "generate_kafka_produce_test"),
 	 Description("Generates one XUnitAssured.Kafka test method that produces a message to a topic. " +
-	             "Returns C# source text: a [Fact] method with Given/When/Then structure, ready to paste. " +
+	             "Returns C# source text: an async [Fact] method — await Given()...ExecuteAsync() with the assertions chained after it, ready to paste. " +
 	             "It does not write files, compile, or run anything, and it does not create the topic or the broker configuration. " +
 	             "To assert that the message arrives, use generate_kafka_produce_consume_test; to consume only, generate_kafka_consume_test.")]
 	public static string GenerateKafkaProduceTest(
@@ -37,7 +37,7 @@ public static class KafkaTestGeneratorTools
 		var sb = new StringBuilder();
 
 		sb.AppendLine($"\t[Fact(DisplayName = \"{displayName}\")]");
-		sb.AppendLine($"\tpublic void Should_Produce_To_{SanitizeName(topic)}()");
+		sb.AppendLine($"\tpublic async Task Should_Produce_To_{SanitizeName(topic)}()");
 		sb.AppendLine("\t{");
 
 		// Arrange - message body
@@ -60,7 +60,7 @@ public static class KafkaTestGeneratorTools
 
 		// Act & Assert
 		sb.AppendLine("\t\t// Act & Assert");
-		sb.AppendLine("\t\tGiven()");
+		sb.AppendLine("\t\tawait Given()");
 		sb.AppendLine($"\t\t\t.Topic(\"{topic}\")");
 
 		if (!string.IsNullOrWhiteSpace(key))
@@ -71,9 +71,7 @@ public static class KafkaTestGeneratorTools
 		// Auth
 		AppendAuth(sb, auth);
 
-		sb.AppendLine("\t\t.When()");
-		sb.AppendLine("\t\t\t.Execute()");
-		sb.AppendLine("\t\t.Then()");
+		sb.AppendLine("\t\t\t.ExecuteAsync()");
 		sb.AppendLine("\t\t\t.AssertSuccess();");
 		sb.AppendLine("\t}");
 
@@ -86,7 +84,7 @@ public static class KafkaTestGeneratorTools
 	/// </summary>
 	[McpServerTool(Name = "generate_kafka_consume_test"),
 	 Description("Generates one XUnitAssured.Kafka test method that consumes a message from a topic and asserts on it. " +
-	             "Returns C# source text: a [Fact] method with Given/When/Then structure and message assertions, ready to paste. " +
+	             "Returns C# source text: an async [Fact] method — await Given()...ExecuteAsync() with the assertions chained after it and message assertions, ready to paste. " +
 	             "It does not write files, compile, or run anything, and it assumes something else put the message on the topic. " +
 	             "To produce the message in the same test, use generate_kafka_produce_consume_test.")]
 	public static string GenerateKafkaConsumeTest(
@@ -104,10 +102,10 @@ public static class KafkaTestGeneratorTools
 		var sb = new StringBuilder();
 
 		sb.AppendLine($"\t[Fact(DisplayName = \"{displayName}\")]");
-		sb.AppendLine($"\tpublic void Should_Consume_From_{SanitizeName(topic)}()");
+		sb.AppendLine($"\tpublic async Task Should_Consume_From_{SanitizeName(topic)}()");
 		sb.AppendLine("\t{");
 		sb.AppendLine("\t\t// Act & Assert");
-		sb.AppendLine("\t\tGiven()");
+		sb.AppendLine("\t\tawait Given()");
 		sb.AppendLine($"\t\t\t.Topic(\"{topic}\")");
 		sb.AppendLine("\t\t\t.Consume()");
 		sb.AppendLine($"\t\t\t.WithGroupId(\"{groupId}\")");
@@ -115,9 +113,7 @@ public static class KafkaTestGeneratorTools
 		// Auth
 		AppendAuth(sb, auth);
 
-		sb.AppendLine("\t\t.When()");
-		sb.AppendLine("\t\t\t.Execute()");
-		sb.AppendLine("\t\t.Then()");
+		sb.AppendLine("\t\t\t.ExecuteAsync()");
 		sb.Append("\t\t\t.AssertSuccess()");
 
 		// Assertions
@@ -143,7 +139,7 @@ public static class KafkaTestGeneratorTools
 	/// </summary>
 	[McpServerTool(Name = "generate_kafka_produce_consume_test"),
 	 Description("Generates one round-trip test that produces a message to a topic and then consumes it and validates the content. " +
-	             "Returns C# source text: a [Fact] method with Given/When/Then structure, ready to paste. " +
+	             "Returns C# source text: an async [Fact] method — await Given()...ExecuteAsync() with the assertions chained after it, ready to paste. " +
 	             "It does not write files, compile, or run anything, and it needs a reachable broker at run time, so it is an integration test and not a unit test. " +
 	             "When only one direction matters, generate_kafka_produce_test or generate_kafka_consume_test produce a smaller test.")]
 	public static string GenerateKafkaRoundTripTest(
@@ -161,7 +157,7 @@ public static class KafkaTestGeneratorTools
 		var sb = new StringBuilder();
 
 		sb.AppendLine($"\t[Fact(DisplayName = \"{displayName}\")]");
-		sb.AppendLine($"\tpublic void Should_RoundTrip_{SanitizeName(topic)}()");
+		sb.AppendLine($"\tpublic async Task Should_RoundTrip_{SanitizeName(topic)}()");
 		sb.AppendLine("\t{");
 
 		// Arrange
@@ -184,26 +180,22 @@ public static class KafkaTestGeneratorTools
 
 		// Produce
 		sb.AppendLine("\t\t// Act — Produce");
-		sb.AppendLine("\t\tGiven()");
+		sb.AppendLine("\t\tawait Given()");
 		sb.AppendLine($"\t\t\t.Topic(\"{topic}\")");
 		sb.AppendLine("\t\t\t.Produce(message)");
 		AppendAuth(sb, auth);
-		sb.AppendLine("\t\t.When()");
-		sb.AppendLine("\t\t\t.Execute()");
-		sb.AppendLine("\t\t.Then()");
+		sb.AppendLine("\t\t\t.ExecuteAsync()");
 		sb.AppendLine("\t\t\t.AssertSuccess();");
 		sb.AppendLine();
 
 		// Consume
 		sb.AppendLine("\t\t// Assert — Consume");
-		sb.AppendLine("\t\tGiven()");
+		sb.AppendLine("\t\tawait Given()");
 		sb.AppendLine($"\t\t\t.Topic(\"{topic}\")");
 		sb.AppendLine("\t\t\t.Consume()");
 		sb.AppendLine($"\t\t\t.WithGroupId(\"{groupId}\")");
 		AppendAuth(sb, auth);
-		sb.AppendLine("\t\t.When()");
-		sb.AppendLine("\t\t\t.Execute()");
-		sb.AppendLine("\t\t.Then()");
+		sb.AppendLine("\t\t\t.ExecuteAsync()");
 		sb.AppendLine("\t\t\t.AssertSuccess()");
 		sb.AppendLine("\t\t\t.AssertTopic(\"" + topic + "\");");
 		sb.AppendLine("\t}");
@@ -285,8 +277,8 @@ public static class KafkaTestGeneratorTools
 		{
 			sections.Add("""
 			== Execution & Assertions ==
-			  .When().Execute()
-			  .Then()
+			  await ... .ExecuteAsync()                           Execute; the assertions below chain right after it
+			  .When().Execute().Then()                           Synchronous alternative
 			    .AssertSuccess()                                   Assert operation succeeded
 			    .AssertFailure()                                   Assert operation failed
 			    .AssertTopic("my-topic")                            Assert topic name
@@ -304,22 +296,18 @@ public static class KafkaTestGeneratorTools
 		{
 			sections.Add("""
 			== Complete Produce Example ==
-			  Given()
+			  await Given()
 			      .Topic("orders")
 			      .Produce("order-123", new { id = 1, total = 99.99m })
-			  .When()
-			      .Execute()
-			  .Then()
+			      .ExecuteAsync()
 			      .AssertSuccess();
 
 			== Complete Consume Example ==
-			  Given()
+			  await Given()
 			      .Topic("orders")
 			      .Consume()
 			      .WithGroupId("test-group")
-			  .When()
-			      .Execute()
-			  .Then()
+			      .ExecuteAsync()
 			      .AssertSuccess()
 			      .AssertJsonPath<int>("$.id", id => id.ShouldBe(1));
 			""");

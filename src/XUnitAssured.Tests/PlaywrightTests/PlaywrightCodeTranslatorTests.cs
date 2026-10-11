@@ -319,17 +319,19 @@ await page.GetByRole(AriaRole.Button, new() { Name = ""Click me"" }).ClickAsync(
 	// TranslateToGivenBlock
 	// ──────────────────────────────────────────────
 
-	[Fact(DisplayName = "TranslateToGivenBlock wraps in Given/When/Then")]
+	// A forma que os READMEs ensinam desde a 6.11 (#134): await, ExecuteAsync e as asserções
+	// antes do await.
+	[Fact(DisplayName = "TranslateToGivenBlock writes an awaited chain with the assertions before the await")]
 	public void Should_Generate_GivenBlock()
 	{
 		var input = @"await page.GetByRole(AriaRole.Button, new() { Name = ""Submit"" }).ClickAsync();";
 		var result = PlaywrightCodeTranslator.TranslateToGivenBlock(input);
 
-		Assert.Contains("Given()", result);
+		Assert.Contains("await Given()", result);
 		Assert.Contains(".ClickByRole(AriaRole.Button, \"Submit\")", result);
-		Assert.Contains(".When()", result);
-		Assert.Contains(".Execute()", result);
-		Assert.Contains(".Then()", result);
+		Assert.Contains(".ExecuteAsync()", result);
 		Assert.Contains(".AssertSuccess();", result);
+		Assert.DoesNotContain(".When()", result);
+		Assert.DoesNotContain(".Execute()", result);
 	}
 }

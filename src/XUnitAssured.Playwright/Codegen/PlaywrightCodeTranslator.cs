@@ -300,7 +300,8 @@ public static class PlaywrightCodeTranslator
 	// ──────────────────────────────────────────────
 
 	/// <summary>
-	/// Translates Playwright code and formats it as a complete Given() block for console output.
+	/// Translates Playwright code and formats it as a complete <c>await Given()...ExecuteAsync()</c>
+	/// block, for the body of an async test method.
 	/// </summary>
 	public static string TranslateToGivenBlock(string playwrightCode)
 	{
@@ -309,12 +310,10 @@ public static class PlaywrightCodeTranslator
 			return "// No translatable Playwright actions found.";
 
 		var sb = new StringBuilder();
-		sb.AppendLine("\tGiven()");
+		sb.AppendLine("\tawait Given()");
 		sb.Append(translated);
 		sb.AppendLine();
-		sb.AppendLine("\t.When()");
-		sb.AppendLine("\t\t.Execute()");
-		sb.AppendLine("\t.Then()");
+		sb.AppendLine("\t\t.ExecuteAsync()");
 		sb.AppendLine("\t\t.AssertSuccess();");
 
 		return sb.ToString();
