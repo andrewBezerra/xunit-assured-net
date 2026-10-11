@@ -2,7 +2,13 @@
 
 All notable changes to the XUnitAssured packages. Upgrading from 5.1.x? See [UPGRADING.md](UPGRADING.md).
 
-## v6.12.0 (Current — generated tests in the documented form, and 7.0 ahead of time)
+## v6.12.1 (Current — what the mutation run found unguarded)
+
+Maintenance. Upgrading from 6.12.0 requires no code changes; the packages behave as before.
+
+- **Tests for the Core behaviours the first nightly mutation run found unguarded** (#141): the `Validate` that Kafka, RabbitMQ and Playwright inherit running its check; a chain executed again not re-running the checks of a step that already ran; `JsonPath<T>` of an object or a list; `AssertJsonPathNull` and `AssertJsonPathMissing` through an index; the exception type and message `AssertSuccess` lists; the custom message and the list of what was logged in the log assertions; `TEST_ENV` choosing `testsettings.{env}.json`. Each was checked against its mutant applied by hand. Equivalent mutants and message strings with no information were left out on purpose.
+
+## v6.12.0 (generated tests in the documented form, and 7.0 ahead of time)
 
 Additive. Upgrading from 6.11.x requires no code changes.
 
