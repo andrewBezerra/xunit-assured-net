@@ -95,6 +95,16 @@ public class HttpRequestStep : ITestStep
 	public HttpClient? CustomHttpClient { get; init; }
 
 	/// <summary>
+	/// Whose OAuth2 tokens this request reuses: the fixture that gave <see cref="CustomHttpClient"/>,
+	/// when the scenario came from one; otherwise null, and the client itself is.
+	/// </summary>
+	/// <remarks>
+	/// A fixture gives each scenario a new client, and its server outlives them all: keyed by the
+	/// client, every scenario asked for its own token (#152).
+	/// </remarks>
+	internal object? DonoDosTokens { get; init; }
+
+	/// <summary>
 	/// How many copies of this request to send at once, each with <see cref="Body"/>. Null (the
 	/// default) sends it once.
 	/// </summary>
@@ -168,6 +178,7 @@ public class HttpRequestStep : ITestStep
 		TimeoutSeconds = source.TimeoutSeconds;
 		AuthConfig = source.AuthConfig;
 		CustomHttpClient = source.CustomHttpClient;
+		DonoDosTokens = source.DonoDosTokens;
 		ConcurrentCount = source.ConcurrentCount;
 		ConcurrentBodies = source.ConcurrentBodies;
 	}
@@ -594,7 +605,7 @@ public class HttpRequestStep : ITestStep
 			AuthenticationType.OAuth2 when authConfig.OAuth2 != null =>
 				new OAuth2Handler(
 					authConfig.OAuth2,
-					authConfig.TokenCache?.Enabled == false ? null : TokensGuardados.Para(CustomHttpClient),
+					authConfig.TokenCache?.Enabled == false ? null : TokensGuardados.Para(DonoDosTokens ?? CustomHttpClient),
 					CustomHttpClient),
 			AuthenticationType.CustomHeader when authConfig.CustomHeader != null => new CustomHeaderAuthHandler(authConfig.CustomHeader),
 			// No caminho do HttpClient próprio não há o que aplicar: o certificado é do handler
@@ -610,15 +621,16 @@ public class HttpRequestStep : ITestStep
 /// instead of asking for a new one each.
 /// </summary>
 /// <remarks>
-/// A custom <see cref="HttpClient"/> gets a cache of its own, which lives as long as the client:
-/// it usually points at a server that is started for some tests and then gone, and a token from
-/// one should not be offered to the next.
+/// A custom <see cref="HttpClient"/> gets a cache of its own, which lives as long as whoever owns
+/// its server: the fixture that gave it, when the scenario came from one, otherwise the client.
+/// That server is usually started for some tests and then gone, and a token from one should not
+/// be offered to the next.
 /// </remarks>
 internal static class TokensGuardados
 {
 	private static readonly MemoryTokenCache DaRede = new();
-	private static readonly ConditionalWeakTable<HttpClient, MemoryTokenCache> PorCliente = new();
+	private static readonly ConditionalWeakTable<object, MemoryTokenCache> PorDono = new();
 
-	internal static ITokenCache Para(HttpClient? cliente) =>
-		cliente == null ? DaRede : PorCliente.GetValue(cliente, _ => new MemoryTokenCache());
+	internal static ITokenCache Para(object? dono) =>
+		dono == null ? DaRede : PorDono.GetValue(dono, _ => new MemoryTokenCache());
 }

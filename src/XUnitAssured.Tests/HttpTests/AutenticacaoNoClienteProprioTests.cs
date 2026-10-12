@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
+using System.Threading;
 using System.Threading.Tasks;
 
 using Flurl.Http.Testing;
@@ -123,6 +124,91 @@ public class AutenticacaoNoClienteProprioTests
 		}
 	}
 
+	// A fixture dá um cliente novo a cada cenário, e o servidor dela vive mais que todos (#152).
+	[Fact(DisplayName = "The scenarios of one fixture share its OAuth2 token, and another fixture asks for its own")]
+	public async Task OAuth2_Token_Is_Shared_By_The_Scenarios_Of_A_Fixture()
+	{
+		var servidor = ServidorDeTokens();
+		var fixture = new ProvedorDeMentira(servidor);
+
+		await Cenario(ScenarioDsl.Given(fixture));
+		await Cenario(ScenarioDsl.Given(fixture));
+		await Cenario(ScenarioDsl.Given(new ProvedorDeMentira(servidor)));
+
+		Autorizacoes(servidor).ShouldBe(["Bearer tk-1", "Bearer tk-1", "Bearer tk-2"]);
+	}
+
+	// Depois de .And(), o passo novo herda o cliente do anterior, e com ele a fixture dos tokens.
+	[Fact(DisplayName = "A step after And() keeps the fixture's token, as the next scenario of the fixture does")]
+	public async Task Step_After_And_Keeps_The_Fixture_Token()
+	{
+		var servidor = ServidorDeTokens();
+		var fixture = new ProvedorDeMentira(servidor);
+
+		await ScenarioDsl.Given(fixture)
+			.ApiResource("/recurso").WithOAuth2("/token", "cliente", "segredo").Get()
+			.And()
+			.ApiResource("/recurso").Get()
+			.ExecuteAsync();
+		await Cenario(ScenarioDsl.Given(fixture));
+
+		Autorizacoes(servidor).ShouldBe(["Bearer tk-1", "Bearer tk-1", "Bearer tk-1"]);
+	}
+
+	// Given(HttpClient) embrulha o cliente num provedor novo a cada cenário: ali o dono é o cliente.
+	[Fact(DisplayName = "Scenarios given the same HttpClient share its token, and another client asks for its own")]
+	public async Task OAuth2_Token_Is_Shared_By_The_Scenarios_Of_A_Given_Client()
+	{
+		var servidor = ServidorDeTokens();
+		var cliente = Cliente(servidor);
+
+		await Cenario(ScenarioDsl.Given(cliente));
+		await Cenario(ScenarioDsl.Given(cliente));
+		await Cenario(ScenarioDsl.Given(Cliente(servidor)));
+
+		Autorizacoes(servidor).ShouldBe(["Bearer tk-1", "Bearer tk-1", "Bearer tk-2"]);
+	}
+
+	// Outro cliente pode ser outro servidor: o token da fixture não vai para ele.
+	[Fact(DisplayName = "WithHttpClient on a fixture's scenario does not reuse the fixture's token")]
+	public async Task WithHttpClient_Does_Not_Reuse_The_Fixture_Token()
+	{
+		var daFixture = ServidorDeTokens();
+		var outro = ServidorDeTokens();
+		var fixture = new ProvedorDeMentira(daFixture);
+
+		await Cenario(ScenarioDsl.Given(fixture));
+		await ScenarioDsl.Given(fixture)
+			.ApiResource("/recurso")
+			.WithHttpClient(Cliente(outro))
+			.WithOAuth2("/token", "cliente", "segredo")
+			.Get()
+			.ExecuteAsync();
+
+		Autorizacoes(daFixture).ShouldBe(["Bearer tk-1"]);
+		outro.Recebidos.Select(r => r.Caminho).ShouldBe(["/token", "/recurso"]);
+	}
+
+	[Fact(DisplayName = "With the token cache turned off, the scenarios of one fixture each ask for a token")]
+	public async Task OAuth2_Without_Cache_Ignores_The_Fixture()
+	{
+		var servidor = ServidorDeTokens();
+		var fixture = new ProvedorDeMentira(servidor);
+
+		for (var i = 0; i < 2; i++)
+			await ScenarioDsl.Given(fixture)
+				.ApiResource("/recurso")
+				.WithAuthConfig(c =>
+				{
+					c.UseOAuth2("/token", "cliente", "segredo");
+					c.TokenCache = new TokenCacheConfig { Enabled = false };
+				})
+				.Get()
+				.ExecuteAsync();
+
+		Autorizacoes(servidor).ShouldBe(["Bearer tk-1", "Bearer tk-2"]);
+	}
+
 	[Fact(DisplayName = "With the token cache turned off, every request asks for its own token")]
 	public async Task OAuth2_Without_Cache_Asks_Every_Time()
 	{
@@ -185,6 +271,21 @@ public class AutenticacaoNoClienteProprioTests
 		new(servidor, disposeHandler: false) { BaseAddress = new Uri("http://servidor.teste") };
 
 	private static TestContext Contexto() => new(new StepStorage());
+
+	/// <summary>Responde /token com um token novo a cada pedido, e o resto com {}.</summary>
+	private static ServidorDeMentira ServidorDeTokens()
+	{
+		var tokensPedidos = 0;
+		return new ServidorDeMentira(p => p.RequestUri!.AbsolutePath == "/token"
+			? Json($$"""{"access_token":"tk-{{Interlocked.Increment(ref tokensPedidos)}}","expires_in":3600}""")
+			: Json("{}"));
+	}
+
+	private static async Task Cenario(Core.Abstractions.ITestScenario cenario) =>
+		await cenario.ApiResource("/recurso").WithOAuth2("/token", "cliente", "segredo").Get().ExecuteAsync();
+
+	private static string[] Autorizacoes(ServidorDeMentira servidor) =>
+		servidor.Recebidos.Where(r => r.Caminho == "/recurso").Select(r => r.Cabecalhos["Authorization"]).ToArray();
 
 	private static HttpResponseMessage Json(string corpo) => ServidorDeMentira.Responder(HttpStatusCode.OK, corpo);
 }

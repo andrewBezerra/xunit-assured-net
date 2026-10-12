@@ -25,14 +25,14 @@
   </PropertyGroup>
 
   <PropertyGroup>
-    <Version>6.14.0</Version>
+    <Version>6.15.0</Version>
 
     <!--
       O que a página do pacote no nuget.org mostra. Sem isto ela fica muda, e quem atualiza
       por `dotnet add package` não recebe nenhum aviso de que a major quebra coisas.
       Trocar a cada versão, junto do número acima.
     -->
-    <PackageReleaseNotes>Fix: with TEST_ENV or TestSettings.Load(environment), testsettings.{environment}.json now reaches the http, kafka, rabbitmq and playwright sections, laid over testsettings.json; it was read only for testMode and environment. No code changes needed from 6.13.1; check that your environment files hold what you expect, since they now take effect. Upgrade guide: https://github.com/andrewBezerra/xunit-assured-net/blob/main/UPGRADING.md</PackageReleaseNotes>
+    <PackageReleaseNotes>The scenarios of one fixture (Given(fixture), HttpTestBase.Given()) now share its OAuth2 token: a class of OAuth2 tests asks for one token instead of one per scenario. No code changes needed from 6.14.0. Upgrade guide: https://github.com/andrewBezerra/xunit-assured-net/blob/main/UPGRADING.md</PackageReleaseNotes>
     <Authors>Carlos Andrew Costa Bezerra</Authors>
     <Company>Carlos Andrew Costa Bezerra</Company>
     <Copyright>Copyright (c) Carlos Andrew Costa Bezerra</Copyright>

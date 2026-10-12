@@ -598,7 +598,7 @@ Add to your `.mcp.json` (repo root, `~/.mcp.json`, or `.vscode/mcp.json`):
     "xunitassured": {
       "type": "stdio",
       "command": "dnx",
-      "args": ["XUnitAssured.Mcp@6.14.0", "--yes"]
+      "args": ["XUnitAssured.Mcp@6.15.0", "--yes"]
     }
   }
 }
@@ -628,9 +628,9 @@ In GitHub Copilot Chat, the XUnitAssured tools should appear as available. Try:
 
 ## What's New
 
-**6.14.0** — `TEST_ENV` reaches every section: `testsettings.staging.json` is laid over `testsettings.json` for `http`, `kafka`, `rabbitmq` and `playwright` too, and needs only what differs. Before, it was read only for `testMode`.
+**6.15.0** — the scenarios of one fixture share its OAuth2 token: a class of OAuth2 tests against a `WebApplicationFactory` asks for one token, not one per scenario.
 
-**6.13.1** — every package finds its settings file the same way, and an `httpsettings.json` environment no longer erases the base authentication or timeout it leaves out.
+**6.14.0** — `TEST_ENV` reaches every section: `testsettings.staging.json` is laid over `testsettings.json` for `http`, `kafka`, `rabbitmq` and `playwright` too, and needs only what differs. Before, it was read only for `testMode`.
 
 The full history is in **[CHANGELOG.md](https://github.com/andrewBezerra/xunit-assured-net/blob/main/CHANGELOG.md)**. Coming from 5.x? Start with **[UPGRADING.md](https://github.com/andrewBezerra/xunit-assured-net/blob/main/UPGRADING.md)**.
 

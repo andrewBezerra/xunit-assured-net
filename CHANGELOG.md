@@ -2,7 +2,17 @@
 
 All notable changes to the XUnitAssured packages. Upgrading from 5.1.x? See [UPGRADING.md](UPGRADING.md).
 
-## v6.14.0 (Current — environment files reach every section)
+## v6.15.0 (Current — one OAuth2 token per fixture)
+
+Performance, with a behaviour change. Upgrading from 6.14.0 requires no code changes.
+
+- **The scenarios of one fixture share its OAuth2 token** (#152). `Given(fixture)` and `HttpTestBase.Given()` ask the fixture for a client in each scenario, and since 6.13.0 a token was kept per client, so each scenario asked for its own. A token is now kept by the fixture that gave the client: a class of 20 OAuth2 tests against a `WebApplicationFactory` makes one token request, not 20. Different credentials still get different tokens, and a token still lives no longer than the fixture, so it is never offered to the next test server.
+- `Given(HttpClient)` keeps the token with that client: scenarios given the same client share it.
+- `.WithHttpClient(...)` in a fixture's scenario keeps the token with that client, not the fixture's: another client may be another server.
+- `TokenCache.Enabled = false` still asks for a token on every request.
+- **Behaviour change:** a fixture whose `CreateClient()` returns clients for different servers, each issuing its own tokens, now offers the first server's token to the others. Turn the cache off for it, or start those scenarios with `Given(fixture.CreateClient())`.
+
+## v6.14.0 (environment files reach every section)
 
 Fix, with a behaviour change. Upgrading from 6.13.1 requires no code changes, but **check your environment files: they now take effect**.
 
