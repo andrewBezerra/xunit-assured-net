@@ -62,7 +62,7 @@ The chain ends where it is: the last step was a browser step, so `ExecuteAsync()
 
 - **One DSL across boundaries** — `Given().When().Then()` over HTTP, Kafka, RabbitMQ and the browser, with steps that share state (`SaveStep`, `Steps["name"]`, extracted values).
 - **HTTP** — full CRUD, JSON path assertions over objects and lists (`$[*].id`), header, `Set-Cookie` and Problem Details assertions, the request as it was sent (cookies included), requests sent at once with `Concurrently`, raw bodies for malformed input, `ExtractAsync` to arrange data in one line, and authentication applied once from `testsettings.json`: Bearer, Basic, OAuth2, API key, client certificate (mTLS), custom headers. `ApiFixture` hosts your own ASP.NET Core API in memory, with a client per identity and one instance for the whole suite.
-- **Kafka** — produce and consume single messages and batches, headers and keys, SASL/PLAIN, SCRAM, SSL and mTLS, Schema Registry. Consume steps skip the consumer-group join, so a consume costs milliseconds instead of seconds.
+- **Kafka** — produce and consume single messages and batches, headers and keys, SASL/PLAIN, SCRAM, SSL, mTLS and OAUTHBEARER (OpenID Connect), Schema Registry. Consume steps skip the consumer-group join, so a consume costs milliseconds instead of seconds.
 - **RabbitMQ** — publish and consume single messages and batches, declare queues, exchanges and bindings, reject to a dead-letter exchange; a publish that reaches no queue fails instead of passing in silence.
 - **Browser** — clicks, fills, checks, navigation and screenshots on Playwright, with locators by role, label, test id, text and CSS, and assertions that read like the DSL. The page's network too: intercept a route and prove it answered (`InterceptRoute`, `AssertIntercepted`), or call the API from inside the page with its cookies (`FetchFromPage`). `BrowserAppFixture` starts your own ASP.NET Core API and front-end inside `dotnet test`.
 - **What the system did besides answering** — `LogCapture` records what it logged (message, exception, structured values and scopes, so a leaked value has nowhere to hide), and `OutboundHttpCapture` stands in for the outside services it calls and records every request.
@@ -448,7 +448,7 @@ Every protocol package reads its connection details and credentials from one fil
     // With SSL: "sslCaLocation" (a relative path is read from this file's folder),
     // "enableSslCertificateVerification", and
     // "sslEndpointIdentificationAlgorithm": "None" to skip the broker hostname check (only when asked).
-    "authentication": { "type": "None" }   // None | SaslPlain | SaslScram256 | SaslScram512 | Ssl | MutualTls
+    "authentication": { "type": "None" }   // None | SaslPlain | SaslScram256 | SaslScram512 | Ssl | MutualTls | OAuthBearer
   },
 
   "rabbitmq": {
@@ -566,7 +566,7 @@ is a breaking change, and it is the only thing that would close the gap above.
 |---------|----------------|
 | `XUnitAssured.Http.Samples.Local.Test` | HTTP against a local `SampleWebApi` (WebApplicationFactory): CRUD, every authentication scheme (Bearer, Basic, API key, OAuth2, certificate, custom header), hybrid validation |
 | `XUnitAssured.Http.Samples.Remote.Test` | HTTP against a deployed API, configured from `testsettings.json` |
-| `XUnitAssured.Kafka.Samples.Remote.Test` | Kafka against Docker or remote clusters: strings, JSON, headers, keys, batches, and each authentication mode (plaintext, SASL/PLAIN, SCRAM-256/512, SSL, mTLS) |
+| `XUnitAssured.Kafka.Samples.Remote.Test` | Kafka against Docker or remote clusters: strings, JSON, headers, keys, batches, and each authentication mode (plaintext, SASL/PLAIN, SCRAM-256/512, SSL, mTLS, OAUTHBEARER with Keycloak), and one broker with PLAIN and SCRAM side by side |
 | `XunitAssured.PlayWright.Samples.Local.Test` | Playwright against a local Blazor `SampleWebApp`: navigation, forms, validation messages, data tables |
 | `XUnitAssured.Playwright.Samples.Remote.Test` | Playwright against a deployed web app, including a full CRUD flow |
 
@@ -603,7 +603,7 @@ Add to your `.mcp.json` (repo root, `~/.mcp.json`, or `.vscode/mcp.json`):
     "xunitassured": {
       "type": "stdio",
       "command": "dnx",
-      "args": ["XUnitAssured.Mcp@6.18.1", "--yes"]
+      "args": ["XUnitAssured.Mcp@6.19.0", "--yes"]
     }
   }
 }
@@ -633,9 +633,9 @@ In GitHub Copilot Chat, the XUnitAssured tools should appear as available. Try:
 
 ## What's New
 
-**6.18.1** — maintenance: every Kafka sample broker starts from a fresh clone, and its `testsettings.json` connects.
+**6.19.0** — Kafka: SASL/OAUTHBEARER with OpenID Connect — `.WithOAuthBearer(tokenEndpoint, clientId, clientSecret)` or `"type": "OAuthBearer"` in `testsettings.json`; the client gets and renews its token from Keycloak, Okta or Azure AD.
 
-**6.18.0** — Kafka: write certificate paths relative to `testsettings.json` (`"sslCaLocation": "certs/ca.pem"`); they work whatever folder the test runner starts in.
+**6.18.1** — maintenance: every Kafka sample broker starts from a fresh clone, and its `testsettings.json` connects.
 
 The full history is in **[CHANGELOG.md](https://github.com/andrewBezerra/xunit-assured-net/blob/main/CHANGELOG.md)**. Coming from 5.x? Start with **[UPGRADING.md](https://github.com/andrewBezerra/xunit-assured-net/blob/main/UPGRADING.md)**.
 

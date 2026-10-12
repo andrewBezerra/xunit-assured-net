@@ -31,6 +31,12 @@ public class KafkaAuthConfig
 	public SslConfig? Ssl { get; set; }
 
 	/// <summary>
+	/// SASL/OAUTHBEARER (OpenID Connect) configuration.
+	/// Used when Type is OAuthBearer.
+	/// </summary>
+	public OAuthBearerConfig? OAuthBearer { get; set; }
+
+	/// <summary>
 	/// Configures SASL/PLAIN authentication.
 	/// </summary>
 	/// <param name="username">SASL username</param>
@@ -127,5 +133,28 @@ public class KafkaAuthConfig
 		SaslPlain = null;
 		SaslScram = null;
 		Ssl = null;
+		OAuthBearer = null;
+	}
+
+	/// <summary>
+	/// Configures SASL/OAUTHBEARER with OpenID Connect: the client asks
+	/// <paramref name="tokenEndpointUrl"/> for a token with its client credentials (#179).
+	/// </summary>
+	/// <param name="tokenEndpointUrl">The OAuth 2.0 token endpoint</param>
+	/// <param name="clientId">The OAuth client id</param>
+	/// <param name="clientSecret">The OAuth client secret</param>
+	/// <param name="scope">Scopes to ask for, separated by spaces (optional)</param>
+	/// <param name="useSsl">Use SSL/TLS to the broker (default: true, recommended)</param>
+	public void UseOAuthBearer(string tokenEndpointUrl, string clientId, string clientSecret, string? scope = null, bool useSsl = true)
+	{
+		Type = KafkaAuthenticationType.OAuthBearer;
+		OAuthBearer = new OAuthBearerConfig
+		{
+			TokenEndpointUrl = tokenEndpointUrl,
+			ClientId = clientId,
+			ClientSecret = clientSecret,
+			Scope = scope,
+			UseSsl = useSsl
+		};
 	}
 }

@@ -2,7 +2,19 @@
 
 All notable changes to the XUnitAssured packages. Upgrading from 5.1.x? See [UPGRADING.md](UPGRADING.md).
 
-## v6.18.1 (Current — every Kafka sample broker starts)
+## v6.19.0 (Current — Kafka OAUTHBEARER with OpenID Connect)
+
+New in Kafka: SASL/OAUTHBEARER with OpenID Connect. Upgrading from 6.18.1 requires no code changes.
+
+- **OAUTHBEARER (OIDC)** (#179). The Kafka client asks an OAuth 2.0 token endpoint for a token with its client credentials, presents it to the broker, and renews it by itself: Keycloak, Okta, Azure AD, Confluent Cloud.
+  - DSL: `.WithOAuthBearer(tokenEndpointUrl, clientId, clientSecret, scope: null, useSsl: true)`.
+  - Config: `KafkaAuthConfig.UseOAuthBearer(...)`, or in `testsettings.json`: `"authentication": { "type": "OAuthBearer", "oAuthBearer": { "tokenEndpointUrl": "...", "clientId": "...", "clientSecret": "...", "useSsl": false } }`.
+  - It reaches every step, `KafkaClassFixture` and `ToClientConfig`, like the other authentication types. A missing endpoint, client id or secret fails naming it.
+- **New sample `KRaft-OAUTH_OIDC`**: a Keycloak and a broker that validates its tokens, checked end to end with the new type. Adapting it from the maintainer's local setup needed four fixes, listed in its README: the broker's `sasl.oauthbearer.*` settings instead of Strimzi's `oauth.*` JAAS options, an expected audience, listener names without `_`, and waiting for the realm's keys before the broker starts.
+- **New sample `KRaft-SASL_MULTI`**: one broker with PLAIN, SCRAM-SHA-256 and SCRAM-SHA-512 on the same listener, on port 9096.
+- **The sample scripts are executable in git.** They were stored without the executable bit, so on a Linux or macOS clone the brokers that run them directly (PLAINTEXT, SASL/SSL, SCRAM-256, SCRAM-512) exited with 126. Windows hid it. Checked from a fresh Linux clone.
+
+## v6.18.1 (every Kafka sample broker starts)
 
 Maintenance. Upgrading from 6.18.0 requires no code changes; the packages behave as in 6.18.0.
 

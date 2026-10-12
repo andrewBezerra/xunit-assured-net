@@ -1,0 +1,27 @@
+{
+    // ============================================================================
+    // KAFKA LOCAL DOCKER CONFIGURATION - PLAIN, SCRAM-SHA-256 and SCRAM-SHA-512
+    // Matches docker-compose.yml in this folder: SASL_PLAINTEXT on localhost:9096,
+    // the same users for every mechanism
+    // ============================================================================
+
+    "testMode": "Local",
+    "environment": "docker-local",
+
+    "kafka": {
+        "bootstrapServers": "localhost:9096",
+        "groupId": "xunit-test-consumer-group",
+
+        // PLAIN. The same broker takes the other two mechanisms with the same users:
+        //   "authentication": { "type": "SaslScram256", "saslScram": { "username": "admin", "password": "admin-secret", "useSsl": false } }
+        //   "authentication": { "type": "SaslScram512", "saslScram": { "username": "admin", "password": "admin-secret", "useSsl": false } }
+        "authentication": {
+            "type": "SaslPlain",
+            "saslPlain": {
+                "username": "admin",
+                "password": "admin-secret",
+                "useSsl": false
+            }
+        }
+    }
+}

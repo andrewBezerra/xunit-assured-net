@@ -90,6 +90,39 @@ Given()
     .Consume()
 ```
 
+### 5. SASL/OAUTHBEARER with OpenID Connect (Keycloak, Okta, Azure AD)
+
+The Kafka client asks the token endpoint for a token with its client credentials
+(`client_credentials`), presents it to the broker, and renews it by itself.
+
+```csharp
+Given()
+    .Topic("my-topic")
+    .WithOAuthBearer(
+        tokenEndpointUrl: "http://localhost:8080/realms/kafka/protocol/openid-connect/token",
+        clientId: "kafka-client",
+        clientSecret: "kafka-client-secret",
+        scope: null,          // optional, space-separated
+        useSsl: false)        // default true: SASL_SSL
+    .Consume()
+```
+
+In `testsettings.json`:
+
+```json
+"authentication": {
+  "type": "OAuthBearer",
+  "oAuthBearer": {
+    "tokenEndpointUrl": "http://localhost:8080/realms/kafka/protocol/openid-connect/token",
+    "clientId": "kafka-client",
+    "clientSecret": "${ENV:KAFKA_CLIENT_SECRET}",
+    "useSsl": false
+  }
+}
+```
+
+The `docker/KRaft-OAUTH_OIDC` sample runs a Keycloak and a broker that validates its tokens.
+
 ---
 
 ## Configuration File (`testsettings.json`)
@@ -156,6 +189,7 @@ export KAFKA_CA_CERT_PATH="/certs/ca-cert.pem"
 | **SASL/SCRAM-512** | Self-hosted secure | On-premise | ⭐⭐⭐⭐ Very High | ⭐⭐ Medium |
 | **SSL/TLS** | Enterprise | On-premise | ⭐⭐⭐⭐ Very High | ⭐⭐⭐ Complex |
 | **Mutual TLS** | High security | Banking, Finance | ⭐⭐⭐⭐⭐ Maximum | ⭐⭐⭐⭐ Complex |
+| **OAUTHBEARER (OIDC)** | Central identity provider | Keycloak, Okta, Azure AD, Confluent Cloud | ⭐⭐⭐⭐ Very High | ⭐⭐⭐ Complex |
 
 ---
 

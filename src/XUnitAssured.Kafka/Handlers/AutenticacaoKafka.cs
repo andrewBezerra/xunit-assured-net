@@ -71,6 +71,7 @@ internal static class AutenticacaoKafka
 		KafkaAuthenticationType.SaslScram512 when autenticacao.SaslScram != null => new SaslScramHandler(autenticacao.SaslScram),
 		KafkaAuthenticationType.Ssl when autenticacao.Ssl != null => new SslHandler(autenticacao.Ssl),
 		KafkaAuthenticationType.MutualTls when autenticacao.Ssl != null => new SslHandler(autenticacao.Ssl),
+		KafkaAuthenticationType.OAuthBearer when autenticacao.OAuthBearer != null => new OAuthBearerHandler(autenticacao.OAuthBearer),
 		_ => null
 	};
 
