@@ -2,7 +2,19 @@
 
 All notable changes to the XUnitAssured packages. Upgrading from 5.1.x? See [UPGRADING.md](UPGRADING.md).
 
-## v6.15.0 (Current — one OAuth2 token per fixture)
+## v6.15.1 (Current — OAuth2 tests on the network path)
+
+Maintenance. Upgrading from 6.15.0 requires no code changes; the packages behave as in 6.15.0.
+
+- **Offline tests for OAuth2 on the network path and the token response edge cases** (#158), which the nightly mutation run found unguarded:
+  - an OAuth2 step without a custom `HttpClient` asks for the token once, and the next step reuses it;
+  - a token response without `access_token` fails the step, says so, and sends nothing to the API;
+  - a token without `expires_in` (or with 0) is kept for an hour;
+  - the `refresh_token` of the response is kept with the token;
+  - a configuration missing `TokenUrl`, `ClientId` or `ClientSecret` fails naming it, before any token request.
+- Documented by a test, unchanged: a token is reused only while it has more than five minutes left, so one with `expires_in` under 300 s is asked for again on every request.
+
+## v6.15.0 (one OAuth2 token per fixture)
 
 Performance, with a behaviour change. Upgrading from 6.14.0 requires no code changes.
 
