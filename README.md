@@ -598,7 +598,7 @@ Add to your `.mcp.json` (repo root, `~/.mcp.json`, or `.vscode/mcp.json`):
     "xunitassured": {
       "type": "stdio",
       "command": "dnx",
-      "args": ["XUnitAssured.Mcp@6.15.2", "--yes"]
+      "args": ["XUnitAssured.Mcp@6.15.3", "--yes"]
     }
   }
 }
@@ -628,9 +628,9 @@ In GitHub Copilot Chat, the XUnitAssured tools should appear as available. Try:
 
 ## What's New
 
-**6.15.2** — maintenance: tests for the status, error numbering and status code of concurrent results.
+**6.15.3** — maintenance: the nightly mutation run covers Kafka and RabbitMq too.
 
-**6.15.1** — maintenance: offline tests for OAuth2 on the network path and for the token response edge cases the nightly mutation run found unguarded.
+**6.15.2** — maintenance: tests for the status, error numbering and status code of concurrent results.
 
 The full history is in **[CHANGELOG.md](https://github.com/andrewBezerra/xunit-assured-net/blob/main/CHANGELOG.md)**. Coming from 5.x? Start with **[UPGRADING.md](https://github.com/andrewBezerra/xunit-assured-net/blob/main/UPGRADING.md)**.
 
