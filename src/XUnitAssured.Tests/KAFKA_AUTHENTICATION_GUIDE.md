@@ -115,15 +115,16 @@ this one. There is no `environments` key: nothing reads it. Pick the environment
 code, or with the `TEST_ENV` variable:
 
 ```csharp
-var settings = KafkaSettings.Load("confluent");   // reads testsettings.confluent.json
+var settings = KafkaSettings.Load("confluent");   // testsettings.confluent.json over testsettings.json
 ```
 
 ```sh
 TEST_ENV=confluent dotnet test
 ```
 
-Each of those files holds the same `kafka` section, with the values for that environment.
-The platform examples below are exactly that content.
+Each of those files holds a `kafka` section with the values for that environment. It is laid
+over `testsettings.json`: what it writes wins, and what it leaves out comes from the base file.
+The platform examples below are that content.
 
 ### Environment Variables
 

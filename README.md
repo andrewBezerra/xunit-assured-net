@@ -426,7 +426,7 @@ Every protocol package reads its connection details and credentials from one fil
   // "Remote": deployed services (staging, production).
   "testMode": "Remote",
 
-  // Optional. Also settable with the TEST_ENV environment variable.
+  // Optional, a label. Which file is loaded is chosen by TEST_ENV or TestSettings.Load("name").
   "environment": "staging",
 
   "http": {
@@ -457,7 +457,7 @@ Comments are allowed. The full set of keys, with every authentication variant sp
 
 **Where it is looked for.** The current directory and up to three parents — which reaches your project folder from `bin/<Configuration>/<tfm>`, so no `CopyToOutputDirectory` is needed — then every folder up from the test assembly's output directory, for runners that start somewhere else. To point somewhere else, set `TESTSETTINGS_PATH=/path/to/file.json`. Every package looks for its file this way, `httpsettings.json` included.
 
-**Per-environment files.** With `TEST_ENV=staging` (or `"environment": "staging"`), `testsettings.staging.json` is loaded instead of `testsettings.json`. Keep secrets out of the file with `${ENV:...}`.
+**Per-environment files.** With `TEST_ENV=staging` (or `TestSettings.Load("staging")`), `testsettings.staging.json` is laid over `testsettings.json`, in every section: it overrides what it writes and keeps the rest, so it needs only what differs — `{ "http": { "baseUrl": "https://staging.example.com" } }` keeps the base authentication. Without an environment file, the base file is used. The `"environment"` key inside a file is only a label; it does not choose a file. Keep secrets out of the file with `${ENV:...}`.
 
 **Kafka and RabbitMQ on Windows with Docker or Podman.** Use `127.0.0.1` rather than `localhost` for both — for RabbitMQ, each connection otherwise pays about a minute before falling back to IPv4. For Kafka, prefer `"bootstrapServers": "127.0.0.1:9092"` over `localhost:9092`. On Windows, `localhost` resolves to IPv6 `::1` first, the container only forwards IPv4, and the Kafka client gives up on each attempt only after ~20 s — a test that should fail instantly hangs, and one that should pass may time out. The broker must also advertise the same address: with the official image, set `KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://127.0.0.1:9092`, otherwise its metadata sends the client back to `localhost`. The compose files under `src/XUnitAssured.Kafka.Samples.Remote.Test/docker` are set up this way.
 
@@ -598,7 +598,7 @@ Add to your `.mcp.json` (repo root, `~/.mcp.json`, or `.vscode/mcp.json`):
     "xunitassured": {
       "type": "stdio",
       "command": "dnx",
-      "args": ["XUnitAssured.Mcp@6.13.1", "--yes"]
+      "args": ["XUnitAssured.Mcp@6.14.0", "--yes"]
     }
   }
 }
@@ -628,9 +628,9 @@ In GitHub Copilot Chat, the XUnitAssured tools should appear as available. Try:
 
 ## What's New
 
-**6.13.1** — every package finds its settings file the same way, and an `httpsettings.json` environment no longer erases the base authentication or timeout it leaves out.
+**6.14.0** — `TEST_ENV` reaches every section: `testsettings.staging.json` is laid over `testsettings.json` for `http`, `kafka`, `rabbitmq` and `playwright` too, and needs only what differs. Before, it was read only for `testMode`.
 
-**6.13.0** — authentication is the same whether a request goes through Flurl or your own `HttpClient`: OAuth2 now works with `WebApplicationFactory`, tokens are reused between requests, and an empty credential is sent as it is, to test that the API refuses it.
+**6.13.1** — every package finds its settings file the same way, and an `httpsettings.json` environment no longer erases the base authentication or timeout it leaves out.
 
 The full history is in **[CHANGELOG.md](https://github.com/andrewBezerra/xunit-assured-net/blob/main/CHANGELOG.md)**. Coming from 5.x? Start with **[UPGRADING.md](https://github.com/andrewBezerra/xunit-assured-net/blob/main/UPGRADING.md)**.
 

@@ -70,15 +70,16 @@ public static class TestSettingsKafkaExtensions
 
 		lock (_lock)
 		{
-			// Get cache key (file path)
-			var cacheKey = GetCacheKey();
+			// The files the section is read from: the base one and the environment's (#154)
+			var ambiente = testSettings.AmbienteSelecionado;
+			var cacheKey = TestSettingsSection.ChaveDeCache(ambiente);
 			
 			// Return cached if available
 			if (_cache.TryGetValue(cacheKey, out var cached))
 				return cached;
 
 			// Load Kafka settings from file
-			var kafkaSettings = LoadKafkaSettingsFromFile();
+			var kafkaSettings = LoadKafkaSettingsFromFile(ambiente);
 
 			// Cache and return
 			_cache[cacheKey] = kafkaSettings;
@@ -125,17 +126,11 @@ public static class TestSettingsKafkaExtensions
 		}
 	}
 
-	/// <summary>
-	/// The file in use is the cache key: two TestSettings loaded from the same file share one
-	/// entry, which is what keeps parallel tests from racing to parse it.
-	/// </summary>
-	private static string GetCacheKey() => TestSettingsSection.Localizar() ?? "default";
-
-	private static KafkaSettings? LoadKafkaSettingsFromFile()
+	private static KafkaSettings? LoadKafkaSettingsFromFile(string? ambiente)
 	{
 		// Finding the file, honouring TESTSETTINGS_PATH and expanding ${ENV:NAME} is the same
 		// work for every package, and lives in Core.
-		var settings = TestSettingsSection.Read<KafkaSettings>("kafka", new JsonSerializerOptions
+		var settings = TestSettingsSection.Read<KafkaSettings>("kafka", ambiente: ambiente, opcoes: new JsonSerializerOptions
 		{
 			PropertyNameCaseInsensitive = true,
 			ReadCommentHandling = JsonCommentHandling.Skip,

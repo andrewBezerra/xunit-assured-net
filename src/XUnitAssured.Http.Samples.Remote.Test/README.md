@@ -72,6 +72,8 @@ You can create environment-specific configuration files:
 - `testsettings.staging.json` - Staging environment
 - `testsettings.prod.json` - Production environment
 
+An environment file is laid over `testsettings.json`: it only needs what differs, and every section — `http`, `kafka`, `rabbitmq`, `playwright` — reads it.
+
 Load specific environment:
 
 ```bash
