@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 
 namespace XUnitAssured.Core.Configuration;
@@ -21,7 +22,8 @@ public static class TestSettingsLoader
 	/// </summary>
 	/// <param name="environment">
 	/// Optional environment name (e.g., "staging", "prod").
-	/// If provided, loads testsettings.{environment}.json instead of testsettings.json.
+	/// If provided, testsettings.{environment}.json is laid over testsettings.json: it overrides
+	/// only what it writes, in every section, so it needs only what differs.
 	/// If null, uses TEST_ENV environment variable.
 	/// </param>
 	/// <returns>Loaded test settings</returns>
@@ -47,38 +49,17 @@ public static class TestSettingsLoader
 				return _cachedSettings;
 
 			// Get environment name from parameter or environment variable
-			environment ??= System.Environment.GetEnvironmentVariable("TEST_ENV");
+			environment = TestSettingsSection.Ambiente(environment);
 
-			// Try custom path from environment variable
-			var customPath = System.Environment.GetEnvironmentVariable("TESTSETTINGS_PATH");
-			if (!string.IsNullOrEmpty(customPath) && File.Exists(customPath))
-			{
-				var settings = LoadFromFile(customPath, environment);
-				if (environment == null)
-					_cachedSettings = settings;
-				return settings;
-			}
+			// testsettings.json with testsettings.{environment}.json laid over it — the same
+			// files every package section is read from (#154)
+			var raiz = TestSettingsSection.Mesclar(environment);
+			var settings = raiz is null ? new TestSettings() : Deserialize(raiz, environment);
+			settings.AmbienteSelecionado = environment;
 
-			// Build file name (with environment suffix if specified)
-			var fileName = string.IsNullOrEmpty(environment)
-				? "testsettings.json"
-				: $"testsettings.{environment}.json";
-
-			// Search in standard paths
-			var path = ArquivoDeConfiguracao.Localizar(fileName);
-			if (path != null)
-			{
-				var settings = LoadFromFile(path, environment);
-				if (environment == null)
-					_cachedSettings = settings;
-				return settings;
-			}
-
-			// Return default settings if no file found
-			var defaultSettings = new TestSettings();
 			if (environment == null)
-				_cachedSettings = defaultSettings;
-			return defaultSettings;
+				_cachedSettings = settings;
+			return settings;
 		}
 	}
 
@@ -93,15 +74,12 @@ public static class TestSettingsLoader
 		}
 	}
 
-	private static TestSettings LoadFromFile(string path, string? environment)
+	private static TestSettings Deserialize(JsonObject raiz, string? environment)
 	{
+		// A file that cannot be read has already said so, naming it; what fails here is a value
+		// that does not fit its setting.
 		try
 		{
-			// Load and process JSON
-			var json = File.ReadAllText(path);
-			json = ArquivoDeConfiguracao.ExpandirVariaveis(json);
-
-			// Configure JSON options
 			var options = new JsonSerializerOptions
 			{
 				PropertyNameCaseInsensitive = true,
@@ -110,9 +88,7 @@ public static class TestSettingsLoader
 				Converters = { new JsonStringEnumConverter() }
 			};
 
-			// Deserialize (partial classes will automatically populate Http/Kafka properties)
-			var settings = JsonSerializer.Deserialize<TestSettings>(json, options)
-				?? new TestSettings();
+			var settings = raiz.Deserialize<TestSettings>(options) ?? new TestSettings();
 
 			// Store environment name if specified
 			if (!string.IsNullOrEmpty(environment))
@@ -124,8 +100,7 @@ public static class TestSettingsLoader
 		}
 		catch (Exception ex)
 		{
-			throw new InvalidOperationException(
-				$"Failed to load test settings from '{path}': {ex.Message}", ex);
+			throw new InvalidOperationException($"Failed to load test settings: {ex.Message}", ex);
 		}
 	}
 }

@@ -50,12 +50,20 @@ public partial class TestSettings
 	public string? Environment { get; set; }
 
 	/// <summary>
+	/// The environment whose file these settings were loaded with — the one passed to
+	/// <see cref="Load"/>, otherwise <c>TEST_ENV</c> — so the package sections read from the same
+	/// files. Unlike <see cref="Environment"/>, a value written in the file does not set it.
+	/// </summary>
+	internal string? AmbienteSelecionado { get; set; }
+
+	/// <summary>
 	/// Loads test settings from testsettings.json.
 	/// Searches in current directory and parent directories.
 	/// </summary>
 	/// <param name="environment">
 	/// Optional environment name. If null, uses TEST_ENV environment variable.
-	/// When specified, loads testsettings.{environment}.json if it exists.
+	/// When specified, testsettings.{environment}.json, if it exists, is laid over testsettings.json:
+	/// it overrides only what it writes.
 	/// </param>
 	/// <returns>Loaded test settings with all configured properties</returns>
 	/// <example>

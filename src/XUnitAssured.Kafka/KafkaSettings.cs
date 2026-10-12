@@ -109,10 +109,9 @@ public class KafkaSettings
 	/// <c>localhost:9092</c>, plaintext, no authentication.
 	/// </para>
 	/// <para>
-	/// <paramref name="environment"/> selects <c>testsettings.{environment}.json</c>
-	/// for the core settings, but the <c>kafka</c> section is currently read from the
-	/// base file regardless. Folding per-environment files into the section loaders
-	/// is tracked with the configuration unification work.
+	/// <paramref name="environment"/>, or <c>TEST_ENV</c> when it is not given, lays
+	/// <c>testsettings.{environment}.json</c> over the base file: what it writes in its
+	/// <c>kafka</c> section overrides the base, and what it leaves out is kept.
 	/// </para>
 	/// </remarks>
 	/// <param name="environment">Optional environment name (e.g., "dev", "staging", "prod"). See remarks.</param>

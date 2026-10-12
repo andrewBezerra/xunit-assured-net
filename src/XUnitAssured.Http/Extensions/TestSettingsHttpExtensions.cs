@@ -67,15 +67,16 @@ public static class TestSettingsHttpExtensions
 
 		lock (_lock)
 		{
-			// Get cache key (file path)
-			var cacheKey = GetCacheKey();
+			// The files the section is read from: the base one and the environment's (#154)
+			var ambiente = testSettings.AmbienteSelecionado;
+			var cacheKey = TestSettingsSection.ChaveDeCache(ambiente);
 			
 			// Return cached if available
 			if (_cache.TryGetValue(cacheKey, out var cached))
 				return cached;
 
 			// Load HTTP settings from file
-			var httpSettings = LoadHttpSettingsFromFile();
+			var httpSettings = LoadHttpSettingsFromFile(ambiente);
 
 			// Cache and return
 			_cache[cacheKey] = httpSettings;
@@ -122,15 +123,10 @@ public static class TestSettingsHttpExtensions
 		}
 	}
 
-	/// <summary>
-	/// The file in use as the cache key, or "default" when there is none.
-	/// </summary>
-	private static string GetCacheKey() => TestSettingsSection.Localizar() ?? "default";
-
 	// Finding the file, honouring TESTSETTINGS_PATH and expanding ${ENV:NAME} is Core's,
 	// the same for every package; a file that cannot be read gives null, as before.
-	private static HttpSettings? LoadHttpSettingsFromFile() =>
-		TestSettingsSection.Read<HttpSettings>("http", new JsonSerializerOptions
+	private static HttpSettings? LoadHttpSettingsFromFile(string? ambiente) =>
+		TestSettingsSection.Read<HttpSettings>("http", ambiente: ambiente, opcoes: new JsonSerializerOptions
 		{
 			PropertyNameCaseInsensitive = true,
 			ReadCommentHandling = JsonCommentHandling.Skip,
