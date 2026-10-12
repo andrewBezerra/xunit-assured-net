@@ -2,7 +2,6 @@ using System;
 using System.IO;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using System.Text.RegularExpressions;
 
 namespace XUnitAssured.Core.Configuration;
 
@@ -13,15 +12,6 @@ namespace XUnitAssured.Core.Configuration;
 /// </summary>
 public static class TestSettingsLoader
 {
-	private static readonly string[] SearchPaths = new[]
-	{
-		"testsettings.json",
-		"./testsettings.json",
-		"../testsettings.json",
-		"../../testsettings.json",
-		"../../../testsettings.json"
-	};
-
 	private static TestSettings? _cachedSettings;
 	private static readonly object _lockObject = new();
 
@@ -75,16 +65,13 @@ public static class TestSettingsLoader
 				: $"testsettings.{environment}.json";
 
 			// Search in standard paths
-			foreach (var basePath in SearchPaths)
+			var path = ArquivoDeConfiguracao.Localizar(fileName);
+			if (path != null)
 			{
-				var path = basePath.Replace("testsettings.json", fileName);
-				if (File.Exists(path))
-				{
-					var settings = LoadFromFile(path, environment);
-					if (environment == null)
-						_cachedSettings = settings;
-					return settings;
-				}
+				var settings = LoadFromFile(path, environment);
+				if (environment == null)
+					_cachedSettings = settings;
+				return settings;
 			}
 
 			// Return default settings if no file found
@@ -112,7 +99,7 @@ public static class TestSettingsLoader
 		{
 			// Load and process JSON
 			var json = File.ReadAllText(path);
-			json = ReplaceEnvironmentVariables(json);
+			json = ArquivoDeConfiguracao.ExpandirVariaveis(json);
 
 			// Configure JSON options
 			var options = new JsonSerializerOptions
@@ -140,28 +127,5 @@ public static class TestSettingsLoader
 			throw new InvalidOperationException(
 				$"Failed to load test settings from '{path}': {ex.Message}", ex);
 		}
-	}
-
-	/// <summary>
-	/// Replaces ${ENV:VAR_NAME} patterns with actual environment variable values.
-	/// </summary>
-	/// <param name="json">JSON content with potential variable references</param>
-	/// <returns>JSON with variables replaced</returns>
-	/// <example>
-	/// Input:  "token": "${ENV:API_TOKEN}"
-	/// Output: "token": "actual-token-value"
-	/// </example>
-	private static string ReplaceEnvironmentVariables(string json)
-	{
-		// Replace ${ENV:VAR_NAME} with actual environment variable value
-		var regex = new Regex(@"\$\{ENV:([^}]+)\}", RegexOptions.IgnoreCase);
-		return regex.Replace(json, match =>
-		{
-			var varName = match.Groups[1].Value;
-			var value = System.Environment.GetEnvironmentVariable(varName);
-
-			// Keep placeholder if env var not found (for error visibility)
-			return value ?? match.Value;
-		});
 	}
 }

@@ -10,6 +10,11 @@
 		<IsPackable>true</IsPackable>
 	</PropertyGroup>
 
+	<!-- Os testes leem o carregamento de httpsettings.json sem passar pelo cache, que é do processo. -->
+	<ItemGroup>
+		<InternalsVisibleTo Include="XUnitAssured.Tests" />
+	</ItemGroup>
+
 	<!-- Common Dependencies (all frameworks) -->
 	<ItemGroup>
 		<PackageReference Include="Flurl.Http" Version="4.0.2" />

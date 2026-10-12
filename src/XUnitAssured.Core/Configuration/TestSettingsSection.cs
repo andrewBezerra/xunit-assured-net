@@ -1,8 +1,6 @@
 using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Text.Json;
-using System.Text.RegularExpressions;
 
 namespace XUnitAssured.Core.Configuration;
 
@@ -26,9 +24,6 @@ public static class TestSettingsSection
 {
 	private const string NomeDoArquivo = "testsettings.json";
 
-	private static readonly Regex VariavelDeAmbiente =
-		new(@"\$\{ENV:([^}]+)\}", RegexOptions.IgnoreCase | RegexOptions.Compiled);
-
 	/// <summary>
 	/// Deserialises a named section, or returns <c>null</c> when the file or the section is
 	/// absent.
@@ -45,9 +40,7 @@ public static class TestSettingsSection
 
 		try
 		{
-			var json = VariavelDeAmbiente.Replace(
-				File.ReadAllText(caminho),
-				m => Environment.GetEnvironmentVariable(m.Groups[1].Value) ?? m.Value);
+			var json = ArquivoDeConfiguracao.ExpandirVariaveis(File.ReadAllText(caminho));
 
 			using var documento = JsonDocument.Parse(json, new JsonDocumentOptions
 			{
@@ -77,13 +70,7 @@ public static class TestSettingsSection
 		if (!string.IsNullOrEmpty(caminhoDoAmbiente) && File.Exists(caminhoDoAmbiente))
 			return caminhoDoAmbiente;
 
-		foreach (var caminho in CaminhosDeBusca())
-		{
-			if (File.Exists(caminho))
-				return Path.GetFullPath(caminho);
-		}
-
-		return null;
+		return ArquivoDeConfiguracao.Localizar(NomeDoArquivo);
 	}
 
 	private static JsonSerializerOptions Padrao => new()
@@ -92,26 +79,4 @@ public static class TestSettingsSection
 		ReadCommentHandling = JsonCommentHandling.Skip,
 		AllowTrailingCommas = true
 	};
-
-	/// <summary>
-	/// Up from the working directory, then up from the output directory.
-	///
-	/// The second walk is what makes the file work without being copied to the output: a test
-	/// run starts in the output directory, and the file usually sits next to the project.
-	/// </summary>
-	private static IEnumerable<string> CaminhosDeBusca()
-	{
-		yield return NomeDoArquivo;
-		yield return Path.Combine(".", NomeDoArquivo);
-		yield return Path.Combine("..", NomeDoArquivo);
-		yield return Path.Combine("..", "..", NomeDoArquivo);
-		yield return Path.Combine("..", "..", "..", NomeDoArquivo);
-
-		var diretorio = AppContext.BaseDirectory;
-		while (!string.IsNullOrWhiteSpace(diretorio))
-		{
-			yield return Path.Combine(diretorio, NomeDoArquivo);
-			diretorio = Directory.GetParent(diretorio)?.FullName ?? string.Empty;
-		}
-	}
 }

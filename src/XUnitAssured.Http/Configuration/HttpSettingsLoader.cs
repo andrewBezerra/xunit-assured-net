@@ -1,7 +1,9 @@
 using System;
 using System.IO;
 using System.Text.Json;
-using System.Text.RegularExpressions;
+using System.Linq;
+
+using XUnitAssured.Core.Configuration;
 
 namespace XUnitAssured.Http.Configuration;
 
@@ -11,15 +13,6 @@ namespace XUnitAssured.Http.Configuration;
 /// </summary>
 public static class HttpSettingsLoader
 {
-	private static readonly string[] SearchPaths = new[]
-	{
-		"httpsettings.json",
-		"./httpsettings.json",
-		"../httpsettings.json",
-		"../../httpsettings.json",
-		"../../../httpsettings.json"
-	};
-
 	private static HttpSettings? _cachedSettings;
 	private static readonly object _lockObject = new();
 
@@ -51,13 +44,11 @@ public static class HttpSettingsLoader
 			}
 
 			// Try standard search paths
-			foreach (var path in SearchPaths)
+			var path = ArquivoDeConfiguracao.Localizar("httpsettings.json");
+			if (path != null)
 			{
-				if (File.Exists(path))
-				{
-					_cachedSettings = LoadFromFile(path, environment);
-					return _cachedSettings;
-				}
+				_cachedSettings = LoadFromFile(path, environment);
+				return _cachedSettings;
 			}
 
 			// Return default settings
@@ -77,13 +68,13 @@ public static class HttpSettingsLoader
 		}
 	}
 
-	private static HttpSettings LoadFromFile(string path, string? environment)
+	internal static HttpSettings LoadFromFile(string path, string? environment)
 	{
 		try
 		{
 			// Load base settings
 			var json = File.ReadAllText(path);
-			json = ReplaceEnvironmentVariables(json);
+			json = ArquivoDeConfiguracao.ExpandirVariaveis(json);
 
 			var options = new JsonSerializerOptions
 			{
@@ -104,15 +95,15 @@ public static class HttpSettingsLoader
 				if (File.Exists(envFilePath))
 				{
 					var envJson = File.ReadAllText(envFilePath);
-					envJson = ReplaceEnvironmentVariables(envJson);
+					envJson = ArquivoDeConfiguracao.ExpandirVariaveis(envJson);
 					var envRoot = JsonSerializer.Deserialize<HttpSettingsRoot>(envJson, options);
 					var envSettings = envRoot?.Http ?? new HttpSettings();
-					settings = settings.Merge(envSettings);
+					settings = settings.Merge(SoOQueFoiEscrito(envSettings, Secao(envJson, "http", nomeDoAmbiente: null)));
 				}
 				// Try environments section in main file
 				else if (root?.Environments != null && root.Environments.TryGetValue(environment, out var envSettings))
 				{
-					settings = settings.Merge(envSettings);
+					settings = settings.Merge(SoOQueFoiEscrito(envSettings, Secao(json, "environments", environment)));
 				}
 			}
 
@@ -124,17 +115,60 @@ public static class HttpSettingsLoader
 		}
 	}
 
-	private static string ReplaceEnvironmentVariables(string json)
+	/// <summary>
+	/// The override with only what its JSON wrote: what it leaves out goes back to "not set", so
+	/// <see cref="HttpSettings.Merge"/> keeps the base value.
+	/// </summary>
+	/// <remarks>
+	/// The constructor fills <c>Authentication</c>, <c>DefaultHeaders</c> and <c>Timeout</c>, and
+	/// the deserializer calls it: an environment that left out <c>authentication</c> erased the
+	/// base one, and one that left out <c>timeout</c> reset it to 30 (#146). The default headers
+	/// need nothing here: <c>Merge</c> adds the override's to the base's, and an empty set adds none.
+	/// </remarks>
+	private static HttpSettings SoOQueFoiEscrito(HttpSettings sobreposicao, JsonElement? escrito)
 	{
-		// Replace ${ENV:VAR_NAME} with actual environment variable value
-		var regex = new Regex(@"\$\{ENV:([^}]+)\}", RegexOptions.IgnoreCase);
-		return regex.Replace(json, match =>
+		bool Escreveu(string nome) =>
+			escrito is { ValueKind: JsonValueKind.Object } objeto &&
+			objeto.EnumerateObject().Any(p => string.Equals(p.Name, nome, StringComparison.OrdinalIgnoreCase));
+
+		if (!Escreveu("timeout"))
+			sobreposicao.Timeout = 0;
+		if (!Escreveu("authentication"))
+			sobreposicao.Authentication = null;
+
+		return sobreposicao;
+	}
+
+	/// <summary>
+	/// The section, or one environment inside it: the section name case-insensitive, as the
+	/// deserializer reads it; the environment name exact, as the dictionary looks it up.
+	/// </summary>
+	private static JsonElement? Secao(string json, string secao, string? nomeDoAmbiente)
+	{
+		using var documento = JsonDocument.Parse(json, new JsonDocumentOptions
 		{
-			var varName = match.Groups[1].Value;
-			var value = Environment.GetEnvironmentVariable(varName);
-			
-			// Keep placeholder if env var not found (for error visibility)
-			return value ?? match.Value;
+			CommentHandling = JsonCommentHandling.Skip,
+			AllowTrailingCommas = true
 		});
+
+		var achado = Propriedade(documento.RootElement, secao, StringComparison.OrdinalIgnoreCase);
+		if (achado is { } encontrado && nomeDoAmbiente != null)
+			achado = Propriedade(encontrado, nomeDoAmbiente, StringComparison.Ordinal);
+
+		return achado?.Clone();
+
+		static JsonElement? Propriedade(JsonElement objeto, string nome, StringComparison comparacao)
+		{
+			if (objeto.ValueKind != JsonValueKind.Object)
+				return null;
+
+			foreach (var propriedade in objeto.EnumerateObject())
+			{
+				if (string.Equals(propriedade.Name, nome, comparacao))
+					return propriedade.Value;
+			}
+
+			return null;
+		}
 	}
 }
