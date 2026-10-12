@@ -25,14 +25,14 @@
   </PropertyGroup>
 
   <PropertyGroup>
-    <Version>6.15.4</Version>
+    <Version>6.15.5</Version>
 
     <!--
       O que a página do pacote no nuget.org mostra. Sem isto ela fica muda, e quem atualiza
       por `dotnet add package` não recebe nenhum aviso de que a major quebra coisas.
       Trocar a cada versão, junto do número acima.
     -->
-    <PackageReleaseNotes>Maintenance: tests for the RabbitMq step results, starting with a consume that timed out being a failure. The packages behave as in 6.15.3; no code changes needed. Upgrade guide: https://github.com/andrewBezerra/xunit-assured-net/blob/main/UPGRADING.md</PackageReleaseNotes>
+    <PackageReleaseNotes>Fix: the Kafka and RabbitMq timeout messages write the seconds with a dot on every machine, rounded to two places ("within 1.5s", not "1,5s" on a pt-BR machine). No code changes needed from 6.15.4. Upgrade guide: https://github.com/andrewBezerra/xunit-assured-net/blob/main/UPGRADING.md</PackageReleaseNotes>
     <Authors>Carlos Andrew Costa Bezerra</Authors>
     <Company>Carlos Andrew Costa Bezerra</Company>
     <Copyright>Copyright (c) Carlos Andrew Costa Bezerra</Copyright>

@@ -256,7 +256,7 @@ public class KafkaStepResult : TestStepResult
 	{
 		var errors = new List<string>
 		{
-			$"No message consumed from topic '{topic}' within timeout of {timeout.TotalSeconds}s"
+			$"No message consumed from topic '{topic}' within timeout of {Segundos.De(timeout)}s"
 		};
 
 		if (details != null)
@@ -286,7 +286,7 @@ public class KafkaStepResult : TestStepResult
 	{
 		var errors = new List<string>
 		{
-			$"Failed to produce message to topic '{topic}' within timeout of {timeout.TotalSeconds}s"
+			$"Failed to produce message to topic '{topic}' within timeout of {Segundos.De(timeout)}s"
 		};
 
 		if (details != null)
@@ -398,7 +398,7 @@ public class KafkaStepResult : TestStepResult
 						Success = false,
 						Errors = new List<string>
 						{
-							$"Consumed {consumeResults.Count} of {expectedCount} messages from topic '{topic}' within timeout of {timeout.TotalSeconds}s"
+							$"Consumed {consumeResults.Count} of {expectedCount} messages from topic '{topic}' within timeout of {Segundos.De(timeout)}s"
 						},
 						Data = consumeResults,
 						DataType = typeof(List<ConsumeResult<string, string>>),

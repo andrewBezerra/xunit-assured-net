@@ -2,7 +2,16 @@
 
 All notable changes to the XUnitAssured packages. Upgrading from 5.1.x? See [UPGRADING.md](UPGRADING.md).
 
-## v6.15.4 (Current — tests for the RabbitMq step results)
+## v6.15.5 (Current — timeout messages without the machine's culture)
+
+Fix, with a small behaviour change. Upgrading from 6.15.4 requires no code changes.
+
+- **Timeout messages write the seconds the same on every machine** (#166). They are in English, but the number was formatted with the machine's culture: a 1.5 s timeout read "within 1,5s" on a pt-BR machine and "within 1.5s" on a CI runner. The Kafka ones also printed every digit of a timeout that was not a round number ("1.2345678s"). Now all four use a dot and at most two decimal places:
+  - RabbitMq: `No message arrived on '…' within 1.5s.`
+  - Kafka: `No message consumed from topic '…' within timeout of 1.5s`, `Failed to produce message to topic '…' within timeout of 1.5s`, and `Consumed N of M messages from topic '…' within timeout of 1.5s`.
+- **Behaviour change:** the text of these four messages changes on machines whose culture uses a decimal comma, and the Kafka ones are rounded. A suite that compares them on such a machine needs the new text. Whole-second timeouts, the common case, read as before.
+
+## v6.15.4 (tests for the RabbitMq step results)
 
 Maintenance. Upgrading from 6.15.3 requires no code changes; the packages behave as in 6.15.3.
 
