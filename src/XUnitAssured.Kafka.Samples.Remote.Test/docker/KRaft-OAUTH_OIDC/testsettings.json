@@ -1,0 +1,27 @@
+{
+    // ============================================================================
+    // KAFKA LOCAL DOCKER CONFIGURATION - SASL/OAUTHBEARER with OpenID Connect
+    // Matches docker-compose.yml in this folder: Kafka on localhost:9092, Keycloak on
+    // localhost:8080 with the realm, clients and users scripts/configure_keycloak.sh creates
+    // ============================================================================
+
+    "testMode": "Local",
+    "environment": "docker-local",
+
+    "kafka": {
+        "bootstrapServers": "localhost:9092",
+        "groupId": "xunit-test-consumer-group",
+
+        // The Kafka client asks Keycloak for a token with these client credentials, and
+        // librdkafka renews it by itself
+        "authentication": {
+            "type": "OAuthBearer",
+            "oAuthBearer": {
+                "tokenEndpointUrl": "http://localhost:8080/realms/kafka/protocol/openid-connect/token",
+                "clientId": "kafka-client",
+                "clientSecret": "kafka-client-secret",
+                "useSsl": false
+            }
+        }
+    }
+}

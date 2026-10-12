@@ -1,0 +1,86 @@
+# Kafka KRaft with SASL/PLAIN, SCRAM-SHA-256 and SCRAM-SHA-512 on the same listener (#179):
+# one broker to test several mechanisms side by side. No SSL, no ACLs. Port 9096, which no other
+# sample uses, so it can run next to them.
+#
+#   podman-compose up -d      (or docker compose up -d)
+#
+# Users (PLAIN and both SCRAM mechanisms): admin/admin-secret, producer/producer-secret,
+# consumer/consumer-secret. testsettings.json in this folder connects with PLAIN.
+
+networks:
+  kafka-network:
+    driver: bridge
+
+services:
+  kafka:
+    image: confluentinc/cp-kafka:7.5.0
+    container_name: kafka
+    hostname: kafka
+    networks:
+      - kafka-network
+    ports:
+      - "9096:9096"
+    environment:
+      CLUSTER_ID: "3IjGH26ESAOYCukfbFK4BA"
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:29096
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+
+      # EXTERNAL for the tests, INTERNAL between broker and controller and for kafka-ui
+      KAFKA_LISTENERS: EXTERNAL://0.0.0.0:9096,INTERNAL://0.0.0.0:19096,CONTROLLER://0.0.0.0:29096
+      KAFKA_ADVERTISED_LISTENERS: EXTERNAL://localhost:9096,INTERNAL://kafka:19096
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: EXTERNAL:SASL_PLAINTEXT,INTERNAL:SASL_PLAINTEXT,CONTROLLER:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
+      KAFKA_SASL_ENABLED_MECHANISMS: PLAIN,SCRAM-SHA-256,SCRAM-SHA-512
+      KAFKA_SASL_MECHANISM_INTER_BROKER_PROTOCOL: PLAIN
+
+      # The broker's side of each mechanism, per listener. PLAIN lists its users here; the SCRAM
+      # users are created when the storage is formatted (scripts/start_multi.sh).
+      KAFKA_LISTENER_NAME_EXTERNAL_PLAIN_SASL_JAAS_CONFIG: 'org.apache.kafka.common.security.plain.PlainLoginModule required username="admin" password="admin-secret" user_admin="admin-secret" user_producer="producer-secret" user_consumer="consumer-secret";'
+      KAFKA_LISTENER_NAME_EXTERNAL_SCRAM-SHA-256_SASL_JAAS_CONFIG: 'org.apache.kafka.common.security.scram.ScramLoginModule required;'
+      KAFKA_LISTENER_NAME_EXTERNAL_SCRAM-SHA-512_SASL_JAAS_CONFIG: 'org.apache.kafka.common.security.scram.ScramLoginModule required;'
+      KAFKA_LISTENER_NAME_INTERNAL_PLAIN_SASL_JAAS_CONFIG: 'org.apache.kafka.common.security.plain.PlainLoginModule required username="admin" password="admin-secret" user_admin="admin-secret" user_producer="producer-secret" user_consumer="consumer-secret";'
+      KAFKA_LISTENER_NAME_INTERNAL_SCRAM-SHA-256_SASL_JAAS_CONFIG: 'org.apache.kafka.common.security.scram.ScramLoginModule required;'
+      KAFKA_LISTENER_NAME_INTERNAL_SCRAM-SHA-512_SASL_JAAS_CONFIG: 'org.apache.kafka.common.security.scram.ScramLoginModule required;'
+
+      # Single broker
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_LOG_DIRS: /var/lib/kafka/data
+    volumes:
+      - kafka-data:/var/lib/kafka/data
+      - ./scripts/start_multi.sh:/tmp/start_multi.sh
+    # Formats the storage with the SCRAM users, then starts Kafka
+    command: ["bash", "/tmp/start_multi.sh"]
+    healthcheck:
+      test: ["CMD-SHELL", "kafka-broker-api-versions --bootstrap-server kafka:19096 --command-config /tmp/client.properties || exit 1"]
+      interval: 10s
+      timeout: 10s
+      retries: 15
+      start_period: 40s
+
+  kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    container_name: kafka-ui
+    hostname: kafka-ui
+    networks:
+      - kafka-network
+    depends_on:
+      kafka:
+        condition: service_healthy
+    ports:
+      - "8080:8080"
+    environment:
+      DYNAMIC_CONFIG_ENABLED: "true"
+      KAFKA_CLUSTERS_0_NAME: multi-sasl
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:19096
+      KAFKA_CLUSTERS_0_PROPERTIES_SECURITY_PROTOCOL: SASL_PLAINTEXT
+      KAFKA_CLUSTERS_0_PROPERTIES_SASL_MECHANISM: PLAIN
+      KAFKA_CLUSTERS_0_PROPERTIES_SASL_JAAS_CONFIG: 'org.apache.kafka.common.security.plain.PlainLoginModule required username="admin" password="admin-secret";'
+
+volumes:
+  kafka-data:

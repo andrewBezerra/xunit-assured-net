@@ -182,7 +182,56 @@ Este diretório contém diferentes configurações do Kafka para testes locais.
 
 ---
 
-### 7. **Zookeeper** (Legado)
+### 7. **KRaft-SASL_MULTI** (Vários Mecanismos)
+**Recomendado para**: Testar PLAIN, SCRAM-256 e SCRAM-512 no mesmo broker
+
+```json
+{
+  "bootstrapServers": "localhost:9096",
+  "authentication": {
+    "type": "SaslPlain",
+    "saslPlain": { "username": "admin", "password": "admin-secret", "useSsl": false }
+  }
+}
+```
+
+**Características**:
+- ✅ PLAIN, SCRAM-SHA-256 e SCRAM-SHA-512 no mesmo listener, com os mesmos usuários
+- ❌ Sem SSL, sem ACLs
+- ✅ Porta: 9096 (nenhum outro exemplo usa: roda junto com eles)
+
+📚 [Ver documentação completa](KRaft-SASL_MULTI/README.md)
+
+---
+
+### 8. **KRaft-OAUTH_OIDC** (OAuth/OpenID Connect)
+**Recomendado para**: Testar SASL/OAUTHBEARER com um provedor de identidade (Keycloak)
+
+```json
+{
+  "bootstrapServers": "localhost:9092",
+  "authentication": {
+    "type": "OAuthBearer",
+    "oAuthBearer": {
+      "tokenEndpointUrl": "http://localhost:8080/realms/kafka/protocol/openid-connect/token",
+      "clientId": "kafka-client",
+      "clientSecret": "kafka-client-secret",
+      "useSsl": false
+    }
+  }
+}
+```
+
+**Características**:
+- ✅ Keycloak (porta 8080) com o realm `kafka`, criado na subida
+- ✅ O broker valida os tokens pelas chaves do realm
+- ✅ Porta do Kafka: 9092; kafka-ui: 8090
+
+📚 [Ver documentação completa](KRaft-OAUTH_OIDC/README.md)
+
+---
+
+### 9. **Zookeeper** (Legado)
 **Recomendado para**: Compatibilidade com sistemas antigos
 
 ```json
@@ -282,6 +331,8 @@ dotnet test
 | **KRaft-SASL_SCRAM-256** | 39092 | ✅ SCRAM-256 | ✅ | ❌ | ❌ | ✅ | ⭐⭐⭐ Complexa | Auth + Authorization |
 | **KRaft-SASL_SCRAM-512** | 39092⚠️ | ✅ SCRAM-512 | ✅ | ❌ | ❌ | ✅ | ⭐⭐⭐ Complexa | Máxima auth security |
 | **KRaft-SASLSSL** | 39093 | ✅ SCRAM-512 | ❌ | ✅ | ❌ | ✅ | ⭐⭐⭐ Complexa | Simular produção |
+| **KRaft-SASL_MULTI** | 9096 | ✅ PLAIN + SCRAM-256/512 | ❌ | ❌ | ❌ | ✅ | ⭐⭐ Média | Vários mecanismos |
+| **KRaft-OAUTH_OIDC** | 9092 | ✅ OAUTHBEARER | ❌ | ❌ | ❌ | ✅ | ⭐⭐⭐ Complexa | Provedor de identidade |
 | **Zookeeper** | 29092 | ❌ | ❌ | ❌ | ✅ | ❌ | ⭐⭐ Média | Compatibilidade legado |
 
 ⚠️ **SCRAM-256 e SCRAM-512 compartilham a porta 39092** - só uma pode rodar por vez!
@@ -410,6 +461,8 @@ Para trocar de configuração:
 - [KRaft-SASL_SCRAM-512 README](KRaft-SASL_SCRAM-512/README.md) - SASL/SCRAM-SHA-512 máxima segurança
 - [KRaft-SASLSSL README](KRaft-SASLSSL/README.md) - SASL/SCRAM-SHA-512 com SSL
 - [KRaft-SASLSSL Quick Fix Guide](KRaft-SASLSSL/QUICK-FIX-SSL.md) - Resolver problemas SSL
+- [KRaft-SASL_MULTI README](KRaft-SASL_MULTI/README.md) - PLAIN, SCRAM-256 e SCRAM-512 no mesmo broker
+- [KRaft-OAUTH_OIDC README](KRaft-OAUTH_OIDC/README.md) - SASL/OAUTHBEARER com Keycloak
 
 ---
 

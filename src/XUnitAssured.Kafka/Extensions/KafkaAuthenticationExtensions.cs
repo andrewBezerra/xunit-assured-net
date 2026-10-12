@@ -192,6 +192,29 @@ public static class KafkaAuthenticationExtensions
 	}
 
 	/// <summary>
+	/// Configures SASL/OAUTHBEARER with OpenID Connect: the Kafka client asks the token endpoint
+	/// for a token with its client credentials, and presents it to the broker (#179).
+	/// Usage: .WithOAuthBearer("http://localhost:8080/realms/kafka/protocol/openid-connect/token", "client", "secret")
+	/// </summary>
+	/// <param name="scenario">Test scenario</param>
+	/// <param name="tokenEndpointUrl">The OAuth 2.0 token endpoint</param>
+	/// <param name="clientId">The OAuth client id</param>
+	/// <param name="clientSecret">The OAuth client secret</param>
+	/// <param name="scope">Scopes to ask for, separated by spaces (optional)</param>
+	/// <param name="useSsl">Use SSL/TLS to the broker (default: true, recommended)</param>
+	/// <returns>Test scenario for chaining</returns>
+	public static IKafkaScenario WithOAuthBearer(this ITestScenario scenario, string tokenEndpointUrl, string clientId, string clientSecret, string? scope = null, bool useSsl = true)
+	{
+		if (scenario == null)
+			throw new ArgumentNullException(nameof(scenario));
+
+		var authConfig = new KafkaAuthConfig();
+		authConfig.UseOAuthBearer(tokenEndpointUrl, clientId, clientSecret, scope, useSsl);
+
+		return KafkaScenario.De(ApplyAuthConfig(scenario, authConfig));
+	}
+
+	/// <summary>
 	/// Configures SASL/SCRAM-SHA-512 authentication with explicit credentials.
 	/// Usage: .WithSaslScram512("username", "password")
 	/// </summary>

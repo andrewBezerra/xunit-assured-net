@@ -45,5 +45,11 @@ public enum KafkaAuthenticationType
 	/// Mutual TLS (mTLS) authentication.
 	/// Client and server authenticate each other using certificates.
 	/// </summary>
-	MutualTls = 6
+	MutualTls = 6,
+
+	/// <summary>
+	/// SASL/OAUTHBEARER with OpenID Connect: the client gets a token from an OAuth 2.0 token
+	/// endpoint (client credentials) and presents it to the broker. Keycloak, Okta, Azure AD.
+	/// </summary>
+	OAuthBearer = 7
 }
