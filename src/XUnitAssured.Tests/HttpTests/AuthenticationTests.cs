@@ -1,3 +1,5 @@
+using Flurl.Http.Testing;
+
 using XUnitAssured.Http.Configuration;
 using XUnitAssured.Http.Extensions;
 
@@ -10,18 +12,26 @@ namespace XUnitAssured.Tests.HttpTests;
 /// </summary>
 public class AuthenticationTests
 {
+	// Executa o pedido sem rede (#169) e confere o cabeçalho que saiu: antes, o teste só montava
+	// o cenário, contra o httpbin.org, e não conferia a autenticação.
 	[Fact(DisplayName = "Should add Basic Authentication header successfully")]
-	public void Should_Add_Basic_Auth_Header()
+	public async Task Should_Add_Basic_Auth_Header()
 	{
-		// Arrange & Act
-		var scenario = Given()
-			.ApiResource("https://httpbin.org/basic-auth/user/pass")
-			.WithBasicAuth("user", "pass")
-			.Get();
+		// Arrange
+		using var http = new HttpTest();
+		http.RespondWith("{}");
 
-		// Assert
-		scenario.ShouldNotBeNull();
-		scenario.CurrentStep.ShouldNotBeNull();
+		// Act
+		await Given()
+			.ApiResource("http://api.teste/basic-auth")
+			.WithBasicAuth("user", "pass")
+			.Get()
+			.ExecuteAsync();
+
+		// Assert: "user:pass" em Base64
+		http.ShouldHaveCalled("http://api.teste/basic-auth")
+			.WithHeader("Authorization", "Basic dXNlcjpwYXNz")
+			.Times(1);
 	}
 
 	[Fact(DisplayName = "Should add Bearer token header successfully")]
@@ -89,21 +99,6 @@ public class AuthenticationTests
 		// Act & Assert
 		Should.Throw<InvalidOperationException>(() => 
 			scenario.WithBasicAuth("user", "pass"));
-	}
-
-	[Fact(Skip = "Integration test - requires real API with basic auth", DisplayName = "Integration test should authenticate with Basic Authentication successfully")]
-	public void Integration_Should_Authenticate_With_Basic_Auth()
-	{
-		// This test requires a real API endpoint with basic authentication
-		Given()
-			.ApiResource("https://httpbin.org/basic-auth/user/pass")
-			.WithBasicAuth("user", "pass")
-			.Get()
-			.Validate(response =>
-			{
-				response.StatusCode.ShouldBe(200);
-				response.IsSuccessStatusCode.ShouldBeTrue();
-			});
 	}
 
 	[Fact(Skip = "Integration test - requires API with bearer token", DisplayName = "Integration test should authenticate with Bearer token successfully")]

@@ -1,4 +1,5 @@
 ﻿using System.Net;
+using Flurl.Http.Testing;
 using Shouldly;
 using Xunit;
 using XUnitAssured.Core.Storage;
@@ -94,14 +95,18 @@ public class HttpRequestStepTests
 		httpResult.IsClientError.ShouldBeTrue();
 	}
 
-	[Trait("Requires", "Network")]
+	// Sem rede (#169): o httpbin.org falhava para os runners do GitHub, e o teste só via o 200.
+	// Com o HttpTest do Flurl, ele confere o cabeçalho que de fato saiu.
 	[Fact(DisplayName = "HttpRequestStep should add custom headers to request")]
 	public async Task HttpRequestStep_Should_Add_Custom_Headers()
 	{
 		// Arrange
+		using var http = new HttpTest();
+		http.RespondWith("{}");
+
 		var step = new HttpRequestStep
 		{
-			Url = "https://httpbin.org/headers",
+			Url = "http://api.teste/headers",
 			Method = HttpMethod.Get,
 			Headers = new Dictionary<string, string>
 			{
@@ -120,6 +125,10 @@ public class HttpRequestStepTests
 
 		var httpResult = (HttpStepResult)result;
 		httpResult.StatusCode.ShouldBe(200);
+		http.ShouldHaveCalled("http://api.teste/headers")
+			.WithVerb(HttpMethod.Get)
+			.WithHeader("X-Custom-Header", "TestValue")
+			.Times(1);
 	}
 
 	[Trait("Requires", "Network")]
