@@ -2,7 +2,14 @@
 
 All notable changes to the XUnitAssured packages. Upgrading from 5.1.x? See [UPGRADING.md](UPGRADING.md).
 
-## v6.15.5 (Current — timeout messages without the machine's culture)
+## v6.15.6 (Current — packages published in dependency order)
+
+Maintenance. Upgrading from 6.15.5 requires no code changes; the packages behave as in 6.15.5.
+
+- **The release publishes the packages in dependency order** (#168). In 6.15.5, one push of every package timed out on `XUnitAssured.Mcp`, the largest, and stopped; `XUnitAssured.Core` came after it and was not sent. For about ten minutes, the 6.15.5 packages already on NuGet depended on a `XUnitAssured.Core 6.15.5` that did not exist. Re-running the job fixed it.
+- Now the packages go one at a time: Core first, Mcp last. The job stops at the first that fails, so a failure leaves packages missing, never a published package without its dependency. The push timeout went from 300 s to 900 s, and a package missing from the order, or one the build did not produce, stops the job before anything is sent.
+
+## v6.15.5 (timeout messages without the machine's culture)
 
 Fix, with a small behaviour change. Upgrading from 6.15.4 requires no code changes.
 

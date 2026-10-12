@@ -202,6 +202,10 @@ jobs:
       id-token: write
 
     steps:
+      # Only for .github/scripts/publicar-pacotes.sh; the packages come from the
+      # artifact, built and tested by the verify job.
+      - uses: actions/checkout@v4
+
       - name: Download packages
         uses: actions/download-artifact@v4
         with:
@@ -221,11 +225,11 @@ jobs:
         with:
           user: ${{ secrets.NUGET_USER }}
 
-      # --skip-duplicate keeps a partial re-run from failing on packages that
-      # already went out in an earlier attempt.
+      # One package at a time, Core first and Mcp last, stopping at the first that
+      # fails, so a failure never leaves a published package without its dependency
+      # (#168). --skip-duplicate keeps a re-run from failing on packages that already
+      # went out. The order and the reasons are in the script.
       - name: Push to NuGet
-        run: |
-          dotnet nuget push "artifacts/*.nupkg" \
-            --api-key "${{ steps.nuget-login.outputs.NUGET_API_KEY }}" \
-            --source https://api.nuget.org/v3/index.json \
-            --skip-duplicate
+        env:
+          NUGET_API_KEY: ${{ steps.nuget-login.outputs.NUGET_API_KEY }}
+        run: bash .github/scripts/publicar-pacotes.sh artifacts
