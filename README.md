@@ -443,6 +443,10 @@ Every protocol package reads its connection details and credentials from one fil
     "bootstrapServers": "localhost:9092",
     "groupId": "my-tests",
     "securityProtocol": "Plaintext",       // Plaintext | Ssl | SaslPlaintext | SaslSsl
+    // SASL can also be written here, with the Confluent names: "saslMechanism", "saslUsername",
+    // "saslPassword". When "authentication" has a type other than None, it wins.
+    // With SSL: "sslCaLocation", "enableSslCertificateVerification", and
+    // "sslEndpointIdentificationAlgorithm": "None" to skip the broker hostname check (only when asked).
     "authentication": { "type": "None" }   // None | SaslPlain | SaslScram256 | SaslScram512 | Ssl | MutualTls
   },
 
@@ -598,7 +602,7 @@ Add to your `.mcp.json` (repo root, `~/.mcp.json`, or `.vscode/mcp.json`):
     "xunitassured": {
       "type": "stdio",
       "command": "dnx",
-      "args": ["XUnitAssured.Mcp@6.16.0", "--yes"]
+      "args": ["XUnitAssured.Mcp@6.17.0", "--yes"]
     }
   }
 }
@@ -628,9 +632,9 @@ In GitHub Copilot Chat, the XUnitAssured tools should appear as available. Try:
 
 ## What's New
 
-**6.16.0** — Kafka: every step applies the authentication the same way, including the fixture's and the broker CA of a SASL over SSL setup.
+**6.17.0** — Kafka: the `kafka` section means the same through every step, fixture and helper — SASL credentials at the top or in `authentication`, the CA, `additionalProperties`. The broker hostname check is turned off only when the settings ask (`"sslEndpointIdentificationAlgorithm": "None"`).
 
-**6.15.7** — maintenance: no test depends on httpbin.org any more.
+**6.16.0** — Kafka: every step applies the authentication the same way, including the fixture's and the broker CA of a SASL over SSL setup.
 
 The full history is in **[CHANGELOG.md](https://github.com/andrewBezerra/xunit-assured-net/blob/main/CHANGELOG.md)**. Coming from 5.x? Start with **[UPGRADING.md](https://github.com/andrewBezerra/xunit-assured-net/blob/main/UPGRADING.md)**.
 

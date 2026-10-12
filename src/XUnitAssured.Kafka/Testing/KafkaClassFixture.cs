@@ -130,7 +130,9 @@ public class KafkaClassFixture : ITestContextSeeder, IDisposable
 	/// </summary>
 	protected virtual ConsumerConfig CreateOptimizedConsumerConfig(string? groupId = null)
 	{
-		var config = new ConsumerConfig
+		// A base é a mesma dos passos: o topo da seção kafka (#172). A verificação do hostname do
+		// broker não é mais desligada aqui: só com "sslEndpointIdentificationAlgorithm": "None".
+		var config = new ConsumerConfig(KafkaSettings.ConfiguracaoBase())
 		{
 			BootstrapServers = BootstrapServers,
 			GroupId = groupId ?? $"xunit-{Guid.NewGuid():N}",
@@ -138,23 +140,8 @@ public class KafkaClassFixture : ITestContextSeeder, IDisposable
 			EnableAutoCommit = false,
 			SessionTimeoutMs = 6000,
 			HeartbeatIntervalMs = 2000,
-			FetchWaitMaxMs = 100,
-			EnableSslCertificateVerification = KafkaSettings.EnableSslCertificateVerification
+			FetchWaitMaxMs = 100
 		};
-
-		// Set SslCaLocation if provided
-		if (!string.IsNullOrWhiteSpace(KafkaSettings.SslCaLocation))
-		{
-			config.SslCaLocation = KafkaSettings.SslCaLocation;
-		}
-
-		// For SASL/SSL, disable hostname verification to allow connecting to localhost
-		if (KafkaSettings.SecurityProtocol == Confluent.Kafka.SecurityProtocol.SaslSsl ||
-		    KafkaSettings.SecurityProtocol == Confluent.Kafka.SecurityProtocol.Ssl)
-		{
-			config.SslEndpointIdentificationAlgorithm = SslEndpointIdentificationAlgorithm.None;
-			config.Set("ssl.endpoint.identification.algorithm", "none");
-		}
 
 		return config;
 	}
@@ -175,28 +162,11 @@ public class KafkaClassFixture : ITestContextSeeder, IDisposable
 	/// </summary>
 	internal ProducerConfig ConfiguracaoDoProdutor()
 	{
-		var config = new ProducerConfig
+		var config = new ProducerConfig(KafkaSettings.ConfiguracaoBase())
 		{
 			BootstrapServers = BootstrapServers,
-			ClientId = $"xunitassured-shared-{Guid.NewGuid():N}",
-			EnableSslCertificateVerification = KafkaSettings.EnableSslCertificateVerification
+			ClientId = $"xunitassured-shared-{Guid.NewGuid():N}"
 		};
-
-		// Set SslCaLocation if provided
-		if (!string.IsNullOrWhiteSpace(KafkaSettings.SslCaLocation))
-		{
-			config.SslCaLocation = KafkaSettings.SslCaLocation;
-		}
-
-		// For SASL/SSL, disable hostname verification to allow connecting to localhost
-		// even when certificate is issued for "kafka" hostname
-		if (KafkaSettings.SecurityProtocol == Confluent.Kafka.SecurityProtocol.SaslSsl ||
-		    KafkaSettings.SecurityProtocol == Confluent.Kafka.SecurityProtocol.Ssl)
-		{
-			config.SslEndpointIdentificationAlgorithm = SslEndpointIdentificationAlgorithm.None;
-			// Also try via librdkafka config
-			config.Set("ssl.endpoint.identification.algorithm", "none");
-		}
 
 		AutenticacaoKafka.Aplicar(config, KafkaSettings.Authentication);
 		return config;
