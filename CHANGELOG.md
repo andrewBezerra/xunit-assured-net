@@ -2,7 +2,18 @@
 
 All notable changes to the XUnitAssured packages. Upgrading from 5.1.x? See [UPGRADING.md](UPGRADING.md).
 
-## v6.15.1 (Current — OAuth2 tests on the network path)
+## v6.15.2 (Current — tests for concurrent results)
+
+Maintenance. Upgrading from 6.15.1 requires no code changes; the packages behave as in 6.15.1.
+
+- **Tests for the concurrent result** (#157), which the nightly mutation run found unguarded. `Concurrently(...)` returns one result for all the requests; nothing checked three of its values:
+  - `Metadata.Status`: `Succeeded` when every request succeeds, `Failed` when one fails;
+  - the request number in `Errors` ("Request 2: ...");
+  - `StatusCode` when every response has the same code.
+
+  `Success`, `ExpectStatusCode` and the assertions were already covered.
+
+## v6.15.1 (OAuth2 tests on the network path)
 
 Maintenance. Upgrading from 6.15.0 requires no code changes; the packages behave as in 6.15.0.
 
