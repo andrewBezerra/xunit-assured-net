@@ -41,6 +41,12 @@ jobs:
               --target-framework net8.0
               --test-project XUnitAssured.Tests.csproj
               --test-project ../XUnitAssured.Http.Samples.Local.Test/XUnitAssured.Http.Samples.Local.Test.csproj
+          # Kafka e RabbitMq (#159): o que fala com o broker está nos testes Requires=Broker, fora
+          # do filtro, e aparece como sem cobertura. Isso mede quanto a suíte offline alcança.
+          - project: XUnitAssured.Kafka
+            extra: ''
+          - project: XUnitAssured.RabbitMq
+            extra: ''
 
     steps:
       - uses: actions/checkout@v4
