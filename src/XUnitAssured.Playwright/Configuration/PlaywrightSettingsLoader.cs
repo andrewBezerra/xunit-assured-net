@@ -25,15 +25,6 @@ namespace XUnitAssured.Playwright.Configuration;
 /// </summary>
 public static class PlaywrightSettingsLoader
 {
-	private static readonly string[] SearchPaths = new[]
-	{
-		"playwrightsettings.json",
-		"./playwrightsettings.json",
-		"../playwrightsettings.json",
-		"../../playwrightsettings.json",
-		"../../../playwrightsettings.json"
-	};
-
 	private static PlaywrightSettings? _cachedSettings;
 	private static readonly object _lockObject = new();
 
@@ -72,14 +63,12 @@ public static class PlaywrightSettingsLoader
 			}
 
 			// The file this package used to own. Still read, and announced as on its way out.
-			foreach (var path in SearchPaths)
+			var path = ArquivoDeConfiguracao.Localizar("playwrightsettings.json");
+			if (path != null)
 			{
-				if (File.Exists(path))
-				{
-					AvisarQueOArquivoVaiSair(path);
-					_cachedSettings = LoadFromFile(path);
-					return _cachedSettings.Clone();
-				}
+				AvisarQueOArquivoVaiSair(path);
+				_cachedSettings = LoadFromFile(path);
+				return _cachedSettings.Clone();
 			}
 
 			// Return default settings

@@ -455,7 +455,7 @@ Every protocol package reads its connection details and credentials from one fil
 
 Comments are allowed. The full set of keys, with every authentication variant spelled out, is in the samples: [`testsettings.json` for HTTP](src/XUnitAssured.Http.Samples.Remote.Test/testsettings.json) and [for Kafka](src/XUnitAssured.Kafka.Samples.Remote.Test/testsettings.json).
 
-**Where it is looked for.** The current directory and up to three parents — which reaches your project folder from `bin/<Configuration>/<tfm>`, so no `CopyToOutputDirectory` is needed. To point somewhere else, set `TESTSETTINGS_PATH=/path/to/file.json`.
+**Where it is looked for.** The current directory and up to three parents — which reaches your project folder from `bin/<Configuration>/<tfm>`, so no `CopyToOutputDirectory` is needed — then every folder up from the test assembly's output directory, for runners that start somewhere else. To point somewhere else, set `TESTSETTINGS_PATH=/path/to/file.json`. Every package looks for its file this way, `httpsettings.json` included.
 
 **Per-environment files.** With `TEST_ENV=staging` (or `"environment": "staging"`), `testsettings.staging.json` is loaded instead of `testsettings.json`. Keep secrets out of the file with `${ENV:...}`.
 
@@ -598,7 +598,7 @@ Add to your `.mcp.json` (repo root, `~/.mcp.json`, or `.vscode/mcp.json`):
     "xunitassured": {
       "type": "stdio",
       "command": "dnx",
-      "args": ["XUnitAssured.Mcp@6.13.0", "--yes"]
+      "args": ["XUnitAssured.Mcp@6.13.1", "--yes"]
     }
   }
 }
@@ -628,9 +628,9 @@ In GitHub Copilot Chat, the XUnitAssured tools should appear as available. Try:
 
 ## What's New
 
-**6.13.0** — authentication is the same whether a request goes through Flurl or your own `HttpClient`: OAuth2 now works with `WebApplicationFactory`, tokens are reused between requests, and an empty credential is sent as it is, to test that the API refuses it.
+**6.13.1** — every package finds its settings file the same way, and an `httpsettings.json` environment no longer erases the base authentication or timeout it leaves out.
 
-**6.12.2** — maintenance: tests for the Http behaviours the nightly mutation run found unguarded, the authentication handlers among them; CI now runs the HTTP local samples. The packages behave as in 6.12.1.
+**6.13.0** — authentication is the same whether a request goes through Flurl or your own `HttpClient`: OAuth2 now works with `WebApplicationFactory`, tokens are reused between requests, and an empty credential is sent as it is, to test that the API refuses it.
 
 The full history is in **[CHANGELOG.md](https://github.com/andrewBezerra/xunit-assured-net/blob/main/CHANGELOG.md)**. Coming from 5.x? Start with **[UPGRADING.md](https://github.com/andrewBezerra/xunit-assured-net/blob/main/UPGRADING.md)**.
 

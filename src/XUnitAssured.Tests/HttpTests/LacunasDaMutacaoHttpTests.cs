@@ -213,8 +213,9 @@ public class LacunasDaMutacaoHttpTests
 
 	// A configuração de um ambiente sobrepõe a base: o que ela define vale, o que não define fica.
 	// "Não define" é null (e 0 no Timeout). O construtor de HttpSettings preenche Authentication,
-	// DefaultHeaders e Timeout, então uma sobreposição criada por ele, ou lida de um JSON que omite
-	// esses campos, troca os valores da base pelos padrões -- registrado na #146.
+	// DefaultHeaders e Timeout, então uma sobreposição criada por ele troca os valores da base pelos
+	// padrões. Ao ler um JSON, o carregador desfaz o que ele omitiu (#146; testado em
+	// BuscaDoArquivoDeConfiguracaoTests).
 	[Fact(DisplayName = "Merging settings keeps what the override leaves out and takes what it sets")]
 	public void Settings_Merge()
 	{
