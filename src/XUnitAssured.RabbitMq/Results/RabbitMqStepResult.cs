@@ -176,7 +176,7 @@ public class RabbitMqStepResult : TestStepResult
 			Success = false,
 			Errors = new[]
 			{
-				$"No message arrived on '{destination}' within {timeout.TotalSeconds:0.##}s."
+				$"No message arrived on '{destination}' within {Segundos.De(timeout)}s."
 			},
 			DataType = typeof(string),
 			Metadata = Metadados(StepStatus.Failed, elapsed),

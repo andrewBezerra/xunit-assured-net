@@ -33,12 +33,11 @@ public class ResultadosDoRabbitMqTests
 	[Fact(DisplayName = "A consume that timed out is a failure that names the queue and the timeout, with no message")]
 	public void Consume_Timeout_Is_A_Failure()
 	{
-		// Prazo inteiro: a parte decimal sai com o separador da cultura da máquina ("1,5s" em pt-BR).
-		var resultado = RabbitMqStepResult.CreateConsumeTimeout("pedidos", TimeSpan.FromSeconds(3), Decorrido);
+		var resultado = RabbitMqStepResult.CreateConsumeTimeout("pedidos", TimeSpan.FromSeconds(1.5), Decorrido);
 
 		resultado.Success.ShouldBeFalse();
 		resultado.Metadata.Status.ShouldBe(StepStatus.Failed);
-		resultado.Errors.ShouldHaveSingleItem().ShouldBe("No message arrived on 'pedidos' within 3s.");
+		resultado.Errors.ShouldHaveSingleItem().ShouldBe("No message arrived on 'pedidos' within 1.5s.");
 		resultado.Destination.ShouldBe("pedidos");
 		resultado.Message.ShouldBeNull();
 		resultado.Messages.ShouldBeEmpty();
