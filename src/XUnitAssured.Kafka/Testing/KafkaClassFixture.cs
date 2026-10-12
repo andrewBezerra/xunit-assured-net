@@ -113,8 +113,7 @@ public class KafkaClassFixture : ITestContextSeeder, IDisposable
 	/// <returns>A configured consumer. Caller is responsible for disposing.</returns>
 	public IConsumer<string, string> CreateConsumer(string? groupId = null, string? topic = null)
 	{
-		var config = CreateOptimizedConsumerConfig(groupId);
-		ApplyAuthentication(config);
+		var config = ConfiguracaoDoConsumidor(groupId);
 
 		var consumer = new ConsumerBuilder<string, string>(config).Build();
 
@@ -161,9 +160,20 @@ public class KafkaClassFixture : ITestContextSeeder, IDisposable
 	}
 
 	/// <summary>
-	/// Creates the cached producer instance. Override to customize producer configuration.
+	/// A configuração com que <see cref="CreateConsumer"/> cria um consumidor:
+	/// <see cref="CreateOptimizedConsumerConfig"/> com a autenticação, sem conectar.
 	/// </summary>
-	protected virtual IProducer<string, string> CreateProducerInstance()
+	internal ConsumerConfig ConfiguracaoDoConsumidor(string? groupId = null)
+	{
+		var config = CreateOptimizedConsumerConfig(groupId);
+		AutenticacaoKafka.Aplicar(config, KafkaSettings.Authentication);
+		return config;
+	}
+
+	/// <summary>
+	/// A configuração do produtor compartilhado, com a autenticação, sem conectar.
+	/// </summary>
+	internal ProducerConfig ConfiguracaoDoProdutor()
 	{
 		var config = new ProducerConfig
 		{
@@ -188,7 +198,16 @@ public class KafkaClassFixture : ITestContextSeeder, IDisposable
 			config.Set("ssl.endpoint.identification.algorithm", "none");
 		}
 
-		ApplyAuthentication(config);
+		AutenticacaoKafka.Aplicar(config, KafkaSettings.Authentication);
+		return config;
+	}
+
+	/// <summary>
+	/// Creates the cached producer instance. Override to customize producer configuration.
+	/// </summary>
+	protected virtual IProducer<string, string> CreateProducerInstance()
+	{
+		var config = ConfiguracaoDoProdutor();
 
 		return new ProducerBuilder<string, string>(config)
 			.SetErrorHandler((_, error) => _sharedProducerErrors.Enqueue(error.ToString()))
@@ -198,79 +217,6 @@ public class KafkaClassFixture : ITestContextSeeder, IDisposable
 					_sharedProducerErrors.Enqueue($"{log.Level}: {log.Message}");
 			})
 			.Build();
-	}
-
-	/// <summary>
-	/// Applies authentication settings from KafkaSettings to a client config.
-	/// Applies authentication settings from KafkaSettings to a client config.
-	/// Supports SASL/PLAIN, SASL/SSL, SASL/SCRAM-256, SASL/SCRAM-512, SSL, and Mutual TLS.
-	/// </summary>
-	private void ApplyAuthentication(ClientConfig config)
-	{
-		var authConfig = KafkaSettings.Authentication;
-		if (authConfig == null || authConfig.Type == KafkaAuthenticationType.None)
-			return;
-
-		IKafkaAuthenticationHandler? handler = authConfig.Type switch
-		{
-			KafkaAuthenticationType.SaslPlain when authConfig.SaslPlain != null
-				=> new Handlers.SaslPlainHandler(authConfig.SaslPlain),
-			KafkaAuthenticationType.SaslSsl when authConfig.SaslPlain != null
-				=> new Handlers.SaslPlainHandler(authConfig.SaslPlain),
-			KafkaAuthenticationType.SaslScram256 when authConfig.SaslScram != null
-				=> new Handlers.SaslScramHandler(authConfig.SaslScram),
-			KafkaAuthenticationType.SaslScram512 when authConfig.SaslScram != null
-				=> new Handlers.SaslScramHandler(authConfig.SaslScram),
-			KafkaAuthenticationType.Ssl when authConfig.Ssl != null
-				=> new Handlers.SslHandler(authConfig.Ssl),
-			KafkaAuthenticationType.MutualTls when authConfig.Ssl != null
-				=> new Handlers.SslHandler(authConfig.Ssl),
-			_ => null
-		};
-
-		if (handler != null)
-		{
-			if (config is ConsumerConfig consumerConfig)
-				handler.ApplyAuthentication(consumerConfig);
-			else if (config is ProducerConfig producerConfig)
-				handler.ApplyAuthentication(producerConfig);
-		}
-
-		// Apply additional SSL settings if configured
-		// This is important for SASL/SSL scenarios where SSL config is separate from SASL config
-		if (authConfig.Ssl != null)
-		{
-			ApplySslConfiguration(config, authConfig.Ssl);
-		}
-	}
-
-	/// <summary>
-	/// Applies SSL configuration settings to a client config.
-	/// Used for additional SSL settings in SASL/SSL scenarios.
-	/// </summary>
-	private void ApplySslConfiguration(ClientConfig config, Configuration.SslConfig sslConfig)
-	{
-		if (!string.IsNullOrWhiteSpace(sslConfig.SslCaLocation))
-		{
-			config.SslCaLocation = sslConfig.SslCaLocation;
-		}
-
-		config.EnableSslCertificateVerification = sslConfig.EnableSslCertificateVerification;
-
-		if (!string.IsNullOrWhiteSpace(sslConfig.SslCertificateLocation))
-		{
-			config.SslCertificateLocation = sslConfig.SslCertificateLocation;
-		}
-
-		if (!string.IsNullOrWhiteSpace(sslConfig.SslKeyLocation))
-		{
-			config.SslKeyLocation = sslConfig.SslKeyLocation;
-		}
-
-		if (!string.IsNullOrWhiteSpace(sslConfig.SslKeyPassword))
-		{
-			config.SslKeyPassword = sslConfig.SslKeyPassword;
-		}
 	}
 
 	/// <summary>

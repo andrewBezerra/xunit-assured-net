@@ -187,23 +187,7 @@ public class KafkaProduceStep : ITestStep
 			}
 			else
 			{
-				// Precedência: explícito > contexto > testsettings.json > padrão. O "explícito" é
-				// registrado no passo, e não deduzido comparando com o padrão: configurar
-				// localhost:9092 de propósito é justamente o caso comum de um broker local.
-				var resolvedBootstrapServers = BootstrapServersInformado
-					? BootstrapServers
-					: context.GetProperty<string>("_KafkaBootstrapServers")
-						?? KafkaSettings.Load().BootstrapServers;
-
-				// Build producer config
-				var config = ProducerConfig ?? new ProducerConfig
-				{
-					BootstrapServers = resolvedBootstrapServers,
-					ClientId = $"xunitassured-producer-{Guid.NewGuid():N}"
-				};
-
-				// Apply authentication
-				ApplyAuthentication(config, context);
+				var config = MontarConfig(context);
 
 				diagnosticProperties["BootstrapServers"] = config.BootstrapServers;
 				diagnosticProperties["SecurityProtocol"] = config.SecurityProtocol.ToString();
@@ -337,40 +321,25 @@ public class KafkaProduceStep : ITestStep
 	}
 
 	/// <summary>
-	/// Applies authentication to the producer configuration.
-	/// Uses AuthConfig if provided, otherwise resolves from context or loads from testsettings.json.
+	/// A configuração do produtor deste passo — endereço, ClientId e autenticação —, sem conectar.
 	/// </summary>
-	private void ApplyAuthentication(ProducerConfig config, ITestContext context)
+	internal ProducerConfig MontarConfig(ITestContext context)
 	{
-		// Get authentication config
-		var authConfig = AuthConfig;
+		// Precedência: explícito > contexto > testsettings.json > padrão. O "explícito" é
+		// registrado no passo, e não deduzido comparando com o padrão: configurar
+		// localhost:9092 de propósito é justamente o caso comum de um broker local.
+		var resolvedBootstrapServers = BootstrapServersInformado
+			? BootstrapServers
+			: context.GetProperty<string>("_KafkaBootstrapServers")
+				?? KafkaSettings.Load().BootstrapServers;
 
-		// If no config provided, try to resolve from context (fixture settings)
-		authConfig ??= context.GetProperty<KafkaAuthConfig>("_KafkaAuthConfig");
-
-		// If still no config, try to load from settings
-		if (authConfig == null)
+		var config = ProducerConfig ?? new ProducerConfig
 		{
-			var settings = KafkaSettings.Load();
-			authConfig = settings.Authentication;
-		}
-
-		// Skip if no authentication configured
-		if (authConfig == null || authConfig.Type == KafkaAuthenticationType.None)
-			return;
-
-		// Create appropriate handler and apply authentication
-		IKafkaAuthenticationHandler? handler = authConfig.Type switch
-		{
-			KafkaAuthenticationType.SaslPlain when authConfig.SaslPlain != null => new SaslPlainHandler(authConfig.SaslPlain),
-			KafkaAuthenticationType.SaslSsl when authConfig.SaslPlain != null => new SaslPlainHandler(authConfig.SaslPlain),
-			KafkaAuthenticationType.SaslScram256 when authConfig.SaslScram != null => new SaslScramHandler(authConfig.SaslScram),
-			KafkaAuthenticationType.SaslScram512 when authConfig.SaslScram != null => new SaslScramHandler(authConfig.SaslScram),
-			KafkaAuthenticationType.Ssl when authConfig.Ssl != null => new SslHandler(authConfig.Ssl),
-			KafkaAuthenticationType.MutualTls when authConfig.Ssl != null => new SslHandler(authConfig.Ssl),
-			_ => null
+			BootstrapServers = resolvedBootstrapServers,
+			ClientId = $"xunitassured-producer-{Guid.NewGuid():N}"
 		};
 
-		handler?.ApplyAuthentication(config);
+		AutenticacaoKafka.Aplicar(config, AutenticacaoKafka.Resolver(AuthConfig, context));
+		return config;
 	}
 }

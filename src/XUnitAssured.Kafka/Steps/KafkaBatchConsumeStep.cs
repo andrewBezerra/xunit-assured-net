@@ -165,34 +165,7 @@ public class KafkaBatchConsumeStep : ITestStep
 
 		try
 		{
-			// Precedência: explícito > contexto > testsettings.json > padrão. O "explícito" é
-			// registrado no passo, e não deduzido comparando com o padrão: configurar
-			// localhost:9092 de propósito é justamente o caso comum de um broker local.
-			var resolvedBootstrapServers = BootstrapServersInformado
-				? BootstrapServers
-				: context.GetProperty<string>("_KafkaBootstrapServers")
-					?? KafkaSettings.Load().BootstrapServers;
-
-			var resolvedGroupId = GroupId;
-			if (!GroupIdInformado)
-			{
-				resolvedGroupId = context.GetProperty<string>("_KafkaGroupId") ?? GroupId;
-			}
-
-			// Build consumer config
-			var config = ConsumerConfig ?? new ConsumerConfig
-			{
-				BootstrapServers = resolvedBootstrapServers,
-				GroupId = resolvedGroupId,
-				AutoOffsetReset = AutoOffsetReset.Earliest,
-				EnableAutoCommit = false,
-				SessionTimeoutMs = 6000,
-				HeartbeatIntervalMs = 2000,
-				FetchWaitMaxMs = 100
-			};
-
-			// Apply authentication
-			ApplyAuthentication(config);
+			var config = MontarConfig(context);
 
 			diagnosticProperties["BootstrapServers"] = config.BootstrapServers;
 			diagnosticProperties["GroupId"] = config.GroupId;
@@ -286,32 +259,40 @@ public class KafkaBatchConsumeStep : ITestStep
 	}
 
 	/// <summary>
-	/// Applies authentication to the consumer configuration.
+	/// A configuração do consumidor deste passo — endereço, grupo e autenticação —, sem conectar.
 	/// </summary>
-	private void ApplyAuthentication(ConsumerConfig config)
+	/// <remarks>
+	/// Lê a autenticação que a fixture põe no contexto, como o passo simples; até a #164, o passo
+	/// em lote ia direto ao arquivo de configuração.
+	/// </remarks>
+	internal ConsumerConfig MontarConfig(ITestContext context)
 	{
-		var authConfig = AuthConfig;
+		// Precedência: explícito > contexto > testsettings.json > padrão. O "explícito" é
+		// registrado no passo, e não deduzido comparando com o padrão: configurar
+		// localhost:9092 de propósito é justamente o caso comum de um broker local.
+		var resolvedBootstrapServers = BootstrapServersInformado
+			? BootstrapServers
+			: context.GetProperty<string>("_KafkaBootstrapServers")
+				?? KafkaSettings.Load().BootstrapServers;
 
-		if (authConfig == null)
+		var resolvedGroupId = GroupId;
+		if (!GroupIdInformado)
 		{
-			var settings = KafkaSettings.Load();
-			authConfig = settings.Authentication;
+			resolvedGroupId = context.GetProperty<string>("_KafkaGroupId") ?? GroupId;
 		}
 
-		if (authConfig == null || authConfig.Type == KafkaAuthenticationType.None)
-			return;
-
-		IKafkaAuthenticationHandler? handler = authConfig.Type switch
+		var config = ConsumerConfig ?? new ConsumerConfig
 		{
-			KafkaAuthenticationType.SaslPlain when authConfig.SaslPlain != null => new SaslPlainHandler(authConfig.SaslPlain),
-			KafkaAuthenticationType.SaslSsl when authConfig.SaslPlain != null => new SaslPlainHandler(authConfig.SaslPlain),
-			KafkaAuthenticationType.SaslScram256 when authConfig.SaslScram != null => new SaslScramHandler(authConfig.SaslScram),
-			KafkaAuthenticationType.SaslScram512 when authConfig.SaslScram != null => new SaslScramHandler(authConfig.SaslScram),
-			KafkaAuthenticationType.Ssl when authConfig.Ssl != null => new SslHandler(authConfig.Ssl),
-			KafkaAuthenticationType.MutualTls when authConfig.Ssl != null => new SslHandler(authConfig.Ssl),
-			_ => null
+			BootstrapServers = resolvedBootstrapServers,
+			GroupId = resolvedGroupId,
+			AutoOffsetReset = AutoOffsetReset.Earliest,
+			EnableAutoCommit = false,
+			SessionTimeoutMs = 6000,
+			HeartbeatIntervalMs = 2000,
+			FetchWaitMaxMs = 100
 		};
 
-		handler?.ApplyAuthentication(config);
+		AutenticacaoKafka.Aplicar(config, AutenticacaoKafka.Resolver(AuthConfig, context));
+		return config;
 	}
 }
