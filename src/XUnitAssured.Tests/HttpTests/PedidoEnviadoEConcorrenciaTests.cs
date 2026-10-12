@@ -13,6 +13,7 @@ using Xunit;
 
 using XUnitAssured.Core.Abstractions;
 using XUnitAssured.Core.DSL;
+using XUnitAssured.Core.Results;
 using XUnitAssured.Http.Extensions;
 using XUnitAssured.Http.Results;
 
@@ -199,6 +200,41 @@ public class PedidoEnviadoEConcorrenciaTests
 
 		Should.Throw<InvalidOperationException>(() => resposta.AssertBodyContains("x"))
 			.Message.ShouldContain("AssertEach");
+	}
+
+	// O Metadata é público: quem lê GetResult().Metadata.Status vê o status do conjunto (#157).
+	[Fact(DisplayName = "When every concurrent request succeeds, the result is Succeeded with their common status code")]
+	public async Task Concurrent_Success_Sets_Status_And_Code()
+	{
+		var resultado = (await Given(new Eco())
+			.ApiResource("/membros")
+			.Post()
+			.Concurrently(new object[] { new { Name = "Bia" }, new { Name = "Ana" }, new { Name = "Caio" } })
+			.ExecuteAsync()).GetResult();
+
+		resultado.Success.ShouldBeTrue();
+		resultado.Metadata.Status.ShouldBe(StepStatus.Succeeded);
+		resultado.StatusCode.ShouldBe(200);
+		resultado.Errors.ShouldBeEmpty();
+	}
+
+	[Fact(DisplayName = "When one concurrent request fails, the result is Failed and its errors name the request")]
+	public async Task Concurrent_Failure_Sets_Status_And_Names_The_Request()
+	{
+		// O segundo pedido não recebe resposta: a conexão cai.
+		var servidor = new Eco(p => p.Contains("Ana") ? throw new HttpRequestException("conexão recusada") : null);
+
+		var resultado = (await Given(servidor)
+			.ApiResource("/membros")
+			.Post()
+			.Concurrently(new object[] { new { Name = "Bia" }, new { Name = "Ana" }, new { Name = "Caio" } })
+			.ExecuteAsync()).GetResult();
+
+		resultado.Success.ShouldBeFalse();
+		resultado.Metadata.Status.ShouldBe(StepStatus.Failed);
+		resultado.Errors.ShouldNotBeEmpty();
+		resultado.Errors.ShouldAllBe(e => e.StartsWith("Request 2: "));
+		resultado.StatusCode.ShouldBe(0);
 	}
 
 	[Fact(DisplayName = "Concurrently needs at least one request")]
