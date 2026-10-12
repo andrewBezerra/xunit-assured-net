@@ -257,7 +257,7 @@ public class OAuth2AuthTests : HttpTestBase<HttpSamplesFixture>, IClassFixture<H
 			.AssertJsonPath<bool>("$.authenticated", value => value, "Should be authenticated with custom OAuth2 config");
 	}
 
-	[Fact(DisplayName = "OAuth2 authenticates every scenario, each asking for its token through its own client")]
+	[Fact(DisplayName = "OAuth2 should reuse the token across the scenarios of a fixture")]
 	public void Example11_OAuth2_MultipleRequests_ShouldReuseToken()
 	{
 		// Arrange
@@ -265,7 +265,7 @@ public class OAuth2AuthTests : HttpTestBase<HttpSamplesFixture>, IClassFixture<H
 		var clientId = "test-client-id";
 		var clientSecret = "test-client-secret";
 
-		// Act & Assert - First scenario (gets a token through its client)
+		// Act & Assert - First scenario (gets a token through the fixture's server)
 		Given().ApiResource($"/api/auth/oauth2/protected")
 			.WithOAuth2(tokenUrl, clientId, clientSecret)
 			.Get()
@@ -275,8 +275,8 @@ public class OAuth2AuthTests : HttpTestBase<HttpSamplesFixture>, IClassFixture<H
 			.AssertStatusCode(200)
 			.AssertJsonPath<bool>("$.authenticated", value => value, "First request should be authenticated");
 
-		// Act & Assert - Second scenario. The fixture gives each scenario a new client, and a token is
-		// cached per client, so this one asks for its own; steps of one scenario share theirs.
+		// Act & Assert - Second scenario. The fixture gives it a new client, but the token is kept by
+		// the fixture, so this scenario reuses the first one's token.
 		Given().ApiResource($"/api/auth/oauth2/protected")
 			.WithOAuth2(tokenUrl, clientId, clientSecret)
 			.Get()
@@ -284,7 +284,7 @@ public class OAuth2AuthTests : HttpTestBase<HttpSamplesFixture>, IClassFixture<H
 			.Execute()
 		.Then()
 			.AssertStatusCode(200)
-			.AssertJsonPath<bool>("$.authenticated", value => value, "Second scenario should be authenticated too");
+			.AssertJsonPath<bool>("$.authenticated", value => value, "Second request should be authenticated with the cached token");
 	}
 
 	[Fact(DisplayName = "OAuth2 Token Response should return complete and valid structure")]

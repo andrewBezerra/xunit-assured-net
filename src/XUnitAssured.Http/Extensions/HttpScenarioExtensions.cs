@@ -72,10 +72,12 @@ public static class HttpScenarioExtensions
 		// and preserve its properties
 		HttpClient? existingHttpClient = null;
 		HttpAuthConfig? existingAuthConfig = null;
+		object? donoDosTokens = null;
 		if (scenario.CurrentStep is HttpRequestStep existingStep)
 		{
 			existingHttpClient = existingStep.CustomHttpClient;
 			existingAuthConfig = existingStep.AuthConfig;
+			donoDosTokens = existingStep.DonoDosTokens;
 		}
 		
 		// Check if HttpClientProvider was set via Given(IHttpClientProvider)
@@ -85,7 +87,12 @@ public static class HttpScenarioExtensions
 			if (provider != null)
 			{
 				existingHttpClient = provider.CreateClient();
-				
+
+				// Os cenários de uma fixture falam com o mesmo servidor e dividem o token OAuth2.
+				// O cliente dado em Given(HttpClient) vem num provedor novo a cada cenário: lá o
+				// token fica com o cliente.
+				donoDosTokens = provider is Core.DSL.ScenarioDsl.ClienteDado ? null : provider;
+
 				// Check if provider also implements IHttpClientAuthProvider
 				if (provider is IHttpClientAuthProvider authProvider && existingAuthConfig == null)
 				{
@@ -100,6 +107,7 @@ public static class HttpScenarioExtensions
 			UrlProvider = urlProvider,
 			Method = HttpMethod.Get,
 			CustomHttpClient = existingHttpClient,  // Preserve CustomHttpClient if set
+			DonoDosTokens = donoDosTokens,
 			AuthConfig = existingAuthConfig  // Preserve or set AuthConfig from provider
 		};
 
@@ -393,9 +401,11 @@ public static class HttpScenarioExtensions
 		if (scenario.CurrentStep is HttpRequestStep httpStep)
 		{
 			// There's already an HTTP step, update it with CustomHttpClient
+			// Outro cliente pode ser outro servidor: o token deixa de ser o da fixture
 			var newStep = new HttpRequestStep(httpStep)
 			{
-				CustomHttpClient = httpClient
+				CustomHttpClient = httpClient,
+				DonoDosTokens = null
 			};
 
 			scenario.SetCurrentStep(newStep);

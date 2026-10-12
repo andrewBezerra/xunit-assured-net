@@ -151,7 +151,11 @@ public static class ScenarioDsl
 	/// O cliente que o teste deu, servido como provedor para que cada passo HTTP do cenário o use.
 	/// Devolve sempre a mesma instância e não a descarta.
 	/// </summary>
-	private sealed class ClienteDado(HttpClient cliente) : IHttpClientProvider
+	/// <remarks>
+	/// Interno para o Http: um token OAuth2 é guardado pela fixture que deu o cliente, e este
+	/// provedor nasce a cada cenário, então ali o dono dos tokens é o próprio cliente.
+	/// </remarks>
+	internal sealed class ClienteDado(HttpClient cliente) : IHttpClientProvider
 	{
 		public HttpClient CreateClient() => cliente;
 	}
