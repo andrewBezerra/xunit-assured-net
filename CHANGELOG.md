@@ -2,7 +2,14 @@
 
 All notable changes to the XUnitAssured packages. Upgrading from 5.1.x? See [UPGRADING.md](UPGRADING.md).
 
-## v6.15.2 (Current — tests for concurrent results)
+## v6.15.3 (Current — mutation testing for Kafka and RabbitMq)
+
+Maintenance. Upgrading from 6.15.2 requires no code changes; the packages behave as in 6.15.2.
+
+- **The nightly mutation run covers Kafka and RabbitMq** (#159), with the same offline suite and filter as Core and Http. Until now they had never been mutation-tested.
+- First scores: Kafka 27.5%, RabbitMq 32.5%. Most undetected mutants are in code that talks to the broker, which only the `Requires=Broker` tests reach. Where the offline tests do reach the code, they catch 62% (Kafka) and 65% (RabbitMq) of the mutants, against about 83% for Core and Http.
+
+## v6.15.2 (tests for concurrent results)
 
 Maintenance. Upgrading from 6.15.1 requires no code changes; the packages behave as in 6.15.1.
 
