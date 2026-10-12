@@ -598,7 +598,7 @@ Add to your `.mcp.json` (repo root, `~/.mcp.json`, or `.vscode/mcp.json`):
     "xunitassured": {
       "type": "stdio",
       "command": "dnx",
-      "args": ["XUnitAssured.Mcp@6.15.6", "--yes"]
+      "args": ["XUnitAssured.Mcp@6.15.7", "--yes"]
     }
   }
 }
@@ -628,9 +628,9 @@ In GitHub Copilot Chat, the XUnitAssured tools should appear as available. Try:
 
 ## What's New
 
-**6.15.6** — maintenance: packages are published in dependency order, Core first.
+**6.15.7** — maintenance: no test depends on httpbin.org any more.
 
-**6.15.5** — Kafka and RabbitMq timeout messages write the seconds the same on every machine: "within 1.5s", not "1,5s" on a pt-BR machine.
+**6.15.6** — maintenance: packages are published in dependency order, Core first.
 
 The full history is in **[CHANGELOG.md](https://github.com/andrewBezerra/xunit-assured-net/blob/main/CHANGELOG.md)**. Coming from 5.x? Start with **[UPGRADING.md](https://github.com/andrewBezerra/xunit-assured-net/blob/main/UPGRADING.md)**.
 

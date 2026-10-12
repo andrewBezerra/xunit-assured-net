@@ -2,7 +2,14 @@
 
 All notable changes to the XUnitAssured packages. Upgrading from 5.1.x? See [UPGRADING.md](UPGRADING.md).
 
-## v6.15.6 (Current — packages published in dependency order)
+## v6.15.7 (Current — no test depends on httpbin.org)
+
+Maintenance. Upgrading from 6.15.6 requires no code changes; the packages behave as in 6.15.6.
+
+- **No test depends on httpbin.org any more** (#169). The custom-headers test failed on the CI runners in 2 of 3 PRs because of httpbin, and it only checked for a 200. It now runs offline with Flurl's `HttpTest`, in the main suite, and checks that `X-Custom-Header: TestValue` was sent.
+- The Basic authentication test pointed at httpbin but never sent the request, and checked nothing about authentication. It now sends it offline and checks `Authorization: Basic dXNlcjpwYXNz`. The skipped Basic integration test against httpbin, which never ran, was removed.
+
+## v6.15.6 (packages published in dependency order)
 
 Maintenance. Upgrading from 6.15.5 requires no code changes; the packages behave as in 6.15.5.
 
