@@ -33,7 +33,8 @@ namespace XUnitAssured.Tests.HttpTests;
 ///
 /// <para>
 /// Os handlers de autenticação ficam aqui também: os exemplos locais mandam o pedido por um
-/// HttpClient próprio, que não usa os handlers (#147), então nada os aplicava.
+/// HttpClient próprio, que até a #147 não usava os handlers, então nada os aplicava. Que os dois
+/// caminhos mandam o mesmo está em AutenticacaoNoClienteProprioTests.
 /// </para>
 /// </summary>
 [Trait("Category", "Http")]

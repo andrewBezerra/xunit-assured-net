@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
+using System.Runtime.CompilerServices;
 using System.Security.Cryptography.X509Certificates;
 using System.Threading.Tasks;
 
@@ -14,6 +15,7 @@ using XUnitAssured.Http.Client;
 using XUnitAssured.Http.Configuration;
 using XUnitAssured.Http.Handlers;
 using XUnitAssured.Http.Results;
+using XUnitAssured.Http.TokenManagement;
 
 namespace XUnitAssured.Http.Steps;
 
@@ -469,12 +471,14 @@ public class HttpRequestStep : ITestStep
 		// Build query string
 		var allQueryParams = new Dictionary<string, object?>(QueryParams);
 		
-		// Add authentication query parameters if needed
-		var authConfig = AuthConfig;
-		if (authConfig?.Type == AuthenticationType.ApiKey && 
-		    authConfig.ApiKey?.Location == ApiKeyLocation.Query)
+		// A autenticação vem dos mesmos handlers do caminho do Flurl, aplicada a um pedido que só
+		// serve para recolher o que eles põem. Uma cópia própria daqui já tinha divergido: sem OAuth2,
+		// e com a ApiKey da query lida só da configuração do passo, não do httpsettings.json.
+		var autenticacao = new FlurlRequest(new Flurl.Url());
+		CriarHandler()?.ApplyAuthentication(autenticacao);
+		foreach (var (nome, valor) in autenticacao.Url.QueryParams)
 		{
-			allQueryParams[authConfig.ApiKey.KeyName] = authConfig.ApiKey.KeyValue;
+			allQueryParams[nome] = valor;
 		}
 		
 		if (allQueryParams.Any())
@@ -487,10 +491,9 @@ public class HttpRequestStep : ITestStep
 		var httpRequest = new HttpRequestMessage(Method, requestUrl);
 
 		// Add authentication headers
-		var authHeaders = GetAuthenticationHeaders();
-		foreach (var header in authHeaders)
+		foreach (var (nome, valor) in autenticacao.Headers)
 		{
-			httpRequest.Headers.TryAddWithoutValidation(header.Key, header.Value);
+			httpRequest.Headers.TryAddWithoutValidation(nome, valor);
 		}
 
 		// Add regular headers
@@ -562,89 +565,60 @@ public class HttpRequestStep : ITestStep
 	}
 
 	/// <summary>
-	/// Gets authentication headers as a dictionary.
-	/// Used when CustomHttpClient is present to collect headers before creating FlurlRequest.
-	/// </summary>
-	private Dictionary<string, string> GetAuthenticationHeaders()
-	{
-		var headers = new Dictionary<string, string>();
-		
-		// Get authentication config
-		var authConfig = EffectiveAuthConfig;
-
-		// Skip if no authentication configured
-		if (authConfig == null || authConfig.Type == AuthenticationType.None)
-			return headers;
-
-		// Generate authentication headers based on type
-		switch (authConfig.Type)
-		{
-			case AuthenticationType.Basic when authConfig.Basic != null:
-			{
-				var credentials = $"{authConfig.Basic.Username}:{authConfig.Basic.Password}";
-				var base64Credentials = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(credentials));
-				headers["Authorization"] = $"Basic {base64Credentials}";
-				break;
-			}
-			
-			case AuthenticationType.Bearer when authConfig.Bearer != null:
-			{
-				var prefix = authConfig.Bearer.Prefix ?? "Bearer";
-				headers["Authorization"] = $"{prefix} {authConfig.Bearer.Token}";
-				break;
-			}
-			
-			case AuthenticationType.ApiKey when authConfig.ApiKey != null:
-			{
-				if (authConfig.ApiKey.Location == ApiKeyLocation.Header)
-				{
-					headers[authConfig.ApiKey.KeyName] = authConfig.ApiKey.KeyValue;
-				}
-				break;
-			}
-			
-			case AuthenticationType.CustomHeader when authConfig.CustomHeader != null:
-			{
-				if (authConfig.CustomHeader.Headers != null)
-				{
-					foreach (var header in authConfig.CustomHeader.Headers)
-					{
-						headers[header.Key] = header.Value;
-					}
-				}
-				break;
-			}
-		}
-
-		return headers;
-	}
-
-	/// <summary>
 	/// Applies authentication to the request.
 	/// Uses AuthConfig if provided, otherwise loads from httpsettings.json.
 	/// Note: Certificate authentication is handled separately via FlurlClientFactory.
 	/// </summary>
-	private void ApplyAuthentication(IFlurlRequest request)
+	private void ApplyAuthentication(IFlurlRequest request) => CriarHandler()?.ApplyAuthentication(request);
+
+	/// <summary>
+	/// The handler for the authentication that applies to this request, or null when there is none.
+	/// Both paths — Flurl and the custom <see cref="HttpClient"/> — apply authentication through it.
+	/// </summary>
+	private IAuthenticationHandler? CriarHandler()
 	{
-		// Get authentication config
 		var authConfig = EffectiveAuthConfig;
 
 		// Skip if no authentication configured
 		if (authConfig == null || authConfig.Type == AuthenticationType.None)
-			return;
+			return null;
 
-		// Create appropriate handler and apply authentication
-		IAuthenticationHandler? handler = authConfig.Type switch
+		return authConfig.Type switch
 		{
 			AuthenticationType.Basic when authConfig.Basic != null => new BasicAuthHandler(authConfig.Basic),
 			AuthenticationType.Bearer when authConfig.Bearer != null => new BearerAuthHandler(authConfig.Bearer),
 			AuthenticationType.ApiKey when authConfig.ApiKey != null => new ApiKeyAuthHandler(authConfig.ApiKey),
-			AuthenticationType.OAuth2 when authConfig.OAuth2 != null => new OAuth2Handler(authConfig.OAuth2),
+			// Com HttpClient próprio, o token é pedido por ele: o servidor de um WebApplicationFactory
+			// vive em memória e não responde pela rede.
+			// Com o cache desligado, cada pedido pede o seu token.
+			AuthenticationType.OAuth2 when authConfig.OAuth2 != null =>
+				new OAuth2Handler(
+					authConfig.OAuth2,
+					authConfig.TokenCache?.Enabled == false ? null : TokensGuardados.Para(CustomHttpClient),
+					CustomHttpClient),
 			AuthenticationType.CustomHeader when authConfig.CustomHeader != null => new CustomHeaderAuthHandler(authConfig.CustomHeader),
+			// No caminho do HttpClient próprio não há o que aplicar: o certificado é do handler
+			// do cliente, e esse cliente é de quem o passou.
 			AuthenticationType.Certificate when authConfig.Certificate != null => new CertificateAuthHandler(authConfig.Certificate),
 			_ => null
 		};
-
-		handler?.ApplyAuthentication(request);
 	}
+}
+
+/// <summary>
+/// The OAuth 2.0 tokens obtained so far, so the requests of a run reuse one while it is valid
+/// instead of asking for a new one each.
+/// </summary>
+/// <remarks>
+/// A custom <see cref="HttpClient"/> gets a cache of its own, which lives as long as the client:
+/// it usually points at a server that is started for some tests and then gone, and a token from
+/// one should not be offered to the next.
+/// </remarks>
+internal static class TokensGuardados
+{
+	private static readonly MemoryTokenCache DaRede = new();
+	private static readonly ConditionalWeakTable<HttpClient, MemoryTokenCache> PorCliente = new();
+
+	internal static ITokenCache Para(HttpClient? cliente) =>
+		cliente == null ? DaRede : PorCliente.GetValue(cliente, _ => new MemoryTokenCache());
 }

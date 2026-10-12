@@ -33,8 +33,9 @@ public class ApiKeyAuthHandler : IAuthenticationHandler
 		if (string.IsNullOrWhiteSpace(_config.KeyName))
 			throw new InvalidOperationException("API Key name is required.");
 
-		if (string.IsNullOrWhiteSpace(_config.KeyValue))
-			throw new InvalidOperationException("API Key value is required.");
+		// Uma credencial vazia vai como está: mandá-la e ver a API recusar é um teste que se quer
+		// escrever. O caminho do HttpClient próprio sempre a mandou, e os exemplos contam com isso.
+		// Já o nome é preciso: sem ele não há cabeçalho nem parâmetro.
 
 		// Add API key based on location
 		if (_config.Location == ApiKeyLocation.Header)

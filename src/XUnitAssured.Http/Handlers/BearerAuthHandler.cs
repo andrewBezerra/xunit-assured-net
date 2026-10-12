@@ -30,9 +30,8 @@ public class BearerAuthHandler : IAuthenticationHandler
 		if (request == null)
 			throw new ArgumentNullException(nameof(request));
 
-		if (string.IsNullOrWhiteSpace(_config.Token))
-			throw new InvalidOperationException("Token is required for Bearer authentication.");
-
+		// Uma credencial vazia vai como está: mandá-la e ver a API recusar é um teste que se quer
+		// escrever. O caminho do HttpClient próprio sempre a mandou, e os exemplos contam com isso.
 		// Add Authorization header with prefix (default: Bearer)
 		var prefix = string.IsNullOrWhiteSpace(_config.Prefix) ? "Bearer" : _config.Prefix;
 		request.WithHeader("Authorization", $"{prefix} {_config.Token}");
