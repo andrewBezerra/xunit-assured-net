@@ -1,0 +1,6 @@
+# Arquivos que rodam dentro de containers Linux (#175). Com core.autocrlf=true, um checkout no
+# Windows os trazia com CRLF, e o broker do exemplo não subia: o bash recusava o script
+# ("/bin/sh^M: bad interpreter") e o Kafka, o ID do cluster ("Illegal base64 character d").
+*.sh text eol=lf
+**/clusterID/clusterID text eol=lf
+*.conf text eol=lf

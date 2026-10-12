@@ -139,9 +139,58 @@ public static class TestSettingsKafkaExtensions
 		});
 
 		if (settings != null)
+		{
 			NormalizeAuthenticationSettings(settings);
+			ResolverCaminhos(settings, ambiente);
+		}
 
 		return settings;
+	}
+
+	/// <summary>
+	/// A relative certificate path is read from the folder of the settings file that wrote it,
+	/// not from wherever the test runner started (#175). When no file exists there, the path is
+	/// kept as written, which librdkafka resolves from the working directory, as before.
+	/// </summary>
+	/// <remarks>
+	/// The environment's file is tried first, then the base one: a merged value does not say
+	/// which file wrote it, and the environment's overrides the base.
+	/// </remarks>
+	private static void ResolverCaminhos(KafkaSettings settings, string? ambiente)
+	{
+		var pastas = new List<string>();
+		ambiente = TestSettingsSection.Ambiente(ambiente);
+		if (ambiente != null && TestSettingsSection.LocalizarDoAmbiente(ambiente) is { } doAmbiente)
+			pastas.Add(Path.GetDirectoryName(Path.GetFullPath(doAmbiente))!);
+		if (TestSettingsSection.Localizar() is { } doBase)
+			pastas.Add(Path.GetDirectoryName(Path.GetFullPath(doBase))!);
+
+		string? Resolver(string? caminho)
+		{
+			if (string.IsNullOrWhiteSpace(caminho) || Path.IsPathRooted(caminho))
+				return caminho;
+
+			foreach (var pasta in pastas)
+			{
+				var candidato = Path.GetFullPath(Path.Combine(pasta, caminho));
+				if (File.Exists(candidato))
+					return candidato;
+			}
+
+			return caminho;
+		}
+
+		settings.SslCaLocation = Resolver(settings.SslCaLocation);
+
+		if (settings.SchemaRegistry != null)
+			settings.SchemaRegistry.SslCaLocation = Resolver(settings.SchemaRegistry.SslCaLocation);
+
+		if (settings.Authentication?.Ssl is { } ssl)
+		{
+			ssl.SslCaLocation = Resolver(ssl.SslCaLocation);
+			ssl.SslCertificateLocation = Resolver(ssl.SslCertificateLocation);
+			ssl.SslKeyLocation = Resolver(ssl.SslKeyLocation);
+		}
 	}
 
 	/// <summary>

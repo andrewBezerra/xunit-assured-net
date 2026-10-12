@@ -118,7 +118,7 @@ schema-registry:
 
 ### Step 1: Stop Everything
 ```bash
-cd /mnt/c/DEV/ProjetosPessoais/XUnitAssured.Net/src/XUnitAssured.Kafka.Samples.Local.Test/docker/KRaft-SASL_SCRAM-512
+cd /mnt/c/DEV/ProjetosPessoais/XUnitAssured.Net/src/XUnitAssured.Kafka.Samples.Remote.Test/docker/KRaft-SASL_SCRAM-512
 
 # Stop containers
 podman-compose down
