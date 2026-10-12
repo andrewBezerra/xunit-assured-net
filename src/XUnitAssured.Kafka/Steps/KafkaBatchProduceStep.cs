@@ -149,23 +149,7 @@ public class KafkaBatchProduceStep : ITestStep
 			}
 			else
 			{
-				// Precedência: explícito > contexto > testsettings.json > padrão. O "explícito" é
-				// registrado no passo, e não deduzido comparando com o padrão: configurar
-				// localhost:9092 de propósito é justamente o caso comum de um broker local.
-				var resolvedBootstrapServers = BootstrapServersInformado
-					? BootstrapServers
-					: context.GetProperty<string>("_KafkaBootstrapServers")
-						?? KafkaSettings.Load().BootstrapServers;
-
-				// Build producer config
-				var config = ProducerConfig ?? new ProducerConfig
-				{
-					BootstrapServers = resolvedBootstrapServers,
-					ClientId = $"xunitassured-batch-producer-{Guid.NewGuid():N}"
-				};
-
-				// Apply authentication
-				ApplyAuthentication(config);
+				var config = MontarConfig(context);
 
 				producer = new ProducerBuilder<string, string>(config).Build();
 			}
@@ -279,32 +263,29 @@ public class KafkaBatchProduceStep : ITestStep
 	}
 
 	/// <summary>
-	/// Applies authentication to the producer configuration.
+	/// A configuração do produtor deste passo — endereço, ClientId e autenticação —, sem conectar.
 	/// </summary>
-	private void ApplyAuthentication(ProducerConfig config)
+	/// <remarks>
+	/// Lê a autenticação que a fixture põe no contexto, como o passo simples; até a #164, o passo
+	/// em lote ia direto ao arquivo de configuração.
+	/// </remarks>
+	internal ProducerConfig MontarConfig(ITestContext context)
 	{
-		var authConfig = AuthConfig;
+		// Precedência: explícito > contexto > testsettings.json > padrão. O "explícito" é
+		// registrado no passo, e não deduzido comparando com o padrão: configurar
+		// localhost:9092 de propósito é justamente o caso comum de um broker local.
+		var resolvedBootstrapServers = BootstrapServersInformado
+			? BootstrapServers
+			: context.GetProperty<string>("_KafkaBootstrapServers")
+				?? KafkaSettings.Load().BootstrapServers;
 
-		if (authConfig == null)
+		var config = ProducerConfig ?? new ProducerConfig
 		{
-			var settings = KafkaSettings.Load();
-			authConfig = settings.Authentication;
-		}
-
-		if (authConfig == null || authConfig.Type == KafkaAuthenticationType.None)
-			return;
-
-		IKafkaAuthenticationHandler? handler = authConfig.Type switch
-		{
-			KafkaAuthenticationType.SaslPlain when authConfig.SaslPlain != null => new SaslPlainHandler(authConfig.SaslPlain),
-			KafkaAuthenticationType.SaslSsl when authConfig.SaslPlain != null => new SaslPlainHandler(authConfig.SaslPlain),
-			KafkaAuthenticationType.SaslScram256 when authConfig.SaslScram != null => new SaslScramHandler(authConfig.SaslScram),
-			KafkaAuthenticationType.SaslScram512 when authConfig.SaslScram != null => new SaslScramHandler(authConfig.SaslScram),
-			KafkaAuthenticationType.Ssl when authConfig.Ssl != null => new SslHandler(authConfig.Ssl),
-			KafkaAuthenticationType.MutualTls when authConfig.Ssl != null => new SslHandler(authConfig.Ssl),
-			_ => null
+			BootstrapServers = resolvedBootstrapServers,
+			ClientId = $"xunitassured-batch-producer-{Guid.NewGuid():N}"
 		};
 
-		handler?.ApplyAuthentication(config);
+		AutenticacaoKafka.Aplicar(config, AutenticacaoKafka.Resolver(AuthConfig, context));
+		return config;
 	}
 }

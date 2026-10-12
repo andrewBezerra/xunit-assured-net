@@ -167,34 +167,7 @@ public class KafkaConsumeStep : ITestStep
 
 		try
 		{
-			// Precedência: explícito > contexto > testsettings.json > padrão. O "explícito" é
-			// registrado no passo, e não deduzido comparando com o padrão: configurar
-			// localhost:9092 de propósito é justamente o caso comum de um broker local.
-			var resolvedBootstrapServers = BootstrapServersInformado
-				? BootstrapServers
-				: context.GetProperty<string>("_KafkaBootstrapServers")
-					?? KafkaSettings.Load().BootstrapServers;
-
-			var resolvedGroupId = GroupId;
-			if (!GroupIdInformado)
-			{
-				resolvedGroupId = context.GetProperty<string>("_KafkaGroupId") ?? GroupId;
-			}
-
-			// Build consumer config
-			var config = ConsumerConfig ?? new ConsumerConfig
-			{
-				BootstrapServers = resolvedBootstrapServers,
-				GroupId = resolvedGroupId,
-				AutoOffsetReset = AutoOffsetReset.Earliest,
-				EnableAutoCommit = false,
-				SessionTimeoutMs = 6000,
-				HeartbeatIntervalMs = 2000,
-				FetchWaitMaxMs = 100
-			};
-
-			// Apply authentication
-			ApplyAuthentication(config, context);
+			var config = MontarConfig(context);
 
 			// NOTE: librdkafka's Debug option is deliberately left untouched here.
 			// Enabling it by default costs measurable CPU and floods the result with
@@ -299,40 +272,36 @@ public class KafkaConsumeStep : ITestStep
 	}
 
 	/// <summary>
-	/// Applies authentication to the consumer configuration.
-	/// Uses AuthConfig if provided, otherwise resolves from context or loads from testsettings.json.
+	/// A configuração do consumidor deste passo — endereço, grupo e autenticação —, sem conectar.
 	/// </summary>
-	private void ApplyAuthentication(ConsumerConfig config, ITestContext context)
+	internal ConsumerConfig MontarConfig(ITestContext context)
 	{
-		// Get authentication config
-		var authConfig = AuthConfig;
+		// Precedência: explícito > contexto > testsettings.json > padrão. O "explícito" é
+		// registrado no passo, e não deduzido comparando com o padrão: configurar
+		// localhost:9092 de propósito é justamente o caso comum de um broker local.
+		var resolvedBootstrapServers = BootstrapServersInformado
+			? BootstrapServers
+			: context.GetProperty<string>("_KafkaBootstrapServers")
+				?? KafkaSettings.Load().BootstrapServers;
 
-		// If no config provided, try to resolve from context (fixture settings)
-		authConfig ??= context.GetProperty<KafkaAuthConfig>("_KafkaAuthConfig");
-
-		// If still no config, try to load from settings
-		if (authConfig == null)
+		var resolvedGroupId = GroupId;
+		if (!GroupIdInformado)
 		{
-			var settings = KafkaSettings.Load();
-			authConfig = settings.Authentication;
+			resolvedGroupId = context.GetProperty<string>("_KafkaGroupId") ?? GroupId;
 		}
 
-		// Skip if no authentication configured
-		if (authConfig == null || authConfig.Type == KafkaAuthenticationType.None)
-			return;
-
-		// Create appropriate handler and apply authentication
-		IKafkaAuthenticationHandler? handler = authConfig.Type switch
+		var config = ConsumerConfig ?? new ConsumerConfig
 		{
-			KafkaAuthenticationType.SaslPlain when authConfig.SaslPlain != null => new SaslPlainHandler(authConfig.SaslPlain),
-			KafkaAuthenticationType.SaslSsl when authConfig.SaslPlain != null => new SaslPlainHandler(authConfig.SaslPlain),
-			KafkaAuthenticationType.SaslScram256 when authConfig.SaslScram != null => new SaslScramHandler(authConfig.SaslScram),
-			KafkaAuthenticationType.SaslScram512 when authConfig.SaslScram != null => new SaslScramHandler(authConfig.SaslScram),
-			KafkaAuthenticationType.Ssl when authConfig.Ssl != null => new SslHandler(authConfig.Ssl),
-			KafkaAuthenticationType.MutualTls when authConfig.Ssl != null => new SslHandler(authConfig.Ssl),
-			_ => null
+			BootstrapServers = resolvedBootstrapServers,
+			GroupId = resolvedGroupId,
+			AutoOffsetReset = AutoOffsetReset.Earliest,
+			EnableAutoCommit = false,
+			SessionTimeoutMs = 6000,
+			HeartbeatIntervalMs = 2000,
+			FetchWaitMaxMs = 100
 		};
 
-		handler?.ApplyAuthentication(config);
+		AutenticacaoKafka.Aplicar(config, AutenticacaoKafka.Resolver(AuthConfig, context));
+		return config;
 	}
 }
