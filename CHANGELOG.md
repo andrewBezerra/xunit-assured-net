@@ -2,7 +2,18 @@
 
 All notable changes to the XUnitAssured packages. Upgrading from 5.1.x? See [UPGRADING.md](UPGRADING.md).
 
-## v6.16.0 (Current — one way for Kafka authentication)
+## v6.17.0 (Current — one meaning for the kafka section)
+
+Behaviour changes in Kafka. **If you connect over SSL to a broker whose certificate names another host** (for example a local broker issued for `kafka` and reached as `localhost`), **add `"sslEndpointIdentificationAlgorithm": "None"` to the `kafka` section**: `KafkaClassFixture` no longer turns the hostname check off by itself.
+
+- **One meaning for the `kafka` section** (#172). It turned into a client config in three ways — the steps, `KafkaClassFixture`, and `KafkaSettings.ToClientConfig()` (used by `KafkaTestFixture`, `ToProducerConfig`, `ToConsumerConfig` and the helpers) — and each read a different part of it. Tested against a SASL broker: credentials at the top of the section connected through `ToClientConfig` and failed from a step with "1/1 brokers are down"; credentials in `authentication`, the other way round. Now all three start from the same base and apply the authentication over it:
+  - SASL credentials can be written at the top, with the Confluent names (`securityProtocol`, `saslMechanism`, `saslUsername`, `saslPassword`), or in `authentication`. Both reach every path; when `authentication` has a type other than `None`, it wins.
+  - `ToClientConfig`, `ToProducerConfig` and `ToConsumerConfig` now apply `authentication`. They ignored it.
+  - The steps now apply the top-level `sslCaLocation`, `enableSslCertificateVerification` and `additionalProperties`, as `ToClientConfig` did.
+- **The broker hostname check is turned off only when asked.** `KafkaClassFixture` turned it off whenever the protocol was SSL; the steps did not. Now nothing does unless the section has the new `"sslEndpointIdentificationAlgorithm": "None"`. The SASL/SSL samples, which reach a certificate issued for `kafka` as `localhost`, now say so.
+- **The `KRaft-SASL_PLAIN` sample settings** were a copy of the SASL/SSL ones and could not connect to their own broker. They now match its `docker-compose.yml`, checked against it.
+
+## v6.16.0 (one way for Kafka authentication)
 
 Fix, with behaviour changes in Kafka. Upgrading from 6.15.7 requires no code changes, but **check your Kafka batch steps and SASL over SSL setups**.
 

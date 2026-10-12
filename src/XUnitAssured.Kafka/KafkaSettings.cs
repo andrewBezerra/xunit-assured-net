@@ -40,6 +40,11 @@ public class KafkaSettings
 	/// SASL mechanism for authentication.
 	/// Only used when SecurityProtocol is SaslPlaintext or SaslSsl.
 	/// </summary>
+	/// <remarks>
+	/// The SASL settings can be written here, with the Confluent names, or in
+	/// <see cref="Authentication"/>. Every step, fixture and helper reads both; when
+	/// <see cref="Authentication"/> has a type other than <c>None</c>, it wins.
+	/// </remarks>
 	public SaslMechanism? SaslMechanism { get; set; }
 
 	/// <summary>
@@ -65,6 +70,17 @@ public class KafkaSettings
 	/// Optional, used for custom certificate chains.
 	/// </summary>
 	public string? SslCaLocation { get; set; }
+
+	/// <summary>
+	/// How the broker's certificate is matched to the host it is reached by. Not set (the
+	/// default), the client verifies it. <c>"None"</c> turns that off — for a local broker whose
+	/// certificate names another host, e.g. issued for <c>kafka</c> and reached as <c>localhost</c>.
+	/// </summary>
+	/// <remarks>
+	/// Up to 6.16, <c>KafkaClassFixture</c> turned the check off by itself whenever the protocol
+	/// was SSL, and the steps did not (#172). Now nothing turns it off unless this says so.
+	/// </remarks>
+	public SslEndpointIdentificationAlgorithm? SslEndpointIdentificationAlgorithm { get; set; }
 
 	/// <summary>
 	/// Optional Schema Registry settings.
@@ -156,8 +172,24 @@ public class KafkaSettings
 	/// <summary>
 	/// Converts KafkaSettings to Confluent.Kafka ClientConfig (base configuration).
 	/// </summary>
+	/// <remarks>
+	/// The top-level settings, then <see cref="Authentication"/> over them: when both set the
+	/// credentials, <see cref="Authentication"/> wins. The steps and <c>KafkaClassFixture</c>
+	/// build their configuration the same way (#172).
+	/// </remarks>
 	/// <returns>ClientConfig with common settings</returns>
 	public ClientConfig ToClientConfig()
+	{
+		var config = ConfiguracaoBase();
+		Handlers.AutenticacaoKafka.Aplicar(config, Authentication);
+		return config;
+	}
+
+	/// <summary>
+	/// What the top level of the <c>kafka</c> section says, without <see cref="Authentication"/>:
+	/// the steps apply their own, which may come from the step or from a fixture.
+	/// </summary>
+	internal ClientConfig ConfiguracaoBase()
 	{
 		var config = new ClientConfig
 		{
@@ -169,6 +201,9 @@ public class KafkaSettings
 			EnableSslCertificateVerification = EnableSslCertificateVerification,
 			SslCaLocation = SslCaLocation
 		};
+
+		if (SslEndpointIdentificationAlgorithm is { } algoritmo)
+			config.SslEndpointIdentificationAlgorithm = algoritmo;
 
 		// Apply additional properties if any
 		if (AdditionalProperties != null)

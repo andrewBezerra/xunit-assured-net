@@ -25,14 +25,14 @@
   </PropertyGroup>
 
   <PropertyGroup>
-    <Version>6.16.0</Version>
+    <Version>6.17.0</Version>
 
     <!--
       O que a página do pacote no nuget.org mostra. Sem isto ela fica muda, e quem atualiza
       por `dotnet add package` não recebe nenhum aviso de que a major quebra coisas.
       Trocar a cada versão, junto do número acima.
     -->
-    <PackageReleaseNotes>Kafka: every step applies the authentication the same way. The batch steps now use the authentication the fixture puts in the context, and the steps apply the ssl section of a SASL authentication (the broker CA), as KafkaClassFixture did. No code changes needed from 6.15.7. Upgrade guide: https://github.com/andrewBezerra/xunit-assured-net/blob/main/UPGRADING.md</PackageReleaseNotes>
+    <PackageReleaseNotes>Kafka: the kafka settings section becomes the same client config through steps, KafkaClassFixture and ToClientConfig. KafkaClassFixture no longer turns off the broker hostname check by itself: if you relied on it, add "sslEndpointIdentificationAlgorithm": "None". Upgrade guide: https://github.com/andrewBezerra/xunit-assured-net/blob/main/UPGRADING.md</PackageReleaseNotes>
     <Authors>Carlos Andrew Costa Bezerra</Authors>
     <Company>Carlos Andrew Costa Bezerra</Company>
     <Copyright>Copyright (c) Carlos Andrew Costa Bezerra</Copyright>

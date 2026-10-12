@@ -48,6 +48,15 @@ internal static class AutenticacaoKafka
 				handler.ApplyAuthentication(consumidor);
 			else if (config is ProducerConfig produtor)
 				handler.ApplyAuthentication(produtor);
+			else
+			{
+				// Os handlers só mexem em chaves comuns aos dois; um ClientConfig puro, como o de
+				// KafkaSettings.ToClientConfig, recebe o que eles escreveriam num produtor.
+				var comum = new ProducerConfig();
+				handler.ApplyAuthentication(comum);
+				foreach (var (chave, valor) in comum)
+					config.Set(chave, valor);
+			}
 		}
 
 		if (autenticacao.Ssl != null)

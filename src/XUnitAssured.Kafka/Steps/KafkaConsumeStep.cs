@@ -290,7 +290,9 @@ public class KafkaConsumeStep : ITestStep
 			resolvedGroupId = context.GetProperty<string>("_KafkaGroupId") ?? GroupId;
 		}
 
-		var config = ConsumerConfig ?? new ConsumerConfig
+		// A base é o topo da seção kafka — protocolo, SASL, CA, additionalProperties (#172) —; a
+		// autenticação do passo, da fixture ou do arquivo vem por cima.
+		var config = ConsumerConfig ?? new ConsumerConfig(KafkaSettings.Load().ConfiguracaoBase())
 		{
 			BootstrapServers = resolvedBootstrapServers,
 			GroupId = resolvedGroupId,
