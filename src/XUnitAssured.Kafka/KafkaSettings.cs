@@ -69,6 +69,12 @@ public class KafkaSettings
 	/// Path to SSL CA certificate file.
 	/// Optional, used for custom certificate chains.
 	/// </summary>
+	/// <remarks>
+	/// A relative path is read from the folder of the settings file, so
+	/// <c>"docker/secrets/ca.pem"</c> next to <c>testsettings.json</c> works whatever folder the
+	/// test runner starts in. So are the paths in <c>authentication.ssl</c> and
+	/// <c>schemaRegistry</c>.
+	/// </remarks>
 	public string? SslCaLocation { get; set; }
 
 	/// <summary>

@@ -9,8 +9,8 @@
     "kafka": {
         // Bootstrap servers (comma-separated if multiple)
         // Using "localhost" hostname for connections from the host machine
-        // The certificate is issued for "kafka", so the hostname check is turned off below
-        // If you add "kafka" to your hosts file (127.0.0.1 kafka), you can use "kafka:39093" instead
+        // The broker certificate names "kafka", "localhost" and 127.0.0.1, so any of them works
+        // with the hostname check on ("kafka" needs 127.0.0.1 kafka in your hosts file)
         "bootstrapServers": "localhost:39093",
 
         // Consumer group ID
@@ -19,18 +19,15 @@
         // Security protocol (SaslSsl for SASL with SSL encryption)
         "securityProtocol": "SaslSsl",
 
-        // SSL configuration: Use CA certificate to trust the Kafka broker
-        // Absolute path to ensure certificate is found during test execution
-        "sslCaLocation": "C:/DEV/ProjetosPessoais/XUnitAssured.Net/src/XUnitAssured.Kafka.Samples.Local.Test/docker/KRaft-SASLSSL/secrets/ca-cert.pem",
+        // The CA that signed the broker certificate. A relative path is read from the folder
+        // of this file, whatever folder the test runner starts in
+        "sslCaLocation": "secrets/ca-cert.pem",
 
         // Verify the broker's certificate against the CA above
         "enableSslCertificateVerification": true,
 
-        // The certificate is issued for "kafka" and we connect to "localhost", so the hostname
-        // check is turned off. Up to 6.16, KafkaClassFixture did this by itself (and the steps
-        // did not); now it is asked for here. If your certificate names the host you connect
-        // to, remove this line.
-        "sslEndpointIdentificationAlgorithm": "None",
+        // Only if your broker certificate does not name the host you connect to:
+        // "sslEndpointIdentificationAlgorithm": "None",
 
         // Authentication configuration for SASL/SCRAM-SHA-512 with SSL
         "authentication": {
