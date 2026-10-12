@@ -184,7 +184,7 @@ public class OAuth2AuthTests : HttpTestBase<HttpSamplesFixture>, IClassFixture<H
 			.AssertStatusCode(401);
 	}
 
-	[Fact(Skip = "WithOAuth2 extension requires OAuth2Handler implementation fix for form-urlencoded", DisplayName = "OAuth2 using XUnitAssured OAuth2 extension should authenticate automatically")]
+	[Fact(DisplayName = "OAuth2 using XUnitAssured OAuth2 extension should authenticate automatically")]
 	public void Example08_OAuth2_UsingXUnitAssuredOAuth2Extension()
 	{
 		// Arrange
@@ -233,7 +233,7 @@ public class OAuth2AuthTests : HttpTestBase<HttpSamplesFixture>, IClassFixture<H
 			.AssertJsonPath<string>("$.scope", value => value == scopes, $"Should return requested scopes: {scopes}");
 	}
 
-	[Fact(Skip = "WithOAuth2Config extension requires OAuth2Handler implementation fix for form-urlencoded", DisplayName = "OAuth2 using custom configuration should authenticate successfully")]
+	[Fact(DisplayName = "OAuth2 using custom configuration should authenticate successfully")]
 	public void Example10_OAuth2_UsingCustomConfiguration()
 	{
 		// Arrange
@@ -257,7 +257,7 @@ public class OAuth2AuthTests : HttpTestBase<HttpSamplesFixture>, IClassFixture<H
 			.AssertJsonPath<bool>("$.authenticated", value => value, "Should be authenticated with custom OAuth2 config");
 	}
 
-	[Fact(Skip = "WithOAuth2 extension requires OAuth2Handler implementation fix for form-urlencoded", DisplayName = "OAuth2 multiple requests should reuse cached token")]
+	[Fact(DisplayName = "OAuth2 authenticates every scenario, each asking for its token through its own client")]
 	public void Example11_OAuth2_MultipleRequests_ShouldReuseToken()
 	{
 		// Arrange
@@ -265,7 +265,7 @@ public class OAuth2AuthTests : HttpTestBase<HttpSamplesFixture>, IClassFixture<H
 		var clientId = "test-client-id";
 		var clientSecret = "test-client-secret";
 
-		// Act & Assert - First request (will get token)
+		// Act & Assert - First scenario (gets a token through its client)
 		Given().ApiResource($"/api/auth/oauth2/protected")
 			.WithOAuth2(tokenUrl, clientId, clientSecret)
 			.Get()
@@ -275,7 +275,8 @@ public class OAuth2AuthTests : HttpTestBase<HttpSamplesFixture>, IClassFixture<H
 			.AssertStatusCode(200)
 			.AssertJsonPath<bool>("$.authenticated", value => value, "First request should be authenticated");
 
-		// Act & Assert - Second request (should reuse cached token)
+		// Act & Assert - Second scenario. The fixture gives each scenario a new client, and a token is
+		// cached per client, so this one asks for its own; steps of one scenario share theirs.
 		Given().ApiResource($"/api/auth/oauth2/protected")
 			.WithOAuth2(tokenUrl, clientId, clientSecret)
 			.Get()
@@ -283,7 +284,7 @@ public class OAuth2AuthTests : HttpTestBase<HttpSamplesFixture>, IClassFixture<H
 			.Execute()
 		.Then()
 			.AssertStatusCode(200)
-			.AssertJsonPath<bool>("$.authenticated", value => value, "Second request should be authenticated with cached token");
+			.AssertJsonPath<bool>("$.authenticated", value => value, "Second scenario should be authenticated too");
 	}
 
 	[Fact(DisplayName = "OAuth2 Token Response should return complete and valid structure")]

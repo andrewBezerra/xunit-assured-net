@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.Http;
 using System.Text.Json;
 using Flurl.Http;
 using XUnitAssured.Http.Configuration;
@@ -16,7 +17,7 @@ public class OAuth2Handler : IAuthenticationHandler
 {
 	private readonly OAuth2Config _config;
 	private readonly ITokenCache _tokenCache;
-	private readonly string _cacheKey;
+	private readonly HttpClient? _tokenClient;
 
 	/// <summary>
 	/// Creates a new OAuth2Handler with the specified configuration.
@@ -24,10 +25,23 @@ public class OAuth2Handler : IAuthenticationHandler
 	/// <param name="config">OAuth 2.0 configuration</param>
 	/// <param name="tokenCache">Token cache (optional)</param>
 	public OAuth2Handler(OAuth2Config config, ITokenCache? tokenCache = null)
+		: this(config, tokenCache, tokenClient: null)
+	{
+	}
+
+	/// <summary>
+	/// Creates a handler that asks for the token through <paramref name="tokenClient"/>, when
+	/// there is one, instead of the network.
+	/// </summary>
+	/// <remarks>
+	/// The client of a <c>WebApplicationFactory</c> reaches a server that lives in memory: a token
+	/// URL on it answers only through that client.
+	/// </remarks>
+	internal OAuth2Handler(OAuth2Config config, ITokenCache? tokenCache, HttpClient? tokenClient)
 	{
 		_config = config ?? throw new ArgumentNullException(nameof(config));
 		_tokenCache = tokenCache ?? new MemoryTokenCache();
-		_cacheKey = $"oauth2:{_config.ClientId}:{_config.TokenUrl}";
+		_tokenClient = tokenClient;
 	}
 
 	/// <inheritdoc />
@@ -57,35 +71,40 @@ public class OAuth2Handler : IAuthenticationHandler
 	/// </summary>
 	private string GetAccessToken()
 	{
+		ValidateConfig();
+		var body = BuildTokenRequestBody();
+
+		// A chave leva tudo o que vai no pedido do token. Com um cache dividido entre pedidos, só
+		// cliente e URL deixariam um segredo errado, ou outros escopos, receberem o token já guardado.
+		var cacheKey = "oauth2:" + _config.TokenUrl + "?" +
+			string.Join("&", body.OrderBy(p => p.Key, StringComparer.Ordinal).Select(p => $"{p.Key}={p.Value}"));
+
 		// Check cache first
-		var cachedEntry = _tokenCache.Get(_cacheKey);
+		var cachedEntry = _tokenCache.Get(cacheKey);
 		if (cachedEntry != null && cachedEntry.IsValid())
 		{
 			return cachedEntry.AccessToken;
 		}
 
 		// Request new token
-		return RequestNewToken();
+		return RequestNewToken(body, cacheKey);
 	}
 
 	/// <summary>
 	/// Requests a new access token from OAuth server.
 	/// </summary>
-	private string RequestNewToken()
+	private string RequestNewToken(Dictionary<string, string> body, string cacheKey)
 	{
-		ValidateConfig();
-
 		try
 		{
-			// Build token request body
-			var body = BuildTokenRequestBody();
-
 			// Make token request
-			var response = _config.TokenUrl
-				.PostUrlEncodedAsync(body)
-				.ReceiveString()
-				.GetAwaiter()
-				.GetResult();
+			var response = _tokenClient != null
+				? PedirPeloCliente(_tokenClient, body)
+				: _config.TokenUrl
+					.PostUrlEncodedAsync(body)
+					.ReceiveString()
+					.GetAwaiter()
+					.GetResult();
 
 			// Parse token response
 			var tokenResponse = JsonSerializer.Deserialize<TokenResponse>(response);
@@ -99,20 +118,51 @@ public class OAuth2Handler : IAuthenticationHandler
 			{
 				cacheEntry.RefreshToken = tokenResponse.refresh_token;
 			}
-			_tokenCache.Set(_cacheKey, cacheEntry);
+			_tokenCache.Set(cacheKey, cacheEntry);
 
 			return tokenResponse.access_token;
 		}
 		catch (FlurlHttpException ex)
 		{
 			throw new InvalidOperationException(
-				$"OAuth token request failed: {ex.StatusCode} - {ex.GetResponseStringAsync().GetAwaiter().GetResult()}", 
+				$"OAuth token request failed: {ex.StatusCode} - {ex.GetResponseStringAsync().GetAwaiter().GetResult()}",
 				ex);
+		}
+		catch (TokenRecusado ex)
+		{
+			throw new InvalidOperationException($"OAuth token request failed: {ex.Status} - {ex.Corpo}", ex);
 		}
 		catch (Exception ex)
 		{
 			throw new InvalidOperationException($"Failed to obtain OAuth access token: {ex.Message}", ex);
 		}
+	}
+
+	/// <summary>
+	/// Asks for the token through the client, as a form, the way the Flurl call does.
+	/// </summary>
+	private string PedirPeloCliente(HttpClient cliente, Dictionary<string, string> body)
+	{
+		using var pedido = new HttpRequestMessage(HttpMethod.Post, _config.TokenUrl)
+		{
+			Content = new FormUrlEncodedContent(body)
+		};
+		using var resposta = cliente.SendAsync(pedido).GetAwaiter().GetResult();
+		var corpo = resposta.Content.ReadAsStringAsync().GetAwaiter().GetResult();
+
+		if (!resposta.IsSuccessStatusCode)
+			throw new TokenRecusado((int)resposta.StatusCode, corpo);
+
+		return corpo;
+	}
+
+	/// <summary>
+	/// The token server answered with an error; the message is made where the Flurl refusal's is.
+	/// </summary>
+	private sealed class TokenRecusado(int status, string corpo) : Exception
+	{
+		public int Status { get; } = status;
+		public string Corpo { get; } = corpo;
 	}
 
 	/// <summary>

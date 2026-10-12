@@ -598,7 +598,7 @@ Add to your `.mcp.json` (repo root, `~/.mcp.json`, or `.vscode/mcp.json`):
     "xunitassured": {
       "type": "stdio",
       "command": "dnx",
-      "args": ["XUnitAssured.Mcp@6.12.2", "--yes"]
+      "args": ["XUnitAssured.Mcp@6.13.0", "--yes"]
     }
   }
 }
@@ -628,9 +628,9 @@ In GitHub Copilot Chat, the XUnitAssured tools should appear as available. Try:
 
 ## What's New
 
-**6.12.2** — maintenance: tests for the Http behaviours the nightly mutation run found unguarded, the authentication handlers among them; CI now runs the HTTP local samples. The packages behave as in 6.12.1.
+**6.13.0** — authentication is the same whether a request goes through Flurl or your own `HttpClient`: OAuth2 now works with `WebApplicationFactory`, tokens are reused between requests, and an empty credential is sent as it is, to test that the API refuses it.
 
-**6.12.1** — maintenance: tests for the Core behaviours the nightly mutation run found unguarded; the packages behave as in 6.12.0.
+**6.12.2** — maintenance: tests for the Http behaviours the nightly mutation run found unguarded, the authentication handlers among them; CI now runs the HTTP local samples. The packages behave as in 6.12.1.
 
 The full history is in **[CHANGELOG.md](https://github.com/andrewBezerra/xunit-assured-net/blob/main/CHANGELOG.md)**. Coming from 5.x? Start with **[UPGRADING.md](https://github.com/andrewBezerra/xunit-assured-net/blob/main/UPGRADING.md)**.
 

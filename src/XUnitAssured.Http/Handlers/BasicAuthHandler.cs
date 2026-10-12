@@ -31,12 +31,8 @@ public class BasicAuthHandler : IAuthenticationHandler
 		if (request == null)
 			throw new ArgumentNullException(nameof(request));
 
-		if (string.IsNullOrWhiteSpace(_config.Username))
-			throw new InvalidOperationException("Username is required for Basic authentication.");
-
-		if (string.IsNullOrWhiteSpace(_config.Password))
-			throw new InvalidOperationException("Password is required for Basic authentication.");
-
+		// Uma credencial vazia vai como está: mandá-la e ver a API recusar é um teste que se quer
+		// escrever. O caminho do HttpClient próprio sempre a mandou, e os exemplos contam com isso.
 		// Encode username:password in Base64
 		var credentials = $"{_config.Username}:{_config.Password}";
 		var base64Credentials = Convert.ToBase64String(Encoding.UTF8.GetBytes(credentials));

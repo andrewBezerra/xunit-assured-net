@@ -2,7 +2,15 @@
 
 All notable changes to the XUnitAssured packages. Upgrading from 5.1.x? See [UPGRADING.md](UPGRADING.md).
 
-## v6.12.2 (Current — what the mutation run found unguarded in Http)
+## v6.13.0 (Current — the same authentication on both request paths)
+
+Fix, with one behaviour change. Upgrading from 6.12.2 requires no code changes.
+
+- **Authentication is the same on both request paths** (#147). A request with a custom `HttpClient` — `WebApplicationFactory`, `HttpTestFixture` — had its own copy of the authentication, which did not apply OAuth2 (the request went out with no token) and read a query ApiKey only from the step, not from `httpsettings.json`. Both paths now go through the same handlers.
+- **OAuth2 with `WebApplicationFactory`**: the token is requested through the test client, since the server lives in memory and does not answer over the network. Tokens are reused between requests: per client on that path, one cache for the network. The cache key carries everything sent for the token, so a wrong secret or other scopes never get a cached one. `TokenCache.Enabled = false`, documented and ignored until now, turns the cache off.
+- **Behaviour change: an empty credential is sent as it is** — an empty Basic user or password, Bearer token or ApiKey value — so a test can check that the API refuses it. The custom `HttpClient` path always did this; the Flurl path threw before sending. An ApiKey with no name still throws.
+
+## v6.12.2 (what the mutation run found unguarded in Http)
 
 Maintenance. Upgrading from 6.12.1 requires no code changes; the packages behave as before.
 
