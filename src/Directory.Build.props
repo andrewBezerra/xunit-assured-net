@@ -25,14 +25,14 @@
   </PropertyGroup>
 
   <PropertyGroup>
-    <Version>6.15.3</Version>
+    <Version>6.15.4</Version>
 
     <!--
       O que a página do pacote no nuget.org mostra. Sem isto ela fica muda, e quem atualiza
       por `dotnet add package` não recebe nenhum aviso de que a major quebra coisas.
       Trocar a cada versão, junto do número acima.
     -->
-    <PackageReleaseNotes>Maintenance: the nightly mutation run now covers Kafka and RabbitMq too. The packages behave as in 6.15.2; no code changes needed. Upgrade guide: https://github.com/andrewBezerra/xunit-assured-net/blob/main/UPGRADING.md</PackageReleaseNotes>
+    <PackageReleaseNotes>Maintenance: tests for the RabbitMq step results, starting with a consume that timed out being a failure. The packages behave as in 6.15.3; no code changes needed. Upgrade guide: https://github.com/andrewBezerra/xunit-assured-net/blob/main/UPGRADING.md</PackageReleaseNotes>
     <Authors>Carlos Andrew Costa Bezerra</Authors>
     <Company>Carlos Andrew Costa Bezerra</Company>
     <Copyright>Copyright (c) Carlos Andrew Costa Bezerra</Copyright>

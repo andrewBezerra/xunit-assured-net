@@ -2,7 +2,14 @@
 
 All notable changes to the XUnitAssured packages. Upgrading from 5.1.x? See [UPGRADING.md](UPGRADING.md).
 
-## v6.15.3 (Current — mutation testing for Kafka and RabbitMq)
+## v6.15.4 (Current — tests for the RabbitMq step results)
+
+Maintenance. Upgrading from 6.15.3 requires no code changes; the packages behave as in 6.15.3.
+
+- **Tests for the RabbitMq step results** (#163), which the first mutation run on RabbitMq (#159) found unguarded. Each factory of `RabbitMqStepResult` is now checked for `Success`, `Metadata.Status`, the errors and every property the validation builder reads.
+- The most important one: **a consume that timed out is a failure**, and `AssertSuccess()` fails on it. If that ever turned into a success, a test that received no message would pass.
+
+## v6.15.3 (mutation testing for Kafka and RabbitMq)
 
 Maintenance. Upgrading from 6.15.2 requires no code changes; the packages behave as in 6.15.2.
 
