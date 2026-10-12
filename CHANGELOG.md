@@ -2,7 +2,16 @@
 
 All notable changes to the XUnitAssured packages. Upgrading from 5.1.x? See [UPGRADING.md](UPGRADING.md).
 
-## v6.18.0 (Current — certificate paths relative to the settings file)
+## v6.18.1 (Current — every Kafka sample broker starts)
+
+Maintenance. Upgrading from 6.18.0 requires no code changes; the packages behave as in 6.18.0.
+
+- **Every Kafka sample broker starts from a fresh clone, and its `testsettings.json` connects** (#177). Each of the seven brokers was started from the repository and reached through `ToClientConfig`, a step and `KafkaClassFixture`.
+- **KRaft-SASL_SCRAM never started.** Its command was a folded YAML block with comments inside, so every line became part of a comment and the container exited at once. It also had no JAAS configuration, and its healthcheck used a file that was never written. It now formats the storage with the SCRAM users (admin and user1, SHA-256 and SHA-512), as the SCRAM-512 sample does, and has a `testsettings.json`.
+- **KRaft-PLAINTEXT and KRaft-SASL_SCRAM-256** mounted a `clusterID` folder that git did not keep, since it was empty, so podman refused to start them. They now keep their cluster ID, as SCRAM-512 and SASL/SSL do.
+- **Zookepper** has a `testsettings.json`, with `localhost:29092`, the address its broker advertises to the host.
+
+## v6.18.0 (certificate paths relative to the settings file)
 
 Kafka certificate paths, and the SASL/SSL sample. Upgrading from 6.17.0 requires no code changes.
 

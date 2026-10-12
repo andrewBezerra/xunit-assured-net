@@ -1,0 +1,28 @@
+{
+    // ============================================================================
+    // KAFKA LOCAL DOCKER CONFIGURATION - SASL/SCRAM without SSL and without ACLs
+    // Matches docker-compose.yml in this folder: SASL_PLAINTEXT on localhost:9094,
+    // users admin and user1, each with SCRAM-SHA-256 and SCRAM-SHA-512
+    // ============================================================================
+
+    "testMode": "Local",
+    "environment": "docker-local",
+
+    "kafka": {
+        // The EXTERNAL listener of docker-compose.yml
+        "bootstrapServers": "localhost:9094",
+
+        // Consumer group ID
+        "groupId": "xunit-test-consumer-group",
+
+        // SCRAM-SHA-256; for SCRAM-SHA-512, use "type": "SaslScram512"
+        "authentication": {
+            "type": "SaslScram256",
+            "saslScram": {
+                "username": "admin",
+                "password": "admin-secret",
+                "useSsl": false
+            }
+        }
+    }
+}
