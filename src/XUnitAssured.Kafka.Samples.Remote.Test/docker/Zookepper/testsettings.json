@@ -1,0 +1,21 @@
+{
+    // ============================================================================
+    // KAFKA LOCAL DOCKER CONFIGURATION - ZooKeeper mode, PLAINTEXT
+    // Matches docker-compose.yml in this folder. The broker advertises localhost:29092
+    // to the host; kafka:9092 is its address inside the containers' network.
+    // ============================================================================
+
+    "testMode": "Local",
+    "environment": "docker-local",
+
+    "kafka": {
+        "bootstrapServers": "localhost:29092",
+        "groupId": "xunit-test-consumer-group",
+        "authentication": { "type": "None" },
+
+        // The schema-registry service of docker-compose.yml
+        "schemaRegistry": {
+            "url": "http://localhost:8081"
+        }
+    }
+}

@@ -282,7 +282,7 @@ This configuration provides **strong authentication but NOT encryption**:
 **For Production**: Use **SASL/SCRAM + SSL** (KRaft-SASLSSL configuration).
 
 ### User Creation
-Users are created automatically during container startup via the `create_scram_users.sh` script. Wait ~15-20 seconds after `docker-compose up` for users to be ready.
+Users are created when the storage is formatted, before the broker starts, by `scripts/start_with_scram.sh`: they exist as soon as Kafka is up. `testsettings.json` in this folder connects as `admin` with SCRAM-SHA-256.
 
 ---
 

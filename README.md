@@ -603,7 +603,7 @@ Add to your `.mcp.json` (repo root, `~/.mcp.json`, or `.vscode/mcp.json`):
     "xunitassured": {
       "type": "stdio",
       "command": "dnx",
-      "args": ["XUnitAssured.Mcp@6.18.0", "--yes"]
+      "args": ["XUnitAssured.Mcp@6.18.1", "--yes"]
     }
   }
 }
@@ -633,9 +633,9 @@ In GitHub Copilot Chat, the XUnitAssured tools should appear as available. Try:
 
 ## What's New
 
-**6.18.0** — Kafka: write certificate paths relative to `testsettings.json` (`"sslCaLocation": "certs/ca.pem"`); they work whatever folder the test runner starts in.
+**6.18.1** — maintenance: every Kafka sample broker starts from a fresh clone, and its `testsettings.json` connects.
 
-**6.17.0** — Kafka: the `kafka` section means the same through every step, fixture and helper — SASL credentials at the top or in `authentication`, the CA, `additionalProperties`. The broker hostname check is turned off only when the settings ask (`"sslEndpointIdentificationAlgorithm": "None"`).
+**6.18.0** — Kafka: write certificate paths relative to `testsettings.json` (`"sslCaLocation": "certs/ca.pem"`); they work whatever folder the test runner starts in.
 
 The full history is in **[CHANGELOG.md](https://github.com/andrewBezerra/xunit-assured-net/blob/main/CHANGELOG.md)**. Coming from 5.x? Start with **[UPGRADING.md](https://github.com/andrewBezerra/xunit-assured-net/blob/main/UPGRADING.md)**.
 
