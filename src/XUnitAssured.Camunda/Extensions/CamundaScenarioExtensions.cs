@@ -29,8 +29,9 @@ public static class CamundaScenarioExtensions
 		CamundaVerbos.MockJobWorker(scenario ?? throw new ArgumentNullException(nameof(scenario)), jobType);
 
 	/// <inheritdoc cref="ICamundaScenario.StartInstance" />
-	public static ICamundaScenario StartInstance(this ITestScenario scenario, string processId, object? variables = null) =>
-		CamundaVerbos.StartInstance(scenario ?? throw new ArgumentNullException(nameof(scenario)), processId, variables);
+	public static ICamundaScenario StartInstance(
+		this ITestScenario scenario, string processId, object? variables = null, int? version = null, string? versionTag = null) =>
+		CamundaVerbos.StartInstance(scenario ?? throw new ArgumentNullException(nameof(scenario)), processId, variables, version, versionTag);
 }
 
 /// <summary>
@@ -57,12 +58,25 @@ internal static class CamundaVerbos
 		return new MockEmDeclaracao(scenario, jobType);
 	}
 
-	internal static ICamundaScenario StartInstance(ITestScenario scenario, string processId, object? variables)
+	internal static ICamundaScenario StartInstance(
+		ITestScenario scenario, string processId, object? variables, int? version, string? versionTag)
 	{
 		if (string.IsNullOrWhiteSpace(processId))
 			throw new ArgumentException("Process id is required: the id of the bpmn:process.", nameof(processId));
+		if (version is <= 0)
+			throw new ArgumentOutOfRangeException(nameof(version), version, "Camunda numbers versions from 1.");
+		if (versionTag is not null && string.IsNullOrWhiteSpace(versionTag))
+			throw new ArgumentException("Version tag is empty. Leave it null to start the latest version.", nameof(versionTag));
+		if (version is not null && versionTag is not null)
+			throw new ArgumentException("Pass version or versionTag, not both: each one already names a single version.", nameof(versionTag));
 
-		scenario.SetCurrentStep(new CamundaStartInstanceStep { ProcessId = processId, Variables = variables });
+		scenario.SetCurrentStep(new CamundaStartInstanceStep
+		{
+			ProcessId = processId,
+			Variables = variables,
+			Version = version,
+			VersionTag = versionTag
+		});
 		return CamundaScenario.De(scenario);
 	}
 

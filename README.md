@@ -64,7 +64,7 @@ The chain ends where it is: the last step was a browser step, so `ExecuteAsync()
 - **HTTP** — full CRUD, JSON path assertions over objects and lists (`$[*].id`), header, `Set-Cookie` and Problem Details assertions, the request as it was sent (cookies included), requests sent at once with `Concurrently`, raw bodies for malformed input, `ExtractAsync` to arrange data in one line, and authentication applied once from `testsettings.json`: Bearer, Basic, OAuth2, API key, client certificate (mTLS), custom headers. `ApiFixture` hosts your own ASP.NET Core API in memory, with a client per identity and one instance for the whole suite.
 - **Kafka** — produce and consume single messages and batches, headers and keys, SASL/PLAIN, SCRAM, SSL, mTLS and OAUTHBEARER (OpenID Connect), Schema Registry. Consume steps skip the consumer-group join, so a consume costs milliseconds instead of seconds.
 - **RabbitMQ** — publish and consume single messages and batches, declare queues, exchanges and bindings, reject to a dead-letter exchange; a publish that reaches no queue fails instead of passing in silence.
-- **Camunda 8** — deploy BPMN and run real process instances on a shared cluster, with the diagram's job workers mocked per instance (the instance's call activities included), so parallel tests never answer each other's jobs; assertions wait for the cluster's eventually consistent search and say which job has no mock.
+- **Camunda 8** — deploy BPMN by process id and run real process instances on a shared cluster, with the diagram's job workers mocked per instance (the instance's call activities included), so parallel tests never answer each other's jobs; or test the version already deployed to staging, by version tag, end to end with its real workers. Assertions wait for the cluster's eventually consistent search and say which job has no mock.
 - **Browser** — clicks, fills, checks, navigation and screenshots on Playwright, with locators by role, label, test id, text and CSS, and assertions that read like the DSL. The page's network too: intercept a route and prove it answered (`InterceptRoute`, `AssertIntercepted`), or call the API from inside the page with its cookies (`FetchFromPage`). `BrowserAppFixture` starts your own ASP.NET Core API and front-end inside `dotnet test`.
 - **What the system did besides answering** — `LogCapture` records what it logged (message, exception, structured values and scopes, so a leaked value has nowhere to hide), and `OutboundHttpCapture` stands in for the outside services it calls and records every request.
 - **AI-assisted authoring** — an MCP server with 10 tools that translate Playwright Inspector recordings into the DSL and scaffold HTTP and Kafka tests from your editor (GitHub Copilot, Claude Code, VS Code and any MCP client).
@@ -432,7 +432,7 @@ using XUnitAssured.Camunda.Extensions;
 public async Task Order_Is_Charged_And_Shipped()
 {
     await Given()
-        .Deploy("bpmn/order.bpmn", "bpmn/shipping.bpmn")
+        .Deploy("order", "shipping")
         .MockJobWorker("charge-card").ThenComplete(new { approved = true })
         .MockJobWorker("dispatch").ThenComplete(new { trackingCode = "BR-1" })
         .StartInstance("order", new { orderId = 42 })
@@ -443,7 +443,9 @@ public async Task Order_Is_Charged_And_Shipped()
 }
 ```
 
-The mocks answer only this instance's jobs, and those of the processes it calls, so the test runs on a cluster other tests share. Why it cannot be a job worker per type, the error path, and what the cluster must not have: see the [Camunda package README](src/XUnitAssured.Camunda/README.md).
+`Deploy` takes the process ids and finds the `.bpmn` files that declare them in the test output folder (a path works too). The mocks answer only this instance's jobs, and those of the processes it calls, so the test runs on a cluster other tests share.
+
+Without `Deploy`, `StartInstance` runs the version already on the cluster, the latest or the one named by `version:` or `versionTag:`: QA tests what was deployed to staging, end to end or mocking only what has no worker there. Why a mock cannot be a job worker per type, the error path, and what the cluster must not have: see the [Camunda package README](src/XUnitAssured.Camunda/README.md).
 
 ## Configuration: `testsettings.json`
 

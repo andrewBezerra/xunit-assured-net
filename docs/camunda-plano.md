@@ -294,3 +294,19 @@ O que mudou em relação ao esboço:
   faixa "Non-Production License".
 - **[Provável]** CI de empresa sem licença é uso permitido. Para uso comercial amplo, cada empresa
   confirma com o próprio jurídico.
+
+## Depois do MVP: id do processo e versão já publicada (6.21.0, 2026-10-16)
+
+Pedido do usuário antes da primeira publicação no NuGet, para servir o desenvolvedor e o QA:
+
+- **`Deploy("xa-pedido")`:** o argumento sem separador de pasta e sem extensão `.bpmn`/`.dmn`/`.form`
+  é id de processo. O arquivo é o `.bpmn` da pasta de saída que declara `<bpmn:process id>`; o teste
+  continua implantando o diagrama do repositório. Id em dois arquivos é recusado.
+- **`StartInstance` sem `Deploy` na cadeia** inicia a versão que já está no cluster: a última, ou a de
+  `version:` (número do cluster) ou `versionTag:` (`zeebe:versionTag`, a preferida: o número muda
+  de um ambiente para outro). Com `Deploy`, continua iniciando só o que a cadeia implantou; um
+  deploy que falhou nunca cai na versão do cluster. O resultado diz versão, rótulo e chave.
+- **O QA na homologação:** ponta a ponta sem mock, ou mockando só os tipos sem worker real lá. O
+  pacote não detecta o worker real (a busca não mostra a ativação), então a regra está no README.
+- **[Certeza]** Contra a 8.10.4 da .115: o filtro `isLatestVersion` e o `versionTag` da busca de
+  definições funcionam; cinco testes `Requires=Camunda` passando, um deles sem `Deploy` na cadeia.

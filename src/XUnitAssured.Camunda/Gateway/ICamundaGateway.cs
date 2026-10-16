@@ -26,6 +26,13 @@ internal interface ICamundaGateway
 	Task<IReadOnlyList<DeployedProcess>> DeployAsync(
 		IReadOnlyList<RecursoBpmn> recursos, CancellationToken ct);
 
+	/// <summary>
+	/// As versões do processo que já estão no cluster. Sem versão nem rótulo e com
+	/// <paramref name="onlyLatest"/>, só a última; sem nada, todas.
+	/// </summary>
+	Task<IReadOnlyList<DefinicaoVista>> SearchProcessDefinitionsAsync(
+		string processId, int? version, string? versionTag, bool onlyLatest, string? tenantId, CancellationToken ct);
+
 	Task<string> CreateInstanceAsync(string definitionKey, object? variables, string? tenantId, CancellationToken ct);
 
 	Task<IReadOnlyList<JobPendente>> SearchCreatedJobsAsync(
@@ -51,6 +58,9 @@ internal interface ICamundaGateway
 
 /// <summary>Um arquivo para implantar: o nome que o cluster vai mostrar e o conteúdo.</summary>
 internal sealed record RecursoBpmn(string Nome, byte[] Conteudo);
+
+/// <summary>Uma versão de um processo, como a busca de definições a mostra.</summary>
+internal sealed record DefinicaoVista(string ProcessId, string DefinitionKey, int Version, string? VersionTag);
 
 /// <summary>Um job que espera ser resolvido.</summary>
 internal sealed record JobPendente(string JobKey, string Type, string ElementId, string ProcessInstanceKey);

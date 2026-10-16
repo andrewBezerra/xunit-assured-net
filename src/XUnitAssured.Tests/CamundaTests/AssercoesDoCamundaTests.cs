@@ -107,9 +107,9 @@ public class AssercoesDoCamundaTests
 		var falha = Falha(() => execucao.AssertInstanceCompleted());
 		var chave = execucao.GetResult().ProcessInstanceKey;
 
-		falha.Message.ShouldContain($"Expected process instance {chave} (xa-pedido) to complete within 1s, but it is ACTIVE");
+		falha.Message.ShouldContain($"Expected process instance {chave} (xa-pedido version 1) to complete within 1s, but it is ACTIVE");
 		falha.Message.ShouldContain("Waiting at: 'despachar'");
-		falha.Message.ShouldContain("Jobs waiting with no mock: 'xa-despachar' at 'despachar'");
+		falha.Message.ShouldContain("Jobs waiting for a worker (not mocked in this test): 'xa-despachar' at 'despachar'");
 		falha.Message.ShouldContain($"Operate: http://camunda.falso:8080/operate/processes/{chave}");
 	}
 
@@ -170,17 +170,20 @@ public class AssercoesDoCamundaTests
 		Falha(() => execucao.AssertJobMocked("xa-cobrar", 2)).Message.ShouldContain("the mock ran 1 time(s)");
 	}
 
-	[Fact(DisplayName = "Starting a process the chain did not deploy fails the step, explaining why it must be deployed")]
-	public async Task Start_Without_Deploy_Fails()
+	[Fact(DisplayName = "A chain that deploys refuses to start a process it did not deploy, instead of the cluster's version")]
+	public async Task Start_Of_A_Process_Not_Deployed_Fails()
 	{
 		var cluster = new ClusterFalso();
+		cluster.Publicar("xa-cobranca", 4);
 
-		var execucao = await cluster.Cenario().StartInstance("xa-pedido").ExecuteAsync();
+		var execucao = await cluster.Cenario().Deploy(Envio).StartInstance("xa-cobranca").ExecuteAsync();
 
 		execucao.AssertFailure();
-		execucao.GetResult().Errors.Single().ShouldContain("was not deployed in this chain");
+		var erro = execucao.GetResult().Errors.Single();
+		erro.ShouldContain("was not deployed in this chain (it deployed 'xa-envio')");
+		erro.ShouldContain("use a chain without Deploy");
 		Falha(() => execucao.AssertInstanceCompleted()).Message.ShouldContain("did not start a process instance");
-		cluster.Comandos.ShouldBeEmpty();
+		cluster.Comandos.ShouldNotContain(c => c.StartsWith("create"));
 	}
 
 	[Fact(DisplayName = "A missing BPMN file fails the deploy, and the start says the deploy is why")]

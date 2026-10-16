@@ -276,7 +276,18 @@ public class CamundaValidationBuilder : ValidationBuilder<CamundaStepResult>
 		if (passou) return;
 
 		var quando = desistiu ? string.Empty : $" within {prazo.TotalSeconds:0.#}s";
-		Falhar(alvo, $"Expected process instance {alvo.Chave}{(alvo.ProcessId is null ? "" : $" ({alvo.ProcessId})")} {oQue}{quando}, but {situacao}.");
+		Falhar(alvo, $"Expected process instance {alvo.Chave}{Processo()} {oQue}{quando}, but {situacao}.");
+	}
+
+	// O processo e a versão que a instância roda: sem Deploy na cadeia, "a última" muda quando
+	// alguém publica, e a mensagem precisa dizer qual diagrama falhou.
+	private string Processo()
+	{
+		if (Result.ProcessId is null) return string.Empty;
+
+		var versao = Result.Version is { } v ? $" version {v}" : string.Empty;
+		var rotulo = Result.VersionTag is { } t ? $", tag '{t}'" : string.Empty;
+		return $" ({Result.ProcessId}{versao}{rotulo})";
 	}
 
 	private void Falhar(AlvoDaAssercao alvo, string mensagem)
@@ -305,7 +316,7 @@ public class CamundaValidationBuilder : ValidationBuilder<CamundaStepResult>
 				{
 					var semMock = await alvo.Mocks.PendentesSemMockAsync(ct).ConfigureAwait(false);
 					if (semMock.Count > 0)
-						texto.AppendLine().Append("  Jobs waiting with no mock: ")
+						texto.AppendLine().Append("  Jobs waiting for a worker (not mocked in this test): ")
 							.Append(string.Join(", ", semMock.Select(j => $"'{j.Type}' at '{j.ElementId}' (instance {j.ProcessInstanceKey})")));
 
 					if (alvo.Mocks.UltimaFalhaDeRede is { } rede)

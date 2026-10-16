@@ -49,11 +49,11 @@ public class IdaEVoltaNoCamundaTests
 	private const string Pedido = "CamundaTests/bpmn/xa-pedido.bpmn";
 	private const string Envio = "CamundaTests/bpmn/xa-envio.bpmn";
 
-	[Fact(DisplayName = "Camunda: an order runs end to end, with the payment and the child process's dispatch mocked")]
+	[Fact(DisplayName = "Camunda: an order deployed by process id runs end to end, with the payment and the child process's dispatch mocked")]
 	public async Task Order_Runs_End_To_End()
 	{
 		await ScenarioDsl.Given()
-			.Deploy(Pedido, Envio)
+			.Deploy("xa-pedido", "xa-envio")
 			.MockJobWorker("xa-cobrar").ThenComplete(new { pago = true })
 			.MockJobWorker("xa-despachar").ThenComplete(new { rastreio = "BR-1" })
 			.StartInstance("xa-pedido", new { pedidoId = 1 })
@@ -121,6 +121,53 @@ public class IdaEVoltaNoCamundaTests
 		var falha = Should.Throw<ShouldAssertException>(() => execucao.AssertInstanceCompleted());
 
 		falha.Message.ShouldContain("to complete within 3s, but it is ACTIVE");
-		falha.Message.ShouldContain("Jobs waiting with no mock: 'xa-despachar' at 'despachar'");
+		falha.Message.ShouldContain("Jobs waiting for a worker (not mocked in this test): 'xa-despachar' at 'despachar'");
+	}
+
+	// ---------- O QA: o que já está publicado no cluster ----------
+
+	[Fact(DisplayName = "Camunda (QA): with no Deploy in the chain, the version already on the cluster runs, by tag or the latest")]
+	public async Task Published_Version_Runs_Without_Deploy()
+	{
+		// A publicação, como o pipeline faria antes dos testes do QA.
+		var publicado = (await ScenarioDsl.Given().Deploy("xa-pedido", "xa-envio").ExecuteAsync())
+			.GetResult().DeployedProcesses.Single(p => p.ProcessId == "xa-pedido");
+
+		var porRotulo = await AteAparecerNaBusca(() => ScenarioDsl.Given()
+			.MockJobWorker("xa-cobrar").ThenComplete(new { pago = true })
+			.MockJobWorker("xa-despachar").ThenComplete(new { rastreio = "BR-QA" })
+			.StartInstance("xa-pedido", new { pedidoId = 5 }, versionTag: "1.0.0")
+			.ExecuteAsync());
+
+		porRotulo.GetResult().VersionTag.ShouldBe("1.0.0");
+		porRotulo.GetResult().Version.ShouldBe(publicado.Version);
+		porRotulo.GetResult().DefinitionKey.ShouldBe(publicado.DefinitionKey);
+		porRotulo
+			.AssertInstanceCompleted()
+			.AssertVariable("codigoRastreio", "BR-QA");
+
+		var ultima = await AteAparecerNaBusca(() => ScenarioDsl.Given()
+			.MockJobWorker("xa-cobrar").ThenThrowBpmnError("PAGAMENTO_RECUSADO")
+			.StartInstance("xa-pedido", new { pedidoId = 6 })
+			.ExecuteAsync());
+
+		// Num cluster compartilhado, outra pessoa pode ter publicado depois: "a última" é no mínimo esta.
+		ultima.GetResult().Version!.Value.ShouldBeGreaterThanOrEqualTo(publicado.Version);
+		ultima.AssertInstanceCompleted();
+	}
+
+	// A busca de definições lê o armazenamento secundário, que fica um pouco atrás de um deploy
+	// recém-feito. O QA não passa por isso: o que ele testa foi publicado bem antes.
+	private static async Task<CamundaValidationBuilder> AteAparecerNaBusca(Func<Task<CamundaValidationBuilder>> cadeia)
+	{
+		var prazo = DateTime.UtcNow.AddSeconds(15);
+		while (true)
+		{
+			var execucao = await cadeia();
+			if (execucao.GetResult().Success || DateTime.UtcNow > prazo)
+				return execucao;
+
+			await Task.Delay(500);
+		}
 	}
 }
