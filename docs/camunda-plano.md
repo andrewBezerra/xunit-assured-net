@@ -408,7 +408,7 @@ MCP) fica para quando alguém pedir.
 | Entrega | O que | Versão |
 |---|---|---|
 | 4a | Cobertura dos diagramas: `camunda-coverage/index.html` (bpmn-js) e `coverage.json` | 6.28.0 |
-| 4b | Ferramenta no MCP que gera o esqueleto do teste a partir do BPMN | a fazer |
+| 4b | `generate_camunda_test` no servidor MCP: do BPMN ao esqueleto do teste; o repositório compila o que ela gera para os diagramas de teste | 6.29.0 |
 | 4c | Casos de teste no JSON do CPT: um subconjunto que roda num cluster compartilhado | a fazer |
 
 ### Achados da 4a
@@ -424,3 +424,12 @@ MCP) fica para quando alguém pedir.
   instruções não cabem num cluster compartilhado: `INCREASE_TIME` e `SET_TIME` (relógio do cluster),
   `BROADCAST_SIGNAL`, `MOCK_CHILD_PROCESS` e `MOCK_DMN_DECISION` (implantam algo falso para todos). A
   4c será um intérprete de um subconjunto, com recusa explicada para o resto.
+
+### Achados da 4b
+
+- **[Certeza]** Compilar o código gerado contra o pacote (Roslyn, no teste) pegou dois defeitos antes de
+  qualquer uso: um comentário no fim da última linha engolia o `;`, e o fim "esperado" era o primeiro
+  evento de fim do XML (no `xa-pedido`, o `recusado`). Hoje o fim esperado é o que o início alcança
+  pelos fluxos de sequência; os que só uma borda alcança ficam como alternativa.
+- Depois de um gateway de evento, o teste gerado segue o primeiro caminho; sem isso, o caminho
+  principal ficaria parado no gateway.
