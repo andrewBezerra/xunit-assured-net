@@ -2,7 +2,20 @@
 
 All notable changes to the XUnitAssured packages. Upgrading from 5.1.x? See [UPGRADING.md](UPGRADING.md).
 
-## v6.21.0 (Current — Camunda: deploy by id, test what is deployed)
+## v6.21.1 (Current — Camunda samples)
+
+Maintenance. Upgrading from 6.21.0 requires no code changes; the packages are the same as in 6.21.0.
+
+- **Camunda samples** (`src/XUnitAssured.Camunda.Samples.Remote.Test`, not packaged). Six tests against a real Camunda 8.10, written to study the package and to check each new version by eye in the Modeler and Operate:
+  - the order process with its child process;
+  - deploy by process id and by path;
+  - the BPMN error path;
+  - three instances in parallel;
+  - the failure message of a missing mock;
+  - QA starting the deployed version by tag and the latest.
+- Each sample writes its instance, Operate link and what to look at. `rodar.ps1` runs the samples and then lists every instance they created, with version, state, variables and Operate link. The samples use the same BPMN files as the package's round trip tests, linked rather than copied.
+
+## v6.21.0 (Camunda: deploy by id, test what is deployed)
 
 In XUnitAssured.Camunda: deploy by process id, and test the version already on the cluster. Upgrading from 6.20.0 requires no code changes, except for one assertion message; the other packages are unchanged.
 

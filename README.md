@@ -599,6 +599,7 @@ is a breaking change, and it is the only thing that would close the gap above.
 | `XUnitAssured.Http.Samples.Local.Test` | HTTP against a local `SampleWebApi` (WebApplicationFactory): CRUD, every authentication scheme (Bearer, Basic, API key, OAuth2, certificate, custom header), hybrid validation |
 | `XUnitAssured.Http.Samples.Remote.Test` | HTTP against a deployed API, configured from `testsettings.json` |
 | `XUnitAssured.Kafka.Samples.Remote.Test` | Kafka against Docker or remote clusters: strings, JSON, headers, keys, batches, and each authentication mode (plaintext, SASL/PLAIN, SCRAM-256/512, SSL, mTLS, OAUTHBEARER with Keycloak), and one broker with PLAIN and SCRAM side by side |
+| `XUnitAssured.Camunda.Samples.Remote.Test` | Camunda 8 against a remote cluster, for study: the order process with its child, deploy by process id or path, a BPMN error path, parallel instances, a missing mock, and QA starting the deployed version by tag or the latest. `rodar.ps1` runs them and lists each instance with its Operate link |
 | `XunitAssured.PlayWright.Samples.Local.Test` | Playwright against a local Blazor `SampleWebApp`: navigation, forms, validation messages, data tables |
 | `XUnitAssured.Playwright.Samples.Remote.Test` | Playwright against a deployed web app, including a full CRUD flow |
 

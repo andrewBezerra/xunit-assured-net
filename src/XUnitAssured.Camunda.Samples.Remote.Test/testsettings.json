@@ -1,0 +1,25 @@
+{
+    // ============================================================================
+    // CAMUNDA 8.10 REMOTO (a .115 da rede local, ou qualquer cluster)
+    // ============================================================================
+    //
+    // O rodar.ps1 preenche as três variáveis. Sem ele, defina-as antes do dotnet test.
+
+    "camunda": {
+        // Sem /v2 no fim
+        "restAddress": "${ENV:CAMUNDA_REST_ADDRESS}",
+
+        "authentication": {
+            "type": "Basic",
+            "username": "${ENV:CAMUNDA_USERNAME}",
+            "password": "${ENV:CAMUNDA_PASSWORD}"
+        },
+
+        // Quanto cada asserção espera o estado aparecer na busca do Camunda
+        "assertionTimeoutSeconds": 15,
+        "pollIntervalMilliseconds": 100,
+
+        // Uma instância ainda ativa depois disso é cancelada pelos mocks
+        "mockLifetimeSeconds": 120
+    }
+}
