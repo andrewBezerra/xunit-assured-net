@@ -48,6 +48,14 @@ public static class CamundaScenarioExtensions
 	public static ICamundaChildProcessMock MockChildProcess(this ITestScenario scenario, string callActivityId) =>
 		CamundaVerbos.MockChildProcess(scenario ?? throw new ArgumentNullException(nameof(scenario)), callActivityId);
 
+	/// <inheritdoc cref="ICamundaScenario.FollowInstance(string)" />
+	public static ICamundaScenario FollowInstance(this ITestScenario scenario, string processInstanceKey) =>
+		CamundaVerbos.FollowInstance(scenario ?? throw new ArgumentNullException(nameof(scenario)), processInstanceKey);
+
+	/// <inheritdoc cref="ICamundaScenario.FollowInstance(string, ValueTuple{string, object})" />
+	public static ICamundaScenario FollowInstance(this ITestScenario scenario, string processId, (string Name, object? Value) variable) =>
+		CamundaVerbos.FollowInstance(scenario ?? throw new ArgumentNullException(nameof(scenario)), processId, variable);
+
 	/// <inheritdoc cref="ICamundaScenario.StartInstance" />
 	public static ICamundaScenario StartInstance(
 		this ITestScenario scenario, string processId, object? variables = null, int? version = null, string? versionTag = null) =>
@@ -117,6 +125,31 @@ internal static class CamundaVerbos
 			throw new ArgumentException("Call activity id is required: the id of the bpmn:callActivity in the parent.", nameof(callActivityId));
 
 		return new FilhoEmDeclaracao(scenario, callActivityId);
+	}
+
+	internal static ICamundaScenario FollowInstance(ITestScenario scenario, string processInstanceKey)
+	{
+		if (string.IsNullOrWhiteSpace(processInstanceKey))
+			throw new ArgumentException("Process instance key is required: the key the system under test returned.", nameof(processInstanceKey));
+
+		scenario.SetCurrentStep(new CamundaFollowInstanceStep { ProcessInstanceKey = processInstanceKey });
+		return CamundaScenario.De(scenario);
+	}
+
+	internal static ICamundaScenario FollowInstance(ITestScenario scenario, string processId, (string Name, object? Value) variable)
+	{
+		if (string.IsNullOrWhiteSpace(processId))
+			throw new ArgumentException("Process id is required: the id of the bpmn:process.", nameof(processId));
+		if (string.IsNullOrWhiteSpace(variable.Name))
+			throw new ArgumentException("Variable name is required: the variable that identifies the instance.", nameof(variable));
+
+		scenario.SetCurrentStep(new CamundaFollowInstanceStep
+		{
+			ProcessId = processId,
+			VariableName = variable.Name,
+			VariableValue = variable.Value
+		});
+		return CamundaScenario.De(scenario);
 	}
 
 	internal static ICamundaScenario StartInstance(

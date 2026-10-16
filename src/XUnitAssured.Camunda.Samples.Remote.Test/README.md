@@ -74,6 +74,8 @@ projeto. O `testsettings.json` só guarda os prazos.
 | 12 | `IncidentTests.Erro_Sem_Borda` | Erro BPMN com um código que nenhuma borda pega | Incident `UNHANDLED_ERROR_EVENT` em `cobrar` |
 | 13 | `ProcessoFilhoTests.Envio_Mockado` | `MockChildProcess`: o filho interceptado e terminado pelo evento de fim | A filha `xa-envio` completada com `despachar` encerrado; `codigoRastreio = "BR-FILHO"` no pai |
 | 14 | `ProcessoFilhoTests.Envio_Falhou` | `MockChildProcess(...).ThenThrowBpmnError`: o erro sai pela borda da call activity | `chamar-envio` encerrada, a borda `envio-falhou` leva a `nao-enviado` |
+| 15 | `ApiQueIniciaTests.Pela_Chave` | `FollowInstance(chave)`: um POST HTTP inicia o pedido, o teste acompanha a instância | A instância aberta pelo POST, completada pelos mocks do teste |
+| 16 | `ApiQueIniciaTests.Pela_Variavel` | `FollowInstance(processo, (variável, valor))`: a instância achada pelo `pedidoId` | A instância achada pelo `pedidoId`, terminando em `recusado` |
 
 Cada teste também escreve na própria saída a instância, o link e o que observar.
 

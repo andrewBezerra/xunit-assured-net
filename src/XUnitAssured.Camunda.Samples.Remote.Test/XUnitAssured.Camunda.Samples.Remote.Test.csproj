@@ -21,6 +21,8 @@
 
   <ItemGroup>
     <ProjectReference Include="..\XUnitAssured.Camunda\XUnitAssured.Camunda.csproj" />
+    <!-- Para os exemplos em que uma chamada HTTP inicia o processo e o teste o acompanha. -->
+    <ProjectReference Include="..\XUnitAssured.Http\XUnitAssured.Http.csproj" />
   </ItemGroup>
 
   <!-- Os mesmos diagramas dos testes de ida e volta do pacote: um lugar só para mudá-los. -->

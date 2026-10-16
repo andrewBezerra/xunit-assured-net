@@ -148,6 +148,29 @@ public interface ICamundaScenario : ITestScenario
 	/// <param name="versionTag">O rótulo de versão já implantado (<c>zeebe:versionTag</c>), por exemplo <c>1.4.0</c>.</param>
 	ICamundaScenario StartInstance(string processId, object? variables = null, int? version = null, string? versionTag = null);
 
+	/// <summary>
+	/// Acompanha a instância que outro sistema iniciou (a API testada, por exemplo), pela chave que ele devolveu.
+	/// </summary>
+	/// <remarks>
+	/// Os mocks e as asserções da cadeia valem para ela como valeriam para uma do <c>StartInstance</c>.
+	/// A instância pode aparecer um instante depois da resposta da API: o passo a espera até
+	/// <c>assertionTimeoutSeconds</c>.
+	/// </remarks>
+	/// <param name="processInstanceKey">A chave da instância.</param>
+	ICamundaScenario FollowInstance(string processInstanceKey);
+
+	/// <summary>
+	/// Acompanha a instância do processo <paramref name="processId"/> que tem esta variável neste
+	/// valor: a que a API testada iniciou com o dado que o teste mandou.
+	/// </summary>
+	/// <remarks>
+	/// O valor é comparado como JSON. Se mais de uma instância tiver o valor, segue a mais nova e diz
+	/// isso em <c>GetResult().Warnings</c>: use um valor só do teste.
+	/// </remarks>
+	/// <param name="processId">O id do processo no BPMN.</param>
+	/// <param name="variable">O nome da variável e o valor que identifica a instância.</param>
+	ICamundaScenario FollowInstance(string processId, (string Name, object? Value) variable);
+
 	/// <summary>Registra uma verificação sobre o resultado do passo.</summary>
 	ICamundaScenario Validate(Action<CamundaStepResult> validation);
 

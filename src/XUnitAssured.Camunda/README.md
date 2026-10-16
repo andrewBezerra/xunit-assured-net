@@ -232,6 +232,43 @@ starts the latest version of the child deployed on the cluster. On a shared clus
 someone else's version. `Deploy` reports it in `GetResult().Warnings`, and a failed assertion repeats
 it. Use `bindingType="deployment"` and deploy the child in the same `Deploy(...)`.
 
+## Following the instance your API started
+
+When the system under test starts the process, as an API does when it receives an order, the
+test does not call `StartInstance`. It calls the API, then follows the instance the API started:
+
+```csharp
+// The API starts the process and returns the instance key
+var key = await Given()
+    .ApiResource("/orders").Post(new { orderId = 42 })
+    .ExtractAsync<string>("$.processInstanceKey");
+
+await Given()
+    .MockJobWorker("charge-card").ThenComplete()
+    .FollowInstance(key)
+    .ExecuteAsync()
+    .AssertInstanceCompleted();
+
+// Or, when the API does not return it, by a variable the test sent
+await Given()
+    .MockJobWorker("charge-card").ThenComplete()
+    .FollowInstance("order", ("orderId", 42))
+    .ExecuteAsync()
+    .AssertInstanceCompleted();
+```
+
+- **The mocks and the assertions work on the followed instance** as on one the chain started, the
+  instances it calls included.
+- **The instance may show up a moment after the API answered.** `FollowInstance` waits for it, up
+  to `assertionTimeoutSeconds`, and fails naming what it waited for.
+- **By variable, the value is compared as JSON.** If more than one instance has it, the newest is
+  followed and `GetResult().Warnings` says so. Send a value unique to the test.
+- **A followed instance still active when the test run ends is cancelled,** as one the chain
+  started would be.
+
+The other direction works too: call the API, extract what it returned, and start the process
+with it. The verbs of the HTTP and Camunda packages do not collide, so both live in the same test.
+
 ## Testing what is already deployed
 
 A chain without `Deploy` starts the version already on the cluster: what was deployed to
@@ -428,7 +465,7 @@ cluster instead.
 ## Where the verbs live
 
 `Deploy`, `MockJobWorker`, `MockUserTask`, `SkipTimer`, `MockMessage`, `MockSignal`,
-`MockChildProcess` and `StartInstance` are the entry verbs, the only ones on
+`MockChildProcess`, `StartInstance` and `FollowInstance` are the entry verbs, the only ones on
 `ITestScenario`; the rest are members of `ICamundaScenario`, the convention the root README
 documents. They do not collide with `ApiResource`, `Topic` or `Queue`, so a chain can call the
 API, then follow the process it started.

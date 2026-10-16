@@ -50,6 +50,10 @@ internal interface ICamundaGateway
 
 	Task<InstanciaVista?> GetInstanceAsync(string processInstanceKey, CancellationToken ct);
 
+	/// <summary>As instâncias do processo com a variável neste valor (JSON), da mais nova para a mais antiga.</summary>
+	Task<IReadOnlyList<InstanciaVista>> SearchInstancesByVariableAsync(
+		string processId, string variableName, string valueJson, CancellationToken ct);
+
 	Task<IReadOnlyList<ElementoVisto>> SearchElementsAsync(string processInstanceKey, CancellationToken ct);
 
 	Task<IReadOnlyList<VariavelVista>> SearchVariablesAsync(string processInstanceKey, string? name, CancellationToken ct);
@@ -109,7 +113,7 @@ internal sealed record JobPendente(string JobKey, string Type, string ElementId,
 /// <summary>Uma instância como a busca a mostra.</summary>
 internal sealed record InstanciaVista(
 	string ProcessInstanceKey, string ProcessId, string State, bool HasIncident, string? ParentProcessInstanceKey,
-	string? ProcessDefinitionKey = null, string? ParentElementInstanceKey = null);
+	string? ProcessDefinitionKey = null, string? ParentElementInstanceKey = null, int? Version = null, string? VersionTag = null);
 
 /// <summary>Um elemento de uma instância, como a busca o mostra.</summary>
 internal sealed record ElementoVisto(
