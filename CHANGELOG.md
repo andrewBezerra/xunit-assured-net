@@ -2,7 +2,14 @@
 
 All notable changes to the XUnitAssured packages. Upgrading from 5.1.x? See [UPGRADING.md](UPGRADING.md).
 
-## v6.30.2 (Current — static analysis: Semgrep and SonarCloud)
+## v6.30.3 (Current — SonarCloud analyzes the packages)
+
+Build-only release: SonarCloud now analyzes the packages. No package changes; upgrading from 6.30.2 requires no code changes.
+
+- **The packages count as production code in SonarCloud.** They reference xunit, and the Sonar scanner took every project that does for a test project. In the first analysis, no line of the packages counted, not even for coverage: only the sample apps did. `SonarQubeTestProject` is now `false` for the shipping libraries.
+- **Sources are read as UTF-8.** A file was skipped because the scanner assumed windows-1252.
+
+## v6.30.2 (static analysis: Semgrep and SonarCloud)
 
 Build-only release: static analysis in CI. No package changes; upgrading from 6.30.1 requires no code changes.
 
