@@ -2,7 +2,20 @@
 
 All notable changes to the XUnitAssured packages. Upgrading from 5.1.x? See [UPGRADING.md](UPGRADING.md).
 
-## v6.25.0 (Current — Camunda: child processes)
+## v6.26.0 (Current — XUnitAssured.Camunda.Testcontainers)
+
+New package: **XUnitAssured.Camunda.Testcontainers**, which starts Camunda inside `dotnet test`. Upgrading from 6.25.0 requires no code changes; the other packages are unchanged except XUnitAssured.Camunda, which gains the two types below.
+
+- **`CamundaContainerFixture`** starts `camunda/camunda:8.10.4` in Docker with Testcontainers:
+  - the same Camunda the package's CI uses: no Elasticsearch, no Connectors, H2 in memory with the search flushed at once;
+  - Basic authentication with a random password per run;
+  - ready when the REST API answers an authenticated request, after about 35 seconds.
+
+  It hands the container's address and credentials to every chain, so a CI runner with Docker needs no Camunda of its own. Share it across the suite with a collection fixture.
+- **In XUnitAssured.Camunda: `CamundaTestBase<TFixture>` and `CamundaClusterFixture`.** They work the way `KafkaTestBase` works: `Given()` hands the fixture's cluster to the chain. The plain `CamundaClusterFixture` reads `testsettings.json`, so the same test class can point at a remote cluster instead.
+- **CI:** a new non-blocking `Camunda Testcontainers` job runs the `Requires=Docker` tests on `ubuntu-latest`, where `dotnet test` starts Camunda by itself. The main test runs, the release and the mutation runs exclude `Requires=Docker`. The mutation runs now also exclude `Requires=Camunda`, which needs a running cluster.
+
+## v6.25.0 (Camunda: child processes)
 
 In XUnitAssured.Camunda: child processes, the last part of the BPMN coverage. Upgrading from 6.24.0 requires no code changes; the other packages are unchanged.
 

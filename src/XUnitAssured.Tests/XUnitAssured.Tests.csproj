@@ -35,6 +35,7 @@
 
 	<ItemGroup>
 		<ProjectReference Include="..\XUnitAssured.Camunda\XUnitAssured.Camunda.csproj" />
+		<ProjectReference Include="..\XUnitAssured.Camunda.Testcontainers\XUnitAssured.Camunda.Testcontainers.csproj" />
 		<ProjectReference Include="..\XUnitAssured.Core\XUnitAssured.Core.csproj" />
 		<ProjectReference Include="..\XUnitAssured.Http\XUnitAssured.Http.csproj" />
 		<ProjectReference Include="..\XUnitAssured.Kafka\XUnitAssured.Kafka.csproj" />

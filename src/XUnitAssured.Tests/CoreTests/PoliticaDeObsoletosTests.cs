@@ -24,6 +24,7 @@ public class PoliticaDeObsoletosTests
 		typeof(XUnitAssured.RabbitMq.Extensions.RabbitMqValidationBuilder).Assembly,
 		typeof(XUnitAssured.Playwright.Extensions.PlaywrightValidationBuilder).Assembly,
 		typeof(XUnitAssured.Camunda.Extensions.CamundaValidationBuilder).Assembly,
+		typeof(XUnitAssured.Camunda.Testcontainers.CamundaContainerFixture).Assembly,
 	];
 
 	[Fact(DisplayName = "Every [Obsolete] in a package says when it is removed, and is a warning, not an error")]

@@ -406,9 +406,24 @@ uses: the search sees a change as soon as the engine makes it. Measured against 
 official Docker Compose, it cut each scenario by 20 to 60%. Without a license
 key, Camunda runs with a "Non-Production License" banner, which its license allows for testing.
 
-## Not yet
+## Camunda inside dotnet test
 
-A Testcontainers mode that starts Camunda inside `dotnet test` is planned.
+[XUnitAssured.Camunda.Testcontainers](../XUnitAssured.Camunda.Testcontainers/README.md) starts the same
+Camunda in Docker for the test run, and hands its address and credentials to every chain:
+
+```csharp
+public class OrderTests(CamundaContainerFixture camunda)
+    : CamundaTestBase<CamundaContainerFixture>(camunda), IClassFixture<CamundaContainerFixture>
+{
+    [Fact]
+    public async Task Order_Completes() =>
+        await Given().Deploy("order").StartInstance("order").ExecuteAsync().AssertInstanceCompleted();
+}
+```
+
+`CamundaTestBase<TFixture>` and `CamundaClusterFixture` live in this package: the plain
+`CamundaClusterFixture` reads `testsettings.json`, so the same test class can point at a remote
+cluster instead.
 
 ## Where the verbs live
 

@@ -38,6 +38,7 @@ ORDEM=(
   XUnitAssured.Kafka
   XUnitAssured.RabbitMq
   XUnitAssured.Camunda
+  XUnitAssured.Camunda.Testcontainers
   XUnitAssured.Playwright
   XUnitAssured.Http.AspNetCore
   XUnitAssured.Playwright.AspNetCore
