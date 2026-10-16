@@ -2,7 +2,15 @@
 
 All notable changes to the XUnitAssured packages. Upgrading from 5.1.x? See [UPGRADING.md](UPGRADING.md).
 
-## v6.30.1 (Current — MCP: the rest of the Camunda tool escaped)
+## v6.30.2 (Current — static analysis: Semgrep and SonarCloud)
+
+Build-only release: static analysis in CI. No package changes; upgrading from 6.30.1 requires no code changes.
+
+- **Semgrep on every pull request and on main.** A pull request fails only on the findings it introduces. On main, the full scan goes to GitHub code scanning (the Security tab).
+- **SonarCloud on every pull request and on main**, with the unit tests' coverage. It comments on the pull request and does not block it.
+- **Every action in the workflows is pinned by commit SHA**, not by tag. A moved tag can no longer change what runs in CI or in the release.
+
+## v6.30.1 (MCP: the rest of the Camunda tool escaped)
 
 Fix for the Camunda tool of XUnitAssured.Mcp. Upgrading from 6.30.0 requires no code changes; the other packages are unchanged.
 
