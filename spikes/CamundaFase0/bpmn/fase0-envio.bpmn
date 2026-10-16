@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+                  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+                  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+                  xmlns:zeebe="http://camunda.org/schema/zeebe/1.0"
+                  xmlns:modeler="http://camunda.org/schema/modeler/1.0"
+                  id="Definicoes_Envio"
+                  targetNamespace="http://bpmn.io/schema/bpmn"
+                  exporter="XUnitAssured Fase 0"
+                  exporterVersion="1.0"
+                  modeler:executionPlatform="Camunda Cloud"
+                  modeler:executionPlatformVersion="8.10.0">
+  <bpmn:process id="fase0-envio" name="Fase 0 - Envio" isExecutable="true">
+    <bpmn:startEvent id="inicio-envio" name="Envio solicitado">
+      <bpmn:outgoing>f_inicio_despachar</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:serviceTask id="despachar" name="Despachar na transportadora">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="fase0-despachar" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>f_inicio_despachar</bpmn:incoming>
+      <bpmn:outgoing>f_despachar_fim</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:endEvent id="fim-envio" name="Envio despachado">
+      <bpmn:incoming>f_despachar_fim</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="f_inicio_despachar" sourceRef="inicio-envio" targetRef="despachar" />
+    <bpmn:sequenceFlow id="f_despachar_fim" sourceRef="despachar" targetRef="fim-envio" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="Diagrama_Envio">
+    <bpmndi:BPMNPlane id="Plano_Envio" bpmnElement="fase0-envio">
+      <bpmndi:BPMNShape id="inicio-envio_di" bpmnElement="inicio-envio">
+        <dc:Bounds x="152" y="102" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="130" y="145" width="80" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="despachar_di" bpmnElement="despachar">
+        <dc:Bounds x="250" y="80" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="fim-envio_di" bpmnElement="fim-envio">
+        <dc:Bounds x="412" y="102" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="386" y="145" width="88" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="f_inicio_despachar_di" bpmnElement="f_inicio_despachar">
+        <di:waypoint x="188" y="120" />
+        <di:waypoint x="250" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="f_despachar_fim_di" bpmnElement="f_despachar_fim">
+        <di:waypoint x="350" y="120" />
+        <di:waypoint x="412" y="120" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

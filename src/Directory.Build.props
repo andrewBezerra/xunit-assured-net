@@ -25,14 +25,14 @@
   </PropertyGroup>
 
   <PropertyGroup>
-    <Version>6.19.0</Version>
+    <Version>6.19.1</Version>
 
     <!--
       O que a página do pacote no nuget.org mostra. Sem isto ela fica muda, e quem atualiza
       por `dotnet add package` não recebe nenhum aviso de que a major quebra coisas.
       Trocar a cada versão, junto do número acima.
     -->
-    <PackageReleaseNotes>Kafka: SASL/OAUTHBEARER with OpenID Connect (Keycloak, Okta, Azure AD): WithOAuthBearer, UseOAuthBearer, or "type": "OAuthBearer" in testsettings.json. New samples: OAuth with Keycloak, and PLAIN + SCRAM on one broker. No code changes needed from 6.18.1. Upgrade guide: https://github.com/andrewBezerra/xunit-assured-net/blob/main/UPGRADING.md</PackageReleaseNotes>
+    <PackageReleaseNotes>Maintenance: no package changes from 6.19.0. Adds the plan and the proof of concept for an upcoming XUnitAssured.Camunda package. Upgrade guide: https://github.com/andrewBezerra/xunit-assured-net/blob/main/UPGRADING.md</PackageReleaseNotes>
     <Authors>Carlos Andrew Costa Bezerra</Authors>
     <Company>Carlos Andrew Costa Bezerra</Company>
     <Copyright>Copyright (c) Carlos Andrew Costa Bezerra</Copyright>
