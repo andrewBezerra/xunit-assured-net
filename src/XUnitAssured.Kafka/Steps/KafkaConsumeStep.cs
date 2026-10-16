@@ -110,6 +110,12 @@ public class KafkaConsumeStep : ITestStep
 	public KafkaAuthConfig? AuthConfig { get; init; }
 
 	/// <summary>
+	/// De onde vêm o consumidor e as partições do tópico. Fora dos testes do pacote, é sempre
+	/// <see cref="FabricaDeConsumidor.Real"/>.
+	/// </summary>
+	internal IFabricaDeConsumidor Fabrica { get; init; } = FabricaDeConsumidor.Real;
+
+	/// <summary>
 	/// Quanto se espera entre duas olhadas no que chegou.
 	///
 	/// Cinquenta milissegundos é menos do que os duzentos e cinquenta que a espera bloqueante
@@ -151,6 +157,7 @@ public class KafkaConsumeStep : ITestStep
 		_groupId = source._groupId;
 		_bootstrapServers = source._bootstrapServers;
 		AuthConfig = source.AuthConfig;
+		Fabrica = source.Fabrica;
 	}
 
 	/// <inheritdoc />
@@ -180,14 +187,14 @@ public class KafkaConsumeStep : ITestStep
 			diagnosticProperties["SaslUsername"] = config.SaslUsername;
 
 			// Create consumer
-			using var consumer = new ConsumerBuilder<string, string>(config)
-				.SetErrorHandler((_, error) => errorDetails.Add(error.ToString()))
-				.SetLogHandler((_, log) =>
+			using var consumer = Fabrica.Criar(
+				config,
+				error => errorDetails.Add(error.ToString()),
+				log =>
 				{
 					if (brokerLogs.Count < MaxBrokerLogEntries)
 						brokerLogs.Add($"{log.Level}: {log.Message}");
-				})
-				.Build();
+				});
 
 			// Assign the partitions directly instead of subscribing. A subscription
 			// joins the consumer group, which on a default broker waits out
@@ -202,7 +209,7 @@ public class KafkaConsumeStep : ITestStep
 			// for a broker that is not answering at all.
 			var metadataTimeout = Timeout < TimeSpan.FromSeconds(5) ? Timeout : TimeSpan.FromSeconds(5);
 			var assignment = ConsumerAssignment.AssignAllPartitions(
-				consumer, config, Topic, metadataTimeout);
+				consumer, config, Topic, metadataTimeout, Fabrica.DescobrirParticoes);
 			diagnosticProperties["AssignedPartitions"] = string.Join(",", assignment.Select(a => a.TopicPartition));
 
 			var deadline = DateTime.UtcNow.Add(Timeout);
