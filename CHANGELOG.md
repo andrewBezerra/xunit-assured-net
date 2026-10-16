@@ -2,7 +2,15 @@
 
 All notable changes to the XUnitAssured packages. Upgrading from 5.1.x? See [UPGRADING.md](UPGRADING.md).
 
-## v6.30.5 (Current — SonarCloud badges)
+## v6.30.6 (Current — coverage measured right)
+
+Build-only release: unit test coverage is measured right. No package changes; upgrading from 6.30.5 requires no code changes.
+
+- **XUnitAssured.Core is measured again.** coverlet.collector 6.0.2 could not instrument it on net10: it did not resolve a DLL that comes from the ASP.NET Core shared framework, and left the whole package out of the report. With 10.1.0, Core shows 87.6% and the total goes from 55% to about 59%.
+- **Three files no unit test can run are out of the coverage count**, each with its reason in `sast.yml`: `CamundaContainerFixture` (Docker), `BrowserAppFixture` (a real browser and real ports) and the source generator (it runs inside the compiler).
+- **The plan to reach 85%** is in `docs/cobertura-plano.md`.
+
+## v6.30.5 (SonarCloud badges)
 
 Docs-only release: SonarCloud badges in the README. No package changes; upgrading from 6.30.4 requires no code changes.
 

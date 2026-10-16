@@ -11,7 +11,8 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<PackageReference Include="coverlet.collector" Version="6.0.2" />		
+		<!-- A 6.0.2 não instrumentava o XUnitAssured.Core no net10: não resolvia a DLL que vem do framework compartilhado do ASP.NET Core. -->
+		<PackageReference Include="coverlet.collector" Version="10.1.0" />
 		<PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.12.0" />
 		<PackageReference Include="Microsoft.TestPlatform.TestHost" Version="17.13.0" />
 		<PackageReference Include="xunit" Version="2.9.3" />
