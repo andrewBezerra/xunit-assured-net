@@ -69,6 +69,8 @@ public class CamundaContainerFixture : CamundaClusterFixture, IAsyncLifetime
 			.WithEnvironment("CAMUNDA_DATA_SECONDARYSTORAGE_RDBMS_USERNAME", "sa")
 			.WithEnvironment("CAMUNDA_DATA_SECONDARYSTORAGE_RDBMS_FLUSHINTERVAL", "PT0S")
 			.WithEnvironment("CAMUNDA_SECURITY_AUTHENTICATION_UNPROTECTEDAPI", "false")
+			// Sem isto, o usuário criado aqui não tem permissão nenhuma, e o primeiro deploy volta FORBIDDEN.
+			.WithEnvironment("CAMUNDA_SECURITY_AUTHORIZATIONS_ENABLED", "false")
 			.WithEnvironment("CAMUNDA_SECURITY_INITIALIZATION_USERS_0_USERNAME", Usuario)
 			.WithEnvironment("CAMUNDA_SECURITY_INITIALIZATION_USERS_0_PASSWORD", _senha)
 			.WithEnvironment("CAMUNDA_SECURITY_INITIALIZATION_USERS_0_NAME", Usuario)

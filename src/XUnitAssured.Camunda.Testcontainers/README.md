@@ -41,7 +41,8 @@ and assertion of XUnitAssured.Camunda works the same as against a remote cluster
 - **Secondary storage in H2, in memory, flushed at once** (`FLUSHINTERVAL=PT0S`), as the Camunda
   Process Test does: a search sees a change as soon as the engine makes it.
 - **Basic authentication** with a `xunit` user and a new random password on every run. The fixture
-  hands both to the chains, so the test never needs them.
+  hands both to the chains, so the test never needs them. Authorizations are off, as in the package's
+  CI: the container is the test's own.
 - **Ready means the REST API answered an authenticated request,** not that the process started.
   That takes about 35 seconds.
 
