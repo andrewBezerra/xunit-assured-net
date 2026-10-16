@@ -87,13 +87,13 @@ public static class CamundaTestGeneratorTools
 			.Where(t => !string.IsNullOrWhiteSpace(t))
 			.Distinct())
 		{
-			mocks.Add($".MockJobWorker(\"{tipo}\").ThenComplete(new {{ /* what the {tipo} worker returns */ }})");
+			mocks.Add($".MockJobWorker({L(tipo)}).ThenComplete(new {{ /* what the {CB(tipo)} worker returns */ }})");
 		}
 
 		foreach (var tarefa in elementos.Where(e => e.Name.LocalName == "userTask"))
 		{
 			if (tarefa.Descendants(Zeebe + "userTask").Any())
-				mocks.Add($".MockUserTask(\"{Id(tarefa)}\").ThenComplete(new {{ /* what the form returns */ }}){Rotulo(tarefa)}");
+				mocks.Add($".MockUserTask({L(Id(tarefa))}).ThenComplete(new {{ /* what the form returns */ }}){Rotulo(tarefa)}");
 			else
 				mocks.Add($".MockJobWorker(\"io.camunda.zeebe:userTask\").ThenComplete() // '{Id(tarefa)}' is a job-based user task");
 		}
@@ -104,7 +104,7 @@ public static class CamundaTestGeneratorTools
 			if (evento.Name.LocalName is not ("intermediateCatchEvent" or "boundaryEvent"))
 				continue;
 
-			var linha = $".SkipTimer(\"{Id(evento)}\"){Rotulo(evento)}";
+			var linha = $".SkipTimer({L(Id(evento))}){Rotulo(evento)}";
 			if (Alternativo(evento))
 				alternativas.Add($"{linha} // takes the timer's path instead");
 			else
@@ -118,7 +118,7 @@ public static class CamundaTestGeneratorTools
 				continue;
 
 			var nome = mensagens.TryGetValue(referencia, out var n) ? n : referencia;
-			var linha = $".MockMessage(\"{nome}\").ThenCorrelate(new {{ /* the message's variables */ }}){Rotulo(evento)}";
+			var linha = $".MockMessage({L(nome)}).ThenCorrelate(new {{ /* the message's variables */ }}){Rotulo(evento)}";
 			if (Alternativo(evento))
 				alternativas.Add($"{linha} // takes the message's path instead");
 			else
@@ -132,7 +132,7 @@ public static class CamundaTestGeneratorTools
 
 			var referencia = (string?)evento.Element(Bpmn + "signalEventDefinition")!.Attribute("signalRef") ?? Id(evento);
 			var nome = sinais.TryGetValue(referencia, out var n) ? n : referencia;
-			var linha = $".MockSignal(\"{nome}\").ThenTrigger(){Rotulo(evento)}";
+			var linha = $".MockSignal({L(nome)}).ThenTrigger(){Rotulo(evento)}";
 			if (Alternativo(evento))
 				alternativas.Add($"{linha} // takes the signal's path instead");
 			else
@@ -147,9 +147,9 @@ public static class CamundaTestGeneratorTools
 			var tipo = (string?)tarefa?.Descendants(Zeebe + "taskDefinition").FirstOrDefault()?.Attribute("type");
 
 			if (tarefa?.Name.LocalName == "callActivity")
-				alternativas.Add($".MockChildProcess(\"{anexado}\").ThenThrowBpmnError(\"{codigo}\") // takes '{Id(erro)}' instead");
+				alternativas.Add($".MockChildProcess({L(anexado)}).ThenThrowBpmnError({L(codigo)}) // takes '{C(Id(erro))}' instead");
 			else if (tipo is not null)
-				alternativas.Add($".MockJobWorker(\"{tipo}\").ThenThrowBpmnError(\"{codigo}\") // takes '{Id(erro)}' instead");
+				alternativas.Add($".MockJobWorker({L(tipo)}).ThenThrowBpmnError({L(codigo)}) // takes '{C(Id(erro))}' instead");
 		}
 
 		var deploy = new List<string> { id };
@@ -161,7 +161,7 @@ public static class CamundaTestGeneratorTools
 			if (filho is not null && !deploy.Contains(filho))
 				deploy.Add(filho);
 
-			alternativas.Add($".MockChildProcess(\"{Id(chamada)}\").ThenComplete(new {{ /* what '{filho}' returns */ }}) // instead of running the real child");
+			alternativas.Add($".MockChildProcess({L(Id(chamada))}).ThenComplete(new {{ /* what '{CB(filho)}' returns */ }}) // instead of running the real child");
 			if (vinculo is null or "latest")
 				avisos.Add($"Call activity '{Id(chamada)}' calls '{filho}' with bindingType \"{vinculo ?? "latest"}\": on a shared cluster it may start " +
 				           "someone else's version. Use bindingType=\"deployment\" and deploy the child with the parent.");
@@ -189,30 +189,30 @@ public static class CamundaTestGeneratorTools
 			.ToList();
 
 		var codigoDoTeste = new StringBuilder();
-		codigoDoTeste.AppendLine($"\t[Fact(DisplayName = \"{displayName ?? $"The {id} process runs to its end with its dependencies mocked"}\")]");
+		codigoDoTeste.AppendLine($"\t[Fact(DisplayName = {L(displayName ?? $"The {id} process runs to its end with its dependencies mocked")})]");
 		codigoDoTeste.AppendLine($"\tpublic async Task {Nome(id)}_Runs_To_The_End()");
 		codigoDoTeste.AppendLine("\t{");
 		foreach (var aviso in avisos)
-			codigoDoTeste.AppendLine($"\t\t// Warning: {aviso}");
+			codigoDoTeste.AppendLine($"\t\t// Warning: {C(aviso)}");
 		codigoDoTeste.AppendLine("\t\tawait Given()");
-		codigoDoTeste.AppendLine($"\t\t\t.Deploy({string.Join(", ", deploy.Select(d => $"\"{d}\""))})");
+		codigoDoTeste.AppendLine($"\t\t\t.Deploy({string.Join(", ", deploy.Select(L))})");
 		foreach (var mock in mocks)
 			codigoDoTeste.AppendLine($"\t\t\t{mock}");
 		if (alternativas.Count > 0)
 		{
 			codigoDoTeste.AppendLine("\t\t\t// Other paths: swap one of these in for a test of its own");
 			foreach (var alternativa in alternativas)
-				codigoDoTeste.AppendLine($"\t\t\t// {alternativa}");
+				codigoDoTeste.AppendLine($"\t\t\t// {C(alternativa)}");
 		}
-		codigoDoTeste.AppendLine($"\t\t\t.StartInstance(\"{id}\", new {{ /* the start variables; a correlation key unique to the test */ }})");
+		codigoDoTeste.AppendLine($"\t\t\t.StartInstance({L(id)}, new {{ /* the start variables; a correlation key unique to the test */ }})");
 		codigoDoTeste.AppendLine("\t\t\t.ExecuteAsync()");
 		codigoDoTeste.Append("\t\t\t.AssertInstanceCompleted()");
 		if (fins.Count > 0)
-			codigoDoTeste.Append($"{Environment.NewLine}\t\t\t.AssertCompletedElements(\"{fins[0]}\")");
+			codigoDoTeste.Append($"{Environment.NewLine}\t\t\t.AssertCompletedElements({L(fins[0])})");
 		codigoDoTeste.Append(';');
 		// O comentário vai depois do ponto e vírgula: antes, ele o engoliria.
 		if (fins.Count > 1)
-			codigoDoTeste.Append($" // or end at: {string.Join(", ", fins.Skip(1))}");
+			codigoDoTeste.Append($" // or end at: {C(string.Join(", ", fins.Skip(1)))}");
 		codigoDoTeste.AppendLine();
 		codigoDoTeste.AppendLine("\t}");
 
@@ -231,8 +231,52 @@ public static class CamundaTestGeneratorTools
 	private static string Id(XElement elemento) => (string)elemento.Attribute("id")!;
 
 	private static string Rotulo(XElement elemento) =>
-		elemento.Attribute("name") is { } nome ? $" // {nome.Value}" : string.Empty;
+		elemento.Attribute("name") is { } nome ? $" // {C(nome.Value)}" : string.Empty;
 
-	private static string Nome(string id) =>
-		string.Concat(id.Split('-', '_', '.', ' ').Where(p => p.Length > 0).Select(p => char.ToUpperInvariant(p[0]) + p[1..]));
+	// O BPMN vem de fora e o código gerado vai ser colado num projeto: nada do que ele traz pode sair
+	// de um literal, de um comentário ou de um identificador.
+
+	private const char Barra = (char)92;
+	private const char Aspas = (char)34;
+	private const char SeparadorDeLinha = (char)0x2028;
+	private const char SeparadorDeParagrafo = (char)0x2029;
+	private const char ProximaLinha = (char)0x85;
+
+	private static bool QuebraLinha(char c) =>
+		char.IsControl(c) || c == SeparadorDeLinha || c == SeparadorDeParagrafo || c == ProximaLinha;
+
+	/// <summary>Um literal de string C#, com aspas, barras e caracteres de controle escapados.</summary>
+	internal static string L(string? valor)
+	{
+		var texto = new StringBuilder().Append(Aspas);
+		foreach (var c in valor ?? string.Empty)
+		{
+			if (c == Aspas || c == Barra)
+				texto.Append(Barra).Append(c);
+			else if (QuebraLinha(c))
+				texto.Append(Barra).Append('u').Append(((int)c).ToString("X4"));
+			else
+				texto.Append(c);
+		}
+
+		return texto.Append(Aspas).ToString();
+	}
+
+	/// <summary>Texto para um comentário de linha: sem quebra de linha, que o encerraria.</summary>
+	internal static string C(string? valor) =>
+		new string((valor ?? string.Empty).Select(c => QuebraLinha(c) ? ' ' : c).ToArray());
+
+	/// <summary>Texto para um comentário de bloco: também sem o fim de comentário.</summary>
+	internal static string CB(string? valor) => C(valor).Replace("*/", "* /", StringComparison.Ordinal);
+
+	/// <summary>O nome do método: só letras e dígitos ASCII, começando por letra.</summary>
+	internal static string Nome(string id)
+	{
+		var nome = string.Concat(id.Split('-', '_', '.', ' ')
+			.Select(p => new string(p.Where(char.IsAsciiLetterOrDigit).ToArray()))
+			.Where(p => p.Length > 0)
+			.Select(p => char.ToUpperInvariant(p[0]) + p[1..]));
+
+		return nome.Length == 0 || char.IsAsciiDigit(nome[0]) ? "Process" + nome : nome;
+	}
 }

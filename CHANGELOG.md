@@ -2,7 +2,17 @@
 
 All notable changes to the XUnitAssured packages. Upgrading from 5.1.x? See [UPGRADING.md](UPGRADING.md).
 
-## v6.29.0 (Current — MCP: Camunda test from the diagram)
+## v6.29.1 (Current — MCP: Camunda tool escapes what the diagram brings)
+
+Fix for the Camunda tool of XUnitAssured.Mcp. Upgrading from 6.29.0 requires no code changes; the other packages are unchanged.
+
+- **`generate_camunda_test` no longer lets a diagram inject code into the generated test.**
+  - In 6.29.0, ids, job types, message and signal names, error codes and element names went into the C# as they were. A quote or a line break in one of them could close a string literal or a comment.
+  - Now every value is escaped for where it lands: string literals escape quotes, backslashes and control characters, including U+2028, which C# also takes as a line break. Comments drop line breaks, block comments drop `*/`, and the method name keeps only ASCII letters and digits.
+- **A new test feeds the tool a hostile diagram.** It checks that what the BPMN brings is never an identifier of the generated code, and that the code still compiles.
+- Found by an automated security review of the 6.29.0 commit.
+
+## v6.29.0 (MCP: Camunda test from the diagram)
 
 In XUnitAssured.Mcp: a tool that writes the Camunda test from the diagram. Upgrading from 6.28.0 requires no code changes; the other packages are unchanged.
 

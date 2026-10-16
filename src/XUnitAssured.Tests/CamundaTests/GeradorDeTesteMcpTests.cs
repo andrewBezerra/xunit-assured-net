@@ -85,6 +85,38 @@ public class GeradorDeTesteMcpTests
 			.ShouldContain("// The BPMN has no process 'outro'. Processes in it: xa-pedido.");
 	}
 
+	[Fact(DisplayName = "MCP: what the BPMN brings stays inside literals and comments: a hostile diagram cannot inject code")]
+	public void Hostile_Bpmn_Cannot_Inject_Code()
+	{
+		// Aspas, barra e quebras de linha (inclusive a U+2028, que o C# também trata como fim de linha).
+		var quebra = ((char)0x2028).ToString();
+		var xml = $$"""
+			<?xml version="1.0" encoding="UTF-8"?>
+			<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:zeebe="http://camunda.org/schema/zeebe/1.0" id="d">
+			  <bpmn:process id="x" isExecutable="true">
+			    <bpmn:startEvent id="inicio" />
+			    <bpmn:serviceTask id="t" name="ok&#10;System.Environment.Exit(2);{{quebra}}System.Environment.Exit(3);">
+			      <bpmn:extensionElements><zeebe:taskDefinition type="a&quot;); System.Environment.Exit(1); //\ */ System.Environment.Exit(4); /*" /></bpmn:extensionElements>
+			    </bpmn:serviceTask>
+			    <bpmn:endEvent id="fim" />
+			    <bpmn:sequenceFlow id="f1" sourceRef="inicio" targetRef="t" />
+			    <bpmn:sequenceFlow id="f2" sourceRef="t" targetRef="fim" />
+			  </bpmn:process>
+			</bpmn:definitions>
+			""";
+
+		var codigo = CamundaTestGeneratorTools.GenerateCamundaTest(xml);
+
+		// Fora de literais e comentários, nenhum identificador do BPMN pode virar código.
+		var identificadores = CSharpSyntaxTree.ParseText($"class C {{ {codigo} }}").GetRoot().DescendantNodes()
+			.OfType<Microsoft.CodeAnalysis.CSharp.Syntax.IdentifierNameSyntax>()
+			.Select(i => i.Identifier.Text)
+			.ToList();
+		identificadores.ShouldNotContain("Exit", codigo);
+		identificadores.ShouldNotContain("Environment", codigo);
+		Compila(codigo);
+	}
+
 	private static string Gerar(string arquivo) =>
 		CamundaTestGeneratorTools.GenerateCamundaTest(File.ReadAllText(Caminho(arquivo)));
 
