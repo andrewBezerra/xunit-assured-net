@@ -273,7 +273,8 @@ public class KafkaProduceStep : ITestStep
 			// Network error, Kafka error, etc.
 			errorDetails.Add(ex.ToString());
 			diagnosticProperties["ExceptionMessage"] = ex.Message;
-			Result = KafkaStepResult.CreateFailure(ex);
+			// Com o que foi juntado até a falha (broker, autenticação, erros do librdkafka), como no consumo.
+			Result = KafkaStepResult.CreateFailure(ex, errorDetails, diagnosticProperties);
 			return Result;
 		}
 	}

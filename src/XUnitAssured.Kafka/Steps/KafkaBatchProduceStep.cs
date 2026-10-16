@@ -123,6 +123,7 @@ public class KafkaBatchProduceStep : ITestStep
 
 		Name = source.Name;
 		Topic = source.Topic;
+		Messages = source.Messages;
 		Headers = source.Headers;
 		Timeout = source.Timeout;
 		ProducerConfig = source.ProducerConfig;
@@ -140,7 +141,14 @@ public class KafkaBatchProduceStep : ITestStep
 		{
 			// Check for shared producer from fixture (via context)
 			var sharedProducer = context.GetProperty<IProducer<string, string>>("_KafkaSharedProducer");
-			var useSharedProducer = sharedProducer != null && ProducerConfig == null;
+			// As mesmas condições do passo de uma mensagem: um broker, uma autenticação ou uma config
+			// informados pelo teste valem mais que o produtor compartilhado da fixture.
+			var contextAuthConfig = context.GetProperty<KafkaAuthConfig>("_KafkaAuthConfig");
+			var useSharedProducer = sharedProducer != null
+				&& ProducerConfig == null
+				&& AuthConfig == null
+				&& !BootstrapServersInformado
+				&& (contextAuthConfig == null || contextAuthConfig.Type == KafkaAuthenticationType.None);
 
 			IProducer<string, string> producer;
 			if (useSharedProducer)
@@ -166,7 +174,8 @@ public class KafkaBatchProduceStep : ITestStep
 
 					var message = new Message<string, string>
 					{
-						Key = keyString ?? string.Empty,
+						// Sem chave, null, como no passo de uma mensagem: com "", o lote inteiro caía numa partição só.
+						Key = keyString!,
 						Value = valueString ?? string.Empty,
 						Headers = Headers != null ? CloneHeaders(Headers) : null,
 						Timestamp = Confluent.Kafka.Timestamp.Default

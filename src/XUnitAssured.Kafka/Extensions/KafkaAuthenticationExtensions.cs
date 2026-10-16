@@ -17,42 +17,17 @@ public static class KafkaAuthenticationExtensions
 	/// </summary>
 	private static ITestScenario ApplyAuthConfig(ITestScenario scenario, KafkaAuthConfig authConfig)
 	{
-		if (scenario.CurrentStep is KafkaConsumeStep consumeStep)
+		// Pelo construtor de cópia de cada passo. Montar o passo campo a campo copiava a propriedade
+		// BootstrapServers (e o GroupId), e o passo passava a ignorar o broker e o grupo da fixture.
+		ITestStep newStep = scenario.CurrentStep switch
 		{
-			var newStep = new KafkaConsumeStep
-			{
-				Topic = consumeStep.Topic,
-				SchemaType = consumeStep.SchemaType,
-				Timeout = consumeStep.Timeout,
-				ConsumerConfig = consumeStep.ConsumerConfig,
-				GroupId = consumeStep.GroupId,
-				BootstrapServers = consumeStep.BootstrapServers,
-				AuthConfig = authConfig
-			};
-			scenario.SetCurrentStep(newStep);
-		}
-		else if (scenario.CurrentStep is KafkaProduceStep produceStep)
-		{
-			var newStep = new KafkaProduceStep
-			{
-				Topic = produceStep.Topic,
-				Key = produceStep.Key,
-				Value = produceStep.Value,
-				Headers = produceStep.Headers,
-				Partition = produceStep.Partition,
-				Timestamp = produceStep.Timestamp,
-				Timeout = produceStep.Timeout,
-				ProducerConfig = produceStep.ProducerConfig,
-				BootstrapServers = produceStep.BootstrapServers,
-				AuthConfig = authConfig,
-				JsonOptions = produceStep.JsonOptions
-			};
-			scenario.SetCurrentStep(newStep);
-		}
-		else
-		{
-			throw new InvalidOperationException("Current step is not a Kafka step. Call Topic().Consume() or Topic().Produce() first.");
-		}
+			KafkaConsumeStep consumeStep => new KafkaConsumeStep(consumeStep) { AuthConfig = authConfig },
+			KafkaProduceStep produceStep => new KafkaProduceStep(produceStep) { AuthConfig = authConfig },
+			KafkaBatchConsumeStep batchConsumeStep => new KafkaBatchConsumeStep(batchConsumeStep) { AuthConfig = authConfig },
+			KafkaBatchProduceStep batchProduceStep => new KafkaBatchProduceStep(batchProduceStep) { AuthConfig = authConfig },
+			_ => throw new InvalidOperationException("Current step is not a Kafka step. Call Topic().Consume() or Topic().Produce() first.")
+		};
+		scenario.SetCurrentStep(newStep);
 
 		return scenario;
 	}

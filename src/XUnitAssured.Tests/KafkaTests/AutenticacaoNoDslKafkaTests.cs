@@ -133,8 +133,7 @@ public class AutenticacaoNoDslKafkaTests
 	// Mesma armadilha de PrecedenciaDeConfiguracaoTests: reconstruir o passo copiando a
 	// PROPRIEDADE faz o padrão parecer informado, e o endereço e o grupo da fixture deixam de
 	// valer. Quem autentica pelo DSL dentro de uma fixture passa a falar com localhost:9092.
-	[Theory(DisplayName = "An authentication verb should not turn the default broker into an explicit one",
-		Skip = "Bug: KafkaAuthenticationExtensions.ApplyAuthConfig (lines 22-49) rebuilds the step copying the BootstrapServers/GroupId properties instead of using the copy constructor, so the fixture's broker and group are ignored after any With<Auth> verb")]
+	[Theory(DisplayName = "An authentication verb should not turn the default broker into an explicit one")]
 	[MemberData(nameof(Passos))]
 	public void Auth_Verb_Should_Not_Invent_Explicit_Broker(string tipo)
 	{

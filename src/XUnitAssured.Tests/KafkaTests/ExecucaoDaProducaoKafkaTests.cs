@@ -154,8 +154,7 @@ public class ExecucaoDaProducaoKafkaTests
 
 	// O mesmo, escrito como o usuário escreve. Hoje WithPartition/WithTimestamp/WithHeader fazem o
 	// passo largar o produtor da fixture e ir para localhost:9092 (ver VerbosDoDslKafkaTests).
-	[Fact(DisplayName = "A partition, a timestamp and headers set in the DSL should reach the fixture's producer",
-		Skip = "Bug: WithPartition/WithTimestamp/WithHeader (KafkaScenarioExtensions.cs:457-530) mark the default broker as explicit, so the step skips the fixture's shared producer and connects to localhost:9092 instead (KafkaProduceStep.cs:169)")]
+	[Fact(DisplayName = "A partition, a timestamp and headers set in the DSL should reach the fixture's producer")]
 	public void Partition_Timestamp_And_Headers_Should_Reach_Message()
 	{
 		var produtor = FalsosDoKafka.ProdutorQueGrava();
@@ -222,6 +221,8 @@ public class ExecucaoDaProducaoKafkaTests
 
 		resultado.GetProperty<string>("ExceptionMessage").ShouldBe("mensagem grande demais");
 		resultado.GetProperty<string>("ExceptionType").ShouldBe(typeof(KafkaException).FullName);
+		// Até a 6.30.6 a falha descartava o diagnóstico juntado antes dela, como o broker usado.
+		resultado.GetProperty<string>("BootstrapServers").ShouldNotBeNullOrEmpty();
 	}
 
 	[Fact(DisplayName = "ValidateProduceSuccess should fail the scenario when the message was not persisted")]
@@ -368,8 +369,7 @@ public class ExecucaoDaProducaoKafkaTests
 
 	// O passo simples manda a chave nula, e o broker distribui as mensagens entre as partições.
 	// O lote troca nula por "", que é uma chave: todas as mensagens caem na mesma partição.
-	[Fact(DisplayName = "A keyless batch should reach the producer with null keys, like a single produce",
-		Skip = "Bug: KafkaBatchProduceStep.cs:169 sends string.Empty for a null key, so every 'keyless' batch message hashes to the same partition instead of being distributed; the single produce step sends null")]
+	[Fact(DisplayName = "A keyless batch should reach the producer with null keys, like a single produce")]
 	public async Task Keyless_Batch_Should_Send_Null_Keys()
 	{
 		var produtor = FalsosDoKafka.ProdutorQueGrava();
@@ -434,8 +434,7 @@ public class ExecucaoDaProducaoKafkaTests
 
 	// O passo simples deixa de usar o produtor compartilhado quando o usuário informa endereço ou
 	// credencial (KafkaProduceStep.cs:166-170). O lote só olha o ProducerConfig.
-	[Fact(DisplayName = "A batch with an explicit broker or credential should not use the shared producer",
-		Skip = "Bug: KafkaBatchProduceStep.cs:143 uses the fixture's shared producer whenever ProducerConfig is null, ignoring an explicit BootstrapServers or AuthConfig (and a non-None context auth), unlike KafkaProduceStep.cs:166-170")]
+	[Fact(DisplayName = "A batch with an explicit broker or credential should not use the shared producer")]
 	public async Task Batch_With_Explicit_Broker_Should_Bypass_Shared_Producer()
 	{
 		var produtor = FalsosDoKafka.ProdutorQueGrava();

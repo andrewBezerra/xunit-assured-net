@@ -173,10 +173,9 @@ public class VerbosDoDslKafkaTests
 		passo.Topic.ShouldBe("pedidos");
 	}
 
-	// O construtor de cópia do lote não copia Messages; o verbo tem de carregar as mensagens
-	// mesmo assim, senão ajustar o prazo produziria um lote vazio.
-	[Fact(DisplayName = "Adjusting a batch produce step should not drop its messages",
-		Skip = "Bug: KafkaBatchProduceStep(KafkaBatchProduceStep source) (KafkaBatchProduceStep.cs:119-132) does not copy Messages, so ProduceBatch(...) followed by any With* verb produces an empty batch, which then fails with IndexOutOfRangeException in KafkaStepResult.CreateBatchProduceSuccess")]
+	// Até a 6.30.6 o construtor de cópia do lote não copiava Messages, e ajustar o prazo produzia um
+	// lote vazio.
+	[Fact(DisplayName = "Adjusting a batch produce step should not drop its messages")]
 	public void Adjusting_Batch_Produce_Should_Not_Drop_Messages()
 	{
 		var passo = ScenarioDsl.Given().Topic("pedidos").ProduceBatch(new object[] { "a", "b" })
@@ -184,6 +183,16 @@ public class VerbosDoDslKafkaTests
 			.CurrentStep.ShouldBeOfType<KafkaBatchProduceStep>();
 
 		passo.Messages.Count.ShouldBe(2, "a batch adjusted after being described must still carry its messages");
+	}
+
+	// Um lote vazio quebrava só na execução, com IndexOutOfRangeException ao montar o resultado.
+	[Fact(DisplayName = "An empty batch should be refused when it is described")]
+	public void Empty_Batch_Should_Be_Refused()
+	{
+		Should.Throw<ArgumentException>(() => ScenarioDsl.Given().Topic("pedidos").ProduceBatch(Array.Empty<object>()))
+			.Message.ShouldContain("at least one message");
+		Should.Throw<ArgumentException>(() => ScenarioDsl.Given().Topic("pedidos").ProduceBatch(new List<KeyValuePair<object, object>>()))
+			.Message.ShouldContain("at least one message");
 	}
 
 	// ---------- Ajustes no passo de produção simples ----------
@@ -257,8 +266,7 @@ public class VerbosDoDslKafkaTests
 	// um verbo que reconstrói o passo. Estes quatro reconstroem campo a campo e copiam a
 	// PROPRIEDADE BootstrapServers, que devolve o padrão "localhost:9092"; o passo passa a achar
 	// que o endereço foi informado. É a armadilha que PrecedenciaDeConfiguracaoTests descreve.
-	[Fact(DisplayName = "Field-by-field produce verbs should not turn the default broker into an explicit one",
-		Skip = "Bug: KafkaScenarioExtensions.WithKey/WithHeader/WithPartition/WithTimestamp (lines 390-403, 457-470, 488-501, 517-530) copy the BootstrapServers property instead of the field, so the fixture's broker and shared producer are ignored after them")]
+	[Fact(DisplayName = "Field-by-field produce verbs should not turn the default broker into an explicit one")]
 	public void Field_By_Field_Verbs_Should_Not_Invent_Explicit_Broker()
 	{
 		var verbos = new (string Nome, Func<ITestScenario, ITestScenario> Aplicar)[]

@@ -258,8 +258,7 @@ public class ExecucaoDoConsumoKafkaTests
 	// A documentação de ValidateMessage<T> e AssertMessage<T> promete desserializar a mensagem
 	// (e o gerador do MCP sugere AssertMessage<Order>). O valor consumido é uma string JSON, e
 	// GetMessage<T> só faz conversão de tipos primitivos, então nunca chega a um objeto.
-	[Fact(DisplayName = "ValidateMessage should deserialize a JSON message into the requested type",
-		Skip = "Bug: KafkaStepResult.GetMessage<T> (KafkaStepResult.cs:70) delegates to TestStepResult.GetData<T>, which only casts/converts and returns null for a JSON string, so ValidateMessage<T> always throws 'Failed to deserialize' and AssertMessage<T> hands the assertion null for any class other than string")]
+	[Fact(DisplayName = "ValidateMessage should deserialize a JSON message into the requested type")]
 	public void ValidateMessage_Should_Deserialize_Json()
 	{
 		var fabrica = new FabricaFalsa(0).Chegam(FalsosDoKafka.Consumida("pedidos", "k", """{"id":7}"""));
