@@ -27,7 +27,7 @@
   </PropertyGroup>
 
   <PropertyGroup>
-    <Version>6.30.2</Version>
+    <Version>6.30.3</Version>
 
     <!--
       O que a página do pacote no nuget.org mostra. Sem isto ela fica muda, e quem atualiza
@@ -86,6 +86,12 @@
 
     <!-- The public API is documented with XML comments; publish them with the package. -->
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
+
+    <!--
+      Os pacotes referenciam o xunit, e o scanner do Sonar toma por projeto de teste quem o
+      referencia: na primeira análise, nenhuma linha das bibliotecas contou, nem na cobertura.
+    -->
+    <SonarQubeTestProject>false</SonarQubeTestProject>
   </PropertyGroup>
 
   <ItemGroup Condition="'$(IsShippingLibrary)' == 'true'">
