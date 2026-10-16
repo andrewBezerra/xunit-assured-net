@@ -55,6 +55,35 @@ public interface ICamundaScenario : ITestScenario
 	ICamundaJobMock MockJobWorker(string jobType);
 
 	/// <summary>
+	/// Responde no lugar da pessoa a user task <paramref name="elementId"/>, só nas instâncias desta cadeia.
+	/// </summary>
+	/// <remarks>
+	/// Vale toda vez que a instância, ou uma que ela chamar, chegar nessa task. Só para user tasks do
+	/// Camunda (<c>zeebe:userTask</c>); as antigas, feitas de job, se mockam pelo tipo com
+	/// <c>MockJobWorker("io.camunda.zeebe:userTask")</c>.
+	/// </remarks>
+	/// <param name="elementId">O id da user task no BPMN.</param>
+	ICamundaUserTaskMock MockUserTask(string elementId);
+
+	/// <summary>
+	/// Pula o timer <paramref name="elementId"/> quando a instância chegar nele, só nas instâncias desta cadeia.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// O relógio do cluster é de todos, então o pacote não o adianta: modifica a instância, encerrando a
+	/// espera e ativando o que vem depois do timer. Vale para o timer intermediário, o timer depois de
+	/// um gateway de evento e o timer de borda (a borda que interrompe encerra a atividade; a que não
+	/// interrompe a deixa ativa).
+	/// </para>
+	/// <para>
+	/// Um timer que desemboca num gateway de junção é recusado: ativado por modificação, o gateway
+	/// dispara sem esperar os outros ramos. Nesse caso, ponha a duração numa variável e use <c>PT1S</c>.
+	/// </para>
+	/// </remarks>
+	/// <param name="elementId">O id do evento de timer no BPMN (o da borda, para um timer de borda).</param>
+	ICamundaScenario SkipTimer(string elementId);
+
+	/// <summary>
 	/// Inicia uma instância do processo.
 	/// </summary>
 	/// <remarks>
@@ -81,6 +110,16 @@ public interface ICamundaScenario : ITestScenario
 	/// Invólucro fino sobre <see cref="ExecuteAsync"/>, para uma suíte escrita na forma síncrona.
 	/// </remarks>
 	CamundaValidationBuilder Execute();
+}
+
+/// <summary>
+/// Uma user task mockada que ainda não disse o que responde.
+/// </summary>
+public interface ICamundaUserTaskMock
+{
+	/// <summary>Completa a task, com estas variáveis, como a pessoa faria no Tasklist.</summary>
+	/// <param name="variables">O que o formulário devolveria: objeto anônimo, classe ou dicionário. Nulo: nada.</param>
+	ICamundaScenario ThenComplete(object? variables = null);
 }
 
 /// <summary>

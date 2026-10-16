@@ -69,6 +69,10 @@ internal sealed class CamundaScenario : ICamundaScenario, IFronteiraDePasso
 
 	public ICamundaJobMock MockJobWorker(string jobType) => CamundaVerbos.MockJobWorker(_cenario, jobType);
 
+	public ICamundaUserTaskMock MockUserTask(string elementId) => CamundaVerbos.MockUserTask(_cenario, elementId);
+
+	public ICamundaScenario SkipTimer(string elementId) => CamundaVerbos.SkipTimer(_cenario, elementId);
+
 	public ICamundaScenario StartInstance(string processId, object? variables = null, int? version = null, string? versionTag = null) =>
 		CamundaVerbos.StartInstance(_cenario, processId, variables, version, versionTag);
 

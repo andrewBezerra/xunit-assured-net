@@ -124,6 +124,40 @@ public class IdaEVoltaNoCamundaTests
 		falha.Message.ShouldContain("Jobs waiting for a worker (not mocked in this test): 'xa-despachar' at 'despachar'");
 	}
 
+	// ---------- A pessoa e o relógio ----------
+
+	[Fact(DisplayName = "Camunda: an intermediate timer, a user task and a timer after an event-based gateway, all answered by the test")]
+	public async Task User_Task_And_Timers()
+	{
+		await ScenarioDsl.Given()
+			.Deploy("xa-aprovacao")
+			.SkipTimer("esperar-analise")
+			.MockUserTask("aprovar").ThenComplete(new { aprovado = true })
+			.SkipTimer("sem-confirmacao")
+			.StartInstance("xa-aprovacao", new { pedidoId = $"P-{Guid.NewGuid():N}" })
+			.ExecuteAsync()
+			.AssertInstanceCompleted()
+			.AssertCompletedElements("aprovar", "desistiu")
+			.AssertVariable("aprovado", true)
+			.AssertTimerSkipped("esperar-analise")
+			.AssertTimerSkipped("sem-confirmacao")
+			.AssertUserTaskMocked("aprovar");
+	}
+
+	[Fact(DisplayName = "Camunda: an interrupting boundary timer ends the user task and takes the expiry path")]
+	public async Task Boundary_Timer_Expires_The_Task()
+	{
+		await ScenarioDsl.Given()
+			.Deploy("xa-aprovacao")
+			.SkipTimer("esperar-analise")
+			.SkipTimer("prazo-aprovacao")
+			.StartInstance("xa-aprovacao", new { pedidoId = $"P-{Guid.NewGuid():N}" })
+			.ExecuteAsync()
+			.AssertInstanceCompleted()
+			.AssertCompletedElements("expirou")
+			.AssertTimerSkipped("prazo-aprovacao");
+	}
+
 	// ---------- O QA: o que já está publicado no cluster ----------
 
 	[Fact(DisplayName = "Camunda (QA): with no Deploy in the chain, the version already on the cluster runs, by tag or the latest")]

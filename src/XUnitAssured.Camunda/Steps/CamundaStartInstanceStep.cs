@@ -90,7 +90,9 @@ public class CamundaStartInstanceStep : ITestStep
 
 			context.SetProperty(ChaveDaInstancia, chave);
 
-			var mocks = new MocksDaInstancia(gateway, chave, MocksDaCadeia.Todos(context), settings);
+			var mocks = new MocksDaInstancia(
+				gateway, chave, MocksDaCadeia.Todos(context), settings,
+				MocksDeElemento.UserTasks(context), MocksDeElemento.Timers(context), definicao.DefinitionKey);
 			context.SetProperty(MocksDaInstancia.ChaveNoContexto, mocks);
 			mocks.Iniciar();
 

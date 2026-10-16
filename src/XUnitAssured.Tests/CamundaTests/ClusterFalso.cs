@@ -34,6 +34,8 @@ internal sealed class ClusterFalso : ICamundaGateway
 	private readonly Dictionary<string, Instancia> _instancias = new();
 	private readonly List<Job> _jobs = new();
 	private readonly List<DefinicaoVista> _definicoes = new();
+	private readonly List<UserTaskFalsa> _userTasks = new();
+	private readonly Dictionary<string, string> _xmls = new();
 	private int _sequencia;
 
 	/// <summary>O que acontece quando um job é completado. Padrão: completar a instância se não sobrou job.</summary>
@@ -170,6 +172,7 @@ internal sealed class ClusterFalso : ICamundaGateway
 		lock (_trava)
 			processId = _definicoes.FirstOrDefault(d => d.DefinitionKey == definitionKey)?.ProcessId ?? definitionKey.Replace("def-", "");
 		var chave = NovaInstancia(processId);
+		lock (_trava) _instancias[chave].Definicao = definitionKey;
 
 		if (variables is not null)
 		{
@@ -272,7 +275,7 @@ internal sealed class ClusterFalso : ICamundaGateway
 		lock (_trava)
 		{
 			IReadOnlyList<ElementoVisto> elementos = _instancias[processInstanceKey].Elementos
-				.Select(e => new ElementoVisto(e.Key, e.Key, "SERVICETASK", e.Value))
+				.Select(e => new ElementoVisto(e.Key, e.Key, "SERVICETASK", e.Value, $"{processInstanceKey}:{e.Key}"))
 				.ToList();
 			return Task.FromResult(elementos);
 		}
@@ -308,13 +311,155 @@ internal sealed class ClusterFalso : ICamundaGateway
 		return Task.CompletedTask;
 	}
 
+	// ----- user tasks, esperas, modificação, BPMN -----
+
+	/// <summary>O que acontece quando uma user task é completada. Padrão: completar a instância se nada sobrou.</summary>
+	public Action<ClusterFalso, UserTaskFalsa>? AoCompletarUserTask { get; set; }
+
+	/// <summary>O que acontece depois de uma modificação. Padrão: completar a instância se nada sobrou ativo.</summary>
+	public Action<ClusterFalso, string>? AoModificar { get; set; }
+
+	public List<string> Modificacoes { get; } = new();
+
+	public string NovaUserTask(string instancia, string elemento)
+	{
+		lock (_trava)
+		{
+			var chave = $"task-{++_sequencia}";
+			_userTasks.Add(new UserTaskFalsa(chave, instancia, elemento));
+			_instancias[instancia].Elementos[elemento] = "ACTIVE";
+			return chave;
+		}
+	}
+
+	/// <summary>O BPMN de uma definição, para o pacote ler a estrutura do processo.</summary>
+	public void DefinirBpmn(string definitionKey, string xml)
+	{
+		lock (_trava) _xmls[definitionKey] = xml;
+	}
+
+	public Task<IReadOnlyList<EsperaVista>> SearchWaitStatesAsync(string rootProcessInstanceKey, CancellationToken ct)
+	{
+		lock (_trava)
+		{
+			var arvore = Arvore(rootProcessInstanceKey);
+			IReadOnlyList<EsperaVista> esperas = _userTasks
+				.Where(t => t.Aberta && arvore.Contains(t.Instancia))
+				.Select(t => new EsperaVista(t.Instancia, $"{t.Instancia}:{t.Elemento}", t.Elemento, "USER_TASK", UserTaskKey: t.Chave))
+				.ToList();
+			return Task.FromResult(esperas);
+		}
+	}
+
+	public Task CompleteUserTaskAsync(string userTaskKey, object? variables, CancellationToken ct)
+	{
+		UserTaskFalsa task;
+		lock (_trava)
+		{
+			task = _userTasks.FirstOrDefault(t => t.Chave == userTaskKey && t.Aberta)
+				?? throw new CamundaRecusouException("NOT_FOUND", $"User task {userTaskKey} not found.");
+			task.Aberta = false;
+			_instancias[task.Instancia].Elementos[task.Elemento] = "COMPLETED";
+
+			if (variables is not null)
+			{
+				foreach (var propriedade in JsonSerializer.SerializeToElement(variables).EnumerateObject())
+					_instancias[task.Instancia].Variaveis[propriedade.Name] = propriedade.Value.GetRawText();
+			}
+
+			Comandos.Add($"complete-user-task {userTaskKey}");
+		}
+
+		if (AoCompletarUserTask is not null)
+			AoCompletarUserTask(this, task);
+		else
+			CompletarSeNaoSobrouJob(task.Instancia);
+
+		return Task.CompletedTask;
+	}
+
+	public Task ModifyInstanceAsync(
+		string processInstanceKey,
+		IReadOnlyList<string> terminateElementInstanceKeys,
+		IReadOnlyList<string> activateElementIds,
+		string? ancestorElementInstanceKey,
+		CancellationToken ct)
+	{
+		lock (_trava)
+		{
+			var instancia = _instancias[processInstanceKey];
+			foreach (var chave in terminateElementInstanceKeys)
+				instancia.Elementos[chave.Substring(chave.IndexOf(':') + 1)] = "TERMINATED";
+			foreach (var id in activateElementIds)
+				instancia.Elementos[id] = "COMPLETED";
+
+			Modificacoes.Add(
+				$"{processInstanceKey} -[{string.Join(",", terminateElementInstanceKeys)}] +[{string.Join(",", activateElementIds)}]" +
+				(ancestorElementInstanceKey is null ? "" : $" in {ancestorElementInstanceKey}"));
+		}
+
+		if (AoModificar is not null)
+		{
+			AoModificar(this, processInstanceKey);
+		}
+		else
+		{
+			lock (_trava)
+			{
+				if (!_instancias[processInstanceKey].Elementos.Values.Contains("ACTIVE"))
+					_instancias[processInstanceKey].Estado = "COMPLETED";
+			}
+		}
+
+		return Task.CompletedTask;
+	}
+
+	public Task<string> GetProcessDefinitionXmlAsync(string definitionKey, CancellationToken ct)
+	{
+		lock (_trava)
+			return _xmls.TryGetValue(definitionKey, out var xml)
+				? Task.FromResult(xml)
+				: throw new CamundaRecusouException("NOT_FOUND", $"Process definition {definitionKey} not found.");
+	}
+
+	private HashSet<string> Arvore(string raiz)
+	{
+		var arvore = new HashSet<string> { raiz };
+		bool cresceu;
+		do
+		{
+			cresceu = false;
+			foreach (var i in _instancias.Values.Where(i => i.Pai is not null && arvore.Contains(i.Pai) && !arvore.Contains(i.Chave)))
+				cresceu |= arvore.Add(i.Chave);
+		}
+		while (cresceu);
+
+		return arvore;
+	}
+
+	internal sealed class UserTaskFalsa
+	{
+		public UserTaskFalsa(string chave, string instancia, string elemento)
+		{
+			Chave = chave;
+			Instancia = instancia;
+			Elemento = elemento;
+		}
+
+		public string Chave { get; }
+		public string Instancia { get; }
+		public string Elemento { get; }
+		public bool Aberta { get; set; } = true;
+	}
+
 	// ----- apoio -----
 
 	public void CompletarSeNaoSobrouJob(string instancia)
 	{
 		lock (_trava)
 		{
-			if (!_jobs.Any(j => j.Instancia == instancia && j.Estado == "CREATED"))
+			if (!_jobs.Any(j => j.Instancia == instancia && j.Estado == "CREATED") &&
+				!_userTasks.Any(t => t.Instancia == instancia && t.Aberta))
 				_instancias[instancia].Estado = "COMPLETED";
 		}
 	}
@@ -330,7 +475,7 @@ internal sealed class ClusterFalso : ICamundaGateway
 		return job;
 	}
 
-	private static InstanciaVista Vista(Instancia i) => new(i.Chave, i.ProcessId, i.Estado, i.ComIncident, i.Pai);
+	private static InstanciaVista Vista(Instancia i) => new(i.Chave, i.ProcessId, i.Estado, i.ComIncident, i.Pai, i.Definicao);
 
 	internal sealed class Instancia
 	{
@@ -344,6 +489,7 @@ internal sealed class ClusterFalso : ICamundaGateway
 		public string Chave { get; }
 		public string ProcessId { get; }
 		public string? Pai { get; }
+		public string? Definicao { get; set; }
 		public string Estado { get; set; } = "ACTIVE";
 		public bool ComIncident { get; set; }
 		public Dictionary<string, string> Elementos { get; } = new();

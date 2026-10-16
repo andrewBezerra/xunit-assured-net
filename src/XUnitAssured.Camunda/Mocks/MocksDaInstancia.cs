@@ -15,6 +15,12 @@ namespace XUnitAssured.Camunda.Mocks;
 /// </summary>
 /// <remarks>
 /// <para>
+/// A cada volta: acha as filhas, resolve os jobs dos tipos mockados, completa as user tasks
+/// mockadas (pela busca de esperas, que cobre a árvore) e pula os timers declarados (pelo BPMN
+/// implantado e pelos elementos ativos, porque a borda e o timer de gateway de evento não aparecem
+/// como espera).
+/// </para>
+/// <para>
 /// <b>Por que não um worker por tipo.</b> A ativação de jobs do Camunda não filtra por instância:
 /// um worker de <c>cobrar</c> pegaria o job de qualquer teste rodando no cluster. Aqui o mock
 /// procura os jobs <i>desta</i> instância, pela chave dela, e os resolve pela chave do job, sem
@@ -72,18 +78,61 @@ internal sealed class MocksDaInstancia
 	/// <summary>Os laços que ainda rodam neste processo.</summary>
 	internal static IReadOnlyCollection<MocksDaInstancia> Abertas => Abertos.Keys.ToArray();
 
+	private readonly IReadOnlyDictionary<string, UserTaskMock> _userTasks;
+	private readonly IReadOnlyCollection<string> _timers;
+
+	// A versão da definição de cada instância da árvore, para ler o BPMN dela; e o BPMN lido.
+	private readonly ConcurrentDictionary<string, string> _definicaoDaInstancia = new();
+	private readonly ConcurrentDictionary<string, ModeloBpmn> _modelos = new();
+	private readonly ConcurrentDictionary<string, byte> _recusasDeTimer = new();
+	private readonly ConcurrentDictionary<string, int> _userTasksResolvidas = new(StringComparer.Ordinal);
+	private readonly ConcurrentDictionary<string, int> _timersPulados = new(StringComparer.Ordinal);
+
 	public MocksDaInstancia(
 		ICamundaGateway gateway,
 		string processInstanceKey,
 		IReadOnlyDictionary<string, JobMock> mocks,
-		CamundaSettings settings)
+		CamundaSettings settings,
+		IReadOnlyDictionary<string, UserTaskMock>? userTasks = null,
+		IReadOnlyCollection<string>? timers = null,
+		string? definitionKey = null)
 	{
 		_gateway = gateway;
 		_mocks = new Dictionary<string, JobMock>(mocks, StringComparer.Ordinal);
+		_userTasks = new Dictionary<string, UserTaskMock>(
+			userTasks ?? new Dictionary<string, UserTaskMock>(), StringComparer.Ordinal);
+		_timers = (timers ?? Array.Empty<string>()).ToArray();
 		_intervalo = TimeSpan.FromMilliseconds(Math.Max(10, settings.PollIntervalMilliseconds));
 		_vida = TimeSpan.FromSeconds(Math.Max(1, settings.MockLifetimeSeconds));
 		ProcessInstanceKey = processInstanceKey;
 		_instancias[processInstanceKey] = 0;
+		if (definitionKey is not null)
+			_definicaoDaInstancia[processInstanceKey] = definitionKey;
+	}
+
+	/// <summary>Quantas vezes o mock desta user task a completou.</summary>
+	public int UserTasksResolvidas(string elementId) => _userTasksResolvidas.TryGetValue(elementId, out var n) ? n : 0;
+
+	/// <summary>Quantas vezes este timer foi pulado.</summary>
+	public int TimersPulados(string elementId) => _timersPulados.TryGetValue(elementId, out var n) ? n : 0;
+
+	/// <summary>As user tasks e os timers declarados que o laço nunca usou: pistas de uma instância parada.</summary>
+	public IReadOnlyList<string> NuncaUsados() =>
+		_userTasks.Keys.Where(id => UserTasksResolvidas(id) == 0).Select(id => $"user task '{id}'")
+			.Concat(_timers.Where(id => TimersPulados(id) == 0).Select(id => $"timer '{id}'"))
+			.Concat(_mocks.Keys.Where(t => Invocacoes(t) == 0).Select(t => $"job type '{t}'"))
+			.ToList();
+
+	/// <summary>
+	/// O que a árvore espera e este teste não responde: user tasks sem mock, mensagens, sinais.
+	/// </summary>
+	public async Task<IReadOnlyList<EsperaVista>> EsperasSemRespostaAsync(CancellationToken ct)
+	{
+		var esperas = await _gateway.SearchWaitStatesAsync(ProcessInstanceKey, ct).ConfigureAwait(false);
+		return esperas
+			.Where(e => e.Tipo != "JOB")
+			.Where(e => !(e.Tipo == "USER_TASK" && _userTasks.ContainsKey(e.ElementId)))
+			.ToList();
 	}
 
 	/// <summary>A instância raiz.</summary>
@@ -200,6 +249,12 @@ internal sealed class MocksDaInstancia
 				if (_mocks.Count > 0)
 					await ResolverJobsAsync(ct).ConfigureAwait(false);
 
+				if (_userTasks.Count > 0)
+					await ResolverUserTasksAsync(ct).ConfigureAwait(false);
+
+				if (_timers.Count > 0)
+					await PularTimersAsync(ct).ConfigureAwait(false);
+
 				// O estado da raiz custa uma busca a mais; uma vez a cada dez voltas basta para
 				// o laço não sobreviver muito à instância.
 				if (++volta % 10 == 0 && await TerminouAsync(ct).ConfigureAwait(false))
@@ -243,7 +298,134 @@ internal sealed class MocksDaInstancia
 	{
 		var filhas = await _gateway.SearchChildInstancesAsync(Instancias, ct).ConfigureAwait(false);
 		foreach (var filha in filhas)
+		{
 			_instancias.TryAdd(filha.ProcessInstanceKey, 0);
+			if (filha.ProcessDefinitionKey is not null)
+				_definicaoDaInstancia.TryAdd(filha.ProcessInstanceKey, filha.ProcessDefinitionKey);
+		}
+	}
+
+	// A busca de esperas filtra pela raiz, e assim cobre as filhas numa ida só.
+	private async Task ResolverUserTasksAsync(CancellationToken ct)
+	{
+		var esperas = await _gateway.SearchWaitStatesAsync(ProcessInstanceKey, ct).ConfigureAwait(false);
+
+		foreach (var espera in esperas.Where(e => e.Tipo == "USER_TASK" && e.UserTaskKey is not null))
+		{
+			if (!_userTasks.TryGetValue(espera.ElementId, out var mock))
+				continue;
+			if (!_tratados.TryAdd("user-task:" + espera.UserTaskKey, 0))
+				continue;
+
+			try
+			{
+				await _gateway.CompleteUserTaskAsync(espera.UserTaskKey!, mock.Variables, ct).ConfigureAwait(false);
+				_userTasksResolvidas.AddOrUpdate(espera.ElementId, 1, (_, n) => n + 1);
+			}
+			catch (CamundaRecusouException e) when (e.Codigo == "NOT_FOUND")
+			{
+				// A task deixou de existir entre a busca e o comando (uma borda a interrompeu).
+			}
+			catch (CamundaRecusouException e)
+			{
+				_problemas.Enqueue(
+					$"Camunda rejected completing user task '{espera.ElementId}' (task {espera.UserTaskKey}, instance " +
+					$"{espera.ProcessInstanceKey}): {e.Codigo}: {e.Message}");
+			}
+			catch (Exception)
+			{
+				_tratados.TryRemove("user-task:" + espera.UserTaskKey, out _);
+				throw;
+			}
+		}
+	}
+
+	// A borda e o timer depois de gateway de evento não aparecem nas esperas (medido na 8.10.4):
+	// quem diz que a instância chegou no timer é o elemento ativo que o BPMN aponta.
+	private async Task PularTimersAsync(CancellationToken ct)
+	{
+		foreach (var instancia in Instancias)
+		{
+			var modelo = await ModeloAsync(instancia, ct).ConfigureAwait(false);
+			if (modelo is null)
+				continue;
+
+			var planos = new List<PuloDeTimer>();
+			foreach (var timer in _timers)
+			{
+				var plano = modelo.PlanejarPulo(timer, out var recusa);
+				if (recusa is not null && _recusasDeTimer.TryAdd(timer, 0))
+					_problemas.Enqueue(recusa);
+				if (plano is not null)
+					planos.Add(plano);
+			}
+
+			if (planos.Count == 0)
+				continue;
+
+			var elementos = await _gateway.SearchElementsAsync(instancia, ct).ConfigureAwait(false);
+			var ativos = elementos.Where(e => e.State == "ACTIVE").ToList();
+
+			foreach (var plano in planos)
+			{
+				foreach (var esperando in ativos.Where(e => e.ElementId == plano.ElementoEsperando))
+				{
+					if (!_tratados.TryAdd($"timer:{plano.TimerId}:{esperando.ElementInstanceKey}", 0))
+						continue;
+
+					// Dentro de um subprocesso, ativa no mesmo subprocesso, e não num novo.
+					var escopo = plano.Escopo is null
+						? null
+						: ativos.FirstOrDefault(e => e.ElementId == plano.Escopo)?.ElementInstanceKey;
+
+					try
+					{
+						await _gateway.ModifyInstanceAsync(
+							instancia,
+							plano.Encerrar ? new[] { esperando.ElementInstanceKey } : Array.Empty<string>(),
+							plano.Ativar,
+							escopo,
+							ct).ConfigureAwait(false);
+
+						_timersPulados.AddOrUpdate(plano.TimerId, 1, (_, n) => n + 1);
+					}
+					catch (CamundaRecusouException e) when (e.Codigo == "NOT_FOUND")
+					{
+						// O elemento saiu de lá entre a busca e a modificação.
+					}
+					catch (CamundaRecusouException e)
+					{
+						_problemas.Enqueue(
+							$"Camunda rejected skipping timer '{plano.TimerId}' at '{plano.ElementoEsperando}' (instance " +
+							$"{instancia}): {e.Codigo}: {e.Message}");
+					}
+					catch (Exception)
+					{
+						_tratados.TryRemove($"timer:{plano.TimerId}:{esperando.ElementInstanceKey}", out _);
+						throw;
+					}
+				}
+			}
+		}
+	}
+
+	private async Task<ModeloBpmn?> ModeloAsync(string instancia, CancellationToken ct)
+	{
+		if (!_definicaoDaInstancia.TryGetValue(instancia, out var definicao))
+		{
+			// A raiz iniciada sem a chave da definição (os testes do pacote), ou uma filha antiga.
+			var vista = await _gateway.GetInstanceAsync(instancia, ct).ConfigureAwait(false);
+			if (vista?.ProcessDefinitionKey is null)
+				return null;
+
+			definicao = _definicaoDaInstancia.GetOrAdd(instancia, vista.ProcessDefinitionKey);
+		}
+
+		if (_modelos.TryGetValue(definicao, out var modelo))
+			return modelo;
+
+		var xml = await _gateway.GetProcessDefinitionXmlAsync(definicao, ct).ConfigureAwait(false);
+		return _modelos.GetOrAdd(definicao, ModeloBpmn.Ler(xml));
 	}
 
 	private async Task ResolverJobsAsync(CancellationToken ct)
