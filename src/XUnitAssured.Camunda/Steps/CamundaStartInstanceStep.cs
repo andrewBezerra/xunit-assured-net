@@ -93,12 +93,13 @@ public class CamundaStartInstanceStep : ITestStep
 			var mocks = new MocksDaInstancia(
 				gateway, chave, MocksDaCadeia.Todos(context), settings,
 				MocksDeElemento.UserTasks(context), MocksDeElemento.Timers(context), definicao.DefinitionKey,
-				MocksDeElemento.Mensagens(context), MocksDeElemento.Sinais(context));
+				MocksDeElemento.Mensagens(context), MocksDeElemento.Sinais(context), MocksDeElemento.Filhos(context));
 			context.SetProperty(MocksDaInstancia.ChaveNoContexto, mocks);
 			mocks.Iniciar();
 
 			Result = CamundaStepResult.CreateStartSuccess(
-				ProcessId, chave, cronometro.Elapsed, definicao.DefinitionKey, definicao.Version, definicao.VersionTag);
+				ProcessId, chave, cronometro.Elapsed, definicao.DefinitionKey, definicao.Version, definicao.VersionTag,
+				CamundaDeployStep.Avisos(context).ToArray());
 			IsValid = true;
 			return Result;
 		}

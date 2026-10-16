@@ -443,7 +443,8 @@ internal sealed class SdkCamundaGateway : ICamundaGateway, IDisposable
 		Nome(p.State),
 		p.HasIncident,
 		p.ParentProcessInstanceKey?.Value,
-		p.ProcessDefinitionKey.Value);
+		p.ProcessDefinitionKey.Value,
+		p.ParentElementInstanceKey?.Value);
 
 	private static async Task Recusa(Func<Task> acao)
 	{

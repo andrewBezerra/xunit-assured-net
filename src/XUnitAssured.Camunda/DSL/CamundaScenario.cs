@@ -77,6 +77,8 @@ internal sealed class CamundaScenario : ICamundaScenario, IFronteiraDePasso
 
 	public ICamundaSignalMock MockSignal(string signalName) => CamundaVerbos.MockSignal(_cenario, signalName);
 
+	public ICamundaChildProcessMock MockChildProcess(string callActivityId) => CamundaVerbos.MockChildProcess(_cenario, callActivityId);
+
 	public ICamundaScenario StartInstance(string processId, object? variables = null, int? version = null, string? versionTag = null) =>
 		CamundaVerbos.StartInstance(_cenario, processId, variables, version, versionTag);
 

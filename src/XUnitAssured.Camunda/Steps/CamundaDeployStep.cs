@@ -38,6 +38,7 @@ public class CamundaDeployStep : ITestStep
 {
 	internal const string ChaveDasDefinicoes = "_CamundaDefinicoes";
 	internal const string ChaveDaFalha = "_CamundaFalhaDoDeploy";
+	internal const string ChaveDosAvisos = "_CamundaAvisos";
 
 	/// <inheritdoc />
 	public string? Name { get; internal set; }
@@ -82,7 +83,11 @@ public class CamundaDeployStep : ITestStep
 			foreach (var processo in processos)
 				definicoes[processo.ProcessId] = processo;
 
-			Result = CamundaStepResult.CreateDeploySuccess(processos, cronometro.Elapsed);
+			var avisos = Avisos(context);
+			foreach (var aviso in recursos.SelectMany(AvisosDe).Where(a => !avisos.Contains(a)))
+				avisos.Add(aviso);
+
+			Result = CamundaStepResult.CreateDeploySuccess(processos, cronometro.Elapsed, avisos.ToArray());
 			IsValid = true;
 			return Result;
 		}
@@ -119,6 +124,42 @@ public class CamundaDeployStep : ITestStep
 		}
 
 		return definicoes;
+	}
+
+	internal static List<string> Avisos(ITestContext context)
+	{
+		var avisos = context.GetProperty<List<string>>(ChaveDosAvisos);
+		if (avisos is null)
+		{
+			avisos = new List<string>();
+			context.SetProperty(ChaveDosAvisos, avisos);
+		}
+
+		return avisos;
+	}
+
+	// O bindingType padrão é latest: a call activity chama a última versão do filho no momento em que é
+	// ativada, e num cluster compartilhado ela pode ser a de outra pessoa.
+	internal static IEnumerable<string> AvisosDe(RecursoBpmn recurso)
+	{
+		if (!recurso.Nome.EndsWith(".bpmn", StringComparison.OrdinalIgnoreCase))
+			return Array.Empty<string>();
+
+		try
+		{
+			return Mocks.ModeloBpmn.Ler(System.Text.Encoding.UTF8.GetString(recurso.Conteudo).TrimStart((char)0xFEFF))
+				.ChamadasDaUltimaVersao()
+				.Select(c =>
+					$"Call activity '{c.Id}' in {recurso.Nome} calls '{c.ProcessoChamado}' with bindingType " +
+					$"\"{c.Vinculo ?? "latest"}\"{(c.Vinculo is null ? " (the default)" : "")}: it starts the latest version of the child " +
+					"deployed on the cluster, which on a shared cluster may be someone else's. Use bindingType=\"deployment\" " +
+					"and deploy the child in the same Deploy(...).")
+				.ToList();
+		}
+		catch (System.Xml.XmlException)
+		{
+			return Array.Empty<string>();
+		}
 	}
 
 	internal static string Localizar(string caminho)

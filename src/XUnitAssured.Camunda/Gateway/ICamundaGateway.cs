@@ -109,7 +109,7 @@ internal sealed record JobPendente(string JobKey, string Type, string ElementId,
 /// <summary>Uma instância como a busca a mostra.</summary>
 internal sealed record InstanciaVista(
 	string ProcessInstanceKey, string ProcessId, string State, bool HasIncident, string? ParentProcessInstanceKey,
-	string? ProcessDefinitionKey = null);
+	string? ProcessDefinitionKey = null, string? ParentElementInstanceKey = null);
 
 /// <summary>Um elemento de uma instância, como a busca o mostra.</summary>
 internal sealed record ElementoVisto(

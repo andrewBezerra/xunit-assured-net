@@ -197,6 +197,41 @@ await Given()
   - a signal event that flows into a joining gateway is refused;
   - the triggered event is `TERMINATED`, so assert it with `AssertSignalTriggered`.
 
+## Child processes
+
+A call activity can run its real child, or the test can answer for it. The child is often
+another team's process, with its own workers. Mock it by the call activity's id in the parent:
+
+```csharp
+await Given()
+    .Deploy("order", "shipping")
+    .MockJobWorker("charge-card").ThenComplete()
+    .MockChildProcess("call-shipping").ThenComplete(new { trackingCode = "BR-9" })
+    .StartInstance("order")
+    .ExecuteAsync()
+    .AssertInstanceCompleted()
+    .AssertVariable("trackingCode", "BR-9")   // the call activity's output mapping ran
+    .AssertChildProcessMocked("call-shipping");
+```
+
+- **The id is the call activity's,** not the child process's. It names which call is mocked, even
+  when the parent calls the same child in two places.
+- **The child starts for real and is intercepted as soon as it shows up.** The package ends what it
+  is doing and finishes it at its end event, with the test's variables. The child ends as it would
+  have ended, so the call activity's output mapping runs (measured on 8.10.4). The child must be
+  deployed, because the call activity starts it.
+- **`ThenThrowBpmnError(code, variables)`** finishes the child at its error end event with that
+  code. If the child has none, the package ends the call activity and takes the boundary error
+  event that catches the code. With neither, the test fails, because the error has no path to
+  take.
+- **A child with nothing to wait for ends before it can be intercepted:** no job, timer, message
+  or user task. The test fails saying it ran for real.
+
+**`bindingType` warning.** A call activity with no `bindingType`, or `bindingType="latest"`,
+starts the latest version of the child deployed on the cluster. On a shared cluster, that may be
+someone else's version. `Deploy` reports it in `GetResult().Warnings`, and a failed assertion repeats
+it. Use `bindingType="deployment"` and deploy the child in the same `Deploy(...)`.
+
 ## Testing what is already deployed
 
 A chain without `Deploy` starts the version already on the cluster: what was deployed to
@@ -267,6 +302,7 @@ the engine and shows up completed in the search a moment later. Every assertion 
 | `AssertTimerSkipped(id, times)` | that timer was skipped exactly `times` times |
 | `AssertMessageCorrelated(name, times)` | the mock correlated that message exactly `times` times |
 | `AssertSignalTriggered(name, times)` | that signal was triggered exactly `times` times |
+| `AssertChildProcessMocked(id, times)` | the child process of that call activity was mocked exactly `times` times |
 | `AssertNoIncidents()` | no open incident now (does not wait) |
 | `AssertIncident(id, type, message)` | an incident opened at that element; type and message are optional |
 
@@ -372,13 +408,12 @@ key, Camunda runs with a "Non-Production License" banner, which its license allo
 
 ## Not yet
 
-Mocking a child process, and a Testcontainers mode that starts Camunda inside `dotnet test`, are
-planned, in that order.
+A Testcontainers mode that starts Camunda inside `dotnet test` is planned.
 
 ## Where the verbs live
 
-`Deploy`, `MockJobWorker`, `MockUserTask`, `SkipTimer`, `MockMessage`, `MockSignal` and
-`StartInstance` are the entry verbs, the only ones on
+`Deploy`, `MockJobWorker`, `MockUserTask`, `SkipTimer`, `MockMessage`, `MockSignal`,
+`MockChildProcess` and `StartInstance` are the entry verbs, the only ones on
 `ITestScenario`; the rest are members of `ICamundaScenario`, the convention the root README
 documents. They do not collide with `ApiResource`, `Topic` or `Queue`, so a chain can call the
 API, then follow the process it started.

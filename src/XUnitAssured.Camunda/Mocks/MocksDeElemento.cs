@@ -12,8 +12,14 @@ internal sealed record UserTaskMock(string ElementId, object? Variables);
 internal sealed record EventoMock(string Nome, object? Variables);
 
 /// <summary>
+/// A resposta combinada para o processo filho que uma call activity chama: terminar com estas
+/// variáveis, ou com o erro BPMN deste código.
+/// </summary>
+internal sealed record FilhoMock(string CallActivityId, object? Variables, string? ErrorCode = null);
+
+/// <summary>
 /// Os mocks que a cadeia declarou fora dos jobs: user tasks e timers, pelo id do elemento; mensagens e
-/// sinais, pelo nome.
+/// sinais, pelo nome; processos filhos, pelo id da call activity que os chama.
 /// </summary>
 /// <remarks>
 /// Ao contrário do job, que se mocka pelo tipo, estes se mockam pelo id do elemento: duas user
@@ -25,6 +31,7 @@ internal static class MocksDeElemento
 	internal const string ChaveDosTimers = "_CamundaTimersPulados";
 	internal const string ChaveDasMensagens = "_CamundaMensagens";
 	internal const string ChaveDosSinais = "_CamundaSinais";
+	internal const string ChaveDosFilhos = "_CamundaFilhos";
 
 	internal static void RegistrarUserTask(ITestContext context, UserTaskMock mock)
 	{
@@ -48,6 +55,20 @@ internal static class MocksDeElemento
 
 	internal static void RegistrarSinal(ITestContext context, EventoMock mock) =>
 		Registrar(Sinais(context), mock, $"Signal '{mock.Nome}' is already mocked in this chain.");
+
+	internal static void RegistrarFilho(ITestContext context, FilhoMock mock)
+	{
+		var mocks = Filhos(context);
+		if (mocks.ContainsKey(mock.CallActivityId))
+			throw new InvalidOperationException(
+				$"The child process of call activity '{mock.CallActivityId}' is already mocked in this chain. Each call activity " +
+				"gets one answer per chain; write a second test for the other answer.");
+
+		mocks[mock.CallActivityId] = mock;
+	}
+
+	internal static Dictionary<string, FilhoMock> Filhos(ITestContext context) =>
+		Obter(context, ChaveDosFilhos, () => new Dictionary<string, FilhoMock>(StringComparer.Ordinal));
 
 	internal static Dictionary<string, EventoMock> Mensagens(ITestContext context) =>
 		Obter(context, ChaveDasMensagens, () => new Dictionary<string, EventoMock>(StringComparer.Ordinal));

@@ -296,6 +296,17 @@ public class CamundaValidationBuilder : ValidationBuilder<CamundaStepResult>
 			times, m => m.SinaisDisparados(signalName));
 	}
 
+	/// <summary>
+	/// Afirma quantas vezes o processo filho desta call activity foi mockado.
+	/// </summary>
+	public CamundaValidationBuilder AssertChildProcessMocked(string callActivityId, int times = 1)
+	{
+		if (string.IsNullOrWhiteSpace(callActivityId)) throw new ArgumentException("Call activity id is required.", nameof(callActivityId));
+
+		return Contar($"to have the child process of '{callActivityId}' mocked {times} time(s)", "it was mocked",
+			times, m => m.FilhosMockados(callActivityId));
+	}
+
 	private CamundaValidationBuilder Contar(string oQue, string feito, int times, Func<MocksDaInstancia, int> contagem)
 	{
 		if (times < 0) throw new ArgumentOutOfRangeException(nameof(times), "Times cannot be negative.");
@@ -444,6 +455,9 @@ public class CamundaValidationBuilder : ValidationBuilder<CamundaStepResult>
 		{
 			texto.AppendLine().Append("  (Could not gather diagnostics: ").Append(e.Message).Append(')');
 		}
+
+		foreach (var aviso in Result.Warnings)
+			texto.AppendLine().Append("  Warning: ").Append(aviso);
 
 		var endereco = alvo.Settings.RestAddress ?? Environment.GetEnvironmentVariable("CAMUNDA_REST_ADDRESS");
 		if (!string.IsNullOrWhiteSpace(endereco))

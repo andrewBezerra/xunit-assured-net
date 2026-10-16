@@ -8,7 +8,8 @@ Os diagramas são os mesmos dos testes de ida e volta do pacote, ligados de
 
 - **`xa-pedido`** (versão com tag `1.0.0`): `cobrar` (job `xa-cobrar`) → `chamar-envio` (call
   activity) → `concluido`. Se a cobrança lança o erro `PAGAMENTO_RECUSADO`, a borda
-  `pagamento-recusado` leva a `recusado`.
+  `pagamento-recusado` leva a `recusado`. Se o envio lança `ENVIO_FALHOU`, a borda `envio-falhou` da
+  call activity leva a `nao-enviado`.
 - **`xa-envio`**: `despachar` (job `xa-despachar`) devolve `rastreio`, que a call activity copia
   para `codigoRastreio` no pedido.
 - **`xa-aprovacao`** (tag `1.0.0`): espera 1 hora (`esperar-analise`), pede a aprovação (`aprovar`,
@@ -71,6 +72,8 @@ projeto. O `testsettings.json` só guarda os prazos.
 | 10 | `MensagemESinalTests.Cliente_Cancelou` | Mensagem de borda que interrompe a user task | `conferir` encerrada pela borda `cliente-cancelou`, fim em `cancelado` |
 | 11 | `IncidentTests.Worker_Desistiu` | `ThenFail`: o worker desiste e o Camunda abre incident | Incident `JOB_NO_RETRIES` em `cobrar`; a instância cancelada ao fim da rodada |
 | 12 | `IncidentTests.Erro_Sem_Borda` | Erro BPMN com um código que nenhuma borda pega | Incident `UNHANDLED_ERROR_EVENT` em `cobrar` |
+| 13 | `ProcessoFilhoTests.Envio_Mockado` | `MockChildProcess`: o filho interceptado e terminado pelo evento de fim | A filha `xa-envio` completada com `despachar` encerrado; `codigoRastreio = "BR-FILHO"` no pai |
+| 14 | `ProcessoFilhoTests.Envio_Falhou` | `MockChildProcess(...).ThenThrowBpmnError`: o erro sai pela borda da call activity | `chamar-envio` encerrada, a borda `envio-falhou` leva a `nao-enviado` |
 
 Cada teste também escreve na própria saída a instância, o link e o que observar.
 
