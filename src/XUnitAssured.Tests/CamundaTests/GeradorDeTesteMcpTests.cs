@@ -98,6 +98,7 @@ public class GeradorDeTesteMcpTests
 			    <bpmn:serviceTask id="t" name="ok&#10;System.Environment.Exit(2);{{quebra}}System.Environment.Exit(3);">
 			      <bpmn:extensionElements><zeebe:taskDefinition type="a&quot;); System.Environment.Exit(1); //\ */ System.Environment.Exit(4); /*" /></bpmn:extensionElements>
 			    </bpmn:serviceTask>
+			    <bpmn:userTask id="u&#10;System.Environment.Exit(5);" />
 			    <bpmn:endEvent id="fim" />
 			    <bpmn:sequenceFlow id="f1" sourceRef="inicio" targetRef="t" />
 			    <bpmn:sequenceFlow id="f2" sourceRef="t" targetRef="fim" />
@@ -115,6 +116,12 @@ public class GeradorDeTesteMcpTests
 		identificadores.ShouldNotContain("Exit", codigo);
 		identificadores.ShouldNotContain("Environment", codigo);
 		Compila(codigo);
+
+		// O processo pedido e os ids da mensagem de "não encontrado" também ficam numa linha só de comentário.
+		var quebraDeLinha = ((char)10).ToString();
+		var naoEncontrado = CamundaTestGeneratorTools.GenerateCamundaTest(xml, "y" + quebraDeLinha + "System.Environment.Exit(6);");
+		naoEncontrado.ShouldStartWith("//");
+		naoEncontrado.ShouldNotContain(quebraDeLinha);
 	}
 
 	private static string Gerar(string arquivo) =>

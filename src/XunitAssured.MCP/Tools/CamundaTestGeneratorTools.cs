@@ -43,7 +43,7 @@ public static class CamundaTestGeneratorTools
 		}
 		catch (System.Xml.XmlException e)
 		{
-			return $"// The BPMN could not be read as XML: {e.Message}";
+			return $"// The BPMN could not be read as XML: {C(e.Message)}";
 		}
 
 		var processos = documento.Descendants(Bpmn + "process").ToList();
@@ -53,7 +53,7 @@ public static class CamundaTestGeneratorTools
 		if (processo is null)
 			return processId is null
 				? "// The BPMN has no bpmn:process."
-				: $"// The BPMN has no process '{processId}'. Processes in it: {string.Join(", ", processos.Select(p => (string?)p.Attribute("id")))}.";
+				: $"// The BPMN has no process '{C(processId)}'. Processes in it: {C(string.Join(", ", processos.Select(p => (string?)p.Attribute("id"))))}.";
 
 		var id = (string)processo.Attribute("id")!;
 		var mensagens = Nomes(documento, "message");
@@ -95,7 +95,7 @@ public static class CamundaTestGeneratorTools
 			if (tarefa.Descendants(Zeebe + "userTask").Any())
 				mocks.Add($".MockUserTask({L(Id(tarefa))}).ThenComplete(new {{ /* what the form returns */ }}){Rotulo(tarefa)}");
 			else
-				mocks.Add($".MockJobWorker(\"io.camunda.zeebe:userTask\").ThenComplete() // '{Id(tarefa)}' is a job-based user task");
+				mocks.Add($".MockJobWorker(\"io.camunda.zeebe:userTask\").ThenComplete() // '{C(Id(tarefa))}' is a job-based user task");
 		}
 
 
