@@ -1,0 +1,2 @@
+# Gerados por scripts/generate_ssl_certs.sh, em cada máquina. A chave da CA nunca vai para o git.
+secrets/

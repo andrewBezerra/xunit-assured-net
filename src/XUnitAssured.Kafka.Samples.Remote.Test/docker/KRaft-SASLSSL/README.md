@@ -16,7 +16,24 @@ Add-Content -Path "$env:SystemRoot\System32\drivers\etc\hosts" -Value "`n127.0.0
 
 ---
 
-### 2️⃣ Instalar Certificado CA (Apenas uma vez)
+### 2️⃣ Gerar os certificados (Apenas uma vez, em cada máquina)
+
+Os certificados **não ficam no repositório**: cada máquina gera a própria CA. Até a 6.30.3 a chave
+da CA estava commitada, e quem instalou aquela CA na Root do Windows deve removê-la (ver
+`uninstall-ca-cert.ps1`) antes de instalar a nova.
+
+No Git Bash (precisa de `openssl` e do `keytool` de um JDK), neste diretório:
+
+```bash
+bash scripts/generate_ssl_certs.sh
+```
+
+A CA gerada só pode assinar certificados para `kafka`, `localhost` e `127.0.0.1` (*name
+constraints*): instalada na Root do Windows, ela não vale para nenhum outro site.
+
+---
+
+### 3️⃣ Instalar Certificado CA (Apenas uma vez)
 
 **Execute PowerShell como Administrador** neste diretório:
 
@@ -34,7 +51,7 @@ O script irá:
 
 ---
 
-### 3️⃣ Executar Testes
+### 4️⃣ Executar Testes
 
 ```powershell
 cd C:\DEV\ProjetosPessoais\XUnitAssured.Net\src\XUnitAssured.Kafka.Samples.Local.Test
@@ -48,7 +65,7 @@ dotnet test --filter "Auth05_SaslSsl_ShouldSucceed"
 ## 📋 Pré-requisitos
 
 - [x] Kafka rodando no Docker/Podman (porta 39093)
-- [x] Certificados gerados em `./secrets/`
+- [x] Certificados gerados em `./secrets/` (passo 2)
 - [x] PowerShell com permissões de Administrador
 
 ---
