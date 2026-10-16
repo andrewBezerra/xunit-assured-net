@@ -305,6 +305,7 @@ internal sealed class SdkCamundaGateway : ICamundaGateway, IDisposable
 		IReadOnlyList<string> terminateElementInstanceKeys,
 		IReadOnlyList<string> activateElementIds,
 		string? ancestorElementInstanceKey,
+		object? variables,
 		CancellationToken ct) =>
 		Recusa(() => _client.ModifyProcessInstanceAsync(
 			ProcessInstanceKey.AssumeExists(processInstanceKey),
@@ -322,11 +323,66 @@ internal sealed class SdkCamundaGateway : ICamundaGateway, IDisposable
 						ElementId = ElementId.AssumeExists(id),
 						AncestorElementInstanceKey = ancestorElementInstanceKey is null
 							? null
-							: ElementInstanceKey.AssumeExists(ancestorElementInstanceKey)
+							: ElementInstanceKey.AssumeExists(ancestorElementInstanceKey),
+						// Sem ScopeId, as variáveis vão para o escopo global da instância, como as de uma mensagem.
+						VariableInstructions = variables is null
+							? null
+							: new List<ModifyProcessInstanceVariableInstruction> { new() { Variables = variables } }
 					})
 					.ToList()
 			},
 			ct));
+
+	public Task<IReadOnlyList<AssinaturaVista>> SearchOpenMessageSubscriptionsAsync(
+		IReadOnlyCollection<string>? processInstanceKeys,
+		IReadOnlyCollection<string> messageNames,
+		string? correlationKey,
+		CancellationToken ct) =>
+		Recusa(async () =>
+		{
+			var filtro = new MessageSubscriptionFilter
+			{
+				MessageName = new StringFilterProperty { In = messageNames.ToList() },
+				MessageSubscriptionState = new MessageSubscriptionStateFilterProperty { Eq = MessageSubscriptionStateEnum.CREATED }
+			};
+
+			if (processInstanceKeys is not null)
+				filtro.ProcessInstanceKey = new ProcessInstanceKeyFilterProperty
+				{
+					In = processInstanceKeys.Select(ProcessInstanceKey.AssumeExists).ToList()
+				};
+			if (correlationKey is not null)
+				filtro.CorrelationKey = new StringFilterProperty { Eq = correlationKey };
+
+			var resposta = await _client.SearchMessageSubscriptionsAsync(new MessageSubscriptionSearchQuery { Filter = filtro }, null, ct)
+				.ConfigureAwait(false);
+
+			// Uma assinatura de evento de início não tem instância: não é de teste nenhum.
+			return (IReadOnlyList<AssinaturaVista>)resposta.Items
+				.Where(a => a.ProcessInstanceKey is not null)
+				.Select(a => new AssinaturaVista(
+					a.ProcessInstanceKey!.Value.Value,
+					a.ElementId.Value,
+					a.ElementInstanceKey?.Value ?? string.Empty,
+					a.MessageName,
+					a.CorrelationKey ?? string.Empty))
+				.ToList();
+		});
+
+	public Task<string> CorrelateMessageAsync(
+		string messageName, string correlationKey, object? variables, string? tenantId, CancellationToken ct) =>
+		Recusa(async () =>
+		{
+			var resposta = await _client.CorrelateMessageAsync(new MessageCorrelationRequest
+			{
+				Name = messageName,
+				CorrelationKey = correlationKey,
+				Variables = variables,
+				TenantId = tenantId is null ? null : TenantId.AssumeExists(tenantId)
+			}, ct).ConfigureAwait(false);
+
+			return resposta.ProcessInstanceKey.Value;
+		});
 
 	public Task<string> GetProcessDefinitionXmlAsync(string definitionKey, CancellationToken ct) =>
 		Recusa(async () =>

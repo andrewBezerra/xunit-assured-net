@@ -158,6 +158,42 @@ public class IdaEVoltaNoCamundaTests
 			.AssertTimerSkipped("prazo-aprovacao");
 	}
 
+	// ---------- O que outros sistemas mandam ----------
+
+	[Fact(DisplayName = "Camunda: a message correlated with the instance's key and a signal triggered only in the instance")]
+	public async Task Message_And_Signal()
+	{
+		await ScenarioDsl.Given()
+			.Deploy("xa-entrega")
+			.MockMessage("xa-pagamento-confirmado").ThenCorrelate(new { valor = 99 })
+			.MockSignal("xa-estoque-liberado").ThenTrigger(new { lote = "L-1" })
+			.MockUserTask("conferir").ThenComplete()
+			.StartInstance("xa-entrega", new { pedidoId = $"P-{Guid.NewGuid():N}" })
+			.ExecuteAsync()
+			.AssertInstanceCompleted()
+			.AssertCompletedElements("aguardar-pagamento", "conferir", "entregue")
+			.AssertVariable("valor", 99)
+			.AssertVariable("lote", "L-1")
+			.AssertMessageCorrelated("xa-pagamento-confirmado")
+			.AssertSignalTriggered("xa-estoque-liberado");
+	}
+
+	[Fact(DisplayName = "Camunda: a boundary message cancels the user task while it waits")]
+	public async Task Boundary_Message_Cancels()
+	{
+		await ScenarioDsl.Given()
+			.Deploy("xa-entrega")
+			.MockMessage("xa-pagamento-confirmado").ThenCorrelate()
+			.MockSignal("xa-estoque-liberado").ThenTrigger()
+			.MockMessage("xa-cliente-cancelou").ThenCorrelate(new { motivo = "desistiu" })
+			.StartInstance("xa-entrega", new { pedidoId = $"P-{Guid.NewGuid():N}" })
+			.ExecuteAsync()
+			.AssertInstanceCompleted()
+			.AssertCompletedElements("cliente-cancelou", "cancelado")
+			.AssertVariable("motivo", "desistiu")
+			.AssertMessageCorrelated("xa-cliente-cancelou");
+	}
+
 	// ---------- O QA: o que já está publicado no cluster ----------
 
 	[Fact(DisplayName = "Camunda (QA): with no Deploy in the chain, the version already on the cluster runs, by tag or the latest")]

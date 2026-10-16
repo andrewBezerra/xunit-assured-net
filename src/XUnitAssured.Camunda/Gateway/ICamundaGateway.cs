@@ -72,7 +72,23 @@ internal interface ICamundaGateway
 		IReadOnlyList<string> terminateElementInstanceKeys,
 		IReadOnlyList<string> activateElementIds,
 		string? ancestorElementInstanceKey,
+		object? variables,
 		CancellationToken ct);
+
+	/// <summary>
+	/// As assinaturas de mensagem ainda abertas. Com <paramref name="processInstanceKeys"/>, só as dessas
+	/// instâncias; sem, as do cluster inteiro, para ver quem mais espera a mesma mensagem e chave.
+	/// </summary>
+	/// <remarks>Ao contrário da busca de esperas, esta mostra a borda de mensagem (medido na 8.10.4).</remarks>
+	Task<IReadOnlyList<AssinaturaVista>> SearchOpenMessageSubscriptionsAsync(
+		IReadOnlyCollection<string>? processInstanceKeys,
+		IReadOnlyCollection<string> messageNames,
+		string? correlationKey,
+		CancellationToken ct);
+
+	/// <summary>Correlaciona a mensagem e devolve a instância que a recebeu.</summary>
+	Task<string> CorrelateMessageAsync(
+		string messageName, string correlationKey, object? variables, string? tenantId, CancellationToken ct);
 
 	/// <summary>O XML da versão implantada.</summary>
 	Task<string> GetProcessDefinitionXmlAsync(string definitionKey, CancellationToken ct);
@@ -109,6 +125,10 @@ internal sealed record EsperaVista(
 	string? MessageName = null,
 	string? CorrelationKey = null,
 	string? SignalName = null);
+
+/// <summary>Uma assinatura de mensagem: um elemento esperando a mensagem com esta chave.</summary>
+internal sealed record AssinaturaVista(
+	string ProcessInstanceKey, string ElementId, string ElementInstanceKey, string MessageName, string CorrelationKey);
 
 /// <summary>Uma variável, com o valor em JSON como o Camunda guarda.</summary>
 internal sealed record VariavelVista(string Name, string ValueJson, string ScopeKey);

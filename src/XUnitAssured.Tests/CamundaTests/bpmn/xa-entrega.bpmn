@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+                  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+                  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+                  xmlns:zeebe="http://camunda.org/schema/zeebe/1.0"
+                  xmlns:modeler="http://camunda.org/schema/modeler/1.0"
+                  id="Definicoes_XaEntrega"
+                  targetNamespace="http://bpmn.io/schema/bpmn"
+                  exporter="XUnitAssured"
+                  exporterVersion="1.0"
+                  modeler:executionPlatform="Camunda Cloud"
+                  modeler:executionPlatformVersion="8.10.0">
+  <bpmn:message id="Msg_PagamentoConfirmado" name="xa-pagamento-confirmado">
+    <bpmn:extensionElements>
+      <zeebe:subscription correlationKey="=pedidoId" />
+    </bpmn:extensionElements>
+  </bpmn:message>
+  <bpmn:message id="Msg_ClienteCancelou" name="xa-cliente-cancelou">
+    <bpmn:extensionElements>
+      <zeebe:subscription correlationKey="=pedidoId" />
+    </bpmn:extensionElements>
+  </bpmn:message>
+  <bpmn:signal id="Sinal_EstoqueLiberado" name="xa-estoque-liberado" />
+  <bpmn:process id="xa-entrega" name="XUnitAssured - Entrega" isExecutable="true">
+    <bpmn:extensionElements>
+      <zeebe:versionTag value="1.0.0" />
+    </bpmn:extensionElements>
+    <bpmn:startEvent id="inicio" name="Pedido para entregar">
+      <bpmn:outgoing>f1</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:intermediateCatchEvent id="aguardar-pagamento" name="Pagamento confirmado">
+      <bpmn:incoming>f1</bpmn:incoming>
+      <bpmn:outgoing>f2</bpmn:outgoing>
+      <bpmn:messageEventDefinition messageRef="Msg_PagamentoConfirmado" />
+    </bpmn:intermediateCatchEvent>
+    <bpmn:intermediateCatchEvent id="aguardar-estoque" name="Estoque liberado">
+      <bpmn:incoming>f2</bpmn:incoming>
+      <bpmn:outgoing>f3</bpmn:outgoing>
+      <bpmn:signalEventDefinition signalRef="Sinal_EstoqueLiberado" />
+    </bpmn:intermediateCatchEvent>
+    <bpmn:userTask id="conferir" name="Conferir pacote">
+      <bpmn:extensionElements>
+        <zeebe:userTask />
+      </bpmn:extensionElements>
+      <bpmn:incoming>f3</bpmn:incoming>
+      <bpmn:outgoing>f4</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:boundaryEvent id="cliente-cancelou" name="Cliente cancelou" attachedToRef="conferir">
+      <bpmn:outgoing>f5</bpmn:outgoing>
+      <bpmn:messageEventDefinition messageRef="Msg_ClienteCancelou" />
+    </bpmn:boundaryEvent>
+    <bpmn:endEvent id="entregue" name="Pedido entregue">
+      <bpmn:incoming>f4</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:endEvent id="cancelado" name="Entrega cancelada">
+      <bpmn:incoming>f5</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="f1" sourceRef="inicio" targetRef="aguardar-pagamento" />
+    <bpmn:sequenceFlow id="f2" sourceRef="aguardar-pagamento" targetRef="aguardar-estoque" />
+    <bpmn:sequenceFlow id="f3" sourceRef="aguardar-estoque" targetRef="conferir" />
+    <bpmn:sequenceFlow id="f4" sourceRef="conferir" targetRef="entregue" />
+    <bpmn:sequenceFlow id="f5" sourceRef="cliente-cancelou" targetRef="cancelado" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="Diagrama_XaEntrega">
+    <bpmndi:BPMNPlane id="Plano_XaEntrega" bpmnElement="xa-entrega">
+      <bpmndi:BPMNShape id="inicio_di" bpmnElement="inicio">
+        <dc:Bounds x="152" y="102" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="127" y="145" width="86" height="27" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="aguardar-pagamento_di" bpmnElement="aguardar-pagamento">
+        <dc:Bounds x="252" y="102" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="228" y="145" width="84" height="27" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="aguardar-estoque_di" bpmnElement="aguardar-estoque">
+        <dc:Bounds x="352" y="102" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="328" y="145" width="84" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="conferir_di" bpmnElement="conferir">
+        <dc:Bounds x="450" y="80" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="cliente-cancelou_di" bpmnElement="cliente-cancelou">
+        <dc:Bounds x="482" y="142" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="410" y="185" width="80" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="entregue_di" bpmnElement="entregue">
+        <dc:Bounds x="612" y="102" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="590" y="145" width="80" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="cancelado_di" bpmnElement="cancelado">
+        <dc:Bounds x="572" y="262" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="545" y="305" width="90" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="f1_di" bpmnElement="f1">
+        <di:waypoint x="188" y="120" />
+        <di:waypoint x="252" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="f2_di" bpmnElement="f2">
+        <di:waypoint x="288" y="120" />
+        <di:waypoint x="352" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="f3_di" bpmnElement="f3">
+        <di:waypoint x="388" y="120" />
+        <di:waypoint x="450" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="f4_di" bpmnElement="f4">
+        <di:waypoint x="550" y="120" />
+        <di:waypoint x="612" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="f5_di" bpmnElement="f5">
+        <di:waypoint x="500" y="178" />
+        <di:waypoint x="500" y="280" />
+        <di:waypoint x="572" y="280" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

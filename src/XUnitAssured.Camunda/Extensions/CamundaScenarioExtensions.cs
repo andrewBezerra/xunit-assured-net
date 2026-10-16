@@ -36,6 +36,14 @@ public static class CamundaScenarioExtensions
 	public static ICamundaScenario SkipTimer(this ITestScenario scenario, string elementId) =>
 		CamundaVerbos.SkipTimer(scenario ?? throw new ArgumentNullException(nameof(scenario)), elementId);
 
+	/// <inheritdoc cref="ICamundaScenario.MockMessage" />
+	public static ICamundaMessageMock MockMessage(this ITestScenario scenario, string messageName) =>
+		CamundaVerbos.MockMessage(scenario ?? throw new ArgumentNullException(nameof(scenario)), messageName);
+
+	/// <inheritdoc cref="ICamundaScenario.MockSignal" />
+	public static ICamundaSignalMock MockSignal(this ITestScenario scenario, string signalName) =>
+		CamundaVerbos.MockSignal(scenario ?? throw new ArgumentNullException(nameof(scenario)), signalName);
+
 	/// <inheritdoc cref="ICamundaScenario.StartInstance" />
 	public static ICamundaScenario StartInstance(
 		this ITestScenario scenario, string processId, object? variables = null, int? version = null, string? versionTag = null) =>
@@ -83,6 +91,22 @@ internal static class CamundaVerbos
 		return CamundaScenario.De(scenario);
 	}
 
+	internal static ICamundaMessageMock MockMessage(ITestScenario scenario, string messageName)
+	{
+		if (string.IsNullOrWhiteSpace(messageName))
+			throw new ArgumentException("Message name is required: the name of the bpmn:message.", nameof(messageName));
+
+		return new EventoEmDeclaracao(scenario, messageName, mensagem: true);
+	}
+
+	internal static ICamundaSignalMock MockSignal(ITestScenario scenario, string signalName)
+	{
+		if (string.IsNullOrWhiteSpace(signalName))
+			throw new ArgumentException("Signal name is required: the name of the bpmn:signal.", nameof(signalName));
+
+		return new EventoEmDeclaracao(scenario, signalName, mensagem: false);
+	}
+
 	internal static ICamundaScenario StartInstance(
 		ITestScenario scenario, string processId, object? variables, int? version, string? versionTag)
 	{
@@ -119,6 +143,34 @@ internal static class CamundaVerbos
 		});
 
 		return CamundaScenario.De(scenario);
+	}
+
+	private sealed class EventoEmDeclaracao : ICamundaMessageMock, ICamundaSignalMock
+	{
+		private readonly ITestScenario _cenario;
+		private readonly string _nome;
+		private readonly bool _mensagem;
+
+		public EventoEmDeclaracao(ITestScenario cenario, string nome, bool mensagem)
+		{
+			_cenario = cenario;
+			_nome = nome;
+			_mensagem = mensagem;
+		}
+
+		public ICamundaScenario ThenCorrelate(object? variables = null)
+		{
+			MocksDeElemento.RegistrarMensagem(_cenario.Context, new EventoMock(_nome, variables));
+			return CamundaScenario.De(_cenario);
+		}
+
+		public ICamundaScenario ThenTrigger(object? variables = null)
+		{
+			MocksDeElemento.RegistrarSinal(_cenario.Context, new EventoMock(_nome, variables));
+			return CamundaScenario.De(_cenario);
+		}
+
+		public override string ToString() => _mensagem ? $"message '{_nome}'" : $"signal '{_nome}'";
 	}
 
 	private sealed class UserTaskEmDeclaracao : ICamundaUserTaskMock

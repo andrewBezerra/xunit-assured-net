@@ -14,6 +14,9 @@ Os diagramas são os mesmos dos testes de ida e volta do pacote, ligados de
 - **`xa-aprovacao`** (tag `1.0.0`): espera 1 hora (`esperar-analise`), pede a aprovação (`aprovar`,
   user task com um prazo de 3 dias na borda `prazo-aprovacao`) e espera a confirmação do cliente
   ou 2 horas (`sem-confirmacao`), num gateway de evento.
+- **`xa-entrega`** (tag `1.0.0`): espera a mensagem `xa-pagamento-confirmado` (chave `=pedidoId`),
+  o sinal `xa-estoque-liberado` e a conferência (`conferir`), que a mensagem `xa-cliente-cancelou`
+  interrompe pela borda.
 
 ## O que precisa
 
@@ -64,6 +67,8 @@ projeto. O `testsettings.json` só guarda os prazos.
 | 6 | `QaTests.Ultima_Versao` | Sem `Deploy` nem versão: a última publicada | A instância terminando em `recusado` |
 | 7 | `PessoaERelogioTests.Aprovacao_Sem_Confirmacao` | `SkipTimer` num timer intermediário e num timer de gateway de evento, `MockUserTask` | `esperar-analise` e `aguardar` encerrados (TERMINATED), `aprovar` completada, fim em `desistiu` |
 | 8 | `PessoaERelogioTests.Aprovacao_Expirou` | `SkipTimer` num timer de borda que interrompe | `aprovar` encerrada pela borda, fim em `expirou` |
+| 9 | `MensagemESinalTests.Entrega_Completa` | `MockMessage` correlacionada com a chave da instância, `MockSignal` só na instância | `aguardar-pagamento` completado, `aguardar-estoque` encerrado, fim em `entregue`; variáveis `valor` e `lote` |
+| 10 | `MensagemESinalTests.Cliente_Cancelou` | Mensagem de borda que interrompe a user task | `conferir` encerrada pela borda `cliente-cancelou`, fim em `cancelado` |
 
 Cada teste também escreve na própria saída a instância, o link e o que observar.
 
