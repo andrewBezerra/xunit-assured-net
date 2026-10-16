@@ -131,12 +131,22 @@ jobs:
         run: |
           # Os spikes são rascunhos de investigação, fora do produto. Os exemplos e as apps de
           # exemplo são analisados, mas não contam na cobertura: só os testes de unidade rodam aqui.
+          #
+          # Fora da COBERTURA (mas analisados), a lista central e única do código de produto que
+          # nenhum teste de unidade exercita; cada entrada diz por quê:
+          #   CamundaContainerFixture   sobe o Camunda no Docker: só o job camunda-testcontainers o roda
+          #   BrowserAppFixture         sobe a API e o front em portas reais para um navegador de verdade
+          #   SourceGenerators          roda dentro do compilador, e não no processo dos testes
+          COBERTURA_FORA="src/*Samples*/**,src/SampleWebApi/**,src/SampleWebApp/**"
+          COBERTURA_FORA="$COBERTURA_FORA,src/XUnitAssured.Camunda.Testcontainers/CamundaContainerFixture.cs"
+          COBERTURA_FORA="$COBERTURA_FORA,src/XUnitAssured.Playwright.AspNetCore/BrowserAppFixture.cs"
+          COBERTURA_FORA="$COBERTURA_FORA,src/XUnitAssured.SourceGenerators/**"
           set -- /k:"$SONAR_PROJECT_KEY" /o:"$SONAR_ORGANIZATION" \
             /d:sonar.host.url="https://sonarcloud.io" /d:sonar.token="$SONAR_TOKEN" \
             /d:sonar.sourceEncoding="UTF-8" \
             /d:sonar.cs.opencover.reportsPaths="**/TestResults/**/coverage.opencover.xml" \
             /d:sonar.exclusions="spikes/**" \
-            /d:sonar.coverage.exclusions="src/*Samples*/**,src/SampleWebApi/**,src/SampleWebApp/**"
+            /d:sonar.coverage.exclusions="$COBERTURA_FORA"
           if [ -n "$PR_NUMERO" ]; then
             set -- "$@" /d:sonar.pullrequest.key="$PR_NUMERO" \
               /d:sonar.pullrequest.branch="$PR_BRANCH" /d:sonar.pullrequest.base="$PR_BASE"
