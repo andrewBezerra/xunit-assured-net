@@ -73,7 +73,19 @@ internal static class ConsumerAssignment
 		IConsumer<string, string> consumer,
 		ConsumerConfig config,
 		string topic,
-		TimeSpan metadataTimeout)
+		TimeSpan metadataTimeout) =>
+		AssignAllPartitions(consumer, config, topic, metadataTimeout, DiscoverPartitions);
+
+	/// <summary>
+	/// O mesmo que a sobrecarga pública, com a descoberta de partições informada por quem chama:
+	/// é o que deixa a regra ser verificada sem broker.
+	/// </summary>
+	internal static IReadOnlyList<TopicPartitionOffset> AssignAllPartitions(
+		IConsumer<string, string> consumer,
+		ConsumerConfig config,
+		string topic,
+		TimeSpan metadataTimeout,
+		Func<ConsumerConfig, string, TimeSpan, List<TopicPartition>> discoverPartitions)
 	{
 		if (consumer == null)
 			throw new ArgumentNullException(nameof(consumer));
@@ -82,7 +94,7 @@ internal static class ConsumerAssignment
 		if (string.IsNullOrWhiteSpace(topic))
 			throw new ArgumentException("Topic must be provided.", nameof(topic));
 
-		var partitions = DiscoverPartitions(config, topic, metadataTimeout);
+		var partitions = discoverPartitions(config, topic, metadataTimeout);
 		if (partitions.Count == 0)
 			throw new InvalidOperationException(
 				$"Topic '{topic}' has no partitions. It probably does not exist on the broker.");
@@ -158,7 +170,7 @@ internal static class ConsumerAssignment
 			.ToList();
 	}
 
-	private static List<TopicPartition> DiscoverPartitions(ConsumerConfig config, string topic, TimeSpan timeout)
+	internal static List<TopicPartition> DiscoverPartitions(ConsumerConfig config, string topic, TimeSpan timeout)
 	{
 		var adminConfig = new AdminClientConfig();
 		foreach (var entry in config)

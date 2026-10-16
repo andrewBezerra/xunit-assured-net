@@ -65,9 +65,34 @@ public class KafkaStepResult : TestStepResult
 	/// <summary>
 	/// Gets the message converted to the specified type.
 	/// </summary>
+	/// <remarks>
+	/// A message that is a JSON text is deserialized into a class or struct (property names are
+	/// matched case-insensitively). Strings, numbers, enums and the other simple types are converted
+	/// as before.
+	/// </remarks>
 	/// <typeparam name="T">Target type for deserialization</typeparam>
 	/// <returns>Message as type T</returns>
-	public T? GetMessage<T>() => GetData<T>();
+	public T? GetMessage<T>()
+	{
+		// Até a 6.30.6 só convertia tipos simples, e para uma classe devolvia null: o ValidateMessage<T>
+		// falhava sempre e o AssertMessage<T> recebia null, apesar da documentação.
+		if (Data is string texto && !TipoSimples(typeof(T)) && !string.IsNullOrWhiteSpace(texto))
+			return System.Text.Json.JsonSerializer.Deserialize<T>(texto, LeituraDeJson);
+
+		return GetData<T>();
+	}
+
+	private static readonly System.Text.Json.JsonSerializerOptions LeituraDeJson = new()
+	{
+		PropertyNameCaseInsensitive = true
+	};
+
+	private static bool TipoSimples(Type tipo)
+	{
+		var t = Nullable.GetUnderlyingType(tipo) ?? tipo;
+		return t.IsPrimitive || t.IsEnum || t == typeof(string) || t == typeof(object) || t == typeof(decimal)
+			|| t == typeof(DateTime) || t == typeof(DateTimeOffset) || t == typeof(TimeSpan) || t == typeof(Guid);
+	}
 
 	/// <summary>
 	/// Extracts a value from the JSON message using a simplified JSON path.

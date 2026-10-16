@@ -37,13 +37,18 @@ public static class ValidationBuilderExtensions
 	public static TBuilder ValidateContract<TBuilder, T>(this TBuilder builder, HttpStepResult result)
 		where TBuilder : class
 	{
-		var schema = GetOrAddSchema(typeof(T));
 		var responseBody = result.ResponseBody?.ToString() ?? string.Empty;
 
 		if (string.IsNullOrWhiteSpace(responseBody))
 			throw new InvalidOperationException("Response body is empty - cannot validate contract");
 
-		var errors = schema.Validate(responseBody);
+		// Os nomes do modelo como estão (PascalCase) ou em camelCase, o padrão do ASP.NET Core. Até a
+		// 6.30.6 só o primeiro valia, e uma resposta camelCase falhava em todo campo. O resultado com
+		// menos erros é o que aparece.
+		var errors = new[] { GetOrAddSchema(typeof(T)), GetOrAddCamelCaseSchema(typeof(T)) }
+			.Select(schema => schema.Validate(responseBody))
+			.OrderBy(erros => erros.Count)
+			.First();
 		
 		errors.ShouldBeEmpty(
 			$"Contract validation failed for type {typeof(T).Name}:\n" +
@@ -289,5 +294,18 @@ public static class ValidationBuilderExtensions
 	private static JsonSchema GetOrAddSchema(Type type)
 	{
 		return SchemaCache.GetOrAdd(type, t => JsonSchema.FromType(t));
+	}
+
+	private static readonly ConcurrentDictionary<Type, JsonSchema> CamelCaseSchemaCache = new();
+
+	private static JsonSchema GetOrAddCamelCaseSchema(Type type)
+	{
+		return CamelCaseSchemaCache.GetOrAdd(type, t => JsonSchema.FromType(t, new NJsonSchema.Generation.SystemTextJsonSchemaGeneratorSettings
+		{
+			SerializerOptions = new System.Text.Json.JsonSerializerOptions
+			{
+				PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase
+			}
+		}));
 	}
 }

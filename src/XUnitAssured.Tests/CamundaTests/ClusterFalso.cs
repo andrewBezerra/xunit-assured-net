@@ -53,6 +53,19 @@ internal sealed class ClusterFalso : ICamundaGateway
 
 	public List<string> Comandos { get; } = new();
 
+	/// <summary>
+	/// Uma recusa ou uma falha de rede para a operação de nome dado (o do método do gateway), lançada
+	/// antes de ela agir. Devolver nulo deixa a operação responder normalmente.
+	/// </summary>
+	public Func<string, Exception?>? Falha { get; set; }
+
+	private void TalvezFalhar(string operacao)
+	{
+		var falha = Falha?.Invoke(operacao);
+		if (falha is not null)
+			throw falha;
+	}
+
 	public List<string> Canceladas { get; } = new();
 
 	public static CamundaSettings Rapido(int prazoSegundos = 1, int vidaDosMocksSegundos = 30) => new()
@@ -174,6 +187,7 @@ internal sealed class ClusterFalso : ICamundaGateway
 
 	public Task<string> CreateInstanceAsync(string definitionKey, object? variables, string? tenantId, CancellationToken ct)
 	{
+		TalvezFalhar(nameof(CreateInstanceAsync));
 		string processId;
 		lock (_trava)
 			processId = _definicoes.FirstOrDefault(d => d.DefinitionKey == definitionKey)?.ProcessId ?? definitionKey.Replace("def-", "");
@@ -215,6 +229,7 @@ internal sealed class ClusterFalso : ICamundaGateway
 
 	public Task CompleteJobAsync(string jobKey, object? variables, CancellationToken ct)
 	{
+		TalvezFalhar(nameof(CompleteJobAsync));
 		Job job;
 		lock (_trava)
 		{
@@ -241,6 +256,7 @@ internal sealed class ClusterFalso : ICamundaGateway
 
 	public Task ThrowBpmnErrorAsync(string jobKey, string errorCode, string? errorMessage, object? variables, CancellationToken ct)
 	{
+		TalvezFalhar(nameof(ThrowBpmnErrorAsync));
 		Job job;
 		lock (_trava)
 		{
@@ -275,6 +291,7 @@ internal sealed class ClusterFalso : ICamundaGateway
 
 	public Task<IReadOnlyList<InstanciaVista>> SearchChildInstancesAsync(IReadOnlyCollection<string> parentKeys, CancellationToken ct)
 	{
+		TalvezFalhar(nameof(SearchChildInstancesAsync));
 		lock (_trava)
 		{
 			IReadOnlyList<InstanciaVista> filhas = _instancias.Values
@@ -287,6 +304,7 @@ internal sealed class ClusterFalso : ICamundaGateway
 
 	public Task<InstanciaVista?> GetInstanceAsync(string processInstanceKey, CancellationToken ct)
 	{
+		TalvezFalhar(nameof(GetInstanceAsync));
 		lock (_trava)
 			return Task.FromResult(_instancias.TryGetValue(processInstanceKey, out var i) ? Vista(i) : null);
 	}
@@ -330,6 +348,7 @@ internal sealed class ClusterFalso : ICamundaGateway
 
 	public Task CancelInstanceAsync(string processInstanceKey, CancellationToken ct)
 	{
+		TalvezFalhar(nameof(CancelInstanceAsync));
 		Estado(processInstanceKey, "TERMINATED");
 		lock (_trava) Canceladas.Add(processInstanceKey);
 		return Task.CompletedTask;
@@ -345,12 +364,16 @@ internal sealed class ClusterFalso : ICamundaGateway
 
 	public List<string> Modificacoes { get; } = new();
 
-	public string NovaUserTask(string instancia, string elemento)
+	public string NovaUserTask(
+		string instancia, string elemento, string? nome = null, string? responsavel = null, string[]? grupos = null, int prioridade = 50)
 	{
 		lock (_trava)
 		{
 			var chave = $"task-{++_sequencia}";
-			_userTasks.Add(new UserTaskFalsa(chave, instancia, elemento));
+			_userTasks.Add(new UserTaskFalsa(chave, instancia, elemento)
+			{
+				Nome = nome, Responsavel = responsavel, Grupos = grupos ?? Array.Empty<string>(), Prioridade = prioridade
+			});
 			_instancias[instancia].Elementos[elemento] = "ACTIVE";
 			return chave;
 		}
@@ -380,6 +403,7 @@ internal sealed class ClusterFalso : ICamundaGateway
 
 	public Task CompleteUserTaskAsync(string userTaskKey, object? variables, CancellationToken ct)
 	{
+		TalvezFalhar(nameof(CompleteUserTaskAsync));
 		UserTaskFalsa task;
 		lock (_trava)
 		{
@@ -413,6 +437,7 @@ internal sealed class ClusterFalso : ICamundaGateway
 		object? variables,
 		CancellationToken ct)
 	{
+		TalvezFalhar(nameof(ModifyInstanceAsync));
 		lock (_trava)
 		{
 			var instancia = _instancias[processInstanceKey];
@@ -476,7 +501,7 @@ internal sealed class ClusterFalso : ICamundaGateway
 		{
 			IReadOnlyList<UserTaskVista> tarefas = _userTasks
 				.Where(t => processInstanceKeys.Contains(t.Instancia))
-				.Select(t => new UserTaskVista(t.Chave, t.Instancia, t.Elemento, null, t.Aberta ? "CREATED" : "COMPLETED", null, Array.Empty<string>(), 50))
+				.Select(t => new UserTaskVista(t.Chave, t.Instancia, t.Elemento, t.Nome, t.Aberta ? "CREATED" : "COMPLETED", t.Responsavel, t.Grupos, t.Prioridade))
 				.ToList();
 			return Task.FromResult(tarefas);
 		}
@@ -500,6 +525,7 @@ internal sealed class ClusterFalso : ICamundaGateway
 	public Task<IReadOnlyList<InstanciaVista>> SearchInstancesByVariableAsync(
 		string processId, string variableName, string valueJson, CancellationToken ct)
 	{
+		TalvezFalhar(nameof(SearchInstancesByVariableAsync));
 		lock (_trava)
 		{
 			IReadOnlyList<InstanciaVista> achadas = _instancias.Values
@@ -517,11 +543,12 @@ internal sealed class ClusterFalso : ICamundaGateway
 	public Action<ClusterFalso, AssinaturaFalsa>? AoCorrelacionar { get; set; }
 
 	/// <summary>Um elemento esperando a mensagem com esta chave, como uma assinatura do Camunda.</summary>
-	public void NovaAssinatura(string instancia, string elemento, string nome, string chave)
+	/// <param name="primeira">A assinatura mais antiga do cluster: a que recebe a próxima correlação.</param>
+	public void NovaAssinatura(string instancia, string elemento, string nome, string chave, bool primeira = false)
 	{
 		lock (_trava)
 		{
-			_assinaturas.Add(new AssinaturaFalsa(instancia, elemento, nome, chave));
+			_assinaturas.Insert(primeira ? 0 : _assinaturas.Count, new AssinaturaFalsa(instancia, elemento, nome, chave));
 			_instancias[instancia].Elementos[elemento] = "ACTIVE";
 		}
 	}
@@ -548,6 +575,7 @@ internal sealed class ClusterFalso : ICamundaGateway
 	public Task<string> CorrelateMessageAsync(
 		string messageName, string correlationKey, object? variables, string? tenantId, CancellationToken ct)
 	{
+		TalvezFalhar(nameof(CorrelateMessageAsync));
 		AssinaturaFalsa assinatura;
 		lock (_trava)
 		{
@@ -603,6 +631,10 @@ internal sealed class ClusterFalso : ICamundaGateway
 		public string Instancia { get; }
 		public string Elemento { get; }
 		public bool Aberta { get; set; } = true;
+		public string? Nome { get; init; }
+		public string? Responsavel { get; init; }
+		public string[] Grupos { get; init; } = Array.Empty<string>();
+		public int Prioridade { get; init; } = 50;
 	}
 
 	// ----- apoio -----

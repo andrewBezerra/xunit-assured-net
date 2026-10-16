@@ -77,7 +77,11 @@ public class LocatorStrategy
 	/// </summary>
 	/// <param name="role">ARIA role name (e.g., "button", "heading", "link")</param>
 	/// <param name="name">Accessible name filter (optional)</param>
-	/// <param name="exact">Whether the name match should be exact</param>
+	/// <param name="exact">
+	/// Whether the name match should be exact. When a <paramref name="name"/> is given, the name is
+	/// always matched exactly, whatever this says: a role with a name points at one element, and a
+	/// partial match would let an assertion pass on the wrong one.
+	/// </param>
 	public static LocatorStrategy ByRole(string role, string? name = null, bool exact = false)
 		=> new(LocatorType.Role, role, name, exact);
 
@@ -86,7 +90,11 @@ public class LocatorStrategy
 	/// </summary>
 	/// <param name="role">ARIA role enum value</param>
 	/// <param name="name">Accessible name filter (optional)</param>
-	/// <param name="exact">Whether the name match should be exact</param>
+	/// <param name="exact">
+	/// Whether the name match should be exact. When a <paramref name="name"/> is given, the name is
+	/// always matched exactly, whatever this says: a role with a name points at one element, and a
+	/// partial match would let an assertion pass on the wrong one.
+	/// </param>
 	public static LocatorStrategy ByRole(AriaRole role, string? name = null, bool exact = false)
 		=> new(LocatorType.Role, role.ToString(), name, exact);
 

@@ -109,6 +109,12 @@ public class KafkaBatchConsumeStep : ITestStep
 	public KafkaAuthConfig? AuthConfig { get; init; }
 
 	/// <summary>
+	/// De onde vêm o consumidor e as partições do tópico. Fora dos testes do pacote, é sempre
+	/// <see cref="FabricaDeConsumidor.Real"/>.
+	/// </summary>
+	internal IFabricaDeConsumidor Fabrica { get; init; } = FabricaDeConsumidor.Real;
+
+	/// <summary>
 	/// Upper bound on broker log entries retained for diagnostics on a single step.
 	/// </summary>
 	private const int MaxBrokerLogEntries = 200;
@@ -151,6 +157,7 @@ public class KafkaBatchConsumeStep : ITestStep
 		_groupId = source._groupId;
 		_bootstrapServers = source._bootstrapServers;
 		AuthConfig = source.AuthConfig;
+		Fabrica = source.Fabrica;
 	}
 
 	/// <inheritdoc />
@@ -174,14 +181,14 @@ public class KafkaBatchConsumeStep : ITestStep
 			diagnosticProperties["SaslUsername"] = config.SaslUsername;
 
 			// Create a single consumer for the entire batch
-			using var consumer = new ConsumerBuilder<string, string>(config)
-				.SetErrorHandler((_, error) => errorDetails.Add(error.ToString()))
-				.SetLogHandler((_, log) =>
+			using var consumer = Fabrica.Criar(
+				config,
+				error => errorDetails.Add(error.ToString()),
+				log =>
 				{
 					if (brokerLogs.Count < MaxBrokerLogEntries)
 						brokerLogs.Add($"{log.Level}: {log.Message}");
-				})
-				.Build();
+				});
 
 			// Assign partitions directly rather than subscribing: a subscription joins
 			// the consumer group and, on a default broker, waits out a three-second
@@ -190,7 +197,7 @@ public class KafkaBatchConsumeStep : ITestStep
 			// Bounded by the step's own timeout: a step given one second must not wait
 			// five for metadata from a broker that is not answering.
 			var metadataTimeout = Timeout < TimeSpan.FromSeconds(5) ? Timeout : TimeSpan.FromSeconds(5);
-			ConsumerAssignment.AssignAllPartitions(consumer, config, Topic, metadataTimeout);
+			ConsumerAssignment.AssignAllPartitions(consumer, config, Topic, metadataTimeout, Fabrica.DescobrirParticoes);
 
 			// O prazo do passo e o cancelamento de quem chamou valem os dois: o que vier
 			// primeiro encerra a espera.

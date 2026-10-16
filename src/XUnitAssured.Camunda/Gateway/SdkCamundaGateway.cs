@@ -24,13 +24,27 @@ internal sealed class SdkCamundaGateway : ICamundaGateway, IDisposable
 	private readonly CamundaClient _client;
 
 	public SdkCamundaGateway(CamundaSettings settings)
+		: this(settings, new XmlComoJson())
+	{
+	}
+
+	/// <summary>
+	/// Com o handler HTTP embaixo do contorno do XML: os testes do pacote passam um que responde
+	/// como o cluster, sem rede.
+	/// </summary>
+	internal SdkCamundaGateway(CamundaSettings settings, HttpMessageHandler interno)
+		: this(settings, new XmlComoJson(interno ?? throw new ArgumentNullException(nameof(interno))))
+	{
+	}
+
+	private SdkCamundaGateway(CamundaSettings settings, XmlComoJson handler)
 	{
 		if (settings == null) throw new ArgumentNullException(nameof(settings));
 
 		_client = CamundaClient.Create(new CamundaOptions
 		{
 			Config = Configuracao(settings),
-			HttpMessageHandler = new XmlComoJson()
+			HttpMessageHandler = handler
 		});
 	}
 
@@ -460,21 +474,17 @@ internal sealed class SdkCamundaGateway : ICamundaGateway, IDisposable
 		});
 
 	// O nome que o Camunda e o Operate usam (JOB_NO_RETRIES, SERVICE_TASK), e não o do enum do SDK
-	// (JOBNORETRIES): o SDK o serializa assim, com o conversor dele.
+	// (JOBNORETRIES). O SDK 10.0.1 o declara num [JsonPropertyName] em cada membro, que o
+	// JsonStringEnumConverter não lê: serializar o valor devolvia o nome do membro, sem sublinhado.
 	private static string Nome<T>(T valor) where T : struct, Enum
 	{
-		try
-		{
-			var json = System.Text.Json.JsonSerializer.Serialize(valor);
-			if (json.StartsWith("\"", StringComparison.Ordinal))
-				return json.Trim('"');
-		}
-		catch (Exception)
-		{
-			// Sem conversor no tipo: fica o nome do enum.
-		}
+		var membro = valor.ToString();
+		var campo = typeof(T).GetField(membro, System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static);
+		var nome = campo?.GetCustomAttributes(typeof(System.Text.Json.Serialization.JsonPropertyNameAttribute), false)
+			.OfType<System.Text.Json.Serialization.JsonPropertyNameAttribute>()
+			.FirstOrDefault()?.Name;
 
-		return valor.ToString();
+		return string.IsNullOrEmpty(nome) ? membro : nome!;
 	}
 
 	// O tipo da espera vem da classe dos detalhes: MessageWaitStateDetails é MESSAGE.

@@ -337,6 +337,9 @@ public static class KafkaScenarioExtensions
 			.Select(v => new KeyValuePair<object?, object>(null, v))
 			.ToList();
 
+		if (messages.Count == 0)
+			throw new ArgumentException("A batch needs at least one message.", nameof(values));
+
 		var step = new KafkaBatchProduceStep
 		{
 			Topic = topic,
@@ -364,6 +367,9 @@ public static class KafkaScenarioExtensions
 			.Select(kv => new KeyValuePair<object?, object>(kv.Key, kv.Value))
 			.ToList();
 
+		if (messages.Count == 0)
+			throw new ArgumentException("A batch needs at least one message.", nameof(items));
+
 		var step = new KafkaBatchProduceStep
 		{
 			Topic = topic,
@@ -386,20 +392,11 @@ public static class KafkaScenarioExtensions
 		if (scenario.CurrentStep is not KafkaProduceStep produceStep)
 			throw new InvalidOperationException("Current step is not a Kafka produce step.");
 
-		// Create new step with updated key (immutable pattern)
-		var newStep = new KafkaProduceStep
+		// Pelo construtor de cópia: copiar a propriedade BootstrapServers, e não o campo, fazia o passo
+		// achar que o broker foi informado à mão, e ele ignorava o broker e o produtor da fixture.
+		var newStep = new KafkaProduceStep(produceStep)
 		{
-			Topic = produceStep.Topic,
-			Key = key,
-			Value = produceStep.Value,
-			Headers = produceStep.Headers,
-			Partition = produceStep.Partition,
-			Timestamp = produceStep.Timestamp,
-			Timeout = produceStep.Timeout,
-			ProducerConfig = produceStep.ProducerConfig,
-			BootstrapServers = produceStep.BootstrapServers,
-			AuthConfig = produceStep.AuthConfig,
-			JsonOptions = produceStep.JsonOptions
+			Key = key
 		};
 
 		scenario.SetCurrentStep(newStep);
@@ -449,24 +446,18 @@ public static class KafkaScenarioExtensions
 		if (scenario.CurrentStep is not KafkaProduceStep produceStep)
 			throw new InvalidOperationException("Current step is not a Kafka produce step.");
 
-		// Get existing headers or create new
-		var headers = produceStep.Headers ?? new Headers();
+		// Uma cópia: somar o header ao objeto do passo anterior o mudava também.
+		var headers = new Headers();
+		if (produceStep.Headers != null)
+			foreach (var header in produceStep.Headers)
+				headers.Add(header.Key, header.GetValueBytes());
 		headers.Add(name, value);
 
-		// Create new step with updated headers (immutable pattern)
-		var newStep = new KafkaProduceStep
+		// Pelo construtor de cópia: copiar a propriedade BootstrapServers, e não o campo, fazia o passo
+		// achar que o broker foi informado à mão, e ele ignorava o broker e o produtor da fixture.
+		var newStep = new KafkaProduceStep(produceStep)
 		{
-			Topic = produceStep.Topic,
-			Key = produceStep.Key,
-			Value = produceStep.Value,
-			Headers = headers,
-			Partition = produceStep.Partition,
-			Timestamp = produceStep.Timestamp,
-			Timeout = produceStep.Timeout,
-			ProducerConfig = produceStep.ProducerConfig,
-			BootstrapServers = produceStep.BootstrapServers,
-			AuthConfig = produceStep.AuthConfig,
-			JsonOptions = produceStep.JsonOptions
+			Headers = headers
 		};
 
 		scenario.SetCurrentStep(newStep);
@@ -484,20 +475,11 @@ public static class KafkaScenarioExtensions
 		if (scenario.CurrentStep is not KafkaProduceStep produceStep)
 			throw new InvalidOperationException("Current step is not a Kafka produce step.");
 
-		// Create new step with updated partition (immutable pattern)
-		var newStep = new KafkaProduceStep
+		// Pelo construtor de cópia: copiar a propriedade BootstrapServers, e não o campo, fazia o passo
+		// achar que o broker foi informado à mão, e ele ignorava o broker e o produtor da fixture.
+		var newStep = new KafkaProduceStep(produceStep)
 		{
-			Topic = produceStep.Topic,
-			Key = produceStep.Key,
-			Value = produceStep.Value,
-			Headers = produceStep.Headers,
-			Partition = partition,
-			Timestamp = produceStep.Timestamp,
-			Timeout = produceStep.Timeout,
-			ProducerConfig = produceStep.ProducerConfig,
-			BootstrapServers = produceStep.BootstrapServers,
-			AuthConfig = produceStep.AuthConfig,
-			JsonOptions = produceStep.JsonOptions
+			Partition = partition
 		};
 
 		scenario.SetCurrentStep(newStep);
@@ -513,20 +495,11 @@ public static class KafkaScenarioExtensions
 		if (scenario.CurrentStep is not KafkaProduceStep produceStep)
 			throw new InvalidOperationException("Current step is not a Kafka produce step.");
 
-		// Create new step with updated timestamp (immutable pattern)
-		var newStep = new KafkaProduceStep
+		// Pelo construtor de cópia: copiar a propriedade BootstrapServers, e não o campo, fazia o passo
+		// achar que o broker foi informado à mão, e ele ignorava o broker e o produtor da fixture.
+		var newStep = new KafkaProduceStep(produceStep)
 		{
-			Topic = produceStep.Topic,
-			Key = produceStep.Key,
-			Value = produceStep.Value,
-			Headers = produceStep.Headers,
-			Partition = produceStep.Partition,
-			Timestamp = timestamp,
-			Timeout = produceStep.Timeout,
-			ProducerConfig = produceStep.ProducerConfig,
-			BootstrapServers = produceStep.BootstrapServers,
-			AuthConfig = produceStep.AuthConfig,
-			JsonOptions = produceStep.JsonOptions
+			Timestamp = timestamp
 		};
 
 		scenario.SetCurrentStep(newStep);

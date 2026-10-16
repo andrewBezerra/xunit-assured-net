@@ -1,4 +1,4 @@
-# Plano: cobertura de testes de unidade em 85%
+# Plano: cobertura de testes de unidade
 
 Decidido em 2026-10-16. A medida é a cobertura de linhas do SonarCloud, só com os testes de unidade
 (net10, o mesmo filtro do CI). A cobertura dos jobs de integração (Camunda, broker, navegador, Docker)
@@ -35,3 +35,14 @@ ganhar um teste de fachada.
 | 5 | Playwright com `IPage` e `ILocator` falsos | ~+800 | ~85% |
 
 Os ganhos são estimativas pelo tamanho dos arquivos, não medições.
+
+## Revisão de 2026-10-16: meta de 80%, pelos arquivos mais importantes
+
+O usuário trocou a meta para 80%, priorizando os arquivos que todo teste de quem usa o pacote
+atravessa: asserções, passos e o adaptador de cada tecnologia. Os geradores do MCP e as fixtures
+que só rodam com infraestrutura ficaram de fora.
+
+Feito na 6.31.0: Playwright (+640 linhas), Camunda (+626), Http e RabbitMq (+537), Kafka (+494).
+Medido localmente: 82,9% de linhas. Os testes acharam 9 defeitos, corrigidos na mesma versão.
+Falta, se a meta voltar a 85%: os geradores do MCP (21%) e os `Expect*` do Playwright, que exigem
+um navegador ou um gancho em volta do `Assertions.Expect`.
