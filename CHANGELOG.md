@@ -2,7 +2,15 @@
 
 All notable changes to the XUnitAssured packages. Upgrading from 5.1.x? See [UPGRADING.md](UPGRADING.md).
 
-## v6.21.1 (Current — Camunda samples)
+## v6.21.2 (Current — Camunda samples on any cluster)
+
+Maintenance. Upgrading from 6.21.1 requires no code changes; the packages are the same as in 6.21.1.
+
+- **The Camunda samples run against any cluster.** `rodar.ps1` takes `-Endereco` and `-Usuario`, or the `CAMUNDA_*` variables the official SDK reads: Basic (the password comes from `CAMUNDA_BASIC_AUTH_PASSWORD` or is asked for without being shown), OAuth client credentials, or no authentication. The default address is `http://localhost:8080`. The variables the script sets last only while it runs.
+- **No server-specific detail left.** The samples no longer fetch the password over SSH from one machine. `testsettings.json` keeps only the timeouts, and the address and credentials come from the variables.
+- The samples' README says what the cluster needs: Camunda 8.10, and no worker for `xa-cobrar` or `xa-despachar`.
+
+## v6.21.1 (Camunda samples)
 
 Maintenance. Upgrading from 6.21.0 requires no code changes; the packages are the same as in 6.21.0.
 

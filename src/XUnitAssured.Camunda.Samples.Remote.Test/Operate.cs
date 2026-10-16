@@ -19,7 +19,9 @@ internal static class Operate
 	public static CamundaValidationBuilder Mostrar(this CamundaValidationBuilder execucao, ITestOutputHelper saida, string oQueVer)
 	{
 		var resultado = execucao.GetResult();
-		var endereco = CamundaSettings.Load().RestAddress?.TrimEnd('/');
+		var endereco = (CamundaSettings.Load().RestAddress
+			?? Environment.GetEnvironmentVariable("CAMUNDA_REST_ADDRESS")
+			?? "http://localhost:8080").TrimEnd('/');
 
 		var versao = resultado.Version is { } v ? $" versão {v}" : "";
 		var rotulo = resultado.VersionTag is { } t ? $", tag {t}" : "";
