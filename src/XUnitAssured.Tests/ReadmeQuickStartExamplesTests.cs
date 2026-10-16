@@ -220,7 +220,7 @@ public static class ReadmeQuickStartExamples
 		public async Task Order_Is_Charged_And_Shipped()
 		{
 			await Given()
-				.Deploy("bpmn/order.bpmn", "bpmn/shipping.bpmn")
+				.Deploy("order", "shipping")
 				.MockJobWorker("charge-card").ThenComplete(new { approved = true })
 				.MockJobWorker("dispatch").ThenComplete(new { trackingCode = "BR-1" })
 				.StartInstance("order", new { orderId = 42 })

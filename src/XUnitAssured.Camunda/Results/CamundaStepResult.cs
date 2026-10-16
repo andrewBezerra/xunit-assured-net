@@ -24,6 +24,22 @@ public class CamundaStepResult : TestStepResult
 	/// <summary>O processo da instância iniciada, ou nulo num passo que não inicia instância.</summary>
 	public string? ProcessId => GetProperty<string>("ProcessId");
 
+	/// <summary>A chave da versão da definição de onde a instância nasceu.</summary>
+	public string? DefinitionKey => GetProperty<string>("DefinitionKey");
+
+	/// <summary>
+	/// A versão do processo que a instância roda, como o cluster a numerou. Nulo num passo que não
+	/// inicia instância.
+	/// </summary>
+	/// <remarks>
+	/// Sem versão pedida e sem <c>Deploy</c> na cadeia, é a última que estava no cluster: diz qual
+	/// diagrama o teste exercitou de fato.
+	/// </remarks>
+	public int? Version => GetProperty<int?>("Version");
+
+	/// <summary>O rótulo de versão (<c>zeebe:versionTag</c>) dessa versão, quando o cluster o conhece.</summary>
+	public string? VersionTag => GetProperty<string>("VersionTag");
+
 	/// <summary>Os processos que o deploy registrou. Vazio num passo que não implanta.</summary>
 	public IReadOnlyList<DeployedProcess> DeployedProcesses =>
 		GetProperty<IReadOnlyList<DeployedProcess>>("DeployedProcesses") ?? Array.Empty<DeployedProcess>();
@@ -43,16 +59,28 @@ public class CamundaStepResult : TestStepResult
 
 	/// <summary>Resultado de uma instância que o cluster criou.</summary>
 	public static CamundaStepResult CreateStartSuccess(
-		string processId, string processInstanceKey, TimeSpan? elapsed = null) =>
-		new()
+		string processId,
+		string processInstanceKey,
+		TimeSpan? elapsed = null,
+		string? definitionKey = null,
+		int? version = null,
+		string? versionTag = null)
+	{
+		var propriedades = Propriedades(processId, processInstanceKey, Array.Empty<DeployedProcess>());
+		propriedades["DefinitionKey"] = definitionKey;
+		propriedades["Version"] = version;
+		propriedades["VersionTag"] = versionTag;
+
+		return new()
 		{
 			Success = true,
 			Errors = Array.Empty<string>(),
 			Data = processInstanceKey,
 			DataType = typeof(string),
 			Metadata = Metadados(StepStatus.Succeeded, elapsed),
-			Properties = Propriedades(processId, processInstanceKey, Array.Empty<DeployedProcess>())
+			Properties = propriedades
 		};
+	}
 
 	/// <summary>
 	/// Resultado de uma falha, com o diagnóstico que o passo juntou.

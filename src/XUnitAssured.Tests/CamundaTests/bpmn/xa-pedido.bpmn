@@ -13,6 +13,9 @@
                   modeler:executionPlatformVersion="8.10.0">
   <bpmn:error id="Erro_PagamentoRecusado" name="Pagamento recusado" errorCode="PAGAMENTO_RECUSADO" />
   <bpmn:process id="xa-pedido" name="XUnitAssured - Pedido" isExecutable="true">
+    <bpmn:extensionElements>
+      <zeebe:versionTag value="1.0.0" />
+    </bpmn:extensionElements>
     <bpmn:startEvent id="inicio" name="Pedido recebido">
       <bpmn:outgoing>f_inicio_cobrar</bpmn:outgoing>
     </bpmn:startEvent>

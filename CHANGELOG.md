@@ -2,7 +2,17 @@
 
 All notable changes to the XUnitAssured packages. Upgrading from 5.1.x? See [UPGRADING.md](UPGRADING.md).
 
-## v6.20.0 (Current — XUnitAssured.Camunda)
+## v6.21.0 (Current — Camunda: deploy by id, test what is deployed)
+
+In XUnitAssured.Camunda: deploy by process id, and test the version already on the cluster. Upgrading from 6.20.0 requires no code changes, except for one assertion message; the other packages are unchanged.
+
+- **`Deploy("order", "shipping")`.** `Deploy` takes process ids as well as paths. With an id, the file is the `.bpmn` in the test output folder that declares `<bpmn:process id="order">`, whatever the file is called. An id declared in two files is refused, naming both; an unknown id lists the processes the folder has. A path works as before.
+- **Test what is already deployed.** A chain without `Deploy` starts the version already on the cluster: the latest, or the one named by `StartInstance(..., version: 3)` or `StartInstance(..., versionTag: "1.4.0")`. This is how QA tests what was deployed to staging, end to end with the real workers or mocking only the job types that have no worker there. A chain that deploys still starts only what it deployed, and a failed deploy never falls back to the version on the cluster.
+- **The result says which version ran.** `CamundaStepResult` gained `Version`, `VersionTag` and `DefinitionKey`, and a failed assertion names the version: `(order version 7, tag '1.4.0')`. A version the cluster does not have fails the step, listing the versions it has, newest first.
+- **One message changed:** the failure line `Jobs waiting with no mock` is now `Jobs waiting for a worker (not mocked in this test)`, because with the real workers of staging, a job without a mock is not a mistake. A test that compared that text needs the new one.
+- Verified against Camunda 8.10.4: the version and tag search, and a chain without `Deploy` running by tag and by latest version, pass in the `Requires=Camunda` round trip.
+
+## v6.20.0 (XUnitAssured.Camunda)
 
 New package: **XUnitAssured.Camunda**, for Camunda 8.10. Upgrading from 6.19.1 requires no code changes; the other packages are unchanged.
 

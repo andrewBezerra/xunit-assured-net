@@ -25,6 +25,11 @@ namespace XUnitAssured.Camunda.Steps;
 /// existe, então implantar em todo teste custa uma ida e volta e nada mais.
 /// </para>
 /// <para>
+/// Cada argumento é um caminho ou o id de um processo. Com o id, o arquivo é o <c>.bpmn</c> da
+/// pasta de saída que declara aquele processo: o teste continua implantando o diagrama do
+/// repositório, e não o que já está no cluster.
+/// </para>
+/// <para>
 /// Os processos implantados ficam no contexto, e é por eles que o <c>StartInstance</c> inicia a
 /// instância: pela chave desta definição, e não pela última versão do <c>processId</c>.
 /// </para>
@@ -50,7 +55,8 @@ public class CamundaDeployStep : ITestStep
 	public bool IsValid { get; private set; }
 
 	/// <summary>
-	/// Os arquivos. Um caminho relativo é procurado na pasta de saída do teste e depois na pasta atual.
+	/// Os arquivos, ou os ids dos processos. Um caminho relativo é procurado na pasta de saída do
+	/// teste e depois na pasta atual; um id, nos <c>.bpmn</c> da pasta de saída.
 	/// </summary>
 	public IReadOnlyList<string> Resources { get; init; } = Array.Empty<string>();
 
@@ -62,7 +68,12 @@ public class CamundaDeployStep : ITestStep
 
 		try
 		{
-			var recursos = Resources.Select(Ler).ToList();
+			// Dois ids do mesmo arquivo viram um arquivo só: o Camunda recusa o mesmo recurso duas vezes.
+			var recursos = Resources
+				.Select(Arquivo)
+				.Distinct(StringComparer.OrdinalIgnoreCase)
+				.Select(Ler)
+				.ToList();
 			var gateway = Gateways.De(context, CamundaSettings.De(context));
 
 			var processos = await gateway.DeployAsync(recursos, cancellationToken).ConfigureAwait(false);
@@ -122,15 +133,21 @@ public class CamundaDeployStep : ITestStep
 		return Path.GetFullPath(caminho);
 	}
 
-	private static RecursoBpmn Ler(string caminho)
+	private static string Arquivo(string recurso)
 	{
-		var arquivo = Localizar(caminho);
+		if (!ArquivosBpmn.EhCaminho(recurso))
+			return Path.GetFullPath(ArquivosBpmn.Localizar(recurso, AppContext.BaseDirectory));
+
+		var arquivo = Localizar(recurso);
 		if (!File.Exists(arquivo))
 			throw new FileNotFoundException(
-				$"BPMN file '{caminho}' not found in the test output folder ({AppContext.BaseDirectory}) " +
+				$"BPMN file '{recurso}' not found in the test output folder ({AppContext.BaseDirectory}) " +
 				"or the current folder. Copy it to the output with <None Include=\"...\" CopyToOutputDirectory=\"PreserveNewest\" />.",
-				caminho);
+				recurso);
 
-		return new RecursoBpmn(Path.GetFileName(arquivo), File.ReadAllBytes(arquivo));
+		return Path.GetFullPath(arquivo);
 	}
+
+	private static RecursoBpmn Ler(string arquivo) =>
+		new(Path.GetFileName(arquivo), File.ReadAllBytes(arquivo));
 }

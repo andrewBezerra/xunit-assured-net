@@ -2,12 +2,18 @@
 
 Camunda 8 process testing for XUnitAssured, on the official `Camunda.Orchestration.Sdk`.
 
-Deploy your BPMN, start a real process instance, and answer the diagram's external dependencies
-(the job workers, connectors included) from the test. Each test touches only its own instance, so
-it runs on a cluster other tests share, in parallel.
+Start a real process instance and answer the diagram's external dependencies (the job workers,
+connectors included) from the test. Each test touches only its own instance, so it runs on a
+cluster other tests share, in parallel. Two ways to use it:
 
-> **Before anything else: the cluster you test on must not run real workers for the job types
-> you mock.** A real worker activates the job before the test sees it. See
+- **The developer tests the BPMN of the repository.** The chain deploys it, then starts the
+  version it deployed. See [A process, end to end](#a-process-end-to-end).
+- **QA tests what is already deployed**, on a staging cluster, end to end with the real workers
+  or mocking only what has no worker there. See
+  [Testing what is already deployed](#testing-what-is-already-deployed).
+
+> **Before anything else: do not mock a job type that has a real worker on the cluster.** Camunda
+> hands the job to whoever asks first, and a real worker asks before the test sees the job. See
 > [What it cannot protect you from](#what-it-cannot-protect-you-from).
 
 ## Installation
@@ -25,7 +31,7 @@ pins it.
 using XUnitAssured.Camunda.Extensions;
 
 await Given()
-    .Deploy("bpmn/order.bpmn", "bpmn/shipping.bpmn")
+    .Deploy("order", "shipping")
     .MockJobWorker("charge-card").ThenComplete(new { approved = true })
     .MockJobWorker("dispatch").ThenComplete(new { trackingCode = "BR-1" })
     .StartInstance("order", new { orderId = 42 })
@@ -37,13 +43,23 @@ await Given()
     .AssertNoIncidents();
 ```
 
-- **`Deploy`** sends every file in one deployment. Put the process and the ones it calls together:
-  a call activity with `bindingType="deployment"` calls the child deployed with it, and Camunda
-  refuses a parent deployed without its child. Deploying identical content again creates no new
-  version, so deploying in every test costs one round trip.
-- **`StartInstance`** starts the instance from the definition this chain deployed, not from the
-  latest version of the process id: on a shared cluster, the latest version may be the one
-  someone else just deployed. Starting a process the chain did not deploy fails the step.
+- **`Deploy`** sends the files of the repository in one deployment. Name each by its process id
+  (`"order"`) or by its path (`"bpmn/order.bpmn"`). With the id, the file is the `.bpmn` in the
+  test output folder that declares `<bpmn:process id="order">`, whatever the file is called; an
+  id declared in two files is refused, naming both. Copy the files to the output:
+
+  ```xml
+  <None Include="bpmn\*.bpmn" CopyToOutputDirectory="PreserveNewest" />
+  ```
+
+  Put the process and the ones it calls together: a call activity with
+  `bindingType="deployment"` calls the child deployed with it, and Camunda refuses a parent
+  deployed without its child. Deploying identical content again creates no new version, so
+  deploying in every test costs one round trip.
+- **`StartInstance`**, in a chain that deploys, starts the instance from the definition this
+  chain deployed, not from the latest version of the process id: on a shared cluster, the latest
+  version may be the one someone else just deployed. Starting a process the chain did not deploy
+  fails the step.
 - **`MockJobWorker(type)`** answers jobs of that type with `ThenComplete(variables)` or
   `ThenThrowBpmnError(code, message, variables)`. It covers the instance and every instance it
   calls. A mock that does not say what it answers does not compile.
@@ -68,6 +84,56 @@ await Given()
 A boundary error event with that code catches the error. Without one, the instance opens an
 incident, and `AssertInstanceCompleted` fails at once saying so.
 
+## Testing what is already deployed
+
+A chain without `Deploy` starts the version already on the cluster: what was deployed to
+staging, tested as it is there.
+
+```csharp
+// The latest version on the cluster
+await Given()
+    .StartInstance("order", new { orderId = 42 })
+    .ExecuteAsync()
+    .AssertInstanceCompleted();
+
+// A version, by the number the cluster gave it or by its version tag
+.StartInstance("order", new { orderId = 42 }, version: 3)
+.StartInstance("order", new { orderId = 42 }, versionTag: "1.4.0")
+```
+
+- **`versionTag`** is the `zeebe:versionTag` the team sets in the Modeler. Prefer it to
+  `version`: the number is the cluster's own count, so version 3 on staging is not version 3 in
+  production. When several versions carry the tag, the newest of them runs.
+- **The result says which version ran:** `Version`, `VersionTag` and `DefinitionKey` on
+  `GetResult()`, and a failed assertion names it, `(order version 7, tag '1.4.0')`. "The latest"
+  changes when someone deploys.
+- **A version the cluster does not have** fails the step, listing the versions it has, newest
+  first.
+- **`version` or `versionTag` in a chain that also deploys** starts that version from the cluster,
+  not the deployed one: the test asked for it by name.
+
+On staging the real workers are running, and the package does not stop them. Two ways to test
+there:
+
+1. **End to end, with no mock.** The real workers move the instance, and the assertions wait for
+   them, up to `assertionTimeoutSeconds`.
+2. **Mock only the job types that have no worker there**, an external system staging does not
+   have, for example. The mock answers those, and the real workers the rest:
+
+   ```csharp
+   await Given()
+       .MockJobWorker("credit-bureau").ThenComplete(new { score = 700 })
+       .StartInstance("order", new { orderId = 42 }, versionTag: "1.4.0")
+       .ExecuteAsync()
+       .AssertInstanceCompleted()
+       .AssertJobMocked("credit-bureau");
+   ```
+
+Mocking a type that has a real worker there makes the two race for the job: see
+[What it cannot protect you from](#what-it-cannot-protect-you-from). And an instance still running
+after `mockLifetimeSeconds` (120 s) is cancelled, with or without mocks: raise it for a flow that
+takes longer on staging.
+
 ## Assertions wait, and give up early
 
 Camunda's searches read the secondary storage, which trails the engine: an instance completes in
@@ -91,9 +157,9 @@ its job held by another worker. When an assertion fails, the message says what t
 waiting at, which jobs have no mock, and where to open it in Operate:
 
 ```
-Expected process instance 2251799813685899 (order) to complete within 15s, but it is ACTIVE.
+Expected process instance 2251799813685899 (order version 4) to complete within 15s, but it is ACTIVE.
   Waiting at: 'ship' (SERVICETASK)
-  Jobs waiting with no mock: 'dispatch' at 'ship' (instance 2251799813685905)
+  Jobs waiting for a worker (not mocked in this test): 'dispatch' at 'ship' (instance 2251799813685905)
   Operate: http://localhost:8080/operate/processes/2251799813685899
 ```
 
@@ -128,6 +194,9 @@ directly:
 
 The same goes for the Connectors runtime: it is a worker for the `io.camunda:*` job types. Run the
 tests on a cluster without Connectors, or do not mock connector job types there.
+
+On staging this is the rule, not the exception: mock only the job types that have no worker
+there, or none at all.
 
 ## Configuration
 

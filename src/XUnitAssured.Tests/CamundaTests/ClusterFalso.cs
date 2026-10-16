@@ -33,6 +33,7 @@ internal sealed class ClusterFalso : ICamundaGateway
 	private readonly object _trava = new();
 	private readonly Dictionary<string, Instancia> _instancias = new();
 	private readonly List<Job> _jobs = new();
+	private readonly List<DefinicaoVista> _definicoes = new();
 	private int _sequencia;
 
 	/// <summary>O que acontece quando um job é completado. Padrão: completar a instância se não sobrou job.</summary>
@@ -66,6 +67,17 @@ internal sealed class ClusterFalso : ICamundaGateway
 		cenario.Context.SetProperty(Gateways.ChaveNoContexto, (ICamundaGateway)this);
 		cenario.Context.SetProperty(CamundaSettings.ChaveNoContexto, settings ?? Rapido());
 		return cenario;
+	}
+
+	/// <summary>Uma versão já implantada, como a homologação a teria. Devolve a chave da definição.</summary>
+	public string Publicar(string processId, int versao, string? rotulo = null)
+	{
+		lock (_trava)
+		{
+			var chave = $"def-{processId}-v{versao}";
+			_definicoes.Add(new DefinicaoVista(processId, chave, versao, rotulo));
+			return chave;
+		}
 	}
 
 	public string NovaInstancia(string processId, string? pai = null)
@@ -134,9 +146,29 @@ internal sealed class ClusterFalso : ICamundaGateway
 		return Task.FromResult<IReadOnlyList<DeployedProcess>>(processos);
 	}
 
+	public Task<IReadOnlyList<DefinicaoVista>> SearchProcessDefinitionsAsync(
+		string processId, int? version, string? versionTag, bool onlyLatest, string? tenantId, CancellationToken ct)
+	{
+		lock (_trava)
+		{
+			Comandos.Add($"search-definitions {processId}");
+
+			var doProcesso = _definicoes.Where(d => d.ProcessId == processId).ToList();
+			IReadOnlyList<DefinicaoVista> achadas = doProcesso
+				.Where(d => version is null || d.Version == version)
+				.Where(d => versionTag is null || d.VersionTag == versionTag)
+				.Where(d => !onlyLatest || version is not null || versionTag is not null || d.Version == doProcesso.Max(x => x.Version))
+				.ToList();
+
+			return Task.FromResult(achadas);
+		}
+	}
+
 	public Task<string> CreateInstanceAsync(string definitionKey, object? variables, string? tenantId, CancellationToken ct)
 	{
-		var processId = definitionKey.Replace("def-", "");
+		string processId;
+		lock (_trava)
+			processId = _definicoes.FirstOrDefault(d => d.DefinitionKey == definitionKey)?.ProcessId ?? definitionKey.Replace("def-", "");
 		var chave = NovaInstancia(processId);
 
 		if (variables is not null)

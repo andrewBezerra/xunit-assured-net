@@ -204,7 +204,8 @@ internal sealed class MocksDaInstancia
 				_problemas.Enqueue(
 					$"Job '{job.Type}' at element '{job.ElementId}' (job {job.JobKey}, instance {job.ProcessInstanceKey}) " +
 					"is held by another worker with a lease, so the mock could not " + mock.Descrever() + " it. " +
-					"A real worker for this job type is running on the cluster; stop it, or do not mock this type here. " +
+					"A real worker for this job type is running on the cluster; stop it, or do not mock this type here " +
+					"(in an environment with real workers, such as staging, mock only the job types that have no worker there). " +
 					$"Camunda said: {e.Message}");
 			}
 			catch (CamundaRecusouException e)

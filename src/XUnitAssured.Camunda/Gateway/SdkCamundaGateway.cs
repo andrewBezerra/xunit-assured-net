@@ -104,6 +104,33 @@ internal sealed class SdkCamundaGateway : ICamundaGateway, IDisposable
 				.ToList();
 		});
 
+	public Task<IReadOnlyList<DefinicaoVista>> SearchProcessDefinitionsAsync(
+		string processId, int? version, string? versionTag, bool onlyLatest, string? tenantId, CancellationToken ct) =>
+		Recusa(async () =>
+		{
+			var filtro = new ProcessDefinitionFilter
+			{
+				ProcessDefinitionId = new StringFilterProperty { Eq = processId },
+				Version = version,
+				VersionTag = versionTag,
+				TenantId = tenantId is null ? null : TenantId.AssumeExists(tenantId)
+			};
+
+			if (onlyLatest && version is null && versionTag is null)
+				filtro.IsLatestVersion = true;
+
+			var resposta = await _client.SearchProcessDefinitionsAsync(new ProcessDefinitionSearchQuery { Filter = filtro }, null, ct)
+				.ConfigureAwait(false);
+
+			return (IReadOnlyList<DefinicaoVista>)resposta.Items
+				.Select(d => new DefinicaoVista(
+					d.ProcessDefinitionId.Value,
+					d.ProcessDefinitionKey.Value,
+					d.Version,
+					string.IsNullOrWhiteSpace(d.VersionTag) ? null : d.VersionTag))
+				.ToList();
+		});
+
 	public Task<string> CreateInstanceAsync(
 		string definitionKey, object? variables, string? tenantId, CancellationToken ct) =>
 		Recusa(async () =>
