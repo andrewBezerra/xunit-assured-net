@@ -222,6 +222,29 @@ internal sealed class SdkCamundaGateway : ICamundaGateway, IDisposable
 			return primeira is null ? null : Vista(primeira);
 		});
 
+	public Task<IReadOnlyList<InstanciaVista>> SearchInstancesByVariableAsync(
+		string processId, string variableName, string valueJson, CancellationToken ct) =>
+		Recusa(async () =>
+		{
+			var resposta = await _client.SearchProcessInstancesAsync(new ProcessInstanceSearchQuery
+			{
+				Filter = new ProcessInstanceFilter
+				{
+					ProcessDefinitionId = new StringFilterProperty { Eq = processId },
+					Variables = new List<VariableValueFilterProperty>
+					{
+						new() { Name = variableName, Value = new StringFilterProperty { Eq = valueJson } }
+					}
+				},
+				Sort = new List<ProcessInstanceSearchQuerySortRequest>
+				{
+					new() { Field = ProcessInstanceSearchQuerySortRequestField.StartDate, Order = SortOrderEnum.DESC }
+				}
+			}, null, ct).ConfigureAwait(false);
+
+			return (IReadOnlyList<InstanciaVista>)resposta.Items.Select(Vista).ToList();
+		});
+
 	public Task<IReadOnlyList<ElementoVisto>> SearchElementsAsync(string processInstanceKey, CancellationToken ct) =>
 		Recusa(async () =>
 		{
@@ -444,7 +467,9 @@ internal sealed class SdkCamundaGateway : ICamundaGateway, IDisposable
 		p.HasIncident,
 		p.ParentProcessInstanceKey?.Value,
 		p.ProcessDefinitionKey.Value,
-		p.ParentElementInstanceKey?.Value);
+		p.ParentElementInstanceKey?.Value,
+		p.ProcessDefinitionVersion,
+		string.IsNullOrWhiteSpace(p.ProcessDefinitionVersionTag) ? null : p.ProcessDefinitionVersionTag);
 
 	private static async Task Recusa(Func<Task> acao)
 	{

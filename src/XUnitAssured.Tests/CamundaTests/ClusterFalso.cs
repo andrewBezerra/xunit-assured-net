@@ -468,6 +468,23 @@ internal sealed class ClusterFalso : ICamundaGateway
 		return arvore;
 	}
 
+	// ----- instâncias iniciadas por outro sistema -----
+
+	// A mais nova primeiro, como a busca ordenada pela data de início: aqui, pela sequência das chaves.
+	public Task<IReadOnlyList<InstanciaVista>> SearchInstancesByVariableAsync(
+		string processId, string variableName, string valueJson, CancellationToken ct)
+	{
+		lock (_trava)
+		{
+			IReadOnlyList<InstanciaVista> achadas = _instancias.Values
+				.Where(i => i.ProcessId == processId && i.Variaveis.TryGetValue(variableName, out var v) && v == valueJson)
+				.OrderByDescending(i => int.Parse(i.Chave.Substring(3)))
+				.Select(Vista)
+				.ToList();
+			return Task.FromResult(achadas);
+		}
+	}
+
 	// ----- mensagens -----
 
 	/// <summary>O que acontece quando uma mensagem é correlacionada. Padrão: completar a instância se nada sobrou.</summary>

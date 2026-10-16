@@ -253,7 +253,7 @@ As instâncias de cada execução ficam no cluster para conferir no Operate.
 | **0. Prova de conceito** ✅ | Ambiente da .115. Console .NET com o SDK 10.x: implantar, iniciar por `processDefinitionKey`, completar job pela chave sem ativar, modificar instância (forma A e B do subprocesso, `SkipTimer`) | Feito em 2026-10-16: ver "Resultado da Fase 0" |
 | **1. MVP** ✅ | Pacote com `Deploy`, `StartInstance`, `MockJobWorker` (completar, erro BPMN), verificações de estado, elementos e variáveis, falha rápida quando o job está com lease de outro worker | Feito na 6.20.0 (2026-10-16): ver "Resultado da Fase 1" |
 | **2. Cobertura do BPMN** ✅ | User task, mensagem, sinal, `SkipTimer`, incidents, `MockChildProcess`, aviso de `bindingType="latest"` | Feito da 6.22.0 à 6.25.0 (2026-10-16): ver "Fase 2" |
-| **3. CI de empresa** | Modo gerenciado (Testcontainers) e cenário cruzado com o `XUnitAssured.Http` | `dotnet test` sobe o Camunda sozinho no `ubuntu-latest` |
+| **3. CI de empresa** ✅ | Modo gerenciado (Testcontainers) e cenário cruzado com o `XUnitAssured.Http` | Feito na 6.26.0 e na 6.27.0 (2026-10-16): ver "Fase 3" |
 | **4. Extras** | Casos de teste no JSON do CPT (`cpt-test-cases/8.10`), cobertura do diagrama, ferramenta no MCP | Só quando alguém pedir |
 
 ### Pontos do repositório que o pacote precisa tocar (Fase 1)
@@ -383,3 +383,22 @@ Pedido do usuário antes da primeira publicação no NuGet, para servir o desenv
 **Fase 2 concluída** (6.22.0 a 6.25.0): user task, timers, mensagem, sinal, incidents e processo filho,
 cada um com teste de ida e volta contra a 8.10.4 e exemplo no projeto de exemplos. Próxima: Fase 3
 (Testcontainers e cenário cruzado com o `XUnitAssured.Http`).
+
+## Fase 3: CI de empresa (2026-10-16)
+
+| Entrega | O que | Versão |
+|---|---|---|
+| 3a | Pacote `XUnitAssured.Camunda.Testcontainers` (`CamundaContainerFixture`); `CamundaTestBase<TFixture>` e `CamundaClusterFixture` no pacote principal; job `Camunda Testcontainers` no CI | 6.26.0 |
+| 3b | `FollowInstance(chave)` e `FollowInstance(processo, (variável, valor))`, e os cenários cruzados com o `XUnitAssured.Http` (decisão do usuário: os dois) | 6.27.0 |
+
+- **[Certeza]** No `ubuntu-latest`, o `dotnet test` subiu o `camunda/camunda:8.10.4` sozinho e os testes
+  `Requires=Docker` passaram. O primeiro deploy voltou `FORBIDDEN` até o container ganhar
+  `CAMUNDA_SECURITY_AUTHORIZATIONS_ENABLED=false`, como o job de ida e volta já tinha.
+- **[Certeza]** A busca de instâncias filtra por variável (nome e valor em JSON) e ordena pela data de
+  início: é como o `FollowInstance` acha a instância que a API abriu sem devolver a chave.
+- Cenário cruzado verificado contra a .115: uma chamada HTTP (o `XUnitAssured.Http` fazendo o papel da
+  API) inicia a instância e a cadeia do Camunda a acompanha; e um produto criado na `SampleWebApi`
+  inicia o processo com o id que ela devolveu.
+
+**Fase 3 concluída.** A Fase 4 (casos de teste no JSON do CPT, cobertura do diagrama, ferramenta no
+MCP) fica para quando alguém pedir.

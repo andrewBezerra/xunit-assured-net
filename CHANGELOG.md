@@ -2,7 +2,19 @@
 
 All notable changes to the XUnitAssured packages. Upgrading from 5.1.x? See [UPGRADING.md](UPGRADING.md).
 
-## v6.26.0 (Current — XUnitAssured.Camunda.Testcontainers)
+## v6.27.0 (Current — Camunda: following the instance your API started)
+
+In XUnitAssured.Camunda: following the instance your API started. Upgrading from 6.26.0 requires no code changes; the other packages are unchanged.
+
+- **`FollowInstance(processInstanceKey)`** follows an instance the system under test started, such as an API that starts the process when it receives an order. The chain's mocks and assertions work on it as they do on one `StartInstance` started, the instances it calls included. It waits up to `assertionTimeoutSeconds` for the instance to show up, because the API may start it a moment after it answers.
+- **`FollowInstance(processId, (name, value))`** finds the instance by a variable the test sent, for an API that does not return the key. The value is compared as JSON. If more than one instance has it, the newest is followed, and `GetResult().Warnings` says so.
+- **HTTP and Camunda in the same test, verified against Camunda 8.10.4:**
+  - an HTTP call starts the instance and the Camunda chain follows it, by key and by variable;
+  - a product the `SampleWebApi` created starts the process with the id the API returned.
+- **Two new samples:** 15 follows by key and 16 by variable. The samples project now references `XUnitAssured.Http`.
+- This closes Phase 3 of the Camunda plan, together with `XUnitAssured.Camunda.Testcontainers` (6.26.0).
+
+## v6.26.0 (XUnitAssured.Camunda.Testcontainers)
 
 New package: **XUnitAssured.Camunda.Testcontainers**, which starts Camunda inside `dotnet test`. Upgrading from 6.25.0 requires no code changes; the other packages are unchanged except XUnitAssured.Camunda, which gains the two types below.
 

@@ -448,6 +448,8 @@ public async Task Order_Is_Charged_And_Shipped()
 
 User tasks and timers are answered the same way: `MockUserTask("approve").ThenComplete(...)` and `SkipTimer("wait-3-days")`, which modifies the instance instead of moving the cluster's clock. Messages and signals too: `MockMessage("paid").ThenCorrelate(...)` correlates with the key the instance subscribed with, and `MockSignal("released").ThenTrigger(...)` reaches only the test's instance, never the whole cluster. A worker that gives up is `ThenFail("...")`, and `AssertIncident("charge", "JOB_NO_RETRIES")` waits for the incident it opens. And another team's child process is `MockChildProcess("call-shipping").ThenComplete(...)`: the child is finished at its end event, so the call activity's output mapping still runs.
 
+When your API starts the process, call the API and then `FollowInstance(key)`, or `FollowInstance("order", ("orderId", 42))`: the mocks and assertions work on the instance the API started. And `XUnitAssured.Camunda.Testcontainers` starts Camunda inside `dotnet test` for a CI runner with Docker.
+
 Without `Deploy`, `StartInstance` runs the version already on the cluster, the latest or the one named by `version:` or `versionTag:`: QA tests what was deployed to staging, end to end or mocking only what has no worker there. Why a mock cannot be a job worker per type, the error path, and what the cluster must not have: see the [Camunda package README](src/XUnitAssured.Camunda/README.md).
 
 ## Configuration: `testsettings.json`
