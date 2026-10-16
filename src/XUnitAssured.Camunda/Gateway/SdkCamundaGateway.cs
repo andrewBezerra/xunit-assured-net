@@ -24,13 +24,27 @@ internal sealed class SdkCamundaGateway : ICamundaGateway, IDisposable
 	private readonly CamundaClient _client;
 
 	public SdkCamundaGateway(CamundaSettings settings)
+		: this(settings, new XmlComoJson())
+	{
+	}
+
+	/// <summary>
+	/// Com o handler HTTP embaixo do contorno do XML: os testes do pacote passam um que responde
+	/// como o cluster, sem rede.
+	/// </summary>
+	internal SdkCamundaGateway(CamundaSettings settings, HttpMessageHandler interno)
+		: this(settings, new XmlComoJson(interno ?? throw new ArgumentNullException(nameof(interno))))
+	{
+	}
+
+	private SdkCamundaGateway(CamundaSettings settings, XmlComoJson handler)
 	{
 		if (settings == null) throw new ArgumentNullException(nameof(settings));
 
 		_client = CamundaClient.Create(new CamundaOptions
 		{
 			Config = Configuracao(settings),
-			HttpMessageHandler = new XmlComoJson()
+			HttpMessageHandler = handler
 		});
 	}
 
