@@ -30,8 +30,15 @@ namespace XUnitAssured.Camunda.Mocks;
 /// feito o que faz. O cluster de teste não deve ter worker real dos tipos mockados.
 /// </para>
 /// <para>
-/// O laço termina quando a instância termina, ou no fim de <c>mockLifetimeSeconds</c>; nesse
-/// caso a instância ainda ativa é cancelada, para não ficar esquecida num cluster compartilhado.
+/// O laço termina quando a instância termina, no fim de <c>mockLifetimeSeconds</c>, ou quando o
+/// processo de teste termina, o que vier primeiro. Nos dois últimos casos a instância ainda ativa
+/// é cancelada, para não ficar esquecida num cluster compartilhado. O fim do processo importa
+/// porque o <c>dotnet test</c> costuma acabar bem antes do prazo, e o laço morre com ele: medido
+/// contra a 8.10.4, a instância de um teste que falhou ficava ativa para sempre.
+/// </para>
+/// <para>
+/// Um processo morto à força (o depurador parado, o runner abortado) não avisa ninguém, e aí a
+/// instância fica.
 /// </para>
 /// </remarks>
 internal sealed class MocksDaInstancia
@@ -52,6 +59,18 @@ internal sealed class MocksDaInstancia
 	private readonly CancellationTokenSource _parar = new();
 
 	private string? _ultimaFalhaDeRede;
+	private volatile bool _instanciaTerminou;
+
+	// Os laços ainda rodando neste processo, para o fim do processo cancelar as instâncias deles.
+	private static readonly ConcurrentDictionary<MocksDaInstancia, byte> Abertos = new();
+
+	// O que o fim do processo espera pelos cancelamentos, todos juntos, antes de desistir.
+	private static readonly TimeSpan PrazoNaSaida = TimeSpan.FromSeconds(10);
+
+	static MocksDaInstancia() => AppDomain.CurrentDomain.ProcessExit += (_, _) => EncerrarAbertos(PrazoNaSaida);
+
+	/// <summary>Os laços que ainda rodam neste processo.</summary>
+	internal static IReadOnlyCollection<MocksDaInstancia> Abertas => Abertos.Keys.ToArray();
 
 	public MocksDaInstancia(
 		ICamundaGateway gateway,
@@ -91,7 +110,64 @@ internal sealed class MocksDaInstancia
 	/// <summary>Quantas vezes o mock deste tipo resolveu um job.</summary>
 	public int Invocacoes(string jobType) => _invocacoes.TryGetValue(jobType, out var n) ? n : 0;
 
-	public void Iniciar() => Rodando = Task.Run(() => LacoAsync(_parar.Token));
+	public void Iniciar()
+	{
+		Abertos.TryAdd(this, 0);
+		Rodando = Task.Run(async () =>
+		{
+			try
+			{
+				await LacoAsync(_parar.Token).ConfigureAwait(false);
+			}
+			finally
+			{
+				Abertos.TryRemove(this, out _);
+			}
+		});
+	}
+
+	/// <summary>
+	/// O que o fim do processo faz com este laço: para, e cancela a instância se ela não terminou.
+	/// </summary>
+	/// <remarks>
+	/// Cancela sem perguntar o estado antes: a busca fica atrás do motor, e uma instância que já
+	/// terminou só responde <c>NOT_FOUND</c>, que aqui não importa.
+	/// </remarks>
+	internal async Task EncerrarNaSaidaAsync(CancellationToken ct)
+	{
+		_parar.Cancel();
+
+		if (_instanciaTerminou)
+			return;
+
+		try
+		{
+			await _gateway.CancelInstanceAsync(ProcessInstanceKey, ct).ConfigureAwait(false);
+		}
+		catch (Exception)
+		{
+			// Cortesia com o cluster; falhar aqui não muda nenhum teste.
+		}
+	}
+
+	// Síncrono porque o ProcessExit não espera uma Task. Os cancelamentos vão juntos, e o prazo é
+	// de todos: o processo já está saindo.
+	internal static void EncerrarAbertos(TimeSpan prazo)
+	{
+		var abertos = Abertas;
+		if (abertos.Count == 0)
+			return;
+
+		try
+		{
+			using var limite = new CancellationTokenSource(prazo);
+			Task.WhenAll(abertos.Select(m => m.EncerrarNaSaidaAsync(limite.Token))).Wait(prazo);
+		}
+		catch (Exception)
+		{
+			// Idem.
+		}
+	}
 
 	/// <summary>Para o laço. Para os testes do pacote; uma cadeia não precisa chamar.</summary>
 	public Task PararAsync()
@@ -226,7 +302,8 @@ internal sealed class MocksDaInstancia
 	private async Task<bool> TerminouAsync(CancellationToken ct)
 	{
 		var raiz = await _gateway.GetInstanceAsync(ProcessInstanceKey, ct).ConfigureAwait(false);
-		return raiz is not null && EstadosFinais.Contains(raiz.State);
+		_instanciaTerminou = raiz is not null && EstadosFinais.Contains(raiz.State);
+		return _instanciaTerminou;
 	}
 
 	private async Task CancelarEsquecidaAsync()

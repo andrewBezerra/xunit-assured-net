@@ -2,7 +2,15 @@
 
 All notable changes to the XUnitAssured packages. Upgrading from 5.1.x? See [UPGRADING.md](UPGRADING.md).
 
-## v6.21.2 (Current — Camunda samples on any cluster)
+## v6.21.3 (Current — Camunda: no instance left behind)
+
+In XUnitAssured.Camunda: an instance left active is cancelled when the test run ends. Upgrading from 6.21.2 requires no code changes; the other packages are unchanged.
+
+- **An instance still active when the test process exits is cancelled.** Before, it was cancelled only after `mockLifetimeSeconds` (120 s). `dotnet test` usually ends well before that, and the mocks' loop died with it, so the instance of a failed test stayed active on the cluster for good. Measured against Camunda 8.10.4: the instance of the samples' missing-mock test now ends `TERMINATED`, its child process too, and Operate shows where it was waiting.
+- An instance the loop already saw finish is not touched. Each cancellation is sent without asking the state first, and all of them wait at most 10 s together, because the process is already exiting.
+- **What it cannot do:** a process killed outright (a debugger stopped, an aborted runner) warns no one, and then the instance stays.
+
+## v6.21.2 (Camunda samples on any cluster)
 
 Maintenance. Upgrading from 6.21.1 requires no code changes; the packages are the same as in 6.21.1.
 

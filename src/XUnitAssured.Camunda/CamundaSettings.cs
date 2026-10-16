@@ -48,8 +48,9 @@ public class CamundaSettings
 	/// </summary>
 	/// <remarks>
 	/// Os mocks param sozinhos quando a instância termina. Uma instância que não termina (o teste
-	/// falhou, ou ela espera algo que nenhum mock resolve) é cancelada ao fim deste prazo, para
-	/// não deixar no cluster compartilhado uma instância ativa que ninguém vai olhar.
+	/// falhou, ou ela espera algo que nenhum mock resolve) é cancelada ao fim deste prazo ou quando o
+	/// processo de teste termina, o que vier primeiro, para não deixar no cluster compartilhado uma
+	/// instância ativa que ninguém vai olhar.
 	/// </remarks>
 	[JsonPropertyName("mockLifetimeSeconds")]
 	public int MockLifetimeSeconds { get; set; } = 120;

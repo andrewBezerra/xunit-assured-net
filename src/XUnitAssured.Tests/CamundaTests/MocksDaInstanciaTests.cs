@@ -151,6 +151,52 @@ public class MocksDaInstanciaTests
 		cluster.Canceladas.ShouldBe(new[] { instancia });
 	}
 
+	// O fim do processo (EncerrarAbertos) não é chamado aqui: ele encerraria os laços dos outros
+	// testes que rodam em paralelo. O que ele faz com cada laço é EncerrarNaSaidaAsync, provado
+	// abaixo; que o ProcessExit o chama, prova a ida e volta contra um Camunda de verdade.
+
+	[Fact(DisplayName = "A running loop is on the list the end of the process cancels, and leaves it when it stops")]
+	public async Task Running_Loop_Is_Listed()
+	{
+		var cluster = new ClusterFalso();
+		var instancia = cluster.NovaInstancia("pedido");
+
+		var mocks = Iniciar(cluster, instancia, CompletarCobranca);
+		MocksDaInstancia.Abertas.ShouldContain(mocks);
+
+		await mocks.PararAsync();
+		MocksDaInstancia.Abertas.ShouldNotContain(mocks);
+	}
+
+	[Fact(DisplayName = "At the end of the process, an instance still active is cancelled and its loop stops")]
+	public async Task End_Of_Process_Cancels_The_Active_Instance()
+	{
+		var cluster = new ClusterFalso();
+		var instancia = cluster.NovaInstancia("pedido");
+		cluster.NovoJob(instancia, "despachar", "despachar");
+
+		var mocks = Iniciar(cluster, instancia, CompletarCobranca);
+		await mocks.EncerrarNaSaidaAsync(default);
+		await mocks.Rodando.WaitAsync(TimeSpan.FromSeconds(5));
+
+		cluster.Canceladas.ShouldBe(new[] { instancia });
+		MocksDaInstancia.Abertas.ShouldNotContain(mocks);
+	}
+
+	[Fact(DisplayName = "At the end of the process, an instance the loop saw finish is not cancelled")]
+	public async Task End_Of_Process_Leaves_A_Finished_Instance()
+	{
+		var cluster = new ClusterFalso();
+		var instancia = cluster.NovaInstancia("pedido");
+		cluster.Estado(instancia, "COMPLETED");
+
+		var mocks = Iniciar(cluster, instancia, CompletarCobranca);
+		await mocks.Rodando.WaitAsync(TimeSpan.FromSeconds(5));
+		await mocks.EncerrarNaSaidaAsync(default);
+
+		cluster.Canceladas.ShouldBeEmpty();
+	}
+
 	private static MocksDaInstancia Iniciar(
 		ClusterFalso cluster, string instancia, Dictionary<string, JobMock> mocks, int vidaSegundos = 30)
 	{
