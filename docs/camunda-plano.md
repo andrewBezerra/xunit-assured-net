@@ -346,7 +346,7 @@ Pedido do usuário antes da primeira publicação no NuGet, para servir o desenv
 |---|---|---|
 | 2a | `MockUserTask(id).ThenComplete(...)`, `SkipTimer(id)`, `AssertUserTaskMocked`, `AssertTimerSkipped`; diagnóstico com as esperas sem resposta e o que foi declarado e nunca usado | 6.22.0 |
 | 2b | `MockMessage(nome).ThenCorrelate(...)` (correlação de verdade, com recusa quando outra instância espera a mesma chave) e `MockSignal(nome).ThenTrigger(...)` (só na instância), `AssertMessageCorrelated`, `AssertSignalTriggered` | 6.23.0 |
-| 2c | Incidents: `MockJobWorker(...).ThenFail(...)` e `AssertIncident(...)` | a fazer |
+| 2c | Incidents: `MockJobWorker(...).ThenFail(msg)` (sem tentativas, abre incident) e `AssertIncident(elemento, tipo, trecho)` | 6.24.0 |
 | 2d | `MockChildProcess(idDaCallActivity)` e o aviso de `bindingType="latest"` | a fazer |
 
 ### Achados da 2b (sonda contra a 8.10.4)
@@ -359,3 +359,11 @@ Pedido do usuário antes da primeira publicação no NuGet, para servir o desenv
   correlacionar, e confere depois quem recebeu.
 - **[Certeza]** Dentro de uma instância com duas assinaturas da mesma mensagem e chave (receive task e
   borda), o `correlate` atendeu uma só.
+
+### Achados da 2c
+
+- **[Certeza]** O SDK 10.0.1 dá aos enums nomes sem sublinhado (`JOBNORETRIES`, `SERVICETASK`). O
+  pacote os mostra como o Camunda e o Operate (`JOB_NO_RETRIES`, `SERVICE_TASK`), serializando com o
+  conversor do próprio SDK, e o `AssertIncident` compara o tipo sem depender do sublinhado.
+- **[Certeza]** Um erro BPMN que nenhuma borda pega abre um incident `UNHANDLED_ERROR_EVENT` no
+  elemento, com a mensagem "Expected to throw an error event with the code ..., but it was not caught".

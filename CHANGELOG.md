@@ -2,7 +2,18 @@
 
 All notable changes to the XUnitAssured packages. Upgrading from 5.1.x? See [UPGRADING.md](UPGRADING.md).
 
-## v6.23.0 (Current — Camunda: messages and signals)
+## v6.24.0 (Current — Camunda: incidents)
+
+In XUnitAssured.Camunda: incidents. Upgrading from 6.23.0 requires no code changes; the other packages are unchanged.
+
+- **`MockJobWorker(type).ThenFail(errorMessage)`** fails the job with no retries left, like a worker that gave up, and Camunda opens an incident. It is the technical path; the business path, the one a boundary error event catches, is still `ThenThrowBpmnError`.
+- **`AssertIncident(elementId, errorType, messageContains)`** waits for an open incident at that element, in the instance or in one it calls. The type and the message are optional. It gives up at once if the instance finishes without the incident. A BPMN error no boundary catches opens an `UNHANDLED_ERROR_EVENT` incident, so it is asserted the same way.
+- **Types and element types read as Camunda writes them.** SDK 10.0.1 names its enums without underscores (`JOBNORETRIES`, `SERVICETASK`). The package now shows them as Operate does (`JOB_NO_RETRIES`, `SERVICE_TASK`), in assertions and in failure messages.
+- **Verified against Camunda 8.10.4** by two new round trip tests and two new samples:
+  - a failed job;
+  - an uncaught BPMN error.
+
+## v6.23.0 (Camunda: messages and signals)
 
 In XUnitAssured.Camunda: messages and signals. Upgrading from 6.22.0 requires no code changes; the other packages are unchanged.
 

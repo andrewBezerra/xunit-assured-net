@@ -158,6 +158,31 @@ public class IdaEVoltaNoCamundaTests
 			.AssertTimerSkipped("prazo-aprovacao");
 	}
 
+	// ---------- Incidents ----------
+
+	[Fact(DisplayName = "Camunda: a worker that gives up opens an incident, and the test sees it")]
+	public async Task Failed_Job_Opens_An_Incident()
+	{
+		await ScenarioDsl.Given()
+			.Deploy("xa-pedido", "xa-envio")
+			.MockJobWorker("xa-cobrar").ThenFail("gateway de pagamento fora do ar")
+			.StartInstance("xa-pedido", new { pedidoId = 7 })
+			.ExecuteAsync()
+			.AssertIncident("cobrar", "JOB_NO_RETRIES", "fora do ar")
+			.AssertInstanceActive();
+	}
+
+	[Fact(DisplayName = "Camunda: a BPMN error no boundary catches opens an incident of its own type")]
+	public async Task Unhandled_Bpmn_Error_Opens_An_Incident()
+	{
+		await ScenarioDsl.Given()
+			.Deploy("xa-pedido", "xa-envio")
+			.MockJobWorker("xa-cobrar").ThenThrowBpmnError("CODIGO_QUE_NINGUEM_PEGA")
+			.StartInstance("xa-pedido", new { pedidoId = 8 })
+			.ExecuteAsync()
+			.AssertIncident("cobrar", "UNHANDLED_ERROR_EVENT");
+	}
+
 	// ---------- O que outros sistemas mandam ----------
 
 	[Fact(DisplayName = "Camunda: a message correlated with the instance's key and a signal triggered only in the instance")]

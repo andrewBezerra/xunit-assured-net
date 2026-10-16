@@ -193,6 +193,48 @@ public class CamundaValidationBuilder : ValidationBuilder<CamundaStepResult>
 	}
 
 	/// <summary>
+	/// Afirma que um incident abriu no elemento, nesta instância ou numa que ela chamou.
+	/// </summary>
+	/// <remarks>
+	/// Espera o incident aparecer. Desiste quando a instância termina sem ele.
+	/// </remarks>
+	/// <param name="elementId">O id do elemento no BPMN onde o incident deve abrir.</param>
+	/// <param name="errorType">O tipo, como o Operate o mostra: <c>JOB_NO_RETRIES</c>, <c>UNHANDLED_ERROR_EVENT</c>... Nulo: qualquer um.</param>
+	/// <param name="messageContains">Um trecho da mensagem do incident. Nulo: qualquer uma.</param>
+	public CamundaValidationBuilder AssertIncident(string elementId, string? errorType = null, string? messageContains = null)
+	{
+		if (string.IsNullOrWhiteSpace(elementId)) throw new ArgumentException("Element id is required.", nameof(elementId));
+
+		var esperado = $"to have an incident at '{elementId}'" +
+			(errorType is null ? "" : $" of type {errorType}") +
+			(messageContains is null ? "" : $" saying '{messageContains}'");
+
+		Esperar(esperado, async (a, ct) =>
+		{
+			var arvore = a.Mocks?.Instancias ?? new[] { a.Chave };
+			var incidentes = new List<IncidenteVisto>();
+			foreach (var instancia in arvore)
+				incidentes.AddRange(await a.Gateway.SearchActiveIncidentsAsync(instancia, ct).ConfigureAwait(false));
+
+			if (incidentes.Any(i => i.ElementId == elementId
+				&& (errorType is null || string.Equals(i.ErrorType.Replace("_", ""), errorType.Replace("_", ""), StringComparison.OrdinalIgnoreCase))
+				&& (messageContains is null || i.ErrorMessage.Contains(messageContains, StringComparison.OrdinalIgnoreCase))))
+				return Verificacao.Ok;
+
+			var situacao = incidentes.Count == 0
+				? "it has no open incident"
+				: "its incidents are " + string.Join("; ", incidentes.Select(i => $"at '{i.ElementId}': {i.ErrorType}: {i.ErrorMessage}"));
+
+			var instanciaVista = await a.Gateway.GetInstanceAsync(a.Chave, ct).ConfigureAwait(false);
+			return instanciaVista is { State: "COMPLETED" or "TERMINATED" }
+				? Verificacao.Impossivel($"{situacao}, and the instance is already {instanciaVista.State}")
+				: Verificacao.Pendente(situacao);
+		});
+
+		return this;
+	}
+
+	/// <summary>
 	/// Afirma quantas vezes o mock deste tipo resolveu um job, nesta instância e nas que ela chamou.
 	/// </summary>
 	public CamundaValidationBuilder AssertJobMocked(string jobType, int times = 1)

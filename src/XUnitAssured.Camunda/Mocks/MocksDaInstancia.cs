@@ -547,6 +547,8 @@ internal sealed class MocksDaInstancia
 				if (mock.Acao == AcaoDoMock.LancarErroBpmn)
 					await _gateway.ThrowBpmnErrorAsync(job.JobKey, mock.ErrorCode!, mock.ErrorMessage, mock.Variables, ct)
 						.ConfigureAwait(false);
+				else if (mock.Acao == AcaoDoMock.Falhar)
+					await _gateway.FailJobAsync(job.JobKey, mock.ErrorMessage ?? "Failed by the test's mock.", ct).ConfigureAwait(false);
 				else
 					await _gateway.CompleteJobAsync(job.JobKey, mock.Variables, ct).ConfigureAwait(false);
 

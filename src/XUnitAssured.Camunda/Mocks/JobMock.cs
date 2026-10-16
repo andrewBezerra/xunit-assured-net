@@ -9,7 +9,8 @@ namespace XUnitAssured.Camunda.Mocks;
 internal enum AcaoDoMock
 {
 	Completar,
-	LancarErroBpmn
+	LancarErroBpmn,
+	Falhar
 }
 
 /// <summary>
@@ -25,6 +26,7 @@ internal sealed record JobMock(
 	public string Descrever() => Acao switch
 	{
 		AcaoDoMock.LancarErroBpmn => $"throw BPMN error '{ErrorCode}'",
+		AcaoDoMock.Falhar => "fail",
 		_ => "complete"
 	};
 }

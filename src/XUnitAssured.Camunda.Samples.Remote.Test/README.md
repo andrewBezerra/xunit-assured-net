@@ -69,6 +69,8 @@ projeto. O `testsettings.json` só guarda os prazos.
 | 8 | `PessoaERelogioTests.Aprovacao_Expirou` | `SkipTimer` num timer de borda que interrompe | `aprovar` encerrada pela borda, fim em `expirou` |
 | 9 | `MensagemESinalTests.Entrega_Completa` | `MockMessage` correlacionada com a chave da instância, `MockSignal` só na instância | `aguardar-pagamento` completado, `aguardar-estoque` encerrado, fim em `entregue`; variáveis `valor` e `lote` |
 | 10 | `MensagemESinalTests.Cliente_Cancelou` | Mensagem de borda que interrompe a user task | `conferir` encerrada pela borda `cliente-cancelou`, fim em `cancelado` |
+| 11 | `IncidentTests.Worker_Desistiu` | `ThenFail`: o worker desiste e o Camunda abre incident | Incident `JOB_NO_RETRIES` em `cobrar`; a instância cancelada ao fim da rodada |
+| 12 | `IncidentTests.Erro_Sem_Borda` | Erro BPMN com um código que nenhuma borda pega | Incident `UNHANDLED_ERROR_EVENT` em `cobrar` |
 
 Cada teste também escreve na própria saída a instância, o link e o que observar.
 

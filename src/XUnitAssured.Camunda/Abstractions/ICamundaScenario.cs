@@ -192,4 +192,14 @@ public interface ICamundaJobMock
 	/// <param name="errorMessage">A mensagem, para o Operate.</param>
 	/// <param name="variables">Variáveis enviadas junto com o erro.</param>
 	ICamundaScenario ThenThrowBpmnError(string errorCode, string? errorMessage = null, object? variables = null);
+
+	/// <summary>
+	/// Falha o job sem tentativas restantes, como um worker que desistiu: o Camunda abre um incident.
+	/// </summary>
+	/// <remarks>
+	/// É o caminho técnico, e não o de negócio: para o de negócio, que uma borda de erro pega, use
+	/// <see cref="ThenThrowBpmnError"/>. Afirme o incident com <c>AssertIncident</c>.
+	/// </remarks>
+	/// <param name="errorMessage">A mensagem do incident, como o Operate a mostra.</param>
+	ICamundaScenario ThenFail(string errorMessage);
 }

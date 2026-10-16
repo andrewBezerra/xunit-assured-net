@@ -42,6 +42,9 @@ internal interface ICamundaGateway
 
 	Task ThrowBpmnErrorAsync(string jobKey, string errorCode, string? errorMessage, object? variables, CancellationToken ct);
 
+	/// <summary>Falha o job sem tentativas restantes: o Camunda abre um incident nele.</summary>
+	Task FailJobAsync(string jobKey, string errorMessage, CancellationToken ct);
+
 	Task<IReadOnlyList<InstanciaVista>> SearchChildInstancesAsync(
 		IReadOnlyCollection<string> parentKeys, CancellationToken ct);
 

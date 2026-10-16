@@ -186,6 +186,10 @@ internal sealed class SdkCamundaGateway : ICamundaGateway, IDisposable
 			new JobErrorRequest { ErrorCode = errorCode, ErrorMessage = errorMessage, Variables = variables },
 			ct));
 
+	public Task FailJobAsync(string jobKey, string errorMessage, CancellationToken ct) =>
+		Recusa(() => _client.FailJobAsync(
+			JobKey.AssumeExists(jobKey), new JobFailRequest { Retries = 0, ErrorMessage = errorMessage }, ct));
+
 	public Task<IReadOnlyList<InstanciaVista>> SearchChildInstancesAsync(
 		IReadOnlyCollection<string> parentKeys, CancellationToken ct) =>
 		Recusa(async () =>
@@ -228,7 +232,7 @@ internal sealed class SdkCamundaGateway : ICamundaGateway, IDisposable
 
 			return (IReadOnlyList<ElementoVisto>)resposta.Items
 				.Select(e => new ElementoVisto(
-					e.ElementId.Value, e.ElementName ?? string.Empty, e.Type.ToString(), e.State.ToString(), e.ElementInstanceKey.Value))
+					e.ElementId.Value, e.ElementName ?? string.Empty, Nome(e.Type), Nome(e.State), e.ElementInstanceKey.Value))
 				.ToList();
 		});
 
@@ -259,7 +263,7 @@ internal sealed class SdkCamundaGateway : ICamundaGateway, IDisposable
 				}, null, ct).ConfigureAwait(false);
 
 			return (IReadOnlyList<IncidenteVisto>)resposta.Items
-				.Select(i => new IncidenteVisto(i.ElementId.Value, i.ErrorType.ToString(), i.ErrorMessage ?? string.Empty))
+				.Select(i => new IncidenteVisto(i.ElementId.Value, Nome(i.ErrorType), i.ErrorMessage ?? string.Empty))
 				.ToList();
 		});
 
@@ -401,6 +405,24 @@ internal sealed class SdkCamundaGateway : ICamundaGateway, IDisposable
 			return (texto ?? string.Empty).TrimStart((char)0xFEFF);
 		});
 
+	// O nome que o Camunda e o Operate usam (JOB_NO_RETRIES, SERVICE_TASK), e não o do enum do SDK
+	// (JOBNORETRIES): o SDK o serializa assim, com o conversor dele.
+	private static string Nome<T>(T valor) where T : struct, Enum
+	{
+		try
+		{
+			var json = System.Text.Json.JsonSerializer.Serialize(valor);
+			if (json.StartsWith("\"", StringComparison.Ordinal))
+				return json.Trim('"');
+		}
+		catch (Exception)
+		{
+			// Sem conversor no tipo: fica o nome do enum.
+		}
+
+		return valor.ToString();
+	}
+
 	// O tipo da espera vem da classe dos detalhes: MessageWaitStateDetails é MESSAGE.
 	private static string Tipo(WaitStateDetails? detalhes) => detalhes switch
 	{
@@ -418,7 +440,7 @@ internal sealed class SdkCamundaGateway : ICamundaGateway, IDisposable
 	private static InstanciaVista Vista(ProcessInstanceResult p) => new(
 		p.ProcessInstanceKey.Value,
 		p.ProcessDefinitionId.Value,
-		p.State.ToString(),
+		Nome(p.State),
 		p.HasIncident,
 		p.ParentProcessInstanceKey?.Value,
 		p.ProcessDefinitionKey.Value);
