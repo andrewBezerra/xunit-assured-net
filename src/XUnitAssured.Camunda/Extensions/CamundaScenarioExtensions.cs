@@ -208,6 +208,15 @@ internal static class CamundaVerbos
 			return CamundaScenario.De(_cenario);
 		}
 
+		public ICamundaScenario ThenFail(string errorMessage)
+		{
+			if (string.IsNullOrWhiteSpace(errorMessage))
+				throw new ArgumentException("Error message is required: it is what the incident shows in Operate.", nameof(errorMessage));
+
+			MocksDaCadeia.Registrar(_cenario.Context, new JobMock(_tipo, AcaoDoMock.Falhar, null, ErrorMessage: errorMessage));
+			return CamundaScenario.De(_cenario);
+		}
+
 		public ICamundaScenario ThenThrowBpmnError(string errorCode, string? errorMessage = null, object? variables = null)
 		{
 			if (string.IsNullOrWhiteSpace(errorCode))

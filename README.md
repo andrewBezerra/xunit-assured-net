@@ -445,7 +445,7 @@ public async Task Order_Is_Charged_And_Shipped()
 
 `Deploy` takes the process ids and finds the `.bpmn` files that declare them in the test output folder (a path works too). The mocks answer only this instance's jobs, and those of the processes it calls, so the test runs on a cluster other tests share.
 
-User tasks and timers are answered the same way: `MockUserTask("approve").ThenComplete(...)` and `SkipTimer("wait-3-days")`, which modifies the instance instead of moving the cluster's clock. Messages and signals too: `MockMessage("paid").ThenCorrelate(...)` correlates with the key the instance subscribed with, and `MockSignal("released").ThenTrigger(...)` reaches only the test's instance, never the whole cluster.
+User tasks and timers are answered the same way: `MockUserTask("approve").ThenComplete(...)` and `SkipTimer("wait-3-days")`, which modifies the instance instead of moving the cluster's clock. Messages and signals too: `MockMessage("paid").ThenCorrelate(...)` correlates with the key the instance subscribed with, and `MockSignal("released").ThenTrigger(...)` reaches only the test's instance, never the whole cluster. A worker that gives up is `ThenFail("...")`, and `AssertIncident("charge", "JOB_NO_RETRIES")` waits for the incident it opens.
 
 Without `Deploy`, `StartInstance` runs the version already on the cluster, the latest or the one named by `version:` or `versionTag:`: QA tests what was deployed to staging, end to end or mocking only what has no worker there. Why a mock cannot be a job worker per type, the error path, and what the cluster must not have: see the [Camunda package README](src/XUnitAssured.Camunda/README.md).
 

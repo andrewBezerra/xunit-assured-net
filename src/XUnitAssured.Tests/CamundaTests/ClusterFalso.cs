@@ -253,6 +253,21 @@ internal sealed class ClusterFalso : ICamundaGateway
 		return Task.CompletedTask;
 	}
 
+	public Task FailJobAsync(string jobKey, string errorMessage, CancellationToken ct)
+	{
+		lock (_trava)
+		{
+			var job = Exigir(jobKey);
+			job.Estado = "FAILED";
+			var instancia = _instancias[job.Instancia];
+			instancia.Incidentes.Add(new IncidenteVisto(job.Elemento, "JOB_NO_RETRIES", errorMessage));
+			instancia.ComIncident = true;
+			Comandos.Add($"fail {jobKey}");
+		}
+
+		return Task.CompletedTask;
+	}
+
 	public Task<IReadOnlyList<InstanciaVista>> SearchChildInstancesAsync(IReadOnlyCollection<string> parentKeys, CancellationToken ct)
 	{
 		lock (_trava)
@@ -276,7 +291,7 @@ internal sealed class ClusterFalso : ICamundaGateway
 		lock (_trava)
 		{
 			IReadOnlyList<ElementoVisto> elementos = _instancias[processInstanceKey].Elementos
-				.Select(e => new ElementoVisto(e.Key, e.Key, "SERVICETASK", e.Value, $"{processInstanceKey}:{e.Key}"))
+				.Select(e => new ElementoVisto(e.Key, e.Key, "SERVICE_TASK", e.Value, $"{processInstanceKey}:{e.Key}"))
 				.ToList();
 			return Task.FromResult(elementos);
 		}
@@ -298,9 +313,12 @@ internal sealed class ClusterFalso : ICamundaGateway
 	{
 		lock (_trava)
 		{
-			IReadOnlyList<IncidenteVisto> incidentes = _instancias[processInstanceKey].ComIncident
-				? new[] { new IncidenteVisto("cobrar", "JOB_NO_RETRIES", "simulated incident") }
-				: Array.Empty<IncidenteVisto>();
+			var instancia = _instancias[processInstanceKey];
+			IReadOnlyList<IncidenteVisto> incidentes = instancia.Incidentes.Count > 0
+				? instancia.Incidentes.ToList()
+				: instancia.ComIncident
+					? new[] { new IncidenteVisto("cobrar", "JOB_NO_RETRIES", "simulated incident") }
+					: Array.Empty<IncidenteVisto>();
 			return Task.FromResult(incidentes);
 		}
 	}
@@ -580,6 +598,7 @@ internal sealed class ClusterFalso : ICamundaGateway
 		public string ProcessId { get; }
 		public string? Pai { get; }
 		public string? Definicao { get; set; }
+		public List<IncidenteVisto> Incidentes { get; } = new();
 		public string Estado { get; set; } = "ACTIVE";
 		public bool ComIncident { get; set; }
 		public Dictionary<string, string> Elementos { get; } = new();

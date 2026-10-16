@@ -84,6 +84,31 @@ await Given()
 A boundary error event with that code catches the error. Without one, the instance opens an
 incident, and `AssertInstanceCompleted` fails at once saying so.
 
+## Incidents
+
+A worker that gives up is the technical path, and Camunda opens an incident for it. Test it with
+`ThenFail`, and assert the incident:
+
+```csharp
+await Given()
+    .Deploy("order", "shipping")
+    .MockJobWorker("charge-card").ThenFail("payment gateway is down")
+    .StartInstance("order")
+    .ExecuteAsync()
+    .AssertIncident("charge", "JOB_NO_RETRIES", "gateway is down")
+    .AssertInstanceActive();
+```
+
+- **`ThenFail(errorMessage)`** fails the job with no retries left. The incident shows the message
+  in Operate. For the business path, the one a boundary error event catches, use
+  `ThenThrowBpmnError`.
+- **`AssertIncident(elementId, errorType, messageContains)`** waits for an open incident at that
+  element, in the instance or in one it calls. The type and the message are optional. The type is
+  the one Operate shows: `JOB_NO_RETRIES`, `UNHANDLED_ERROR_EVENT`, `EXTRACT_VALUE_ERROR`... It
+  gives up at once if the instance finishes without the incident.
+- **A BPMN error no boundary event catches is an incident too,** of type `UNHANDLED_ERROR_EVENT`:
+  `ThenThrowBpmnError` with a code the diagram does not handle tests that path.
+
 ## User tasks and timers
 
 A person and a clock are dependencies too: a test cannot wait for someone to approve, or for three
@@ -130,7 +155,7 @@ but never used:
 
 ```
 Expected process instance 2251799813687606 (approval version 1) to complete within 15s, but it is ACTIVE.
-  Waiting at: 'approve' (USERTASK)
+  Waiting at: 'approve' (USER_TASK)
   Waiting for (not answered in this test): user task 'approve' (instance 2251799813687606)
   Declared in this test but never used: timer 'no-confirmation'
 ```
@@ -243,6 +268,7 @@ the engine and shows up completed in the search a moment later. Every assertion 
 | `AssertMessageCorrelated(name, times)` | the mock correlated that message exactly `times` times |
 | `AssertSignalTriggered(name, times)` | that signal was triggered exactly `times` times |
 | `AssertNoIncidents()` | no open incident now (does not wait) |
+| `AssertIncident(id, type, message)` | an incident opened at that element; type and message are optional |
 
 An assertion does not wait the full timeout when waiting cannot help: the instance was
 terminated, it has an open incident, a completed element can no longer happen, or a mock found
@@ -251,7 +277,7 @@ waiting at, which jobs have no mock, and where to open it in Operate:
 
 ```
 Expected process instance 2251799813685899 (order version 4) to complete within 15s, but it is ACTIVE.
-  Waiting at: 'ship' (SERVICETASK)
+  Waiting at: 'ship' (SERVICE_TASK)
   Jobs waiting for a worker (not mocked in this test): 'dispatch' at 'ship' (instance 2251799813685905)
   Operate: http://localhost:8080/operate/processes/2251799813685899
 ```
@@ -346,8 +372,8 @@ key, Camunda runs with a "Non-Production License" banner, which its license allo
 
 ## Not yet
 
-Incidents, mocking a child process, and a Testcontainers mode that starts Camunda inside
-`dotnet test` are planned, in that order.
+Mocking a child process, and a Testcontainers mode that starts Camunda inside `dotnet test`, are
+planned, in that order.
 
 ## Where the verbs live
 
