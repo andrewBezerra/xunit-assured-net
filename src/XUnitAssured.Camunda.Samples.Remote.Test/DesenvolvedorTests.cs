@@ -96,7 +96,7 @@ public class DesenvolvedorTests(ITestOutputHelper saida)
 			.StartInstance("xa-pedido", new { pedidoId = 4 })
 			.ExecuteAsync();
 
-		execucao.Mostrar(saida, "a instância ATIVA, com a filha xa-envio parada em despachar");
+		execucao.Mostrar(saida, "a filha xa-envio parada em despachar; ao fim da rodada, as duas canceladas (TERMINATED)");
 
 		// A asserção espera assertionTimeoutSeconds (15 s) antes de desistir: a instância ainda podia andar
 		var falha = Should.Throw<ShouldAssertException>(() => execucao.AssertInstanceCompleted());

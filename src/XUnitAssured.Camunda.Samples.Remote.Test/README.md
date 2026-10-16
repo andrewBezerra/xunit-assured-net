@@ -56,7 +56,7 @@ projeto. O `testsettings.json` só guarda os prazos.
 | 1 | `DesenvolvedorTests.Pedido_Completo` | `Deploy` pelo id do processo, dois mocks, instância filha | O caminho `cobrar` → `chamar-envio` → `concluido`; a filha completa; `codigoRastreio = "BR-1"` |
 | 2 | `DesenvolvedorTests.Pagamento_Recusado` | `Deploy` pelo caminho, mock que lança erro BPMN | A saída pela borda de erro até `recusado`, sem filha |
 | 3 | `DesenvolvedorTests.Instancias_Em_Paralelo` | Três instâncias, os mesmos tipos mockados com respostas diferentes | Cada uma com o próprio `BR-P1`, `BR-P2` ou `BR-P3` |
-| 4 | `DesenvolvedorTests.Job_Sem_Mock` | A mensagem de falha quando falta um mock (o teste a imprime) | A instância ativa, com a filha parada em `despachar` |
+| 4 | `DesenvolvedorTests.Job_Sem_Mock` | A mensagem de falha quando falta um mock (o teste a imprime) | A instância cancelada ao fim da rodada (TERMINATED), com a filha encerrada em `despachar`, onde esperava |
 | 5 | `QaTests.Versao_Pelo_Rotulo` | Sem `Deploy`: a versão publicada com tag `1.0.0` | A versão e a tag no cabeçalho da instância |
 | 6 | `QaTests.Ultima_Versao` | Sem `Deploy` nem versão: a última publicada | A instância terminando em `recusado` |
 

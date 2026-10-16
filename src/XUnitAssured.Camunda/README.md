@@ -131,8 +131,9 @@ there:
 
 Mocking a type that has a real worker there makes the two race for the job: see
 [What it cannot protect you from](#what-it-cannot-protect-you-from). And an instance still running
-after `mockLifetimeSeconds` (120 s) is cancelled, with or without mocks: raise it for a flow that
-takes longer on staging.
+when the test run ends, or after `mockLifetimeSeconds` (120 s), is cancelled, with or without
+mocks: on staging, wait for the end of the flow in the test itself (`AssertInstanceCompleted` with
+a longer `assertionTimeoutSeconds`).
 
 ## Assertions wait, and give up early
 
@@ -175,9 +176,11 @@ activating it. The engine accepts completing, or throwing a BPMN error on, a job
 activated; the Camunda Process Test does the same in its `completeJob`. Five instances in
 parallel, mocking the same type with five different answers, each got its own.
 
-The loop stops when the instance ends. An instance still running after `mockLifetimeSeconds`
-(120 s by default) is cancelled, so a failed test does not leave an active instance behind on a
-shared cluster. Its history stays, so you can still open it in Operate.
+The loop stops when the instance ends. An instance still running when the test process exits, or
+after `mockLifetimeSeconds` (120 s by default), whichever comes first, is cancelled, so a failed
+test does not leave an active instance behind on a shared cluster. Its history stays, so you can
+still open it in Operate, terminated where it was waiting. A process killed outright (a debugger
+stopped, an aborted runner) warns no one, and then the instance stays.
 
 ## What it cannot protect you from
 

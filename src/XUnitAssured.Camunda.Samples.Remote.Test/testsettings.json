@@ -20,7 +20,7 @@
         "assertionTimeoutSeconds": 15,
         "pollIntervalMilliseconds": 100,
 
-        // Uma instância ainda ativa depois disso é cancelada pelos mocks
+        // Uma instância ainda ativa depois disso, ou quando a rodada termina, é cancelada
         "mockLifetimeSeconds": 120
     }
 }
