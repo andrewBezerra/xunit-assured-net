@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 
+using XUnitAssured.Camunda;
 using XUnitAssured.Core.Configuration;
 using XUnitAssured.Http.Configuration;
 using XUnitAssured.Kafka;
@@ -37,7 +38,8 @@ public sealed class ArquivoDoAmbienteTests : IDisposable
 			    "authentication": { "type": "Bearer", "bearer": { "token": "tk-base" } }
 			  },
 			  "kafka": { "bootstrapServers": "base:9092", "groupId": "grupo-base" },
-			  "rabbitmq": { "connectionUri": "amqp://base/" }
+			  "rabbitmq": { "connectionUri": "amqp://base/" },
+			  "camunda": { "restAddress": "http://base:8080", "assertionTimeoutSeconds": 20 }
 			}
 			""");
 		Escrever("testsettings.staging.json", """
@@ -45,7 +47,8 @@ public sealed class ArquivoDoAmbienteTests : IDisposable
 			  "testMode": "Remote",
 			  "Http": { "baseUrl": "https://staging.teste" },
 			  "kafka": { "bootstrapServers": "staging:9092" },
-			  "rabbitmq": { "connectionUri": "amqp://staging/" }
+			  "rabbitmq": { "connectionUri": "amqp://staging/" },
+			  "camunda": { "restAddress": "http://staging:8080" }
 			}
 			""");
 
@@ -88,6 +91,8 @@ public sealed class ArquivoDoAmbienteTests : IDisposable
 
 		RabbitMqSettings.Load().ConnectionUri.ShouldBe("amqp://staging/");
 		KafkaSettings.Load().BootstrapServers.ShouldBe("staging:9092");
+		CamundaSettings.Load().RestAddress.ShouldBe("http://staging:8080");
+		CamundaSettings.Load().AssertionTimeoutSeconds.ShouldBe(20);
 		new TestSettings().GetHttpSettings()!.BaseUrl.ShouldBe("https://staging.teste");
 	}
 

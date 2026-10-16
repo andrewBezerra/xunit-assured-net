@@ -2,7 +2,18 @@
 
 All notable changes to the XUnitAssured packages. Upgrading from 5.1.x? See [UPGRADING.md](UPGRADING.md).
 
-## v6.19.1 (Current — plan for XUnitAssured.Camunda)
+## v6.20.0 (Current — XUnitAssured.Camunda)
+
+New package: **XUnitAssured.Camunda**, for Camunda 8.10. Upgrading from 6.19.1 requires no code changes; the other packages are unchanged.
+
+- **Run a real process instance and mock what the diagram depends on.** `Deploy(...)` sends the BPMN files in one deployment, `MockJobWorker(type).ThenComplete(...)` or `.ThenThrowBpmnError(...)` answers a job type, `StartInstance(processId, variables)` starts the instance from the definition the chain deployed. Built on the official `Camunda.Orchestration.Sdk` 10.0.1.
+- **Made for a shared cluster.** Camunda's job activation does not filter by instance, so the mocks are not job workers. They search the jobs of their own instance, and of the instances it calls, and resolve them by key without activating them. Three tests in parallel, mocking the same job types with different answers, each got its own answer against a real Camunda 8.10.4.
+- **Assertions that wait for the cluster.** `AssertInstanceCompleted`, `AssertInstanceActive`, `AssertCompletedElements`, `AssertActiveElements`, `AssertVariable`, `AssertJobMocked` and `AssertNoIncidents`. They ask again until `assertionTimeoutSeconds`, because the search trails the engine. They give up at once when waiting cannot help: the instance was terminated, has an incident, or a mock found its job leased by another worker. A failure says what the instance waits at, which jobs have no mock, and its Operate address.
+- **Configuration** in the `camunda` section of `testsettings.json`, or the SDK's `CAMUNDA_*` variables. With no authentication type, a username means Basic: the SDK alone sends no credentials then, and the cluster answered 401.
+- **One limit, documented:** the cluster must not run real workers for the mocked job types. The job search does not show activations, so the package detects one only when the worker used a lease.
+- **CI:** a non-blocking `Camunda round trip` job runs the `Requires=Camunda` tests against a `camunda/camunda:8.10.4` service container. The main test runs and the release exclude `Requires=Camunda`.
+
+## v6.19.1 (plan for XUnitAssured.Camunda)
 
 Maintenance. Upgrading from 6.19.0 requires no code changes; the packages are the same as in 6.19.0.
 

@@ -8,6 +8,8 @@ using System.Threading.Tasks;
 using Shouldly;
 using Xunit;
 
+using XUnitAssured.Camunda.Extensions;
+using XUnitAssured.Camunda.Results;
 using XUnitAssured.Core.Abstractions;
 using XUnitAssured.Core.DSL;
 using XUnitAssured.Core.Results;
@@ -43,6 +45,7 @@ public class AssercaoAntesDoAwaitNosOutrosPacotesTests
 	[InlineData(typeof(KafkaValidationBuilder), typeof(KafkaValidationTaskExtensions))]
 	[InlineData(typeof(RabbitMqValidationBuilder), typeof(RabbitMqValidationTaskExtensions))]
 	[InlineData(typeof(PlaywrightValidationBuilder), typeof(PlaywrightValidationTaskExtensions))]
+	[InlineData(typeof(CamundaValidationBuilder), typeof(CamundaValidationTaskExtensions))]
 	public void Every_Builder_Method_Has_A_Counterpart(Type builder, Type extensoes)
 	{
 		var geradas = extensoes
@@ -121,6 +124,19 @@ public class AssercaoAntesDoAwaitNosOutrosPacotesTests
 		(await Falha(() => Pronto<RabbitMqValidationBuilder>(RabbitMqStepResult.CreateConsumeSuccess("pedidos", "pedido.criado", "ola", 0), c => new RabbitMqValidationBuilder(c))
 				.AssertRoutingKey("pedido.cancelado")))
 			.Message.ShouldContain("pedido.cancelado");
+	}
+
+	// ---------- Camunda ----------
+
+	[Fact(DisplayName = "Camunda: assertions chain before the await")]
+	public async Task Camunda_Chains_Before_The_Await()
+	{
+		await Pronto<CamundaValidationBuilder>(CamundaStepResult.CreateStartSuccess("pedido", "2251799813685249"), c => new CamundaValidationBuilder(c))
+			.AssertSuccess();
+
+		(await Falha(() => Pronto<CamundaValidationBuilder>(CamundaStepResult.CreateStartSuccess("pedido", "2251799813685249"), c => new CamundaValidationBuilder(c))
+				.AssertFailure()))
+			.Message.ShouldContain("Expected step to fail");
 	}
 
 	// ---------- Playwright ----------

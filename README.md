@@ -64,6 +64,7 @@ The chain ends where it is: the last step was a browser step, so `ExecuteAsync()
 - **HTTP** — full CRUD, JSON path assertions over objects and lists (`$[*].id`), header, `Set-Cookie` and Problem Details assertions, the request as it was sent (cookies included), requests sent at once with `Concurrently`, raw bodies for malformed input, `ExtractAsync` to arrange data in one line, and authentication applied once from `testsettings.json`: Bearer, Basic, OAuth2, API key, client certificate (mTLS), custom headers. `ApiFixture` hosts your own ASP.NET Core API in memory, with a client per identity and one instance for the whole suite.
 - **Kafka** — produce and consume single messages and batches, headers and keys, SASL/PLAIN, SCRAM, SSL, mTLS and OAUTHBEARER (OpenID Connect), Schema Registry. Consume steps skip the consumer-group join, so a consume costs milliseconds instead of seconds.
 - **RabbitMQ** — publish and consume single messages and batches, declare queues, exchanges and bindings, reject to a dead-letter exchange; a publish that reaches no queue fails instead of passing in silence.
+- **Camunda 8** — deploy BPMN and run real process instances on a shared cluster, with the diagram's job workers mocked per instance (the instance's call activities included), so parallel tests never answer each other's jobs; assertions wait for the cluster's eventually consistent search and say which job has no mock.
 - **Browser** — clicks, fills, checks, navigation and screenshots on Playwright, with locators by role, label, test id, text and CSS, and assertions that read like the DSL. The page's network too: intercept a route and prove it answered (`InterceptRoute`, `AssertIntercepted`), or call the API from inside the page with its cookies (`FetchFromPage`). `BrowserAppFixture` starts your own ASP.NET Core API and front-end inside `dotnet test`.
 - **What the system did besides answering** — `LogCapture` records what it logged (message, exception, structured values and scopes, so a leaked value has nowhere to hide), and `OutboundHttpCapture` stands in for the outside services it calls and records every request.
 - **AI-assisted authoring** — an MCP server with 10 tools that translate Playwright Inspector recordings into the DSL and scaffold HTTP and Kafka tests from your editor (GitHub Copilot, Claude Code, VS Code and any MCP client).
@@ -79,6 +80,7 @@ The definition above is where the project is going. This is what it ships now:
 | HTTP APIs | Any REST/JSON API (`HttpClient`/Flurl, `WebApplicationFactory` for in-process tests) | xUnit |
 | Messaging systems | Apache Kafka (Confluent client), RabbitMQ (official AMQP client) | xUnit |
 | Browser workflows | Microsoft Playwright (Chromium, Firefox, WebKit) | xUnit |
+| Process engines | Camunda 8.10 (official `Camunda.Orchestration.Sdk`) | xUnit |
 
 ## Roadmap
 
@@ -103,6 +105,7 @@ In order of intent, not of promise:
 | **XUnitAssured.Http.AspNetCore** | [![NuGet](https://img.shields.io/nuget/v/XUnitAssured.Http.AspNetCore.svg?label=)](https://www.nuget.org/packages/XUnitAssured.Http.AspNetCore) | HTTP tests against your own ASP.NET Core API — `ApiFixture` hosts it in memory with a shared client, a client per identity, clients with and without cookies, its services and its logs |
 | **XUnitAssured.Kafka** | [![NuGet](https://img.shields.io/nuget/v/XUnitAssured.Kafka.svg?label=)](https://www.nuget.org/packages/XUnitAssured.Kafka) | Apache Kafka integration testing — produce/consume, batch operations, authentication, Schema Registry support |
 | **XUnitAssured.RabbitMq** | [![NuGet](https://img.shields.io/nuget/v/XUnitAssured.RabbitMq.svg?label=)](https://www.nuget.org/packages/XUnitAssured.RabbitMq) | RabbitMQ integration testing — publish/consume steps on the official async client, queues and exchanges, AMQP headers |
+| **XUnitAssured.Camunda** | [![NuGet](https://img.shields.io/nuget/v/XUnitAssured.Camunda.svg?label=)](https://www.nuget.org/packages/XUnitAssured.Camunda) | Camunda 8 process testing — deploy BPMN, start real instances on a shared cluster, mock job workers per instance, assertions that wait for the cluster |
 | **XUnitAssured.Playwright** | [![NuGet](https://img.shields.io/nuget/v/XUnitAssured.Playwright.svg?label=)](https://www.nuget.org/packages/XUnitAssured.Playwright) | Playwright UI testing — fluent DSL for browser interactions, multiple locator strategies, screenshots, and assertions |
 | **XUnitAssured.Playwright.AspNetCore** | [![NuGet](https://img.shields.io/nuget/v/XUnitAssured.Playwright.AspNetCore.svg?label=)](https://www.nuget.org/packages/XUnitAssured.Playwright.AspNetCore) | Browser tests against your own ASP.NET Core API — `BrowserAppFixture` hosts the API and your built front-end on real ports, so they run with `dotnet test` alone (.NET 10) |
 
@@ -416,6 +419,32 @@ public async Task Publish_And_Consume_Message()
 
 Topology, batches, dead-letter, and why prefetch is not a verb: see the [RabbitMQ package README](src/XUnitAssured.RabbitMq/README.md).
 
+### Camunda Process Testing
+
+```bash
+dotnet add package XUnitAssured.Camunda
+```
+
+```csharp
+using XUnitAssured.Camunda.Extensions;
+
+[Fact]
+public async Task Order_Is_Charged_And_Shipped()
+{
+    await Given()
+        .Deploy("bpmn/order.bpmn", "bpmn/shipping.bpmn")
+        .MockJobWorker("charge-card").ThenComplete(new { approved = true })
+        .MockJobWorker("dispatch").ThenComplete(new { trackingCode = "BR-1" })
+        .StartInstance("order", new { orderId = 42 })
+        .ExecuteAsync()
+        .AssertInstanceCompleted()
+        .AssertCompletedElements("charge", "ship")
+        .AssertVariable("trackingCode", "BR-1");
+}
+```
+
+The mocks answer only this instance's jobs, and those of the processes it calls, so the test runs on a cluster other tests share. Why it cannot be a job worker per type, the error path, and what the cluster must not have: see the [Camunda package README](src/XUnitAssured.Camunda/README.md).
+
 ## Configuration: `testsettings.json`
 
 Every protocol package reads its connection details and credentials from one file at the root of your test project, so tests never hard-code URLs, brokers or tokens:
@@ -519,6 +548,7 @@ The reference implementation of an HTTP fixture is [`HttpSamplesRemoteFixture.cs
   XUnitAssured.Http.AspNetCore                           XUnitAssured.Playwright.AspNetCore
   (your API in memory)                                   (your API + front-end on real ports)
 
+  XUnitAssured.Camunda — Camunda 8 process instances, with the diagram's job workers mocked (on Core)
   XUnitAssured.Mcp — MCP server that writes tests in the DSL above (AI-assisted authoring)
 ```
 
@@ -645,7 +675,7 @@ Contributions are welcome — issues and pull requests alike.
 
 ```bash
 dotnet build src/XUnitAssured.Net.sln
-dotnet test src/XUnitAssured.Tests --filter "Requires!=Network&Requires!=Broker&Requires!=Browser"
+dotnet test src/XUnitAssured.Tests --filter "Requires!=Network&Requires!=Broker&Requires!=Browser&Requires!=Camunda"
 ```
 
 The filter skips the tests that need the network, a running broker or an installed browser; CI runs those separately — the broker ones against its own RabbitMQ service, the browser ones after installing Chromium (`pwsh src/XUnitAssured.Tests/bin/Debug/net10.0/playwright.ps1 install chromium` does the same locally). To run the Kafka samples locally, the compose files under `src/XUnitAssured.Kafka.Samples.Remote.Test/docker` start a broker per authentication mode. The certificates and keys committed there are **test-only fixtures** for those local brokers, not credentials for anything real.

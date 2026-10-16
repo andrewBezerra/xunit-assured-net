@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+                  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+                  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+                  xmlns:zeebe="http://camunda.org/schema/zeebe/1.0"
+                  xmlns:modeler="http://camunda.org/schema/modeler/1.0"
+                  id="Definicoes_XaPedido"
+                  targetNamespace="http://bpmn.io/schema/bpmn"
+                  exporter="XUnitAssured"
+                  exporterVersion="1.0"
+                  modeler:executionPlatform="Camunda Cloud"
+                  modeler:executionPlatformVersion="8.10.0">
+  <bpmn:error id="Erro_PagamentoRecusado" name="Pagamento recusado" errorCode="PAGAMENTO_RECUSADO" />
+  <bpmn:process id="xa-pedido" name="XUnitAssured - Pedido" isExecutable="true">
+    <bpmn:startEvent id="inicio" name="Pedido recebido">
+      <bpmn:outgoing>f_inicio_cobrar</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:serviceTask id="cobrar" name="Cobrar cartão">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="xa-cobrar" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>f_inicio_cobrar</bpmn:incoming>
+      <bpmn:outgoing>f_cobrar_envio</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:boundaryEvent id="pagamento-recusado" name="Pagamento recusado" attachedToRef="cobrar">
+      <bpmn:outgoing>f_recusado</bpmn:outgoing>
+      <bpmn:errorEventDefinition errorRef="Erro_PagamentoRecusado" />
+    </bpmn:boundaryEvent>
+    <bpmn:endEvent id="recusado" name="Pedido recusado">
+      <bpmn:incoming>f_recusado</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:callActivity id="chamar-envio" name="Enviar pedido">
+      <bpmn:extensionElements>
+        <zeebe:calledElement processId="xa-envio" propagateAllChildVariables="false" bindingType="deployment" />
+        <zeebe:ioMapping>
+          <zeebe:output source="=rastreio" target="codigoRastreio" />
+        </zeebe:ioMapping>
+      </bpmn:extensionElements>
+      <bpmn:incoming>f_cobrar_envio</bpmn:incoming>
+      <bpmn:outgoing>f_envio_fim</bpmn:outgoing>
+    </bpmn:callActivity>
+    <bpmn:endEvent id="concluido" name="Pedido concluído">
+      <bpmn:incoming>f_envio_fim</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="f_inicio_cobrar" sourceRef="inicio" targetRef="cobrar" />
+    <bpmn:sequenceFlow id="f_cobrar_envio" sourceRef="cobrar" targetRef="chamar-envio" />
+    <bpmn:sequenceFlow id="f_envio_fim" sourceRef="chamar-envio" targetRef="concluido" />
+    <bpmn:sequenceFlow id="f_recusado" sourceRef="pagamento-recusado" targetRef="recusado" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="Diagrama_XaPedido">
+    <bpmndi:BPMNPlane id="Plano_XaPedido" bpmnElement="xa-pedido">
+      <bpmndi:BPMNShape id="inicio_di" bpmnElement="inicio">
+        <dc:Bounds x="152" y="102" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="131" y="145" width="79" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="cobrar_di" bpmnElement="cobrar">
+        <dc:Bounds x="250" y="80" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="chamar-envio_di" bpmnElement="chamar-envio">
+        <dc:Bounds x="420" y="80" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="concluido_di" bpmnElement="concluido">
+        <dc:Bounds x="592" y="102" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="567" y="145" width="86" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="recusado_di" bpmnElement="recusado">
+        <dc:Bounds x="372" y="222" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="350" y="265" width="81" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="pagamento-recusado_di" bpmnElement="pagamento-recusado">
+        <dc:Bounds x="282" y="142" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="200" y="185" width="104" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="f_inicio_cobrar_di" bpmnElement="f_inicio_cobrar">
+        <di:waypoint x="188" y="120" />
+        <di:waypoint x="250" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="f_cobrar_envio_di" bpmnElement="f_cobrar_envio">
+        <di:waypoint x="350" y="120" />
+        <di:waypoint x="420" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="f_envio_fim_di" bpmnElement="f_envio_fim">
+        <di:waypoint x="520" y="120" />
+        <di:waypoint x="592" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="f_recusado_di" bpmnElement="f_recusado">
+        <di:waypoint x="300" y="178" />
+        <di:waypoint x="300" y="240" />
+        <di:waypoint x="372" y="240" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>
