@@ -2,10 +2,12 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
+using XUnitAssured.Camunda.Cobertura;
 using XUnitAssured.Camunda.Gateway;
 
 namespace XUnitAssured.Camunda.Mocks;
@@ -73,7 +75,31 @@ internal sealed class MocksDaInstancia
 	// O que o fim do processo espera pelos cancelamentos, todos juntos, antes de desistir.
 	private static readonly TimeSpan PrazoNaSaida = TimeSpan.FromSeconds(10);
 
-	static MocksDaInstancia() => AppDomain.CurrentDomain.ProcessExit += (_, _) => EncerrarAbertos(PrazoNaSaida);
+	static MocksDaInstancia() => AppDomain.CurrentDomain.ProcessExit += (_, _) =>
+	{
+		EncerrarAbertos(PrazoNaSaida);
+		EscreverCobertura();
+	};
+
+	// Onde gravar o relatório: a pasta das configurações do último laço que tinha cobertura ligada.
+	private static string? _pastaDaCobertura;
+	private static readonly object TravaDaEscrita = new();
+
+	internal static void EscreverCobertura()
+	{
+		if (_pastaDaCobertura is null || CoberturaDaSuite.Global.Vazia)
+			return;
+
+		try
+		{
+			lock (TravaDaEscrita)
+				CoberturaDaSuite.Global.Escrever(_pastaDaCobertura);
+		}
+		catch (Exception)
+		{
+			// O relatório é um extra: falhar aqui não muda nenhum teste.
+		}
+	}
 
 	/// <summary>Os laços que ainda rodam neste processo.</summary>
 	internal static IReadOnlyCollection<MocksDaInstancia> Abertas => Abertos.Keys.ToArray();
@@ -88,6 +114,16 @@ internal sealed class MocksDaInstancia
 	// A versão da definição de cada instância da árvore, para ler o BPMN dela; e o BPMN lido.
 	private readonly ConcurrentDictionary<string, string> _definicaoDaInstancia = new();
 	private readonly ConcurrentDictionary<string, ModeloBpmn> _modelos = new();
+	private readonly ConcurrentDictionary<string, string> _xmls = new();
+	private readonly CoberturaDaSuite? _cobertura;
+
+	// Os eventos que o pacote disparou por modificação: o timer pulado, o sinal, a borda do filho. O
+	// Camunda não cria instância de elemento para eles, então a cobertura os pega daqui.
+	private readonly ConcurrentDictionary<string, ConcurrentDictionary<string, byte>> _disparados = new();
+
+	private void Disparou(string instancia, string elementId) =>
+		_disparados.GetOrAdd(instancia, _ => new ConcurrentDictionary<string, byte>(StringComparer.Ordinal)).TryAdd(elementId, 0);
+	private int _coberturaRegistrada;
 	private readonly ConcurrentDictionary<string, byte> _recusasJaDitas = new();
 	private readonly ConcurrentDictionary<string, int> _userTasksResolvidas = new(StringComparer.Ordinal);
 	private readonly ConcurrentDictionary<string, int> _timersPulados = new(StringComparer.Ordinal);
@@ -106,7 +142,8 @@ internal sealed class MocksDaInstancia
 		string? definitionKey = null,
 		IReadOnlyDictionary<string, EventoMock>? mensagens = null,
 		IReadOnlyDictionary<string, EventoMock>? sinais = null,
-		IReadOnlyDictionary<string, FilhoMock>? filhos = null)
+		IReadOnlyDictionary<string, FilhoMock>? filhos = null,
+		CoberturaDaSuite? cobertura = null)
 	{
 		_gateway = gateway;
 		_mocks = new Dictionary<string, JobMock>(mocks, StringComparer.Ordinal);
@@ -117,6 +154,14 @@ internal sealed class MocksDaInstancia
 		_sinais = new Dictionary<string, EventoMock>(sinais ?? new Dictionary<string, EventoMock>(), StringComparer.Ordinal);
 		_filhos = new Dictionary<string, FilhoMock>(filhos ?? new Dictionary<string, FilhoMock>(), StringComparer.Ordinal);
 		_tenantId = settings.TenantId;
+		if (settings.Coverage?.Enabled == true)
+		{
+			_cobertura = cobertura ?? CoberturaDaSuite.Global;
+			if (cobertura is null)
+				_pastaDaCobertura = Path.IsPathRooted(settings.Coverage.Directory)
+					? settings.Coverage.Directory
+					: Path.Combine(AppContext.BaseDirectory, settings.Coverage.Directory);
+		}
 		_intervalo = TimeSpan.FromMilliseconds(Math.Max(10, settings.PollIntervalMilliseconds));
 		_vida = TimeSpan.FromSeconds(Math.Max(1, settings.MockLifetimeSeconds));
 		ProcessInstanceKey = processInstanceKey;
@@ -217,17 +262,22 @@ internal sealed class MocksDaInstancia
 	{
 		_parar.Cancel();
 
-		if (_instanciaTerminou)
-			return;
+		if (!_instanciaTerminou)
+		{
+			try
+			{
+				await _gateway.CancelInstanceAsync(ProcessInstanceKey, ct).ConfigureAwait(false);
+			}
+			catch (Exception)
+			{
+				// Cortesia com o cluster; falhar aqui não muda nenhum teste. Uma instância que já
+				// terminou e o laço ainda não viu responde NOT_FOUND, e a cobertura dela vale igual.
+			}
+		}
 
-		try
-		{
-			await _gateway.CancelInstanceAsync(ProcessInstanceKey, ct).ConfigureAwait(false);
-		}
-		catch (Exception)
-		{
-			// Cortesia com o cluster; falhar aqui não muda nenhum teste.
-		}
+		// Uma instância que terminou há pouco ainda não foi registrada: o laço só pergunta o estado da
+		// raiz a cada dez voltas. Se já foi, isto não faz nada.
+		await RegistrarCoberturaAsync(ct).ConfigureAwait(false);
 	}
 
 	// Síncrono porque o ProcessExit não espera uma Task. Os cancelamentos vão juntos, e o prazo é
@@ -295,7 +345,10 @@ internal sealed class MocksDaInstancia
 				// O estado da raiz custa uma busca a mais; uma vez a cada dez voltas basta para
 				// o laço não sobreviver muito à instância.
 				if (++volta % 10 == 0 && await TerminouAsync(ct).ConfigureAwait(false))
+				{
+					await RegistrarCoberturaAsync(ct).ConfigureAwait(false);
 					return;
+				}
 
 				_ultimaFalhaDeRede = null;
 			}
@@ -432,6 +485,7 @@ internal sealed class MocksDaInstancia
 					// Encerrar a call activity encerra o filho junto (Fase 0, S4).
 					await _gateway.ModifyInstanceAsync(pai, new[] { chamada.ElementInstanceKey }, borda.Saidas, escopo, mock.Variables, ct)
 						.ConfigureAwait(false);
+					Disparou(pai, borda.Id);
 				}
 
 				_tratados.TryAdd(tratado, 0);
@@ -547,6 +601,7 @@ internal sealed class MocksDaInstancia
 							ct).ConfigureAwait(false);
 
 						contagem.AddOrUpdate(chave, 1, (_, n) => n + 1);
+						Disparou(instancia, plano.EventoId);
 					}
 					catch (CamundaRecusouException e) when (e.Codigo == "NOT_FOUND")
 					{
@@ -631,6 +686,52 @@ internal sealed class MocksDaInstancia
 		}
 	}
 
+	/// <summary>
+	/// Uma asserção viu a instância completar: registra a cobertura agora, sem esperar o laço perceber.
+	/// </summary>
+	internal async Task<bool> InstanciaTerminouAsync(CancellationToken ct)
+	{
+		_instanciaTerminou = true;
+		await RegistrarCoberturaAsync(ct).ConfigureAwait(false);
+		return true;
+	}
+
+	// Uma vez por laço: quando a instância termina, ou quando o fim da rodada ou o prazo a cancela.
+	// Os elementos da árvore inteira, cada instância na versão que ela rodou.
+	private async Task RegistrarCoberturaAsync(CancellationToken ct)
+	{
+		if (_cobertura is null || Interlocked.Exchange(ref _coberturaRegistrada, 1) == 1)
+			return;
+
+		foreach (var instancia in Instancias)
+		{
+			try
+			{
+				if (await ModeloAsync(instancia, ct).ConfigureAwait(false) is null)
+					continue;
+				if (!_definicaoDaInstancia.TryGetValue(instancia, out var definicao) || !_xmls.TryGetValue(definicao, out var xml))
+					continue;
+
+				var vista = await _gateway.GetInstanceAsync(instancia, ct).ConfigureAwait(false);
+				var elementos = await _gateway.SearchElementsAsync(instancia, ct).ConfigureAwait(false);
+
+				_cobertura.Registrar(
+					definicao, vista?.ProcessId ?? instancia, vista?.Version, xml,
+					elementos.Where(e => e.Type != "PROCESS").Select(e => e.ElementId)
+						.Concat(_disparados.TryGetValue(instancia, out var disparados) ? disparados.Keys : Enumerable.Empty<string>()));
+			}
+			catch (Exception)
+			{
+				// A cobertura é um extra: uma instância que não deu para ler fica de fora do relatório.
+			}
+		}
+
+		// Grava a cada instância, e não só no fim: o dotnet test pode encerrar o processo antes de o fim
+		// da rodada terminar de gravar.
+		if (ReferenceEquals(_cobertura, CoberturaDaSuite.Global))
+			EscreverCobertura();
+	}
+
 	private async Task<ModeloBpmn?> ModeloAsync(string instancia, CancellationToken ct)
 	{
 		if (!_definicaoDaInstancia.TryGetValue(instancia, out var definicao))
@@ -647,6 +748,7 @@ internal sealed class MocksDaInstancia
 			return modelo;
 
 		var xml = await _gateway.GetProcessDefinitionXmlAsync(definicao, ct).ConfigureAwait(false);
+		_xmls.TryAdd(definicao, xml);
 		return _modelos.GetOrAdd(definicao, ModeloBpmn.Ler(xml));
 	}
 
@@ -720,6 +822,7 @@ internal sealed class MocksDaInstancia
 			var raiz = await _gateway.GetInstanceAsync(ProcessInstanceKey, prazo.Token).ConfigureAwait(false);
 			if (raiz is not null && !EstadosFinais.Contains(raiz.State))
 				await _gateway.CancelInstanceAsync(ProcessInstanceKey, prazo.Token).ConfigureAwait(false);
+			await RegistrarCoberturaAsync(prazo.Token).ConfigureAwait(false);
 		}
 		catch (Exception)
 		{

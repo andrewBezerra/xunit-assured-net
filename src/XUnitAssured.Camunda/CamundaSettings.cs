@@ -55,6 +55,12 @@ public class CamundaSettings
 	[JsonPropertyName("mockLifetimeSeconds")]
 	public int MockLifetimeSeconds { get; set; } = 120;
 
+	/// <summary>
+	/// O relatório de cobertura dos diagramas: o que as instâncias dos testes percorreram e o que nunca rodou.
+	/// </summary>
+	[JsonPropertyName("coverage")]
+	public CamundaCoverageSettings Coverage { get; set; } = new();
+
 	/// <summary>O tenant das instâncias, quando o cluster tem multi-tenancy. Nulo: o padrão.</summary>
 	[JsonPropertyName("tenantId")]
 	public string? TenantId { get; set; }
@@ -120,4 +126,21 @@ public class CamundaAuthenticationSettings
 	/// <summary>A audiência do token, para <c>OAuth</c>, quando o provedor exige.</summary>
 	[JsonPropertyName("audience")]
 	public string? Audience { get; set; }
+}
+
+/// <summary>
+/// O relatório de cobertura que o pacote grava quando o processo de teste termina.
+/// </summary>
+public class CamundaCoverageSettings
+{
+	/// <summary>Se o relatório é gravado. Padrão: sim, como no Camunda Process Test.</summary>
+	[JsonPropertyName("enabled")]
+	public bool Enabled { get; set; } = true;
+
+	/// <summary>
+	/// Onde gravar <c>index.html</c> e <c>coverage.json</c>. Relativo à pasta de saída do teste.
+	/// Padrão: <c>camunda-coverage</c>.
+	/// </summary>
+	[JsonPropertyName("directory")]
+	public string Directory { get; set; } = "camunda-coverage";
 }

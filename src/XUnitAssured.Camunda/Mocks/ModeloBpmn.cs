@@ -39,6 +39,24 @@ internal sealed class ModeloBpmn
 
 	public Elemento? Achar(string id) => _elementos.TryGetValue(id, out var e) ? e : null;
 
+	private static readonly HashSet<string> TiposDeNo = new(StringComparer.Ordinal)
+	{
+		"startEvent", "endEvent", "intermediateCatchEvent", "intermediateThrowEvent", "boundaryEvent",
+		"task", "serviceTask", "userTask", "scriptTask", "sendTask", "receiveTask", "businessRuleTask", "manualTask",
+		"callActivity", "subProcess", "adHocSubProcess", "transaction",
+		"exclusiveGateway", "parallelGateway", "inclusiveGateway", "eventBasedGateway", "complexGateway"
+	};
+
+	/// <summary>
+	/// Os nós do fluxo, o que a cobertura conta: eventos, atividades e gateways. Fluxos de sequência,
+	/// definições de evento e anotações ficam de fora.
+	/// </summary>
+	public IReadOnlyList<Elemento> NosDoFluxo() =>
+		_elementos.Values.Where(e => TiposDeNo.Contains(e.Tipo)).OrderBy(e => e.Id, StringComparer.Ordinal).ToList();
+
+	/// <summary>O nome de cada elemento que tem um, para o relatório.</summary>
+	public IReadOnlyDictionary<string, string> Nomes { get; private set; } = new Dictionary<string, string>();
+
 	/// <summary>O evento de fim simples do processo, fora de subprocessos: por onde um filho mockado termina bem.</summary>
 	public string? EventoDeFim() =>
 		_elementos.Values.FirstOrDefault(e => e is { Tipo: "endEvent", SemDefinicao: true, Escopo: null })?.Id;
@@ -127,7 +145,12 @@ internal sealed class ModeloBpmn
 			}
 		}
 
-		return new ModeloBpmn(elementos);
+		var nomes = documento.Descendants()
+			.Where(e => e.Name.Namespace == Bpmn && e.Attribute("id") is not null && !string.IsNullOrWhiteSpace((string?)e.Attribute("name")))
+			.GroupBy(e => (string)e.Attribute("id")!)
+			.ToDictionary(g => g.Key, g => (string)g.First().Attribute("name")!, StringComparer.Ordinal);
+
+		return new ModeloBpmn(elementos) { Nomes = nomes };
 	}
 	/// <summary>
 	/// Como pular o timer <paramref name="timerId"/>: qual elemento ativo indica que a instância

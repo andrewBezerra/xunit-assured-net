@@ -84,6 +84,13 @@ homologação de verdade isso já aconteceu, e lá os workers reais estão rodan
 sem mock, ou mocke só os tipos que não têm worker. Aqui o cluster não tem worker desses tipos, então os dois
 tipos são mockados.
 
+## A cobertura dos diagramas
+
+Cada rodada grava `bin/Debug/net10.0/camunda-coverage/index.html` neste projeto: os diagramas
+desenhados com o que os exemplos percorreram em verde e o que nunca rodou em vermelho. Hoje, o
+único caminho sem exemplo é a confirmação do cliente no `xa-aprovacao` (`confirmacao` e
+`confirmado`): bom exercício para escrever o seu primeiro teste.
+
 ## Ao evoluir o pacote
 
 Cada recurso novo do pacote ganha aqui um exemplo com o que observar no Operate. Os testes que

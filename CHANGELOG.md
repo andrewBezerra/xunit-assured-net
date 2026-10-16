@@ -2,7 +2,23 @@
 
 All notable changes to the XUnitAssured packages. Upgrading from 5.1.x? See [UPGRADING.md](UPGRADING.md).
 
-## v6.27.1 (Current — Camunda.Testcontainers with its docs and symbols)
+## v6.28.0 (Current — Camunda: diagram coverage)
+
+In XUnitAssured.Camunda: diagram coverage. Upgrading from 6.27.1 requires no code changes; the other packages are unchanged.
+
+- **A coverage report on every test run,** in `camunda-coverage/` in the test output folder:
+  - `index.html` draws each diagram with bpmn-js (loaded from a CDN, pinned with an integrity hash), the reached elements in green and the missed ones in red, with the percentage per process and what was missed;
+  - `coverage.json` has the same data for a pipeline to read.
+- **What it counts:** the flow nodes of the deployed version each test instance ran, per process version, the instances it calls included.
+  - An element counts once any instance went through it, completed or terminated.
+  - A timer the package skipped, a signal it triggered, or a mocked child's error taking the call activity's boundary counts too. Camunda creates no element for those, so the package records them itself.
+- **The report is rewritten as each instance finishes:** when an assertion sees it complete, or when the mocks' loop does. With the 16 samples, writing it only at the end of the test run lost it, because `dotnet test` ended the process first.
+- **On by default,** like the Camunda Process Test's report. Turn it off, or move it, with `camunda.coverage.enabled` and `camunda.coverage.directory`.
+- **Verified against Camunda 8.10.4 with the 16 samples:**
+  - `xa-pedido`, `xa-envio` and `xa-entrega` at 100%;
+  - `xa-aprovacao` at 80%. The customer confirmation path has no sample yet.
+
+## v6.27.1 (Camunda.Testcontainers with its docs and symbols)
 
 Fix for XUnitAssured.Camunda.Testcontainers. Upgrading from 6.27.0 requires no code changes; the other packages are the same as in 6.27.0.
 

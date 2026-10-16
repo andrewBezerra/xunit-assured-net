@@ -83,6 +83,12 @@ public class CamundaValidationBuilder : ValidationBuilder<CamundaStepResult>
 			};
 		});
 
+		// A instância completou: a cobertura dela entra já, e não quando o laço perceber, que pode ser
+		// depois de o processo de teste terminar.
+		var mocks = Alvo().Mocks;
+		if (mocks is not null)
+			Rodar(ct => mocks.InstanciaTerminouAsync(ct));
+
 		return this;
 	}
 

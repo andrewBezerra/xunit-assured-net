@@ -60,7 +60,9 @@ internal sealed class ClusterFalso : ICamundaGateway
 		RestAddress = "http://camunda.falso:8080",
 		AssertionTimeoutSeconds = prazoSegundos,
 		PollIntervalMilliseconds = 10,
-		MockLifetimeSeconds = vidaDosMocksSegundos
+		MockLifetimeSeconds = vidaDosMocksSegundos,
+		// Os testes do pacote não gravam relatório de cobertura; os de cobertura ligam a deles.
+		Coverage = new CamundaCoverageSettings { Enabled = false }
 	};
 
 	/// <summary>Uma cadeia nova, já apontada para este cluster e com prazos curtos.</summary>
