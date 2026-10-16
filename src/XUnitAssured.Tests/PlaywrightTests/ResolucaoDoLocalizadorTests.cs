@@ -35,13 +35,12 @@ public class ResolucaoDoLocalizadorTests
 		LocatorStrategy.ByRole(AriaRole.Button, "Salvar", exact: true).Resolve(_page).ShouldBeSameAs(_locator);
 	}
 
-	// O parâmetro `exact` diz "Whether the name match should be exact", mas Resolve usa
-	// `Exact || Name != null`: com um nome, a comparação é sempre exata e `exact: false` é ignorado.
-	[Fact(DisplayName = "Role with a name and exact: false should match the name by substring",
-		Skip = "Possível bug: LocatorStrategy.Resolve força Exact = true sempre que há Name (LocatorStrategy.cs:153), contrariando o parâmetro exact.")]
-	public void Role_With_Name_And_Not_Exact_Should_Not_Be_Exact()
+	// Com um nome, a comparação é sempre exata, mesmo com exact: false; a documentação do ByRole diz
+	// isso desde a 6.31.0. Uma comparação parcial deixaria a asserção passar no elemento errado.
+	[Fact(DisplayName = "Role with a name should always match the name exactly, as documented")]
+	public void Role_With_Name_Is_Always_Exact()
 	{
-		_page.GetByRole(AriaRole.Button, Arg.Is<PageGetByRoleOptions?>(o => o!.Name == "Salv" && o.Exact == false))
+		_page.GetByRole(AriaRole.Button, Arg.Is<PageGetByRoleOptions?>(o => o!.Name == "Salv" && o.Exact == true))
 			.Returns(_locator);
 
 		LocatorStrategy.ByRole(AriaRole.Button, "Salv", exact: false).Resolve(_page).ShouldBeSameAs(_locator);

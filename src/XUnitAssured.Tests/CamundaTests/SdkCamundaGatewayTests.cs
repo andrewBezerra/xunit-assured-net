@@ -307,11 +307,9 @@ public class SdkCamundaGatewayTests
 		http.Corpo(0)["filter"]!["processInstanceKey"]!.GetValue<string>().ShouldBe("2251799813690001");
 	}
 
-	// O Nome() do gateway promete o nome do Camunda (SERVICE_TASK, JOB_NO_RETRIES), mas o
-	// JsonSerializer sem as opções do SDK escreve o nome do membro do enum ("SERVICETASK",
-	// "JOBNORETRIES"), e é esse que o pacote mostra. Medido no net8.0 e no net10.0.
-	[Fact(DisplayName = "Element types and incident error types keep Camunda's names, with underscores",
-		Skip = "Bug: SdkCamundaGateway.Nome returns the SDK enum member name (SERVICETASK, JOBNORETRIES), not Camunda's (SERVICE_TASK, JOB_NO_RETRIES).")]
+	// O nome do Camunda (SERVICE_TASK, JOB_NO_RETRIES), e não o do membro do enum do SDK. Até a
+	// 6.30.6 o pacote mostrava "SERVICETASK" e "JOBNORETRIES" nas mensagens de incidente.
+	[Fact(DisplayName = "Element types and incident error types keep Camunda's names, with underscores")]
 	public async Task Enum_Names_Are_Camundas()
 	{
 		var http = new CamundaHttpFalso();
