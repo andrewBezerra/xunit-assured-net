@@ -409,7 +409,7 @@ MCP) fica para quando alguém pedir.
 |---|---|---|
 | 4a | Cobertura dos diagramas: `camunda-coverage/index.html` (bpmn-js) e `coverage.json` | 6.28.0 |
 | 4b | `generate_camunda_test` no servidor MCP: do BPMN ao esqueleto do teste; o repositório compila o que ela gera para os diagramas de teste | 6.29.0 |
-| 4c | Casos de teste no JSON do CPT: um subconjunto que roda num cluster compartilhado | a fazer |
+| 4c | Casos de teste JSON do CPT (`[CamundaTestCases]`, `CamundaTestCase.RunAsync`): as instruções que cabem num cluster compartilhado; as outras são recusadas antes de o caso começar | 6.30.0 |
 
 ### Achados da 4a
 
@@ -433,3 +433,18 @@ MCP) fica para quando alguém pedir.
   pelos fluxos de sequência; os que só uma borda alcança ficam como alternativa.
 - Depois de um gateway de evento, o teste gerado segue o primeiro caminho; sem isso, o caminho
   principal ficaria parado no gateway.
+
+### Achados da 4c e fim da Fase 4
+
+- **[Certeza]** O arquivo de exemplo do próprio Camunda (`invoice-approval.json`) afirma que a user
+  task está ativa e só depois a completa: o formato é imperativo. Os `MOCK_*` viram os mocks
+  reativos do pacote; as outras ações acontecem uma vez, no ponto do caso, esperando o que precisam.
+- **[Certeza]** Os quatro casos dos arquivos de teste (`casos/xa-pedido.json` e `casos/xa-revisao.json`)
+  passaram contra a 8.10.4 na primeira rodada: mocks, passo a passo com o filho de verdade, user task
+  conferida e completada pelo nome, mensagem com chave, `IS_COMPLETED_IN_ORDER`.
+- O `MOCK_CHILD_PROCESS` do CPT identifica o filho pelo id do processo, e não pela call activity: o
+  pacote ganhou essa forma por dentro, com a mesma interceptação na instância (sem implantar nada
+  falso).
+
+**Fase 4 concluída** (6.28.0 a 6.30.0): cobertura dos diagramas, `generate_camunda_test` no MCP e
+casos de teste JSON. Com ela, todas as fases do plano estão feitas.

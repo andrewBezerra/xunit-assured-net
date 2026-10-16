@@ -109,6 +109,7 @@ internal sealed class MocksDaInstancia
 	private readonly IReadOnlyDictionary<string, EventoMock> _mensagens;
 	private readonly IReadOnlyDictionary<string, EventoMock> _sinais;
 	private readonly IReadOnlyDictionary<string, FilhoMock> _filhos;
+	private readonly IReadOnlyDictionary<string, FilhoMock> _filhosPorProcesso;
 	private readonly string? _tenantId;
 
 	// A versão da definição de cada instância da árvore, para ler o BPMN dela; e o BPMN lido.
@@ -143,7 +144,8 @@ internal sealed class MocksDaInstancia
 		IReadOnlyDictionary<string, EventoMock>? mensagens = null,
 		IReadOnlyDictionary<string, EventoMock>? sinais = null,
 		IReadOnlyDictionary<string, FilhoMock>? filhos = null,
-		CoberturaDaSuite? cobertura = null)
+		CoberturaDaSuite? cobertura = null,
+		IReadOnlyDictionary<string, FilhoMock>? filhosPorProcesso = null)
 	{
 		_gateway = gateway;
 		_mocks = new Dictionary<string, JobMock>(mocks, StringComparer.Ordinal);
@@ -153,6 +155,8 @@ internal sealed class MocksDaInstancia
 		_mensagens = new Dictionary<string, EventoMock>(mensagens ?? new Dictionary<string, EventoMock>(), StringComparer.Ordinal);
 		_sinais = new Dictionary<string, EventoMock>(sinais ?? new Dictionary<string, EventoMock>(), StringComparer.Ordinal);
 		_filhos = new Dictionary<string, FilhoMock>(filhos ?? new Dictionary<string, FilhoMock>(), StringComparer.Ordinal);
+		_filhosPorProcesso = new Dictionary<string, FilhoMock>(
+			filhosPorProcesso ?? new Dictionary<string, FilhoMock>(), StringComparer.Ordinal);
 		_tenantId = settings.TenantId;
 		if (settings.Coverage?.Enabled == true)
 		{
@@ -181,6 +185,9 @@ internal sealed class MocksDaInstancia
 
 	/// <summary>Quantas vezes este sinal foi disparado na árvore.</summary>
 	public int SinaisDisparados(string nome) => Contagem(_sinaisDisparados, nome);
+
+	/// <summary>As filhas que o laço já encontrou, com o processo de cada uma.</summary>
+	internal IReadOnlyCollection<InstanciaVista> FilhasVistas => _filhasVistas.Values.ToArray();
 
 	/// <summary>Quantas vezes o processo filho desta call activity foi mockado.</summary>
 	public int FilhosMockados(string callActivityId) => Contagem(_filhosMockados, callActivityId);
@@ -327,7 +334,7 @@ internal sealed class MocksDaInstancia
 			{
 				await DescobrirFilhasAsync(ct).ConfigureAwait(false);
 
-				if (_filhos.Count > 0)
+				if (_filhos.Count > 0 || _filhosPorProcesso.Count > 0)
 					await InterceptarFilhasAsync(ct).ConfigureAwait(false);
 
 				if (_mocks.Count > 0)
@@ -419,7 +426,7 @@ internal sealed class MocksDaInstancia
 			if (chamada is null)
 				continue;
 
-			if (!_filhos.TryGetValue(chamada.ElementId, out var mock))
+			if (!_filhos.TryGetValue(chamada.ElementId, out var mock) && !_filhosPorProcesso.TryGetValue(filha.ProcessId, out mock))
 			{
 				_tratados.TryAdd(tratado, 0);
 				continue;

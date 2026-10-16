@@ -355,6 +355,59 @@ Expected process instance 2251799813685899 (order version 4) to complete within 
   Operate: http://localhost:8080/operate/processes/2251799813685899
 ```
 
+## JSON test cases (Camunda Process Test format)
+
+A test case written as JSON, in the format of the Camunda Process Test and of the Web Modeler's
+Test Studio (`cpt-test-cases`, schema 8.10), runs as it is: one row of a `[Theory]` per case.
+
+```csharp
+using XUnitAssured.Camunda.TestCases;
+
+[Theory]
+[CamundaTestCases("test-cases/order.json")]
+public Task Order(CamundaTestCase testCase) => testCase.RunAsync("order", "shipping");
+```
+
+- **`RunAsync(deploy)`** deploys what you name (process ids or paths, as in `Deploy`), then runs
+  the instructions in order. `RunAsync(Given(), ...)` inside a `CamundaTestBase` uses the fixture's
+  cluster.
+- **The `MOCK_*` instructions are the package's mocks,** answering every job of the type, also in
+  the instances the test's instance calls. The other actions happen once, at their place in the
+  case, waiting for what they need to show up: `COMPLETE_JOB`, `COMPLETE_USER_TASK`,
+  `CORRELATE_MESSAGE`. The assertions wait, like the package's.
+- **A selector by `processDefinitionId`** picks the instance the case created, or one it called:
+  `ASSERT_PROCESS_INSTANCE` on a child process works.
+- **A failure names the case, the instruction and what it saw,** with the Operate links of the
+  case's instances.
+
+Supported instructions:
+
+| Kind | Instructions |
+|---|---|
+| Start | `CREATE_PROCESS_INSTANCE` |
+| Mocks | `MOCK_JOB_WORKER_COMPLETE_JOB`, `MOCK_JOB_WORKER_THROW_BPMN_ERROR`, `MOCK_CHILD_PROCESS` |
+| Actions | `COMPLETE_JOB`, `THROW_BPMN_ERROR_FROM_JOB`, `COMPLETE_USER_TASK`, `PUBLISH_MESSAGE`, `CORRELATE_MESSAGE`, `UPDATE_VARIABLES` |
+| Assertions | `ASSERT_PROCESS_INSTANCE`, `ASSERT_ELEMENT_INSTANCE`, `ASSERT_ELEMENT_INSTANCES` (every state, `IS_COMPLETED_IN_ORDER` included), `ASSERT_VARIABLES`, `ASSERT_USER_TASK`, `ASSERT_PROCESS_INSTANCE_MESSAGE_SUBSCRIPTION` |
+
+**What a shared cluster cannot run is refused before the case starts,** each instruction with its
+reason, so a case never runs halfway:
+
+- `INCREASE_TIME` and `SET_TIME`: the clock belongs to the whole cluster. Use `SkipTimer` in C#.
+- `BROADCAST_SIGNAL`: it would reach every instance waiting for the signal. Use `MockSignal` in C#.
+- `MOCK_DMN_DECISION`, `EVALUATE_DECISION` and `ASSERT_DECISION`: deploy the real DMN.
+- `ASSERT_VARIABLE` (FEEL expressions, judges, semantic similarity): use `ASSERT_VARIABLES`.
+- `RESOLVE_INCIDENT`, the ad-hoc subprocess and task listener jobs, conditional start events.
+- Smaller gaps:
+  - `useExampleData`;
+  - `startInstructions` and `runtimeInstructions`;
+  - local variables;
+  - the user task's `dueDate` and `followUpDate`;
+  - `IS_CORRELATED`.
+
+`PUBLISH_MESSAGE` and `CORRELATE_MESSAGE` use the correlation key the case gives. As with
+`MockMessage`, the case fails if an instance outside it waits for the same message with the same
+key.
+
 ## Writing the first test from the diagram
 
 The [XUnitAssured MCP server](../XunitAssured.MCP/README.md) has a `generate_camunda_test` tool:

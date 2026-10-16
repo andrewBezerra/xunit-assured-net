@@ -1,0 +1,39 @@
+{
+  "$schema": "https://camunda.com/json-schema/cpt-test-cases/8.10/schema.json",
+  "testCases": [
+    {
+      "name": "Revisão aprovada e confirmada",
+      "description": "A user task, conferida antes de ser completada, e a mensagem que o processo espera depois.",
+      "instructions": [
+        {
+          "type": "CREATE_PROCESS_INSTANCE",
+          "processDefinitionSelector": { "processDefinitionId": "xa-revisao" },
+          "variables": { "revisaoId": "XA-REVISAO-JSON-1" }
+        },
+        {
+          "type": "ASSERT_USER_TASK",
+          "userTaskSelector": { "elementId": "revisar" },
+          "state": "IS_CREATED",
+          "assignee": "ana",
+          "candidateGroups": [ "juridico" ],
+          "name": "Revisar documento"
+        },
+        { "type": "COMPLETE_USER_TASK", "userTaskSelector": { "taskName": "Revisar documento" }, "variables": { "aprovado": true } },
+        {
+          "type": "ASSERT_PROCESS_INSTANCE_MESSAGE_SUBSCRIPTION",
+          "processInstanceSelector": { "processDefinitionId": "xa-revisao" },
+          "messageSelector": { "messageName": "xa-revisao-confirmada", "correlationKey": "XA-REVISAO-JSON-1" },
+          "state": "IS_WAITING"
+        },
+        { "type": "CORRELATE_MESSAGE", "name": "xa-revisao-confirmada", "correlationKey": "XA-REVISAO-JSON-1", "variables": { "confirmadoPor": "cliente" } },
+        { "type": "ASSERT_PROCESS_INSTANCE", "state": "IS_COMPLETED" },
+        {
+          "type": "ASSERT_ELEMENT_INSTANCES",
+          "elementSelectors": [ { "elementId": "revisar" }, { "elementId": "aguardar-confirmacao" }, { "elementId": "revisado" } ],
+          "state": "IS_COMPLETED_IN_ORDER"
+        },
+        { "type": "ASSERT_VARIABLES", "variables": { "aprovado": true, "confirmadoPor": "cliente" } }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+                  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+                  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+                  xmlns:zeebe="http://camunda.org/schema/zeebe/1.0"
+                  xmlns:modeler="http://camunda.org/schema/modeler/1.0"
+                  id="Definicoes_XaRevisao"
+                  targetNamespace="http://bpmn.io/schema/bpmn"
+                  exporter="XUnitAssured"
+                  exporterVersion="1.0"
+                  modeler:executionPlatform="Camunda Cloud"
+                  modeler:executionPlatformVersion="8.10.0">
+  <bpmn:message id="Msg_RevisaoConfirmada" name="xa-revisao-confirmada">
+    <bpmn:extensionElements>
+      <zeebe:subscription correlationKey="=revisaoId" />
+    </bpmn:extensionElements>
+  </bpmn:message>
+  <bpmn:process id="xa-revisao" name="XUnitAssured - Revisão" isExecutable="true">
+    <bpmn:startEvent id="inicio" name="Documento enviado">
+      <bpmn:outgoing>f1</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:userTask id="revisar" name="Revisar documento">
+      <bpmn:extensionElements>
+        <zeebe:userTask />
+        <zeebe:assignmentDefinition assignee="ana" candidateGroups="juridico" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>f1</bpmn:incoming>
+      <bpmn:outgoing>f2</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:intermediateCatchEvent id="aguardar-confirmacao" name="Revisão confirmada">
+      <bpmn:incoming>f2</bpmn:incoming>
+      <bpmn:outgoing>f3</bpmn:outgoing>
+      <bpmn:messageEventDefinition messageRef="Msg_RevisaoConfirmada" />
+    </bpmn:intermediateCatchEvent>
+    <bpmn:endEvent id="revisado" name="Documento revisado">
+      <bpmn:incoming>f3</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="f1" sourceRef="inicio" targetRef="revisar" />
+    <bpmn:sequenceFlow id="f2" sourceRef="revisar" targetRef="aguardar-confirmacao" />
+    <bpmn:sequenceFlow id="f3" sourceRef="aguardar-confirmacao" targetRef="revisado" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="Diagrama_XaRevisao">
+    <bpmndi:BPMNPlane id="Plano_XaRevisao" bpmnElement="xa-revisao">
+      <bpmndi:BPMNShape id="inicio_di" bpmnElement="inicio">
+        <dc:Bounds x="152" y="102" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="127" y="145" width="86" height="27" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="revisar_di" bpmnElement="revisar">
+        <dc:Bounds x="250" y="80" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="aguardar-confirmacao_di" bpmnElement="aguardar-confirmacao">
+        <dc:Bounds x="412" y="102" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="387" y="145" width="86" height="27" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="revisado_di" bpmnElement="revisado">
+        <dc:Bounds x="512" y="102" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="487" y="145" width="86" height="27" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="f1_di" bpmnElement="f1">
+        <di:waypoint x="188" y="120" />
+        <di:waypoint x="250" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="f2_di" bpmnElement="f2">
+        <di:waypoint x="350" y="120" />
+        <di:waypoint x="412" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="f3_di" bpmnElement="f3">
+        <di:waypoint x="448" y="120" />
+        <di:waypoint x="512" y="120" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

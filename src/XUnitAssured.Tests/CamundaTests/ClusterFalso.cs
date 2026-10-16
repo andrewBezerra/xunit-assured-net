@@ -470,6 +470,30 @@ internal sealed class ClusterFalso : ICamundaGateway
 		return arvore;
 	}
 
+	public Task<IReadOnlyList<UserTaskVista>> SearchUserTasksAsync(IReadOnlyCollection<string> processInstanceKeys, CancellationToken ct)
+	{
+		lock (_trava)
+		{
+			IReadOnlyList<UserTaskVista> tarefas = _userTasks
+				.Where(t => processInstanceKeys.Contains(t.Instancia))
+				.Select(t => new UserTaskVista(t.Chave, t.Instancia, t.Elemento, null, t.Aberta ? "CREATED" : "COMPLETED", null, Array.Empty<string>(), 50))
+				.ToList();
+			return Task.FromResult(tarefas);
+		}
+	}
+
+	public Task SetVariablesAsync(string processInstanceKey, object variables, CancellationToken ct)
+	{
+		lock (_trava)
+		{
+			foreach (var propriedade in JsonSerializer.SerializeToElement(variables).EnumerateObject())
+				_instancias[processInstanceKey].Variaveis[propriedade.Name] = propriedade.Value.GetRawText();
+			Comandos.Add($"set-variables {processInstanceKey}");
+		}
+
+		return Task.CompletedTask;
+	}
+
 	// ----- instâncias iniciadas por outro sistema -----
 
 	// A mais nova primeiro, como a busca ordenada pela data de início: aqui, pela sequência das chaves.

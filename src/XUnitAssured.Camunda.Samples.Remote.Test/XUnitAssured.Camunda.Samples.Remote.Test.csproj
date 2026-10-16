@@ -28,6 +28,7 @@
   <!-- Os mesmos diagramas dos testes de ida e volta do pacote: um lugar só para mudá-los. -->
   <ItemGroup>
     <None Include="..\XUnitAssured.Tests\CamundaTests\bpmn\*.bpmn" Link="bpmn\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\XUnitAssured.Tests\CamundaTests\casos\*.json" Link="casos\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <None Update="testsettings.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 

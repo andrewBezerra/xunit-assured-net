@@ -18,6 +18,8 @@ Os diagramas são os mesmos dos testes de ida e volta do pacote, ligados de
 - **`xa-entrega`** (tag `1.0.0`): espera a mensagem `xa-pagamento-confirmado` (chave `=pedidoId`),
   o sinal `xa-estoque-liberado` e a conferência (`conferir`), que a mensagem `xa-cliente-cancelou`
   interrompe pela borda.
+- **`xa-revisao`**: uma user task (`revisar`, da Ana, grupo `juridico`) e a mensagem
+  `xa-revisao-confirmada` (chave `=revisaoId`). Os casos JSON ficam em `casos/`.
 
 ## O que precisa
 
@@ -76,6 +78,8 @@ projeto. O `testsettings.json` só guarda os prazos.
 | 14 | `ProcessoFilhoTests.Envio_Falhou` | `MockChildProcess(...).ThenThrowBpmnError`: o erro sai pela borda da call activity | `chamar-envio` encerrada, a borda `envio-falhou` leva a `nao-enviado` |
 | 15 | `ApiQueIniciaTests.Pela_Chave` | `FollowInstance(chave)`: um POST HTTP inicia o pedido, o teste acompanha a instância | A instância aberta pelo POST, completada pelos mocks do teste |
 | 16 | `ApiQueIniciaTests.Pela_Variavel` | `FollowInstance(processo, (variável, valor))`: a instância achada pelo `pedidoId` | A instância achada pelo `pedidoId`, terminando em `recusado` |
+| 17 | `CasosJsonTests.Pedido` | Três casos JSON no formato do Camunda Process Test, um por linha do `[Theory]` | Cada caso uma instância: o pedido completo, o recusado e o passo a passo com o filho de verdade |
+| 18 | `CasosJsonTests.Revisao` | Caso JSON com user task conferida antes de completada, e uma mensagem | A user task `revisar` completada, depois a mensagem; fim em `revisado` |
 
 Cada teste também escreve na própria saída a instância, o link e o que observar.
 

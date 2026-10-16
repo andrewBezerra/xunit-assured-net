@@ -117,7 +117,8 @@ public class CamundaFollowInstanceStep : ITestStep
 			var mocks = new MocksDaInstancia(
 				gateway, instancia.ProcessInstanceKey, MocksDaCadeia.Todos(context), settings,
 				MocksDeElemento.UserTasks(context), MocksDeElemento.Timers(context), instancia.ProcessDefinitionKey,
-				MocksDeElemento.Mensagens(context), MocksDeElemento.Sinais(context), MocksDeElemento.Filhos(context));
+				MocksDeElemento.Mensagens(context), MocksDeElemento.Sinais(context), MocksDeElemento.Filhos(context),
+				filhosPorProcesso: MocksDeElemento.FilhosPorProcesso(context));
 			context.SetProperty(MocksDaInstancia.ChaveNoContexto, mocks);
 			mocks.Iniciar();
 

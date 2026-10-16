@@ -16,6 +16,8 @@
 	-->
 	<ItemGroup>
 		<PackageReference Include="Camunda.Orchestration.Sdk" Version="10.0.1" />
+		<!-- O [CamundaTestCases], que vira uma linha de [Theory] por caso de teste JSON. -->
+		<PackageReference Include="xunit.extensibility.core" Version="2.9.3" />
 	</ItemGroup>
 
 	<ItemGroup>
