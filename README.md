@@ -1,6 +1,8 @@
 # XUnitAssured.Net
 
 [![CI](https://github.com/andrewBezerra/xunit-assured-net/actions/workflows/ci.yml/badge.svg)](https://github.com/andrewBezerra/xunit-assured-net/actions/workflows/ci.yml)
+[![Quality Gate](https://sonarcloud.io/api/project_badges/measure?project=andrewBezerra_xunit-assured-net&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=andrewBezerra_xunit-assured-net)
+[![Coverage](https://sonarcloud.io/api/project_badges/measure?project=andrewBezerra_xunit-assured-net&metric=coverage)](https://sonarcloud.io/component_measures?id=andrewBezerra_xunit-assured-net&metric=coverage)
 [![NuGet](https://img.shields.io/nuget/v/XUnitAssured.Core.svg?label=nuget)](https://www.nuget.org/packages/XUnitAssured.Core)
 [![NuGet downloads](https://img.shields.io/nuget/dt/XUnitAssured.Core.svg?label=downloads)](https://www.nuget.org/profiles/AndrewBezerra)
 [![.NET](https://img.shields.io/badge/.NET-8%20%7C%209%20%7C%2010-512BD4)](https://dotnet.microsoft.com/)
