@@ -252,7 +252,7 @@ As instâncias de cada execução ficam no cluster para conferir no Operate.
 |---|---|---|
 | **0. Prova de conceito** ✅ | Ambiente da .115. Console .NET com o SDK 10.x: implantar, iniciar por `processDefinitionKey`, completar job pela chave sem ativar, modificar instância (forma A e B do subprocesso, `SkipTimer`) | Feito em 2026-10-16: ver "Resultado da Fase 0" |
 | **1. MVP** ✅ | Pacote com `Deploy`, `StartInstance`, `MockJobWorker` (completar, erro BPMN), verificações de estado, elementos e variáveis, falha rápida quando o job está com lease de outro worker | Feito na 6.20.0 (2026-10-16): ver "Resultado da Fase 1" |
-| **2. Cobertura do BPMN** | User task, mensagem, sinal, `SkipTimer`, incidents, `MockChildProcess`, aviso de `bindingType="latest"` | Um exemplo por tipo de dependência |
+| **2. Cobertura do BPMN** (em andamento) | User task, mensagem, sinal, `SkipTimer`, incidents, `MockChildProcess`, aviso de `bindingType="latest"` | Um exemplo por tipo de dependência. Ver "Fase 2" |
 | **3. CI de empresa** | Modo gerenciado (Testcontainers) e cenário cruzado com o `XUnitAssured.Http` | `dotnet test` sobe o Camunda sozinho no `ubuntu-latest` |
 | **4. Extras** | Casos de teste no JSON do CPT (`cpt-test-cases/8.10`), cobertura do diagrama, ferramenta no MCP | Só quando alguém pedir |
 
@@ -310,3 +310,41 @@ Pedido do usuário antes da primeira publicação no NuGet, para servir o desenv
   pacote não detecta o worker real (a busca não mostra a ativação), então a regra está no README.
 - **[Certeza]** Contra a 8.10.4 da .115: o filtro `isLatestVersion` e o `versionTag` da busca de
   definições funcionam; cinco testes `Requires=Camunda` passando, um deles sem `Deploy` na cadeia.
+
+## Fase 2: cobertura do BPMN (começou em 2026-10-16)
+
+### Decisões do usuário
+
+- **Mocks reativos, não passos.** User task, timer e mensagem se declaram uma vez na cadeia, como o
+  `MockJobWorker`, e o laço responde toda vez que a instância chega ali, inclusive nas filhas e em
+  loops.
+- **Sinal só na instância.** O teste não faz broadcast: encerra a espera do sinal só na instância
+  dele, por modificação. O broadcast atingiria toda instância do cluster que espera o nome,
+  inclusive as reais na homologação.
+
+### O que a sonda contra a 8.10.4 mostrou
+
+- **[Certeza]** A busca nova `element-instances/wait-states` diz o que cada elemento espera: job,
+  user task (com a chave da task), mensagem (com o nome e a chave de correlação já avaliada), sinal
+  e timer intermediário. Filtra por `rootProcessInstanceKey`, então cobre a árvore numa ida.
+- **[Certeza]** O timer de borda e o timer depois de gateway de evento **não aparecem** nas esperas:
+  aparecem a atividade a que a borda se prende e o gateway. O `SkipTimer` se guia pelo BPMN
+  implantado e pelos elementos ativos.
+- **[Certeza]** Ativar por modificação um gateway paralelo de junção o faz **disparar sem esperar os
+  outros ramos**: o `fim` completou com um ramo ainda aberto. O `SkipTimer` recusa o timer que
+  desemboca numa junção e sugere a duração por variável.
+- **[Certeza]** Encerrar a atividade e ativar a saída da borda (borda que interrompe) e encerrar o
+  gateway de evento e ativar a saída do timer funcionam.
+- **[Certeza]** Defeito do SDK 10.0.1: o `GetProcessDefinitionXmlAsync` lê como JSON a resposta, que
+  é XML, e lança `JsonException`. O `GetResourceContentBinaryAsync` não serve: a chave do recurso não
+  é a da definição (`NOT_FOUND`). Contorno: um `HttpMessageHandler` embaixo do SDK (`XmlComoJson`)
+  embrulha o XML dessa rota numa string JSON, e a autenticação continua com o SDK.
+
+### Entregas
+
+| Entrega | Verbos | Situação |
+|---|---|---|
+| 2a | `MockUserTask(id).ThenComplete(...)`, `SkipTimer(id)`, `AssertUserTaskMocked`, `AssertTimerSkipped`; diagnóstico com as esperas sem resposta e o que foi declarado e nunca usado | 6.22.0 |
+| 2b | `MockMessage(nome).ThenCorrelate(...)` e `MockSignal(nome).ThenTrigger(...)` | a fazer |
+| 2c | Incidents: `MockJobWorker(...).ThenFail(...)` e `AssertIncident(...)` | a fazer |
+| 2d | `MockChildProcess(idDaCallActivity)` e o aviso de `bindingType="latest"` | a fazer |

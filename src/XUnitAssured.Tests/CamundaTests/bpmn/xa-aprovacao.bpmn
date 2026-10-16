@@ -1,0 +1,159 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+                  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+                  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+                  xmlns:zeebe="http://camunda.org/schema/zeebe/1.0"
+                  xmlns:modeler="http://camunda.org/schema/modeler/1.0"
+                  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                  id="Definicoes_XaAprovacao"
+                  targetNamespace="http://bpmn.io/schema/bpmn"
+                  exporter="XUnitAssured"
+                  exporterVersion="1.0"
+                  modeler:executionPlatform="Camunda Cloud"
+                  modeler:executionPlatformVersion="8.10.0">
+  <bpmn:message id="Msg_Confirmacao" name="xa-confirmacao">
+    <bpmn:extensionElements>
+      <zeebe:subscription correlationKey="=pedidoId" />
+    </bpmn:extensionElements>
+  </bpmn:message>
+  <bpmn:process id="xa-aprovacao" name="XUnitAssured - Aprovação" isExecutable="true">
+    <bpmn:extensionElements>
+      <zeebe:versionTag value="1.0.0" />
+    </bpmn:extensionElements>
+    <bpmn:startEvent id="inicio" name="Pedido para aprovar">
+      <bpmn:outgoing>f1</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:intermediateCatchEvent id="esperar-analise" name="Esperar 1 hora">
+      <bpmn:incoming>f1</bpmn:incoming>
+      <bpmn:outgoing>f2</bpmn:outgoing>
+      <bpmn:timerEventDefinition>
+        <bpmn:timeDuration xsi:type="bpmn:tFormalExpression">PT1H</bpmn:timeDuration>
+      </bpmn:timerEventDefinition>
+    </bpmn:intermediateCatchEvent>
+    <bpmn:userTask id="aprovar" name="Aprovar pedido">
+      <bpmn:extensionElements>
+        <zeebe:userTask />
+      </bpmn:extensionElements>
+      <bpmn:incoming>f2</bpmn:incoming>
+      <bpmn:outgoing>f3</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:boundaryEvent id="prazo-aprovacao" name="3 dias sem resposta" attachedToRef="aprovar">
+      <bpmn:outgoing>f8</bpmn:outgoing>
+      <bpmn:timerEventDefinition>
+        <bpmn:timeDuration xsi:type="bpmn:tFormalExpression">P3D</bpmn:timeDuration>
+      </bpmn:timerEventDefinition>
+    </bpmn:boundaryEvent>
+    <bpmn:endEvent id="expirou" name="Aprovação expirou">
+      <bpmn:incoming>f8</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:eventBasedGateway id="aguardar" name="Aguardar confirmação">
+      <bpmn:incoming>f3</bpmn:incoming>
+      <bpmn:outgoing>f4</bpmn:outgoing>
+      <bpmn:outgoing>f6</bpmn:outgoing>
+    </bpmn:eventBasedGateway>
+    <bpmn:intermediateCatchEvent id="confirmacao" name="Cliente confirmou">
+      <bpmn:incoming>f4</bpmn:incoming>
+      <bpmn:outgoing>f5</bpmn:outgoing>
+      <bpmn:messageEventDefinition messageRef="Msg_Confirmacao" />
+    </bpmn:intermediateCatchEvent>
+    <bpmn:endEvent id="confirmado" name="Pedido confirmado">
+      <bpmn:incoming>f5</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:intermediateCatchEvent id="sem-confirmacao" name="2 horas sem confirmação">
+      <bpmn:incoming>f6</bpmn:incoming>
+      <bpmn:outgoing>f7</bpmn:outgoing>
+      <bpmn:timerEventDefinition>
+        <bpmn:timeDuration xsi:type="bpmn:tFormalExpression">PT2H</bpmn:timeDuration>
+      </bpmn:timerEventDefinition>
+    </bpmn:intermediateCatchEvent>
+    <bpmn:endEvent id="desistiu" name="Cliente desistiu">
+      <bpmn:incoming>f7</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="f1" sourceRef="inicio" targetRef="esperar-analise" />
+    <bpmn:sequenceFlow id="f2" sourceRef="esperar-analise" targetRef="aprovar" />
+    <bpmn:sequenceFlow id="f3" sourceRef="aprovar" targetRef="aguardar" />
+    <bpmn:sequenceFlow id="f4" sourceRef="aguardar" targetRef="confirmacao" />
+    <bpmn:sequenceFlow id="f5" sourceRef="confirmacao" targetRef="confirmado" />
+    <bpmn:sequenceFlow id="f6" sourceRef="aguardar" targetRef="sem-confirmacao" />
+    <bpmn:sequenceFlow id="f7" sourceRef="sem-confirmacao" targetRef="desistiu" />
+    <bpmn:sequenceFlow id="f8" sourceRef="prazo-aprovacao" targetRef="expirou" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="Diagrama_XaAprovacao">
+    <bpmndi:BPMNPlane id="Plano_XaAprovacao" bpmnElement="xa-aprovacao">
+      <bpmndi:BPMNShape id="inicio_di" bpmnElement="inicio">
+        <dc:Bounds x="152" y="102" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="127" y="145" width="86" height="27" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="esperar-analise_di" bpmnElement="esperar-analise">
+        <dc:Bounds x="242" y="102" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="224" y="145" width="72" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="aprovar_di" bpmnElement="aprovar">
+        <dc:Bounds x="330" y="80" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="prazo-aprovacao_di" bpmnElement="prazo-aprovacao">
+        <dc:Bounds x="362" y="142" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="270" y="185" width="96" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="expirou_di" bpmnElement="expirou">
+        <dc:Bounds x="452" y="282" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="425" y="325" width="90" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="aguardar_di" bpmnElement="aguardar">
+        <dc:Bounds x="485" y="95" width="50" height="50" />
+        <bpmndi:BPMNLabel><dc:Bounds x="460" y="65" width="100" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="confirmacao_di" bpmnElement="confirmacao">
+        <dc:Bounds x="592" y="102" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="567" y="145" width="86" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="confirmado_di" bpmnElement="confirmado">
+        <dc:Bounds x="692" y="102" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="664" y="145" width="92" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="sem-confirmacao_di" bpmnElement="sem-confirmacao">
+        <dc:Bounds x="592" y="212" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="560" y="255" width="100" height="27" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="desistiu_di" bpmnElement="desistiu">
+        <dc:Bounds x="692" y="212" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="671" y="255" width="78" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="f1_di" bpmnElement="f1">
+        <di:waypoint x="188" y="120" />
+        <di:waypoint x="242" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="f2_di" bpmnElement="f2">
+        <di:waypoint x="278" y="120" />
+        <di:waypoint x="330" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="f3_di" bpmnElement="f3">
+        <di:waypoint x="430" y="120" />
+        <di:waypoint x="485" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="f4_di" bpmnElement="f4">
+        <di:waypoint x="535" y="120" />
+        <di:waypoint x="592" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="f5_di" bpmnElement="f5">
+        <di:waypoint x="628" y="120" />
+        <di:waypoint x="692" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="f6_di" bpmnElement="f6">
+        <di:waypoint x="510" y="145" />
+        <di:waypoint x="510" y="230" />
+        <di:waypoint x="592" y="230" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="f7_di" bpmnElement="f7">
+        <di:waypoint x="628" y="230" />
+        <di:waypoint x="692" y="230" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="f8_di" bpmnElement="f8">
+        <di:waypoint x="380" y="178" />
+        <di:waypoint x="380" y="300" />
+        <di:waypoint x="452" y="300" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

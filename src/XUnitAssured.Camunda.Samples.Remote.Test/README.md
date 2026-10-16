@@ -4,13 +4,16 @@ Exemplos do `XUnitAssured.Camunda` contra um Camunda 8.10 de verdade, para estud
 refazer, a cada versão nova, a conferência no Modeler e no Operate.
 
 Os diagramas são os mesmos dos testes de ida e volta do pacote, ligados de
-`src/XUnitAssured.Tests/CamundaTests/bpmn/`. Para estudar o fluxo, abra os dois no Camunda Modeler:
+`src/XUnitAssured.Tests/CamundaTests/bpmn/`. Para estudar o fluxo, abra-os no Camunda Modeler:
 
 - **`xa-pedido`** (versão com tag `1.0.0`): `cobrar` (job `xa-cobrar`) → `chamar-envio` (call
   activity) → `concluido`. Se a cobrança lança o erro `PAGAMENTO_RECUSADO`, a borda
   `pagamento-recusado` leva a `recusado`.
 - **`xa-envio`**: `despachar` (job `xa-despachar`) devolve `rastreio`, que a call activity copia
   para `codigoRastreio` no pedido.
+- **`xa-aprovacao`** (tag `1.0.0`): espera 1 hora (`esperar-analise`), pede a aprovação (`aprovar`,
+  user task com um prazo de 3 dias na borda `prazo-aprovacao`) e espera a confirmação do cliente
+  ou 2 horas (`sem-confirmacao`), num gateway de evento.
 
 ## O que precisa
 
@@ -59,6 +62,8 @@ projeto. O `testsettings.json` só guarda os prazos.
 | 4 | `DesenvolvedorTests.Job_Sem_Mock` | A mensagem de falha quando falta um mock (o teste a imprime) | A instância cancelada ao fim da rodada (TERMINATED), com a filha encerrada em `despachar`, onde esperava |
 | 5 | `QaTests.Versao_Pelo_Rotulo` | Sem `Deploy`: a versão publicada com tag `1.0.0` | A versão e a tag no cabeçalho da instância |
 | 6 | `QaTests.Ultima_Versao` | Sem `Deploy` nem versão: a última publicada | A instância terminando em `recusado` |
+| 7 | `PessoaERelogioTests.Aprovacao_Sem_Confirmacao` | `SkipTimer` num timer intermediário e num timer de gateway de evento, `MockUserTask` | `esperar-analise` e `aguardar` encerrados (TERMINATED), `aprovar` completada, fim em `desistiu` |
+| 8 | `PessoaERelogioTests.Aprovacao_Expirou` | `SkipTimer` num timer de borda que interrompe | `aprovar` encerrada pela borda, fim em `expirou` |
 
 Cada teste também escreve na própria saída a instância, o link e o que observar.
 

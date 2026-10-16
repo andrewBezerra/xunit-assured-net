@@ -198,16 +198,48 @@ public class CamundaValidationBuilder : ValidationBuilder<CamundaStepResult>
 	public CamundaValidationBuilder AssertJobMocked(string jobType, int times = 1)
 	{
 		if (string.IsNullOrWhiteSpace(jobType)) throw new ArgumentException("Job type is required.", nameof(jobType));
+
+		return Contar($"to have its '{jobType}' job mocked {times} time(s)", "the mock ran", times, m => m.Invocacoes(jobType));
+	}
+
+	/// <summary>
+	/// Afirma quantas vezes o mock desta user task a completou, nesta instância e nas que ela chamou.
+	/// </summary>
+	public CamundaValidationBuilder AssertUserTaskMocked(string elementId, int times = 1)
+	{
+		if (string.IsNullOrWhiteSpace(elementId)) throw new ArgumentException("Element id is required.", nameof(elementId));
+
+		return Contar($"to have user task '{elementId}' completed by the mock {times} time(s)", "the mock completed it",
+			times, m => m.UserTasksResolvidas(elementId));
+	}
+
+	/// <summary>
+	/// Afirma quantas vezes o timer foi pulado, nesta instância e nas que ela chamou.
+	/// </summary>
+	/// <remarks>
+	/// Um timer pulado fica <c>TERMINATED</c> na instância, e não <c>COMPLETED</c>: é esta asserção, e não
+	/// <c>AssertCompletedElements</c>, que diz que a instância passou por ele.
+	/// </remarks>
+	public CamundaValidationBuilder AssertTimerSkipped(string elementId, int times = 1)
+	{
+		if (string.IsNullOrWhiteSpace(elementId)) throw new ArgumentException("Element id is required.", nameof(elementId));
+
+		return Contar($"to have timer '{elementId}' skipped {times} time(s)", "it was skipped",
+			times, m => m.TimersPulados(elementId));
+	}
+
+	private CamundaValidationBuilder Contar(string oQue, string feito, int times, Func<MocksDaInstancia, int> contagem)
+	{
 		if (times < 0) throw new ArgumentOutOfRangeException(nameof(times), "Times cannot be negative.");
 
-		Esperar($"to have its '{jobType}' job mocked {times} time(s)", (a, _) =>
+		Esperar(oQue, (a, _) =>
 		{
-			var feitas = a.Mocks?.Invocacoes(jobType) ?? 0;
+			var feitas = a.Mocks is null ? 0 : contagem(a.Mocks);
 			return Task.FromResult(feitas == times
 				? Verificacao.Ok
 				: feitas > times
-					? Verificacao.Impossivel($"the mock ran {feitas} time(s)")
-					: Verificacao.Pendente($"the mock ran {feitas} time(s)"));
+					? Verificacao.Impossivel($"{feito} {feitas} time(s)")
+					: Verificacao.Pendente($"{feito} {feitas} time(s)"));
 		});
 
 		return this;
@@ -314,6 +346,15 @@ public class CamundaValidationBuilder : ValidationBuilder<CamundaStepResult>
 
 				if (alvo.Mocks is not null)
 				{
+					var esperas = await alvo.Mocks.EsperasSemRespostaAsync(ct).ConfigureAwait(false);
+					if (esperas.Count > 0)
+						texto.AppendLine().Append("  Waiting for (not answered in this test): ")
+							.Append(string.Join(", ", esperas.Select(DescreverEspera)));
+
+					var nuncaUsados = alvo.Mocks.NuncaUsados();
+					if (nuncaUsados.Count > 0)
+						texto.AppendLine().Append("  Declared in this test but never used: ").Append(string.Join(", ", nuncaUsados));
+
 					var semMock = await alvo.Mocks.PendentesSemMockAsync(ct).ConfigureAwait(false);
 					if (semMock.Count > 0)
 						texto.AppendLine().Append("  Jobs waiting for a worker (not mocked in this test): ")
@@ -369,6 +410,15 @@ public class CamundaValidationBuilder : ValidationBuilder<CamundaStepResult>
 		var daInstancia = variaveis.FirstOrDefault(v => v.ScopeKey == alvo.Chave) ?? variaveis.FirstOrDefault();
 		return daInstancia?.ValueJson;
 	}
+
+	private static string DescreverEspera(EsperaVista e) => e.Tipo switch
+	{
+		"USER_TASK" => $"user task '{e.ElementId}'",
+		"MESSAGE" => $"message '{e.MessageName}' with correlation key '{e.CorrelationKey}' at '{e.ElementId}'",
+		"SIGNAL" => $"signal '{e.SignalName}' at '{e.ElementId}'",
+		"TIMER" => $"timer '{e.ElementId}'",
+		var outro => $"{outro.ToLowerInvariant().Replace('_', ' ')} at '{e.ElementId}'"
+	} + (e.ProcessInstanceKey == string.Empty ? "" : $" (instance {e.ProcessInstanceKey})");
 
 	private static void Ids(string[] elementIds)
 	{

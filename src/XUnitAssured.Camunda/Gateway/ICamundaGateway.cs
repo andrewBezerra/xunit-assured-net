@@ -54,6 +54,28 @@ internal interface ICamundaGateway
 	Task<IReadOnlyList<IncidenteVisto>> SearchActiveIncidentsAsync(string processInstanceKey, CancellationToken ct);
 
 	Task CancelInstanceAsync(string processInstanceKey, CancellationToken ct);
+
+	/// <summary>
+	/// O que os elementos da árvore esperam: user task, mensagem, sinal, job. Timer de borda e timer
+	/// depois de gateway de evento não aparecem aqui (medido na 8.10.4); esses saem do BPMN.
+	/// </summary>
+	Task<IReadOnlyList<EsperaVista>> SearchWaitStatesAsync(string rootProcessInstanceKey, CancellationToken ct);
+
+	Task CompleteUserTaskAsync(string userTaskKey, object? variables, CancellationToken ct);
+
+	/// <summary>
+	/// Encerra elementos e ativa outros, numa modificação só. O <c>ancestorElementInstanceKey</c> é o
+	/// escopo onde ativar, quando o elemento está dentro de um subprocesso.
+	/// </summary>
+	Task ModifyInstanceAsync(
+		string processInstanceKey,
+		IReadOnlyList<string> terminateElementInstanceKeys,
+		IReadOnlyList<string> activateElementIds,
+		string? ancestorElementInstanceKey,
+		CancellationToken ct);
+
+	/// <summary>O XML da versão implantada.</summary>
+	Task<string> GetProcessDefinitionXmlAsync(string definitionKey, CancellationToken ct);
 }
 
 /// <summary>Um arquivo para implantar: o nome que o cluster vai mostrar e o conteúdo.</summary>
@@ -67,10 +89,26 @@ internal sealed record JobPendente(string JobKey, string Type, string ElementId,
 
 /// <summary>Uma instância como a busca a mostra.</summary>
 internal sealed record InstanciaVista(
-	string ProcessInstanceKey, string ProcessId, string State, bool HasIncident, string? ParentProcessInstanceKey);
+	string ProcessInstanceKey, string ProcessId, string State, bool HasIncident, string? ParentProcessInstanceKey,
+	string? ProcessDefinitionKey = null);
 
 /// <summary>Um elemento de uma instância, como a busca o mostra.</summary>
-internal sealed record ElementoVisto(string ElementId, string ElementName, string Type, string State);
+internal sealed record ElementoVisto(
+	string ElementId, string ElementName, string Type, string State, string ElementInstanceKey = "");
+
+/// <summary>
+/// Um ponto de espera de um elemento. <see cref="Tipo"/> é o que o Camunda responde: <c>USER_TASK</c>,
+/// <c>MESSAGE</c>, <c>SIGNAL</c>, <c>JOB</c>, <c>TIMER</c>...
+/// </summary>
+internal sealed record EsperaVista(
+	string ProcessInstanceKey,
+	string ElementInstanceKey,
+	string ElementId,
+	string Tipo,
+	string? UserTaskKey = null,
+	string? MessageName = null,
+	string? CorrelationKey = null,
+	string? SignalName = null);
 
 /// <summary>Uma variável, com o valor em JSON como o Camunda guarda.</summary>
 internal sealed record VariavelVista(string Name, string ValueJson, string ScopeKey);

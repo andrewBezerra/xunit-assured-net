@@ -73,7 +73,7 @@ try {
     }
 
     $instancias = (Buscar "process-instances/search" @{
-        filter = @{ startDate = @{ '$gte' = $inicio }; processDefinitionId = @{ '$in' = @("xa-pedido", "xa-envio") } }
+        filter = @{ startDate = @{ '$gte' = $inicio }; processDefinitionId = @{ '$in' = @("xa-pedido", "xa-envio", "xa-aprovacao") } }
         sort   = @(@{ field = "startDate"; order = "ASC" })
         page   = @{ limit = 100 }
     }).items

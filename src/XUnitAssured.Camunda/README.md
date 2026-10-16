@@ -84,6 +84,57 @@ await Given()
 A boundary error event with that code catches the error. Without one, the instance opens an
 incident, and `AssertInstanceCompleted` fails at once saying so.
 
+## User tasks and timers
+
+A person and a clock are dependencies too: a test cannot wait for someone to approve, or for three
+days to pass. Answer them the way you answer a job worker, once in the chain, every time the
+instance gets there:
+
+```csharp
+await Given()
+    .Deploy("approval")
+    .SkipTimer("wait-for-analysis")
+    .MockUserTask("approve").ThenComplete(new { approved = true })
+    .SkipTimer("no-confirmation")
+    .StartInstance("approval", new { orderId = "P-1" })
+    .ExecuteAsync()
+    .AssertInstanceCompleted()
+    .AssertCompletedElements("approve", "customer-gave-up")
+    .AssertUserTaskMocked("approve")
+    .AssertTimerSkipped("no-confirmation");
+```
+
+- **`MockUserTask(elementId).ThenComplete(variables)`** completes the user task with what the form
+  would return, in the instance and in the ones it calls. It is by element id, not by type: two
+  user tasks of a diagram ask for different answers. Camunda user tasks only (`zeebe:userTask`);
+  the old job-based ones are jobs of type `io.camunda.zeebe:userTask`, mocked with `MockJobWorker`.
+- **`SkipTimer(elementId)`** does not move the clock, which belongs to the whole cluster. It modifies
+  the instance: it ends the wait and activates what comes after the timer. It works for:
+  - an intermediate timer event;
+  - a timer after an event-based gateway: it ends the gateway, which drops the other events;
+  - a boundary timer. Pass the boundary event's id. An interrupting one ends the activity it is
+    attached to and takes the timer's path; a non-interrupting one leaves the activity running.
+- **A skipped timer is `TERMINATED`, not `COMPLETED`,** in the instance and in Operate. Assert it
+  with `AssertTimerSkipped`, not `AssertCompletedElements`.
+- **A timer that flows into a joining gateway is refused,** and the first assertion fails at once
+  saying so. Activated by instance modification, a parallel or inclusive join fires without waiting
+  for its other branches (measured on 8.10.4): the test would run a path the process never takes.
+  For that timer, put the duration in a variable (`timeDuration="=reviewTimeout"`) and start the
+  instance with `PT1S`.
+
+The package reads the structure of the process from the deployed BPMN, so `SkipTimer` also works on
+what QA tests on staging, deployed by someone else.
+
+When an instance stops, the failure now says what it is waiting for and what the test declared
+but never used:
+
+```
+Expected process instance 2251799813687606 (approval version 1) to complete within 15s, but it is ACTIVE.
+  Waiting at: 'approve' (USERTASK)
+  Waiting for (not answered in this test): user task 'approve' (instance 2251799813687606)
+  Declared in this test but never used: timer 'no-confirmation'
+```
+
 ## Testing what is already deployed
 
 A chain without `Deploy` starts the version already on the cluster: what was deployed to
@@ -150,6 +201,8 @@ the engine and shows up completed in the search a moment later. Every assertion 
 | `AssertVariable(name, value)` | the variable equals the value, compared as JSON |
 | `AssertVariable<T>(name, assertion)` | the assertion passes on the variable read as `T` |
 | `AssertJobMocked(type, times)` | the mock of that type resolved exactly `times` jobs |
+| `AssertUserTaskMocked(id, times)` | the mock of that user task completed it exactly `times` times |
+| `AssertTimerSkipped(id, times)` | that timer was skipped exactly `times` times |
 | `AssertNoIncidents()` | no open incident now (does not wait) |
 
 An assertion does not wait the full timeout when waiting cannot help: the instance was
@@ -254,13 +307,12 @@ key, Camunda runs with a "Non-Production License" banner, which its license allo
 
 ## Not yet
 
-Timers, user tasks, messages and signals, mocking a child process or a DMN decision, and a
-Testcontainers mode that starts Camunda inside `dotnet test` are planned, in that order. Until a
-timer verb exists, a test that reaches a timer waits for it.
+Messages and signals, incidents, mocking a child process, and a Testcontainers mode that starts
+Camunda inside `dotnet test` are planned, in that order.
 
 ## Where the verbs live
 
-`Deploy`, `MockJobWorker` and `StartInstance` are the entry verbs, the only ones on
+`Deploy`, `MockJobWorker`, `MockUserTask`, `SkipTimer` and `StartInstance` are the entry verbs, the only ones on
 `ITestScenario`; the rest are members of `ICamundaScenario`, the convention the root README
 documents. They do not collide with `ApiResource`, `Topic` or `Queue`, so a chain can call the
 API, then follow the process it started.

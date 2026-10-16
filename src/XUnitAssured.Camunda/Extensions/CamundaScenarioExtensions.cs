@@ -15,7 +15,7 @@ namespace XUnitAssured.Camunda.Extensions;
 /// </summary>
 /// <remarks>
 /// Pela convenção do README, um pacote de protocolo declara os verbos sobre o próprio cenário
-/// tipado e só os de entrada sobre <see cref="ITestScenario"/>. Os três daqui não colidem com os
+/// tipado e só os de entrada sobre <see cref="ITestScenario"/>. Os daqui não colidem com os
 /// dos outros pacotes, então uma cadeia pode começar no HTTP e seguir no Camunda.
 /// </remarks>
 public static class CamundaScenarioExtensions
@@ -27,6 +27,14 @@ public static class CamundaScenarioExtensions
 	/// <inheritdoc cref="ICamundaScenario.MockJobWorker" />
 	public static ICamundaJobMock MockJobWorker(this ITestScenario scenario, string jobType) =>
 		CamundaVerbos.MockJobWorker(scenario ?? throw new ArgumentNullException(nameof(scenario)), jobType);
+
+	/// <inheritdoc cref="ICamundaScenario.MockUserTask" />
+	public static ICamundaUserTaskMock MockUserTask(this ITestScenario scenario, string elementId) =>
+		CamundaVerbos.MockUserTask(scenario ?? throw new ArgumentNullException(nameof(scenario)), elementId);
+
+	/// <inheritdoc cref="ICamundaScenario.SkipTimer" />
+	public static ICamundaScenario SkipTimer(this ITestScenario scenario, string elementId) =>
+		CamundaVerbos.SkipTimer(scenario ?? throw new ArgumentNullException(nameof(scenario)), elementId);
 
 	/// <inheritdoc cref="ICamundaScenario.StartInstance" />
 	public static ICamundaScenario StartInstance(
@@ -56,6 +64,23 @@ internal static class CamundaVerbos
 			throw new ArgumentException("Job type is required: the type of the task's zeebe:taskDefinition.", nameof(jobType));
 
 		return new MockEmDeclaracao(scenario, jobType);
+	}
+
+	internal static ICamundaUserTaskMock MockUserTask(ITestScenario scenario, string elementId)
+	{
+		if (string.IsNullOrWhiteSpace(elementId))
+			throw new ArgumentException("Element id is required: the id of the bpmn:userTask.", nameof(elementId));
+
+		return new UserTaskEmDeclaracao(scenario, elementId);
+	}
+
+	internal static ICamundaScenario SkipTimer(ITestScenario scenario, string elementId)
+	{
+		if (string.IsNullOrWhiteSpace(elementId))
+			throw new ArgumentException("Element id is required: the id of the timer event in the BPMN.", nameof(elementId));
+
+		MocksDeElemento.RegistrarTimer(scenario.Context, elementId);
+		return CamundaScenario.De(scenario);
 	}
 
 	internal static ICamundaScenario StartInstance(
@@ -94,6 +119,24 @@ internal static class CamundaVerbos
 		});
 
 		return CamundaScenario.De(scenario);
+	}
+
+	private sealed class UserTaskEmDeclaracao : ICamundaUserTaskMock
+	{
+		private readonly ITestScenario _cenario;
+		private readonly string _elemento;
+
+		public UserTaskEmDeclaracao(ITestScenario cenario, string elemento)
+		{
+			_cenario = cenario;
+			_elemento = elemento;
+		}
+
+		public ICamundaScenario ThenComplete(object? variables = null)
+		{
+			MocksDeElemento.RegistrarUserTask(_cenario.Context, new UserTaskMock(_elemento, variables));
+			return CamundaScenario.De(_cenario);
+		}
 	}
 
 	private sealed class MockEmDeclaracao : ICamundaJobMock

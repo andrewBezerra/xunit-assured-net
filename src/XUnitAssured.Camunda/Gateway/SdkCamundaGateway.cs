@@ -27,7 +27,11 @@ internal sealed class SdkCamundaGateway : ICamundaGateway, IDisposable
 	{
 		if (settings == null) throw new ArgumentNullException(nameof(settings));
 
-		_client = CamundaClient.Create(new CamundaOptions { Config = Configuracao(settings) });
+		_client = CamundaClient.Create(new CamundaOptions
+		{
+			Config = Configuracao(settings),
+			HttpMessageHandler = new XmlComoJson()
+		});
 	}
 
 	/// <summary>
@@ -223,7 +227,8 @@ internal sealed class SdkCamundaGateway : ICamundaGateway, IDisposable
 			}, null, ct).ConfigureAwait(false);
 
 			return (IReadOnlyList<ElementoVisto>)resposta.Items
-				.Select(e => new ElementoVisto(e.ElementId.Value, e.ElementName ?? string.Empty, e.Type.ToString(), e.State.ToString()))
+				.Select(e => new ElementoVisto(
+					e.ElementId.Value, e.ElementName ?? string.Empty, e.Type.ToString(), e.State.ToString(), e.ElementInstanceKey.Value))
 				.ToList();
 		});
 
@@ -262,6 +267,96 @@ internal sealed class SdkCamundaGateway : ICamundaGateway, IDisposable
 		Recusa(() => _client.CancelProcessInstanceAsync(
 			ProcessInstanceKey.AssumeExists(processInstanceKey), new CancelProcessInstanceRequest(), ct));
 
+	public Task<IReadOnlyList<EsperaVista>> SearchWaitStatesAsync(string rootProcessInstanceKey, CancellationToken ct) =>
+		Recusa(async () =>
+		{
+			var resposta = await _client.SearchElementInstanceWaitStatesAsync(new ElementInstanceWaitStateQuery
+			{
+				Filter = new ElementInstanceWaitStateFilter
+				{
+					RootProcessInstanceKey = new ProcessInstanceKeyFilterProperty
+					{
+						In = new List<ProcessInstanceKey> { ProcessInstanceKey.AssumeExists(rootProcessInstanceKey) }
+					}
+				}
+			}, null, ct).ConfigureAwait(false);
+
+			return (IReadOnlyList<EsperaVista>)resposta.Items.Select(e =>
+			{
+				var espera = new EsperaVista(
+					e.ProcessInstanceKey.Value, e.ElementInstanceKey.Value, e.ElementId.Value, Tipo(e.Details));
+
+				return e.Details switch
+				{
+					UserTaskWaitStateDetails u => espera with { UserTaskKey = u.TaskKey.Value },
+					MessageWaitStateDetails m => espera with { MessageName = m.MessageName, CorrelationKey = m.CorrelationKey },
+					SignalWaitStateDetails s => espera with { SignalName = s.SignalName },
+					_ => espera
+				};
+			}).ToList();
+		});
+
+	public Task CompleteUserTaskAsync(string userTaskKey, object? variables, CancellationToken ct) =>
+		Recusa(() => _client.CompleteUserTaskAsync(
+			UserTaskKey.AssumeExists(userTaskKey), new UserTaskCompletionRequest { Variables = variables }, ct));
+
+	public Task ModifyInstanceAsync(
+		string processInstanceKey,
+		IReadOnlyList<string> terminateElementInstanceKeys,
+		IReadOnlyList<string> activateElementIds,
+		string? ancestorElementInstanceKey,
+		CancellationToken ct) =>
+		Recusa(() => _client.ModifyProcessInstanceAsync(
+			ProcessInstanceKey.AssumeExists(processInstanceKey),
+			new ProcessInstanceModificationInstruction
+			{
+				TerminateInstructions = terminateElementInstanceKeys
+					.Select(k => (ProcessInstanceModificationTerminateInstruction)new ProcessInstanceModificationTerminateByKeyInstruction
+					{
+						ElementInstanceKey = ElementInstanceKey.AssumeExists(k)
+					})
+					.ToList(),
+				ActivateInstructions = activateElementIds
+					.Select(id => new ProcessInstanceModificationActivateInstruction
+					{
+						ElementId = ElementId.AssumeExists(id),
+						AncestorElementInstanceKey = ancestorElementInstanceKey is null
+							? null
+							: ElementInstanceKey.AssumeExists(ancestorElementInstanceKey)
+					})
+					.ToList()
+			},
+			ct));
+
+	public Task<string> GetProcessDefinitionXmlAsync(string definitionKey, CancellationToken ct) =>
+		Recusa(async () =>
+		{
+			// O XmlComoJson, embaixo do SDK, entrega o XML como string JSON: ver o porquê nele.
+			var xml = await _client.GetProcessDefinitionXmlAsync(ProcessDefinitionKey.AssumeExists(definitionKey), null, ct)
+				.ConfigureAwait(false);
+
+			var texto = xml switch
+			{
+				string s => s,
+				System.Text.Json.JsonElement { ValueKind: System.Text.Json.JsonValueKind.String } json => json.GetString(),
+				_ => xml?.ToString()
+			};
+
+			return (texto ?? string.Empty).TrimStart((char)0xFEFF);
+		});
+
+	// O tipo da espera vem da classe dos detalhes: MessageWaitStateDetails é MESSAGE.
+	private static string Tipo(WaitStateDetails? detalhes) => detalhes switch
+	{
+		UserTaskWaitStateDetails => "USER_TASK",
+		MessageWaitStateDetails => "MESSAGE",
+		SignalWaitStateDetails => "SIGNAL",
+		TimerWaitStateDetails => "TIMER",
+		JobWaitStateDetails => "JOB",
+		null => "UNKNOWN",
+		var outro => outro.GetType().Name.Replace("WaitStateDetails", string.Empty).ToUpperInvariant()
+	};
+
 	public void Dispose() => _client.Dispose();
 
 	private static InstanciaVista Vista(ProcessInstanceResult p) => new(
@@ -269,7 +364,8 @@ internal sealed class SdkCamundaGateway : ICamundaGateway, IDisposable
 		p.ProcessDefinitionId.Value,
 		p.State.ToString(),
 		p.HasIncident,
-		p.ParentProcessInstanceKey?.Value);
+		p.ParentProcessInstanceKey?.Value,
+		p.ProcessDefinitionKey.Value);
 
 	private static async Task Recusa(Func<Task> acao)
 	{
