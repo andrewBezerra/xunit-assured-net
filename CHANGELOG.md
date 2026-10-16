@@ -2,7 +2,19 @@
 
 All notable changes to the XUnitAssured packages. Upgrading from 5.1.x? See [UPGRADING.md](UPGRADING.md).
 
-## v6.19.0 (Current — Kafka OAUTHBEARER with OpenID Connect)
+## v6.19.1 (Current — plan for XUnitAssured.Camunda)
+
+Maintenance. Upgrading from 6.19.0 requires no code changes; the packages are the same as in 6.19.0.
+
+- **Plan for an XUnitAssured.Camunda package** (`docs/camunda-plano.md`, in Portuguese). It would test BPMN process instances on a shared Camunda 8.10 cluster, with the diagram's external dependencies (job workers, connectors, child processes, timers) mocked per process instance.
+- **Proof of concept** (`spikes/CamundaFase0/`, outside the solution and not packaged). Six scenarios against a real Camunda 8.10.4 with the official `Camunda.Orchestration.Sdk` 10.0.1, all passing:
+  - jobs completed or failed with a BPMN error by key, without being activated;
+  - a child process mocked through instance modification, with the call activity's output mapping still applied;
+  - timers skipped;
+  - five instances in parallel, each mocking the same job type with a different answer.
+- **One limit found:** a job activated by another worker does not show up as activated in the job search. The test can detect it only when that worker activated the job with a lease.
+
+## v6.19.0 (Kafka OAUTHBEARER with OpenID Connect)
 
 New in Kafka: SASL/OAUTHBEARER with OpenID Connect. Upgrading from 6.18.1 requires no code changes.
 
