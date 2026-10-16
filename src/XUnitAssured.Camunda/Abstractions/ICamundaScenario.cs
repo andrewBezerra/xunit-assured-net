@@ -84,6 +84,38 @@ public interface ICamundaScenario : ITestScenario
 	ICamundaScenario SkipTimer(string elementId);
 
 	/// <summary>
+	/// Envia a mensagem <paramref name="messageName"/> no lugar do sistema de fora, toda vez que uma
+	/// instância desta cadeia a esperar.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// A mensagem é correlacionada de verdade, com a chave de correlação que a própria espera traz:
+	/// o mapeamento de variáveis do evento roda. Vale para o evento intermediário, a receive task, o
+	/// evento depois de gateway de evento e a borda de mensagem.
+	/// </para>
+	/// <para>
+	/// O Camunda entrega a mensagem a quem assinou primeiro, em qualquer instância do cluster. Use uma
+	/// chave de correlação só do teste (um Guid nas variáveis iniciais): se outra instância esperar a
+	/// mesma mensagem com a mesma chave, o mock não correlaciona e o teste falha dizendo isso.
+	/// </para>
+	/// </remarks>
+	/// <param name="messageName">O <c>name</c> do <c>bpmn:message</c>.</param>
+	ICamundaMessageMock MockMessage(string messageName);
+
+	/// <summary>
+	/// Dispara o sinal <paramref name="signalName"/> só nas instâncias desta cadeia, toda vez que uma delas o esperar.
+	/// </summary>
+	/// <remarks>
+	/// Não é um broadcast: um broadcast atingiria toda instância do cluster que espera esse sinal,
+	/// inclusive as reais numa homologação. O pacote modifica a instância, como no <c>SkipTimer</c>:
+	/// encerra a espera e ativa o que vem depois do evento, com as variáveis. Vale para o evento
+	/// intermediário, o evento depois de gateway de evento e a borda de sinal; um evento que
+	/// desemboca num gateway de junção é recusado.
+	/// </remarks>
+	/// <param name="signalName">O <c>name</c> do <c>bpmn:signal</c>.</param>
+	ICamundaSignalMock MockSignal(string signalName);
+
+	/// <summary>
 	/// Inicia uma instância do processo.
 	/// </summary>
 	/// <remarks>
@@ -110,6 +142,22 @@ public interface ICamundaScenario : ITestScenario
 	/// Invólucro fino sobre <see cref="ExecuteAsync"/>, para uma suíte escrita na forma síncrona.
 	/// </remarks>
 	CamundaValidationBuilder Execute();
+}
+
+/// <summary>Uma mensagem mockada que ainda não disse o que leva.</summary>
+public interface ICamundaMessageMock
+{
+	/// <summary>Correlaciona a mensagem, com estas variáveis, como o sistema de fora faria.</summary>
+	/// <param name="variables">O conteúdo da mensagem: objeto anônimo, classe ou dicionário. Nulo: nada.</param>
+	ICamundaScenario ThenCorrelate(object? variables = null);
+}
+
+/// <summary>Um sinal mockado que ainda não disse o que leva.</summary>
+public interface ICamundaSignalMock
+{
+	/// <summary>Dispara o sinal só na instância, com estas variáveis no escopo dela.</summary>
+	/// <param name="variables">As variáveis do sinal: objeto anônimo, classe ou dicionário. Nulo: nada.</param>
+	ICamundaScenario ThenTrigger(object? variables = null);
 }
 
 /// <summary>

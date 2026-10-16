@@ -73,6 +73,10 @@ internal sealed class CamundaScenario : ICamundaScenario, IFronteiraDePasso
 
 	public ICamundaScenario SkipTimer(string elementId) => CamundaVerbos.SkipTimer(_cenario, elementId);
 
+	public ICamundaMessageMock MockMessage(string messageName) => CamundaVerbos.MockMessage(_cenario, messageName);
+
+	public ICamundaSignalMock MockSignal(string signalName) => CamundaVerbos.MockSignal(_cenario, signalName);
+
 	public ICamundaScenario StartInstance(string processId, object? variables = null, int? version = null, string? versionTag = null) =>
 		CamundaVerbos.StartInstance(_cenario, processId, variables, version, versionTag);
 

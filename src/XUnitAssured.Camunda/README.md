@@ -135,6 +135,43 @@ Expected process instance 2251799813687606 (approval version 1) to complete with
   Declared in this test but never used: timer 'no-confirmation'
 ```
 
+## Messages and signals
+
+What another system would send the process is a dependency too. Mock it by its name, once in the
+chain:
+
+```csharp
+await Given()
+    .Deploy("delivery")
+    .MockMessage("payment-confirmed").ThenCorrelate(new { amount = 99 })
+    .MockSignal("stock-released").ThenTrigger(new { batch = "L-1" })
+    .MockUserTask("check").ThenComplete()
+    .StartInstance("delivery", new { orderId = $"P-{Guid.NewGuid():N}" })
+    .ExecuteAsync()
+    .AssertInstanceCompleted()
+    .AssertMessageCorrelated("payment-confirmed")
+    .AssertSignalTriggered("stock-released");
+```
+
+- **`MockMessage(name).ThenCorrelate(variables)`** correlates the message for real, with the
+  correlation key the subscription carries, so the event's variable mappings run. It covers:
+  - intermediate message events;
+  - receive tasks;
+  - message events after an event-based gateway;
+  - message boundary events.
+- **Use a correlation key unique to the test,** such as a Guid in the start variables. Camunda
+  delivers a message to whoever subscribed first, in any instance of the cluster. Before
+  correlating, the package checks that no instance outside the test awaits the same message with
+  the same key. If one does, it does not correlate, and the first assertion fails saying so.
+- **`MockSignal(name).ThenTrigger(variables)` is not a broadcast.** A broadcast reaches every
+  instance on the cluster that waits for the signal, real ones on staging included. The package
+  triggers it only in the test's instances, by instance modification, with the same rules as
+  `SkipTimer`:
+  - it covers intermediate signal events, signal events after an event-based gateway, and signal
+    boundary events;
+  - a signal event that flows into a joining gateway is refused;
+  - the triggered event is `TERMINATED`, so assert it with `AssertSignalTriggered`.
+
 ## Testing what is already deployed
 
 A chain without `Deploy` starts the version already on the cluster: what was deployed to
@@ -203,6 +240,8 @@ the engine and shows up completed in the search a moment later. Every assertion 
 | `AssertJobMocked(type, times)` | the mock of that type resolved exactly `times` jobs |
 | `AssertUserTaskMocked(id, times)` | the mock of that user task completed it exactly `times` times |
 | `AssertTimerSkipped(id, times)` | that timer was skipped exactly `times` times |
+| `AssertMessageCorrelated(name, times)` | the mock correlated that message exactly `times` times |
+| `AssertSignalTriggered(name, times)` | that signal was triggered exactly `times` times |
 | `AssertNoIncidents()` | no open incident now (does not wait) |
 
 An assertion does not wait the full timeout when waiting cannot help: the instance was
@@ -307,12 +346,13 @@ key, Camunda runs with a "Non-Production License" banner, which its license allo
 
 ## Not yet
 
-Messages and signals, incidents, mocking a child process, and a Testcontainers mode that starts
-Camunda inside `dotnet test` are planned, in that order.
+Incidents, mocking a child process, and a Testcontainers mode that starts Camunda inside
+`dotnet test` are planned, in that order.
 
 ## Where the verbs live
 
-`Deploy`, `MockJobWorker`, `MockUserTask`, `SkipTimer` and `StartInstance` are the entry verbs, the only ones on
+`Deploy`, `MockJobWorker`, `MockUserTask`, `SkipTimer`, `MockMessage`, `MockSignal` and
+`StartInstance` are the entry verbs, the only ones on
 `ITestScenario`; the rest are members of `ICamundaScenario`, the convention the root README
 documents. They do not collide with `ApiResource`, `Topic` or `Queue`, so a chain can call the
 API, then follow the process it started.

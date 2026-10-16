@@ -228,6 +228,32 @@ public class CamundaValidationBuilder : ValidationBuilder<CamundaStepResult>
 			times, m => m.TimersPulados(elementId));
 	}
 
+	/// <summary>
+	/// Afirma quantas vezes o mock correlacionou esta mensagem, nesta instância e nas que ela chamou.
+	/// </summary>
+	public CamundaValidationBuilder AssertMessageCorrelated(string messageName, int times = 1)
+	{
+		if (string.IsNullOrWhiteSpace(messageName)) throw new ArgumentException("Message name is required.", nameof(messageName));
+
+		return Contar($"to have message '{messageName}' correlated by the mock {times} time(s)", "it was correlated",
+			times, m => m.MensagensCorrelacionadas(messageName));
+	}
+
+	/// <summary>
+	/// Afirma quantas vezes o sinal foi disparado, nesta instância e nas que ela chamou.
+	/// </summary>
+	/// <remarks>
+	/// O evento de sinal disparado pelo teste fica <c>TERMINATED</c>, como o timer pulado: é por esta
+	/// asserção que se sabe que ele aconteceu.
+	/// </remarks>
+	public CamundaValidationBuilder AssertSignalTriggered(string signalName, int times = 1)
+	{
+		if (string.IsNullOrWhiteSpace(signalName)) throw new ArgumentException("Signal name is required.", nameof(signalName));
+
+		return Contar($"to have signal '{signalName}' triggered {times} time(s)", "it was triggered",
+			times, m => m.SinaisDisparados(signalName));
+	}
+
 	private CamundaValidationBuilder Contar(string oQue, string feito, int times, Func<MocksDaInstancia, int> contagem)
 	{
 		if (times < 0) throw new ArgumentOutOfRangeException(nameof(times), "Times cannot be negative.");

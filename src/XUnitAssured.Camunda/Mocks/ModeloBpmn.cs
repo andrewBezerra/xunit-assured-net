@@ -30,7 +30,8 @@ internal sealed class ModeloBpmn
 		bool Interrompe,
 		bool EhTimer,
 		string? GatewayDeEvento,
-		string? Escopo);
+		string? Escopo,
+		string? Sinal = null);
 
 	public Elemento? Achar(string id) => _elementos.TryGetValue(id, out var e) ? e : null;
 
@@ -40,6 +41,11 @@ internal sealed class ModeloBpmn
 		var fluxos = documento.Descendants(Bpmn + "sequenceFlow")
 			.Select(f => (De: (string?)f.Attribute("sourceRef") ?? "", Para: (string?)f.Attribute("targetRef") ?? ""))
 			.ToList();
+
+		// O sinal se refere pelo id do bpmn:signal; o teste o chama pelo nome.
+		var sinais = documento.Descendants(Bpmn + "signal")
+			.Where(s => s.Attribute("id") is not null)
+			.ToDictionary(s => (string)s.Attribute("id")!, s => (string?)s.Attribute("name") ?? (string)s.Attribute("id")!, StringComparer.Ordinal);
 
 		var tipos = new Dictionary<string, string>(StringComparer.Ordinal);
 		foreach (var processo in documento.Descendants(Bpmn + "process"))
@@ -71,19 +77,21 @@ internal sealed class ModeloBpmn
 					!string.Equals((string?)e.Attribute("cancelActivity"), "false", StringComparison.OrdinalIgnoreCase),
 					e.Element(Bpmn + "timerEventDefinition") is not null,
 					gatewayDeEvento,
-					escopo);
+					escopo,
+					(string?)e.Element(Bpmn + "signalEventDefinition")?.Attribute("signalRef") is { } referencia
+						? sinais.TryGetValue(referencia, out var nome) ? nome : referencia
+						: null);
 			}
 		}
 
 		return new ModeloBpmn(elementos);
 	}
-
 	/// <summary>
 	/// Como pular o timer <paramref name="timerId"/>: qual elemento ativo indica que a instância
 	/// chegou nele, se esse elemento é encerrado, e o que ativar depois.
 	/// </summary>
 	/// <returns>Nulo quando o timer não é deste processo. <paramref name="recusa"/> diz por que não dá para pular.</returns>
-	public PuloDeTimer? PlanejarPulo(string timerId, out string? recusa)
+	public PuloDeEvento? PlanejarPulo(string timerId, out string? recusa)
 	{
 		recusa = null;
 		var timer = Achar(timerId);
@@ -96,56 +104,85 @@ internal sealed class ModeloBpmn
 			return null;
 		}
 
+		return Planejar(timer, $"SkipTimer('{timerId}')", "timer", out recusa);
+	}
+
+	/// <summary>
+	/// Como disparar o sinal <paramref name="nome"/> só nesta instância: um plano por evento do processo
+	/// que espera esse sinal.
+	/// </summary>
+	/// <remarks>
+	/// O nome é o do <c>bpmn:signal</c>, e não o id do evento: o teste responde ao sinal, onde quer que
+	/// o processo o espere. Os eventos que não dá para disparar entram em <paramref name="recusas"/>.
+	/// </remarks>
+	public IReadOnlyList<PuloDeEvento> PlanejarSinal(string nome, ICollection<string> recusas)
+	{
+		var planos = new List<PuloDeEvento>();
+		foreach (var evento in _elementos.Values.Where(e => e.Sinal == nome))
+		{
+			var plano = Planejar(evento, $"MockSignal('{nome}') at '{evento.Id}'", "signal event", out var recusa);
+			if (plano is not null) planos.Add(plano);
+			if (recusa is not null) recusas.Add(recusa);
+		}
+
+		return planos;
+	}
+
+	private PuloDeEvento? Planejar(Elemento evento, string quem, string oQue, out string? recusa)
+	{
+		recusa = null;
+
 		string esperando;
 		bool encerrar;
-		switch (timer.Tipo)
+		switch (evento.Tipo)
 		{
-			case "boundaryEvent" when timer.AnexadoA is not null:
+			case "boundaryEvent" when evento.AnexadoA is not null:
 				// A borda não aparece como espera: a instância está na atividade a que ela se prende.
-				esperando = timer.AnexadoA;
-				encerrar = timer.Interrompe;
+				esperando = evento.AnexadoA;
+				encerrar = evento.Interrompe;
 				break;
-			case "intermediateCatchEvent" when timer.GatewayDeEvento is not null:
+			case "intermediateCatchEvent" when evento.GatewayDeEvento is not null:
 				// Depois de um gateway de evento, quem espera é o gateway; encerrá-lo descarta os outros eventos.
-				esperando = timer.GatewayDeEvento;
+				esperando = evento.GatewayDeEvento;
 				encerrar = true;
 				break;
 			case "intermediateCatchEvent":
-				esperando = timer.Id;
+				esperando = evento.Id;
 				encerrar = true;
 				break;
 			default:
-				recusa = $"SkipTimer('{timerId}'): a timer {timer.Tipo} cannot be skipped, only intermediate and boundary timer events.";
+				recusa = $"{quem}: a {oQue} on a {evento.Tipo} cannot be triggered by the test, only intermediate and boundary events.";
 				return null;
 		}
 
-		if (timer.Saidas.Count == 0)
+		if (evento.Saidas.Count == 0)
 		{
-			recusa = $"SkipTimer('{timerId}'): the timer has no outgoing sequence flow, so there is nothing to continue to.";
+			recusa = $"{quem}: the {oQue} has no outgoing sequence flow, so there is nothing to continue to.";
 			return null;
 		}
 
 		// Ativar um gateway de junção por modificação o faz disparar sem esperar os outros ramos
 		// (medido na 8.10.4): o processo seguiria adiante com ramos ainda abertos.
-		var juncao = timer.Saidas
+		var juncao = evento.Saidas
 			.Select(Achar)
 			.FirstOrDefault(s => s is { Tipo: "parallelGateway" or "inclusiveGateway", Entradas: > 1 });
 		if (juncao is not null)
 		{
-			recusa = $"SkipTimer('{timerId}'): the timer flows into the joining gateway '{juncao.Id}'. Activating a joining " +
-				"gateway by instance modification fires it without waiting for the other branches, so the test would run a " +
-				"path the process never takes. Put the timer duration in a variable (timeDuration=\"=prazo\") and set it to " +
-				"PT1S in the test instead.";
+			recusa = $"{quem}: the {oQue} flows into the joining gateway '{juncao.Id}'. Activating a joining gateway by " +
+				"instance modification fires it without waiting for the other branches, so the test would run a path the " +
+				"process never takes." + (evento.EhTimer
+					? " Put the timer duration in a variable (timeDuration=\"=prazo\") and set it to PT1S in the test instead."
+					: " Put an element (a task, an intermediate event) between the event and the gateway.");
 			return null;
 		}
 
-		return new PuloDeTimer(timerId, esperando, encerrar, timer.Saidas, timer.Escopo);
+		return new PuloDeEvento(evento.Id, esperando, encerrar, evento.Saidas, evento.Escopo);
 	}
 }
 
 /// <summary>
-/// O plano para pular um timer: quando <see cref="ElementoEsperando"/> estiver ativo, encerrá-lo
-/// (se <see cref="Encerrar"/>) e ativar <see cref="Ativar"/>, no <see cref="Escopo"/> dele.
+/// O plano para disparar um evento só na instância: quando <see cref="ElementoEsperando"/> estiver
+/// ativo, encerrá-lo (se <see cref="Encerrar"/>) e ativar <see cref="Ativar"/>, no <see cref="Escopo"/> dele.
 /// </summary>
-internal sealed record PuloDeTimer(
-	string TimerId, string ElementoEsperando, bool Encerrar, IReadOnlyList<string> Ativar, string? Escopo);
+internal sealed record PuloDeEvento(
+	string EventoId, string ElementoEsperando, bool Encerrar, IReadOnlyList<string> Ativar, string? Escopo);

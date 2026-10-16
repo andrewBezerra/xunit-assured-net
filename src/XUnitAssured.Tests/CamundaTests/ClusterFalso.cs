@@ -35,6 +35,7 @@ internal sealed class ClusterFalso : ICamundaGateway
 	private readonly List<Job> _jobs = new();
 	private readonly List<DefinicaoVista> _definicoes = new();
 	private readonly List<UserTaskFalsa> _userTasks = new();
+	private readonly List<AssinaturaFalsa> _assinaturas = new();
 	private readonly Dictionary<string, string> _xmls = new();
 	private int _sequencia;
 
@@ -346,6 +347,9 @@ internal sealed class ClusterFalso : ICamundaGateway
 			IReadOnlyList<EsperaVista> esperas = _userTasks
 				.Where(t => t.Aberta && arvore.Contains(t.Instancia))
 				.Select(t => new EsperaVista(t.Instancia, $"{t.Instancia}:{t.Elemento}", t.Elemento, "USER_TASK", UserTaskKey: t.Chave))
+				.Concat(_assinaturas
+					.Where(a => a.Aberta && arvore.Contains(a.Instancia))
+					.Select(a => new EsperaVista(a.Instancia, $"{a.Instancia}:{a.Elemento}", a.Elemento, "MESSAGE", MessageName: a.Nome, CorrelationKey: a.Chave)))
 				.ToList();
 			return Task.FromResult(esperas);
 		}
@@ -383,11 +387,17 @@ internal sealed class ClusterFalso : ICamundaGateway
 		IReadOnlyList<string> terminateElementInstanceKeys,
 		IReadOnlyList<string> activateElementIds,
 		string? ancestorElementInstanceKey,
+		object? variables,
 		CancellationToken ct)
 	{
 		lock (_trava)
 		{
 			var instancia = _instancias[processInstanceKey];
+			if (variables is not null)
+			{
+				foreach (var propriedade in JsonSerializer.SerializeToElement(variables).EnumerateObject())
+					instancia.Variaveis[propriedade.Name] = propriedade.Value.GetRawText();
+			}
 			foreach (var chave in terminateElementInstanceKeys)
 				instancia.Elementos[chave.Substring(chave.IndexOf(':') + 1)] = "TERMINATED";
 			foreach (var id in activateElementIds)
@@ -437,6 +447,85 @@ internal sealed class ClusterFalso : ICamundaGateway
 		return arvore;
 	}
 
+	// ----- mensagens -----
+
+	/// <summary>O que acontece quando uma mensagem é correlacionada. Padrão: completar a instância se nada sobrou.</summary>
+	public Action<ClusterFalso, AssinaturaFalsa>? AoCorrelacionar { get; set; }
+
+	/// <summary>Um elemento esperando a mensagem com esta chave, como uma assinatura do Camunda.</summary>
+	public void NovaAssinatura(string instancia, string elemento, string nome, string chave)
+	{
+		lock (_trava)
+		{
+			_assinaturas.Add(new AssinaturaFalsa(instancia, elemento, nome, chave));
+			_instancias[instancia].Elementos[elemento] = "ACTIVE";
+		}
+	}
+
+	public Task<IReadOnlyList<AssinaturaVista>> SearchOpenMessageSubscriptionsAsync(
+		IReadOnlyCollection<string>? processInstanceKeys,
+		IReadOnlyCollection<string> messageNames,
+		string? correlationKey,
+		CancellationToken ct)
+	{
+		lock (_trava)
+		{
+			IReadOnlyList<AssinaturaVista> achadas = _assinaturas
+				.Where(a => a.Aberta && messageNames.Contains(a.Nome))
+				.Where(a => processInstanceKeys is null || processInstanceKeys.Contains(a.Instancia))
+				.Where(a => correlationKey is null || a.Chave == correlationKey)
+				.Select(a => new AssinaturaVista(a.Instancia, a.Elemento, $"{a.Instancia}:{a.Elemento}", a.Nome, a.Chave))
+				.ToList();
+			return Task.FromResult(achadas);
+		}
+	}
+
+	// Como o Camunda: vai para a primeira assinatura aberta com o nome e a chave, de qualquer instância.
+	public Task<string> CorrelateMessageAsync(
+		string messageName, string correlationKey, object? variables, string? tenantId, CancellationToken ct)
+	{
+		AssinaturaFalsa assinatura;
+		lock (_trava)
+		{
+			assinatura = _assinaturas.FirstOrDefault(a => a.Aberta && a.Nome == messageName && a.Chave == correlationKey)
+				?? throw new CamundaRecusouException("NOT_FOUND", $"No subscription for message '{messageName}' with key '{correlationKey}'.");
+			assinatura.Aberta = false;
+			_instancias[assinatura.Instancia].Elementos[assinatura.Elemento] = "COMPLETED";
+
+			if (variables is not null)
+			{
+				foreach (var propriedade in JsonSerializer.SerializeToElement(variables).EnumerateObject())
+					_instancias[assinatura.Instancia].Variaveis[propriedade.Name] = propriedade.Value.GetRawText();
+			}
+
+			Comandos.Add($"correlate {messageName} {correlationKey}");
+		}
+
+		if (AoCorrelacionar is not null)
+			AoCorrelacionar(this, assinatura);
+		else
+			CompletarSeNaoSobrouJob(assinatura.Instancia);
+
+		return Task.FromResult(assinatura.Instancia);
+	}
+
+	internal sealed class AssinaturaFalsa
+	{
+		public AssinaturaFalsa(string instancia, string elemento, string nome, string chave)
+		{
+			Instancia = instancia;
+			Elemento = elemento;
+			Nome = nome;
+			Chave = chave;
+		}
+
+		public string Instancia { get; }
+		public string Elemento { get; }
+		public string Nome { get; }
+		public string Chave { get; }
+		public bool Aberta { get; set; } = true;
+	}
+
 	internal sealed class UserTaskFalsa
 	{
 		public UserTaskFalsa(string chave, string instancia, string elemento)
@@ -459,7 +548,8 @@ internal sealed class ClusterFalso : ICamundaGateway
 		lock (_trava)
 		{
 			if (!_jobs.Any(j => j.Instancia == instancia && j.Estado == "CREATED") &&
-				!_userTasks.Any(t => t.Instancia == instancia && t.Aberta))
+				!_userTasks.Any(t => t.Instancia == instancia && t.Aberta) &&
+				!_assinaturas.Any(a => a.Instancia == instancia && a.Aberta))
 				_instancias[instancia].Estado = "COMPLETED";
 		}
 	}

@@ -80,13 +80,18 @@ internal sealed class MocksDaInstancia
 
 	private readonly IReadOnlyDictionary<string, UserTaskMock> _userTasks;
 	private readonly IReadOnlyCollection<string> _timers;
+	private readonly IReadOnlyDictionary<string, EventoMock> _mensagens;
+	private readonly IReadOnlyDictionary<string, EventoMock> _sinais;
+	private readonly string? _tenantId;
 
 	// A versão da definição de cada instância da árvore, para ler o BPMN dela; e o BPMN lido.
 	private readonly ConcurrentDictionary<string, string> _definicaoDaInstancia = new();
 	private readonly ConcurrentDictionary<string, ModeloBpmn> _modelos = new();
-	private readonly ConcurrentDictionary<string, byte> _recusasDeTimer = new();
+	private readonly ConcurrentDictionary<string, byte> _recusasJaDitas = new();
 	private readonly ConcurrentDictionary<string, int> _userTasksResolvidas = new(StringComparer.Ordinal);
 	private readonly ConcurrentDictionary<string, int> _timersPulados = new(StringComparer.Ordinal);
+	private readonly ConcurrentDictionary<string, int> _mensagensCorrelacionadas = new(StringComparer.Ordinal);
+	private readonly ConcurrentDictionary<string, int> _sinaisDisparados = new(StringComparer.Ordinal);
 
 	public MocksDaInstancia(
 		ICamundaGateway gateway,
@@ -95,13 +100,18 @@ internal sealed class MocksDaInstancia
 		CamundaSettings settings,
 		IReadOnlyDictionary<string, UserTaskMock>? userTasks = null,
 		IReadOnlyCollection<string>? timers = null,
-		string? definitionKey = null)
+		string? definitionKey = null,
+		IReadOnlyDictionary<string, EventoMock>? mensagens = null,
+		IReadOnlyDictionary<string, EventoMock>? sinais = null)
 	{
 		_gateway = gateway;
 		_mocks = new Dictionary<string, JobMock>(mocks, StringComparer.Ordinal);
 		_userTasks = new Dictionary<string, UserTaskMock>(
 			userTasks ?? new Dictionary<string, UserTaskMock>(), StringComparer.Ordinal);
 		_timers = (timers ?? Array.Empty<string>()).ToArray();
+		_mensagens = new Dictionary<string, EventoMock>(mensagens ?? new Dictionary<string, EventoMock>(), StringComparer.Ordinal);
+		_sinais = new Dictionary<string, EventoMock>(sinais ?? new Dictionary<string, EventoMock>(), StringComparer.Ordinal);
+		_tenantId = settings.TenantId;
 		_intervalo = TimeSpan.FromMilliseconds(Math.Max(10, settings.PollIntervalMilliseconds));
 		_vida = TimeSpan.FromSeconds(Math.Max(1, settings.MockLifetimeSeconds));
 		ProcessInstanceKey = processInstanceKey;
@@ -111,15 +121,23 @@ internal sealed class MocksDaInstancia
 	}
 
 	/// <summary>Quantas vezes o mock desta user task a completou.</summary>
-	public int UserTasksResolvidas(string elementId) => _userTasksResolvidas.TryGetValue(elementId, out var n) ? n : 0;
+	public int UserTasksResolvidas(string elementId) => Contagem(_userTasksResolvidas, elementId);
 
 	/// <summary>Quantas vezes este timer foi pulado.</summary>
-	public int TimersPulados(string elementId) => _timersPulados.TryGetValue(elementId, out var n) ? n : 0;
+	public int TimersPulados(string elementId) => Contagem(_timersPulados, elementId);
 
-	/// <summary>As user tasks e os timers declarados que o laço nunca usou: pistas de uma instância parada.</summary>
+	/// <summary>Quantas vezes o mock correlacionou esta mensagem.</summary>
+	public int MensagensCorrelacionadas(string nome) => Contagem(_mensagensCorrelacionadas, nome);
+
+	/// <summary>Quantas vezes este sinal foi disparado na árvore.</summary>
+	public int SinaisDisparados(string nome) => Contagem(_sinaisDisparados, nome);
+
+	/// <summary>O que o teste declarou e o laço nunca usou: pistas de uma instância parada.</summary>
 	public IReadOnlyList<string> NuncaUsados() =>
 		_userTasks.Keys.Where(id => UserTasksResolvidas(id) == 0).Select(id => $"user task '{id}'")
 			.Concat(_timers.Where(id => TimersPulados(id) == 0).Select(id => $"timer '{id}'"))
+			.Concat(_mensagens.Keys.Where(n => MensagensCorrelacionadas(n) == 0).Select(n => $"message '{n}'"))
+			.Concat(_sinais.Keys.Where(n => SinaisDisparados(n) == 0).Select(n => $"signal '{n}'"))
 			.Concat(_mocks.Keys.Where(t => Invocacoes(t) == 0).Select(t => $"job type '{t}'"))
 			.ToList();
 
@@ -132,9 +150,13 @@ internal sealed class MocksDaInstancia
 		return esperas
 			.Where(e => e.Tipo != "JOB")
 			.Where(e => !(e.Tipo == "USER_TASK" && _userTasks.ContainsKey(e.ElementId)))
+			.Where(e => !(e.Tipo == "MESSAGE" && e.MessageName is not null && _mensagens.ContainsKey(e.MessageName)))
+			.Where(e => !(e.Tipo == "SIGNAL" && e.SignalName is not null && _sinais.ContainsKey(e.SignalName)))
 			.ToList();
 	}
 
+	private static int Contagem(ConcurrentDictionary<string, int> contagens, string chave) =>
+		contagens.TryGetValue(chave, out var n) ? n : 0;
 	/// <summary>A instância raiz.</summary>
 	public string ProcessInstanceKey { get; }
 
@@ -252,8 +274,11 @@ internal sealed class MocksDaInstancia
 				if (_userTasks.Count > 0)
 					await ResolverUserTasksAsync(ct).ConfigureAwait(false);
 
-				if (_timers.Count > 0)
-					await PularTimersAsync(ct).ConfigureAwait(false);
+				if (_timers.Count > 0 || _sinais.Count > 0)
+					await DispararEventosAsync(ct).ConfigureAwait(false);
+
+				if (_mensagens.Count > 0)
+					await CorrelacionarMensagensAsync(ct).ConfigureAwait(false);
 
 				// O estado da raiz custa uma busca a mais; uma vez a cada dez voltas basta para
 				// o laço não sobreviver muito à instância.
@@ -340,9 +365,10 @@ internal sealed class MocksDaInstancia
 		}
 	}
 
-	// A borda e o timer depois de gateway de evento não aparecem nas esperas (medido na 8.10.4):
-	// quem diz que a instância chegou no timer é o elemento ativo que o BPMN aponta.
-	private async Task PularTimersAsync(CancellationToken ct)
+	// Timers e sinais: o pacote dispara o evento só nesta árvore, modificando a instância. A borda e o
+	// evento depois de gateway de evento não aparecem nas esperas (medido na 8.10.4): quem diz que a
+	// instância chegou neles é o elemento ativo que o BPMN aponta.
+	private async Task DispararEventosAsync(CancellationToken ct)
 	{
 		foreach (var instancia in Instancias)
 		{
@@ -350,15 +376,24 @@ internal sealed class MocksDaInstancia
 			if (modelo is null)
 				continue;
 
-			var planos = new List<PuloDeTimer>();
+			var planos = new List<(PuloDeEvento Pulo, string Descricao, ConcurrentDictionary<string, int> Contagem, string Chave, object? Variaveis)>();
+			var recusas = new List<string>();
+
 			foreach (var timer in _timers)
 			{
 				var plano = modelo.PlanejarPulo(timer, out var recusa);
-				if (recusa is not null && _recusasDeTimer.TryAdd(timer, 0))
-					_problemas.Enqueue(recusa);
-				if (plano is not null)
-					planos.Add(plano);
+				if (recusa is not null) recusas.Add(recusa);
+				if (plano is not null) planos.Add((plano, $"skipping timer '{timer}'", _timersPulados, timer, null));
 			}
+
+			foreach (var sinal in _sinais.Values)
+			{
+				foreach (var plano in modelo.PlanejarSinal(sinal.Nome, recusas))
+					planos.Add((plano, $"triggering signal '{sinal.Nome}' at '{plano.EventoId}'", _sinaisDisparados, sinal.Nome, sinal.Variables));
+			}
+
+			foreach (var recusa in recusas.Where(r => _recusasJaDitas.TryAdd(r, 0)))
+				_problemas.Enqueue(recusa);
 
 			if (planos.Count == 0)
 				continue;
@@ -366,11 +401,12 @@ internal sealed class MocksDaInstancia
 			var elementos = await _gateway.SearchElementsAsync(instancia, ct).ConfigureAwait(false);
 			var ativos = elementos.Where(e => e.State == "ACTIVE").ToList();
 
-			foreach (var plano in planos)
+			foreach (var (plano, descricao, contagem, chave, variaveis) in planos)
 			{
 				foreach (var esperando in ativos.Where(e => e.ElementId == plano.ElementoEsperando))
 				{
-					if (!_tratados.TryAdd($"timer:{plano.TimerId}:{esperando.ElementInstanceKey}", 0))
+					var tratado = $"evento:{plano.EventoId}:{esperando.ElementInstanceKey}";
+					if (!_tratados.TryAdd(tratado, 0))
 						continue;
 
 					// Dentro de um subprocesso, ativa no mesmo subprocesso, e não num novo.
@@ -385,9 +421,10 @@ internal sealed class MocksDaInstancia
 							plano.Encerrar ? new[] { esperando.ElementInstanceKey } : Array.Empty<string>(),
 							plano.Ativar,
 							escopo,
+							variaveis,
 							ct).ConfigureAwait(false);
 
-						_timersPulados.AddOrUpdate(plano.TimerId, 1, (_, n) => n + 1);
+						contagem.AddOrUpdate(chave, 1, (_, n) => n + 1);
 					}
 					catch (CamundaRecusouException e) when (e.Codigo == "NOT_FOUND")
 					{
@@ -396,15 +433,78 @@ internal sealed class MocksDaInstancia
 					catch (CamundaRecusouException e)
 					{
 						_problemas.Enqueue(
-							$"Camunda rejected skipping timer '{plano.TimerId}' at '{plano.ElementoEsperando}' (instance " +
-							$"{instancia}): {e.Codigo}: {e.Message}");
+							$"Camunda rejected {descricao} (waiting at '{plano.ElementoEsperando}', instance {instancia}): " +
+							$"{e.Codigo}: {e.Message}");
 					}
 					catch (Exception)
 					{
-						_tratados.TryRemove($"timer:{plano.TimerId}:{esperando.ElementInstanceKey}", out _);
+						_tratados.TryRemove(tratado, out _);
 						throw;
 					}
 				}
+			}
+		}
+	}
+
+	// Mensagens: correlacionadas de verdade, com a chave que a própria assinatura traz. Mas uma
+	// correlação vai para quem assinou primeiro, em qualquer instância do cluster (medido na 8.10.4):
+	// antes de correlacionar, o laço confere que ninguém de fora da árvore espera a mesma mensagem
+	// com a mesma chave, e depois, que foi esta árvore que a recebeu.
+	private async Task CorrelacionarMensagensAsync(CancellationToken ct)
+	{
+		var arvore = Instancias;
+		var assinaturas = await _gateway.SearchOpenMessageSubscriptionsAsync(arvore, _mensagens.Keys.ToArray(), null, ct)
+			.ConfigureAwait(false);
+
+		foreach (var assinatura in assinaturas)
+		{
+			if (!_mensagens.TryGetValue(assinatura.MessageName, out var mock))
+				continue;
+
+			var tratado = $"mensagem:{assinatura.MessageName}:{assinatura.ElementInstanceKey}:{assinatura.ElementId}";
+			if (!_tratados.TryAdd(tratado, 0))
+				continue;
+
+			var deFora = (await _gateway.SearchOpenMessageSubscriptionsAsync(
+					null, new[] { assinatura.MessageName }, assinatura.CorrelationKey, ct).ConfigureAwait(false))
+				.Where(a => !arvore.Contains(a.ProcessInstanceKey))
+				.ToList();
+			if (deFora.Count > 0)
+			{
+				_problemas.Enqueue(
+					$"Message '{assinatura.MessageName}' with correlation key '{assinatura.CorrelationKey}' is also awaited by " +
+					$"instance {string.Join(", ", deFora.Select(a => a.ProcessInstanceKey).Distinct())}, outside this test, so the " +
+					"mock did not correlate it: Camunda delivers it to whoever subscribed first. Use a correlation key unique " +
+					"to the test, such as a Guid in the start variables.");
+				continue;
+			}
+
+			try
+			{
+				var recebeu = await _gateway.CorrelateMessageAsync(
+					assinatura.MessageName, assinatura.CorrelationKey, mock.Variables, _tenantId, ct).ConfigureAwait(false);
+
+				if (!arvore.Contains(recebeu))
+					_problemas.Enqueue(
+						$"Message '{assinatura.MessageName}' with correlation key '{assinatura.CorrelationKey}' went to instance " +
+						$"{recebeu}, outside this test. Use a correlation key unique to the test.");
+				else
+					_mensagensCorrelacionadas.AddOrUpdate(assinatura.MessageName, 1, (_, n) => n + 1);
+			}
+			catch (CamundaRecusouException e) when (e.Codigo == "NOT_FOUND")
+			{
+				// A assinatura fechou entre a busca e a correlação (a espera foi interrompida).
+			}
+			catch (CamundaRecusouException e)
+			{
+				_problemas.Enqueue(
+					$"Camunda rejected correlating message '{assinatura.MessageName}' with correlation key " +
+					$"'{assinatura.CorrelationKey}' (waiting at '{assinatura.ElementId}'): {e.Codigo}: {e.Message}");
+			}
+			catch (Exception)
+			{
+				_tratados.TryRemove(tratado, out _);
+				throw;
 			}
 		}
 	}

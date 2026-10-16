@@ -345,6 +345,17 @@ Pedido do usuário antes da primeira publicação no NuGet, para servir o desenv
 | Entrega | Verbos | Situação |
 |---|---|---|
 | 2a | `MockUserTask(id).ThenComplete(...)`, `SkipTimer(id)`, `AssertUserTaskMocked`, `AssertTimerSkipped`; diagnóstico com as esperas sem resposta e o que foi declarado e nunca usado | 6.22.0 |
-| 2b | `MockMessage(nome).ThenCorrelate(...)` e `MockSignal(nome).ThenTrigger(...)` | a fazer |
+| 2b | `MockMessage(nome).ThenCorrelate(...)` (correlação de verdade, com recusa quando outra instância espera a mesma chave) e `MockSignal(nome).ThenTrigger(...)` (só na instância), `AssertMessageCorrelated`, `AssertSignalTriggered` | 6.23.0 |
 | 2c | Incidents: `MockJobWorker(...).ThenFail(...)` e `AssertIncident(...)` | a fazer |
 | 2d | `MockChildProcess(idDaCallActivity)` e o aviso de `bindingType="latest"` | a fazer |
+
+### Achados da 2b (sonda contra a 8.10.4)
+
+- **[Certeza]** A busca de assinaturas de mensagem (`message-subscriptions/search`) mostra a borda de
+  mensagem; a de esperas, não. O `MockMessage` usa as assinaturas.
+- **[Certeza]** Um `correlate` vai para **uma** instância, a primeira que assinou com o nome e a
+  chave, e a resposta diz qual. Com duas instâncias na mesma chave, a segunda ficou esperando. Por
+  isso o pacote busca no cluster inteiro quem mais espera a mesma mensagem e chave antes de
+  correlacionar, e confere depois quem recebeu.
+- **[Certeza]** Dentro de uma instância com duas assinaturas da mesma mensagem e chave (receive task e
+  borda), o `correlate` atendeu uma só.
