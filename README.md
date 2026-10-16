@@ -106,6 +106,7 @@ In order of intent, not of promise:
 | **XUnitAssured.Kafka** | [![NuGet](https://img.shields.io/nuget/v/XUnitAssured.Kafka.svg?label=)](https://www.nuget.org/packages/XUnitAssured.Kafka) | Apache Kafka integration testing — produce/consume, batch operations, authentication, Schema Registry support |
 | **XUnitAssured.RabbitMq** | [![NuGet](https://img.shields.io/nuget/v/XUnitAssured.RabbitMq.svg?label=)](https://www.nuget.org/packages/XUnitAssured.RabbitMq) | RabbitMQ integration testing — publish/consume steps on the official async client, queues and exchanges, AMQP headers |
 | **XUnitAssured.Camunda** | [![NuGet](https://img.shields.io/nuget/v/XUnitAssured.Camunda.svg?label=)](https://www.nuget.org/packages/XUnitAssured.Camunda) | Camunda 8 process testing — deploy BPMN, start real instances on a shared cluster, mock job workers per instance, assertions that wait for the cluster |
+| **XUnitAssured.Camunda.Testcontainers** | [![NuGet](https://img.shields.io/nuget/v/XUnitAssured.Camunda.Testcontainers.svg?label=)](https://www.nuget.org/packages/XUnitAssured.Camunda.Testcontainers) | Starts Camunda 8.10 in Docker inside `dotnet test`, for a CI runner with no Camunda of its own |
 | **XUnitAssured.Playwright** | [![NuGet](https://img.shields.io/nuget/v/XUnitAssured.Playwright.svg?label=)](https://www.nuget.org/packages/XUnitAssured.Playwright) | Playwright UI testing — fluent DSL for browser interactions, multiple locator strategies, screenshots, and assertions |
 | **XUnitAssured.Playwright.AspNetCore** | [![NuGet](https://img.shields.io/nuget/v/XUnitAssured.Playwright.AspNetCore.svg?label=)](https://www.nuget.org/packages/XUnitAssured.Playwright.AspNetCore) | Browser tests against your own ASP.NET Core API — `BrowserAppFixture` hosts the API and your built front-end on real ports, so they run with `dotnet test` alone (.NET 10) |
 
@@ -553,6 +554,7 @@ The reference implementation of an HTTP fixture is [`HttpSamplesRemoteFixture.cs
   (your API in memory)                                   (your API + front-end on real ports)
 
   XUnitAssured.Camunda — Camunda 8 process instances, with the diagram's job workers mocked (on Core)
+  XUnitAssured.Camunda.Testcontainers — Camunda in Docker inside dotnet test (on Camunda)
   XUnitAssured.Mcp — MCP server that writes tests in the DSL above (AI-assisted authoring)
 ```
 
@@ -680,7 +682,7 @@ Contributions are welcome — issues and pull requests alike.
 
 ```bash
 dotnet build src/XUnitAssured.Net.sln
-dotnet test src/XUnitAssured.Tests --filter "Requires!=Network&Requires!=Broker&Requires!=Browser&Requires!=Camunda"
+dotnet test src/XUnitAssured.Tests --filter "Requires!=Network&Requires!=Broker&Requires!=Browser&Requires!=Camunda&Requires!=Docker"
 ```
 
 The filter skips the tests that need the network, a running broker or an installed browser; CI runs those separately — the broker ones against its own RabbitMQ service, the browser ones after installing Chromium (`pwsh src/XUnitAssured.Tests/bin/Debug/net10.0/playwright.ps1 install chromium` does the same locally). To run the Kafka samples locally, the compose files under `src/XUnitAssured.Kafka.Samples.Remote.Test/docker` start a broker per authentication mode. The certificates and keys committed there are **test-only fixtures** for those local brokers, not credentials for anything real.

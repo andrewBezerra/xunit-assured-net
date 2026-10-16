@@ -71,15 +71,15 @@ jobs:
       # material.
       - name: Test (net8.0)
         if: ${{ !cancelled() && steps.build.outcome == 'success' }}
-        run: dotnet test ${{ env.UNIT_TESTS }} --configuration Release --no-build --framework net8.0 --filter "Requires!=Network&Requires!=Broker&Requires!=Browser&Requires!=Camunda" --logger "trx;LogFileName=net8.0.trx" --results-directory TestResults
+        run: dotnet test ${{ env.UNIT_TESTS }} --configuration Release --no-build --framework net8.0 --filter "Requires!=Network&Requires!=Broker&Requires!=Browser&Requires!=Camunda&Requires!=Docker" --logger "trx;LogFileName=net8.0.trx" --results-directory TestResults
 
       - name: Test (net9.0)
         if: ${{ !cancelled() && steps.build.outcome == 'success' }}
-        run: dotnet test ${{ env.UNIT_TESTS }} --configuration Release --no-build --framework net9.0 --filter "Requires!=Network&Requires!=Broker&Requires!=Browser&Requires!=Camunda" --logger "trx;LogFileName=net9.0.trx" --results-directory TestResults
+        run: dotnet test ${{ env.UNIT_TESTS }} --configuration Release --no-build --framework net9.0 --filter "Requires!=Network&Requires!=Broker&Requires!=Browser&Requires!=Camunda&Requires!=Docker" --logger "trx;LogFileName=net9.0.trx" --results-directory TestResults
 
       - name: Test (net10.0)
         if: ${{ !cancelled() && steps.build.outcome == 'success' }}
-        run: dotnet test ${{ env.UNIT_TESTS }} --configuration Release --no-build --framework net10.0 --filter "Requires!=Network&Requires!=Broker&Requires!=Browser&Requires!=Camunda" --logger "trx;LogFileName=net10.0.trx" --results-directory TestResults
+        run: dotnet test ${{ env.UNIT_TESTS }} --configuration Release --no-build --framework net10.0 --filter "Requires!=Network&Requires!=Broker&Requires!=Browser&Requires!=Camunda&Requires!=Docker" --logger "trx;LogFileName=net10.0.trx" --results-directory TestResults
 
       # In process (WebApplicationFactory over SampleWebApi), no network. The only
       # suite that sends a request through a custom HttpClient with each kind of
@@ -213,6 +213,26 @@ jobs:
           CAMUNDA_BASIC_AUTH_USERNAME: xa
           CAMUNDA_BASIC_AUTH_PASSWORD: xa-senha
         run: dotnet test ${{ env.UNIT_TESTS }} --configuration Release --framework net10.0 --filter "Requires=Camunda"
+
+  # O modo gerenciado do XUnitAssured.Camunda.Testcontainers: o proprio dotnet test sobe o
+  # Camunda no Docker do runner, sem servico declarado aqui. E a prova de que uma empresa so
+  # precisa de um runner com Docker. Nao bloqueante pelo mesmo motivo dos outros: depende de
+  # baixar uma imagem de ~1 GB.
+  camunda-testcontainers:
+    name: Camunda Testcontainers (non-blocking)
+    runs-on: ubuntu-latest
+    continue-on-error: true
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Camunda started by dotnet test
+        run: dotnet test ${{ env.UNIT_TESTS }} --configuration Release --framework net10.0 --filter "Requires=Docker"
 
   # Interceptar rota e fazer requisicao de dentro da pagina so se prova num navegador de
   # verdade, com duas origens de verdade: SameSite, o Path do cookie e o CORS com credenciais

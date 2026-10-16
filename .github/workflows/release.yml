@@ -109,13 +109,13 @@ jobs:
       # cortada, este arquivo ainda filtrava só Requires!=Network e a release falhou nos onze
       # testes de ida e volta.
       - name: Test (net8.0)
-        run: dotnet test ${{ env.UNIT_TESTS }} --configuration Release --no-build --framework net8.0 --filter "Requires!=Network&Requires!=Broker&Requires!=Browser&Requires!=Camunda"
+        run: dotnet test ${{ env.UNIT_TESTS }} --configuration Release --no-build --framework net8.0 --filter "Requires!=Network&Requires!=Broker&Requires!=Browser&Requires!=Camunda&Requires!=Docker"
 
       - name: Test (net9.0)
-        run: dotnet test ${{ env.UNIT_TESTS }} --configuration Release --no-build --framework net9.0 --filter "Requires!=Network&Requires!=Broker&Requires!=Browser&Requires!=Camunda"
+        run: dotnet test ${{ env.UNIT_TESTS }} --configuration Release --no-build --framework net9.0 --filter "Requires!=Network&Requires!=Broker&Requires!=Browser&Requires!=Camunda&Requires!=Docker"
 
       - name: Test (net10.0)
-        run: dotnet test ${{ env.UNIT_TESTS }} --configuration Release --no-build --framework net10.0 --filter "Requires!=Network&Requires!=Broker&Requires!=Browser&Requires!=Camunda"
+        run: dotnet test ${{ env.UNIT_TESTS }} --configuration Release --no-build --framework net10.0 --filter "Requires!=Network&Requires!=Broker&Requires!=Browser&Requires!=Camunda&Requires!=Docker"
 
       # --no-build packs exactly what was compiled and tested above. Without it,
       # pack races the build it would trigger and fails with NU5026 on a clean
