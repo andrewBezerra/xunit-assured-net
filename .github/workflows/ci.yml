@@ -300,6 +300,25 @@ jobs:
       - name: List produced packages
         run: ls -la artifacts
 
+      # Todo pacote publicado leva a documentacao XML e os simbolos. Na 6.27.0, o
+      # XUnitAssured.Camunda.Testcontainers saiu sem os dois: o nome tem "Test", e o
+      # Directory.Build.props o tomou por projeto de teste.
+      - name: Every package has XML docs and symbols
+        run: |
+          falhou=0
+          for pacote in artifacts/*.nupkg; do
+            nome=$(basename "$pacote" .nupkg)
+            id=$(echo "$nome" | sed -E 's/\.[0-9]+\.[0-9]+\.[0-9]+([-+].*)?$//')
+            if [ ! -f "artifacts/$nome.snupkg" ]; then
+              echo "::error::$nome has no symbols package (.snupkg)"; falhou=1
+            fi
+            # Biblioteca em lib/, ferramenta (o Mcp) em tools/: o XML e o do proprio assembly.
+            if ! unzip -l "$pacote" | grep -qE "(lib|tools)/.*/$id\.xml$"; then
+              echo "::error::$nome has no XML documentation"; falhou=1
+            fi
+          done
+          exit $falhou
+
       - name: Upload packages
         uses: actions/upload-artifact@v4
         with:

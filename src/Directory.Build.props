@@ -15,17 +15,19 @@
 
   <PropertyGroup>
     <!--
-      True for the five published packages (Core, Http, Kafka, Playwright, Mcp)
-      and false for test and sample projects, and for the source generator, which
-      runs only while the packages compile. Set it explicitly in a .csproj to
-      override this inference.
+      True for the published packages and false for test and sample projects, and
+      for the source generator, which runs only while the packages compile. A test
+      project is one whose name ends in .Test or .Tests: a package may contain "Test"
+      (XUnitAssured.Camunda.Testcontainers), and with Contains("Test") it shipped in
+      6.27.0 without XML docs, symbols or SourceLink. This file is imported before the
+      .csproj, so setting the property there does not reach the packaging below.
     -->
-    <IsShippingLibrary Condition="'$(IsShippingLibrary)' == '' AND !$(MSBuildProjectName.Contains('Test')) AND !$(MSBuildProjectName.Contains('Sample')) AND !$(MSBuildProjectName.EndsWith('SourceGenerators'))">true</IsShippingLibrary>
+    <IsShippingLibrary Condition="'$(IsShippingLibrary)' == '' AND !$(MSBuildProjectName.EndsWith('.Test')) AND !$(MSBuildProjectName.EndsWith('.Tests')) AND !$(MSBuildProjectName.Contains('Sample')) AND !$(MSBuildProjectName.EndsWith('SourceGenerators'))">true</IsShippingLibrary>
     <IsShippingLibrary Condition="'$(IsShippingLibrary)' == ''">false</IsShippingLibrary>
   </PropertyGroup>
 
   <PropertyGroup>
-    <Version>6.27.0</Version>
+    <Version>6.27.1</Version>
 
     <!--
       O que a página do pacote no nuget.org mostra. Sem isto ela fica muda, e quem atualiza

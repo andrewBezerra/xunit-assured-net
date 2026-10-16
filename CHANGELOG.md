@@ -2,7 +2,14 @@
 
 All notable changes to the XUnitAssured packages. Upgrading from 5.1.x? See [UPGRADING.md](UPGRADING.md).
 
-## v6.27.0 (Current — Camunda: following the instance your API started)
+## v6.27.1 (Current — Camunda.Testcontainers with its docs and symbols)
+
+Fix for XUnitAssured.Camunda.Testcontainers. Upgrading from 6.27.0 requires no code changes; the other packages are the same as in 6.27.0.
+
+- **XUnitAssured.Camunda.Testcontainers now ships with its XML documentation, symbols and SourceLink.** In 6.27.0 it shipped without them, so IntelliSense showed no comments for `CamundaContainerFixture`. The build took any project whose name contains "Test" for a test project, and this package's name does. Now a test project is one whose name ends in `.Test` or `.Tests`.
+- **CI:** the `Pack` job now fails when a package has no `.snupkg` or no XML documentation for its own assembly.
+
+## v6.27.0 (Camunda: following the instance your API started)
 
 In XUnitAssured.Camunda: following the instance your API started. Upgrading from 6.26.0 requires no code changes; the other packages are unchanged.
 
