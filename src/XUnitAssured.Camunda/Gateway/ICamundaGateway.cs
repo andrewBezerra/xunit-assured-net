@@ -70,6 +70,12 @@ internal interface ICamundaGateway
 
 	Task CompleteUserTaskAsync(string userTaskKey, object? variables, CancellationToken ct);
 
+	/// <summary>As user tasks destas instâncias, em qualquer estado.</summary>
+	Task<IReadOnlyList<UserTaskVista>> SearchUserTasksAsync(IReadOnlyCollection<string> processInstanceKeys, CancellationToken ct);
+
+	/// <summary>Grava variáveis no escopo da instância.</summary>
+	Task SetVariablesAsync(string processInstanceKey, object variables, CancellationToken ct);
+
 	/// <summary>
 	/// Encerra elementos e ativa outros, numa modificação só. O <c>ancestorElementInstanceKey</c> é o
 	/// escopo onde ativar, quando o elemento está dentro de um subprocesso.
@@ -117,7 +123,18 @@ internal sealed record InstanciaVista(
 
 /// <summary>Um elemento de uma instância, como a busca o mostra.</summary>
 internal sealed record ElementoVisto(
-	string ElementId, string ElementName, string Type, string State, string ElementInstanceKey = "");
+	string ElementId, string ElementName, string Type, string State, string ElementInstanceKey = "", DateTimeOffset? EndDate = null);
+
+/// <summary>Uma user task, como a busca de user tasks a mostra.</summary>
+internal sealed record UserTaskVista(
+	string UserTaskKey,
+	string ProcessInstanceKey,
+	string ElementId,
+	string? Name,
+	string State,
+	string? Assignee,
+	IReadOnlyList<string> CandidateGroups,
+	int Priority);
 
 /// <summary>
 /// Um ponto de espera de um elemento. <see cref="Tipo"/> é o que o Camunda responde: <c>USER_TASK</c>,

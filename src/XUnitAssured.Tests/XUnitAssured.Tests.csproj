@@ -59,6 +59,7 @@
 	<ItemGroup>
 		<None Include="PlaywrightTests\AppDeTeste\**" CopyToOutputDirectory="PreserveNewest" />
 		<None Include="CamundaTests\bpmn\*.bpmn" CopyToOutputDirectory="PreserveNewest" />
+		<None Include="CamundaTests\casos\*.json" CopyToOutputDirectory="PreserveNewest" />
 	</ItemGroup>
 
 </Project>

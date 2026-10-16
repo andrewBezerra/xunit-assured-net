@@ -1,0 +1,50 @@
+{
+  "$schema": "https://camunda.com/json-schema/cpt-test-cases/8.10/schema.json",
+  "testCases": [
+    {
+      "name": "Pedido completo, com o envio mockado",
+      "description": "Mocks declarados, como no CPT: o worker da cobrança e o processo filho inteiro.",
+      "instructions": [
+        { "type": "MOCK_JOB_WORKER_COMPLETE_JOB", "jobType": "xa-cobrar", "variables": { "pago": true } },
+        { "type": "MOCK_CHILD_PROCESS", "processDefinitionId": "xa-envio", "variables": { "rastreio": "BR-JSON" } },
+        {
+          "type": "CREATE_PROCESS_INSTANCE",
+          "processDefinitionSelector": { "processDefinitionId": "xa-pedido" },
+          "variables": { "pedidoId": 101 }
+        },
+        { "type": "ASSERT_PROCESS_INSTANCE", "processInstanceSelector": { "processDefinitionId": "xa-pedido" }, "state": "IS_COMPLETED" },
+        {
+          "type": "ASSERT_ELEMENT_INSTANCES",
+          "processInstanceSelector": { "processDefinitionId": "xa-pedido" },
+          "elementSelectors": [ { "elementId": "inicio" }, { "elementId": "cobrar" }, { "elementId": "chamar-envio" }, { "elementId": "concluido" } ],
+          "state": "IS_COMPLETED_IN_ORDER"
+        },
+        { "type": "ASSERT_VARIABLES", "processInstanceSelector": { "processDefinitionId": "xa-pedido" }, "variables": { "codigoRastreio": "BR-JSON", "pago": true } }
+      ]
+    },
+    {
+      "name": "Pagamento recusado",
+      "instructions": [
+        { "type": "MOCK_JOB_WORKER_THROW_BPMN_ERROR", "jobType": "xa-cobrar", "errorCode": "PAGAMENTO_RECUSADO", "errorMessage": "sem saldo" },
+        { "type": "CREATE_PROCESS_INSTANCE", "processDefinitionSelector": { "processDefinitionId": "xa-pedido" }, "variables": { "pedidoId": 102 } },
+        { "type": "ASSERT_ELEMENT_INSTANCE", "elementSelector": { "elementName": "Pedido recusado" }, "state": "IS_COMPLETED" },
+        { "type": "ASSERT_ELEMENT_INSTANCES", "elementSelectors": [ { "elementId": "chamar-envio" } ], "state": "IS_NOT_ACTIVATED" },
+        { "type": "ASSERT_PROCESS_INSTANCE", "state": "IS_COMPLETED", "hasActiveIncidents": false }
+      ]
+    },
+    {
+      "name": "Passo a passo, com o filho de verdade",
+      "description": "Sem mocks: o caso completa cada job no ponto em que ele aparece, inclusive o do processo filho.",
+      "instructions": [
+        { "type": "CREATE_PROCESS_INSTANCE", "processDefinitionSelector": { "processDefinitionId": "xa-pedido" }, "variables": { "pedidoId": 103 } },
+        { "type": "ASSERT_ELEMENT_INSTANCE", "elementSelector": { "elementId": "cobrar" }, "state": "IS_ACTIVE" },
+        { "type": "COMPLETE_JOB", "jobSelector": { "jobType": "xa-cobrar" }, "variables": { "pago": true } },
+        { "type": "ASSERT_PROCESS_INSTANCE", "processInstanceSelector": { "processDefinitionId": "xa-envio" }, "state": "IS_ACTIVE" },
+        { "type": "COMPLETE_JOB", "jobSelector": { "elementId": "despachar", "processDefinitionId": "xa-envio" }, "variables": { "rastreio": "BR-PASSO" } },
+        { "type": "ASSERT_PROCESS_INSTANCE", "processInstanceSelector": { "processDefinitionId": "xa-envio" }, "state": "IS_COMPLETED" },
+        { "type": "ASSERT_PROCESS_INSTANCE", "processInstanceSelector": { "processDefinitionId": "xa-pedido" }, "state": "IS_COMPLETED" },
+        { "type": "ASSERT_VARIABLES", "variableNames": [ "pedidoId" ], "variables": { "codigoRastreio": "BR-PASSO" } }
+      ]
+    }
+  ]
+}

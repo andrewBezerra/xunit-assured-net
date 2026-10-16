@@ -255,7 +255,7 @@ internal sealed class SdkCamundaGateway : ICamundaGateway, IDisposable
 
 			return (IReadOnlyList<ElementoVisto>)resposta.Items
 				.Select(e => new ElementoVisto(
-					e.ElementId.Value, e.ElementName ?? string.Empty, Nome(e.Type), Nome(e.State), e.ElementInstanceKey.Value))
+					e.ElementId.Value, e.ElementName ?? string.Empty, Nome(e.Type), Nome(e.State), e.ElementInstanceKey.Value, e.EndDate))
 				.ToList();
 		});
 
@@ -326,6 +326,37 @@ internal sealed class SdkCamundaGateway : ICamundaGateway, IDisposable
 	public Task CompleteUserTaskAsync(string userTaskKey, object? variables, CancellationToken ct) =>
 		Recusa(() => _client.CompleteUserTaskAsync(
 			UserTaskKey.AssumeExists(userTaskKey), new UserTaskCompletionRequest { Variables = variables }, ct));
+
+	public Task<IReadOnlyList<UserTaskVista>> SearchUserTasksAsync(IReadOnlyCollection<string> processInstanceKeys, CancellationToken ct) =>
+		Recusa(async () =>
+		{
+			var resposta = await _client.SearchUserTasksAsync(new UserTaskSearchQuery
+			{
+				Filter = new UserTaskFilter
+				{
+					ProcessInstanceKey = new ProcessInstanceKeyFilterProperty
+					{
+						In = processInstanceKeys.Select(ProcessInstanceKey.AssumeExists).ToList()
+					}
+				}
+			}, null, ct).ConfigureAwait(false);
+
+			return (IReadOnlyList<UserTaskVista>)resposta.Items
+				.Select(t => new UserTaskVista(
+					t.UserTaskKey.Value,
+					t.ProcessInstanceKey.Value,
+					t.ElementId.Value,
+					t.Name,
+					Nome(t.State),
+					t.Assignee,
+					t.CandidateGroups ?? new List<string>(),
+					t.Priority))
+				.ToList();
+		});
+
+	public Task SetVariablesAsync(string processInstanceKey, object variables, CancellationToken ct) =>
+		Recusa(() => _client.CreateElementInstanceVariablesAsync(
+			ElementInstanceKey.AssumeExists(processInstanceKey), new SetVariableRequest { Variables = variables }, ct));
 
 	public Task ModifyInstanceAsync(
 		string processInstanceKey,

@@ -32,6 +32,7 @@ internal static class MocksDeElemento
 	internal const string ChaveDasMensagens = "_CamundaMensagens";
 	internal const string ChaveDosSinais = "_CamundaSinais";
 	internal const string ChaveDosFilhos = "_CamundaFilhos";
+	internal const string ChaveDosFilhosPorProcesso = "_CamundaFilhosPorProcesso";
 
 	internal static void RegistrarUserTask(ITestContext context, UserTaskMock mock)
 	{
@@ -69,6 +70,13 @@ internal static class MocksDeElemento
 
 	internal static Dictionary<string, FilhoMock> Filhos(ITestContext context) =>
 		Obter(context, ChaveDosFilhos, () => new Dictionary<string, FilhoMock>(StringComparer.Ordinal));
+
+	/// <summary>
+	/// Os filhos mockados pelo id do processo filho, e não pela call activity: é como o
+	/// <c>MOCK_CHILD_PROCESS</c> dos casos de teste JSON do Camunda os identifica.
+	/// </summary>
+	internal static Dictionary<string, FilhoMock> FilhosPorProcesso(ITestContext context) =>
+		Obter(context, ChaveDosFilhosPorProcesso, () => new Dictionary<string, FilhoMock>(StringComparer.Ordinal));
 
 	internal static Dictionary<string, EventoMock> Mensagens(ITestContext context) =>
 		Obter(context, ChaveDasMensagens, () => new Dictionary<string, EventoMock>(StringComparer.Ordinal));

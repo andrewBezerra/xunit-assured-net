@@ -2,7 +2,33 @@
 
 All notable changes to the XUnitAssured packages. Upgrading from 5.1.x? See [UPGRADING.md](UPGRADING.md).
 
-## v6.29.1 (Current — MCP: Camunda tool escapes what the diagram brings)
+## v6.30.0 (Current — Camunda: JSON test cases)
+
+In XUnitAssured.Camunda: JSON test cases in the Camunda Process Test format. Upgrading from 6.29.1 requires no code changes; the other packages are unchanged.
+
+- **A JSON test case runs as it is.** Write it in the format of the Camunda Process Test and of the Web Modeler's Test Studio (`cpt-test-cases`, schema 8.10). `[CamundaTestCases("order.json")]` turns each case of the file into a `[Theory]` row, and `CamundaTestCase.RunAsync("order", "shipping")` deploys and runs it. Inside a `CamundaTestBase`, `RunAsync(Given(), ...)` uses the fixture's cluster.
+- **The instructions run in order:**
+  - the `MOCK_*` instructions are the package's mocks;
+  - `COMPLETE_JOB`, `COMPLETE_USER_TASK`, `CORRELATE_MESSAGE` and the other actions happen once, at their place, waiting for what they need;
+  - the assertions wait like the package's.
+
+  A `processDefinitionId` selector also picks the child processes the case's instance called.
+- **Supported:**
+  - `CREATE_PROCESS_INSTANCE`;
+  - the job worker and child process mocks;
+  - `COMPLETE_JOB`, `THROW_BPMN_ERROR_FROM_JOB`, `COMPLETE_USER_TASK`, `PUBLISH_MESSAGE`, `CORRELATE_MESSAGE` and `UPDATE_VARIABLES`;
+  - `ASSERT_PROCESS_INSTANCE`, `ASSERT_ELEMENT_INSTANCE`, `ASSERT_ELEMENT_INSTANCES` (every state, `IS_COMPLETED_IN_ORDER` included), `ASSERT_VARIABLES`, `ASSERT_USER_TASK` and `ASSERT_PROCESS_INSTANCE_MESSAGE_SUBSCRIPTION`.
+- **Refused before the case starts, each with its reason:** what a shared cluster cannot run.
+  - `INCREASE_TIME` and `SET_TIME`: the clock is the cluster's.
+  - `BROADCAST_SIGNAL`.
+  - Decisions.
+  - FEEL, judge and similarity assertions.
+  - A few options of the supported instructions. The package README lists them.
+- **A failure names the case, the instruction and what it saw,** with the Operate links of the case's instances.
+- **Verified against Camunda 8.10.4:** four cases in two files, on the new `xa-revisao` diagram too. Samples 17 and 18 run them.
+- This closes Phase 4, the last phase of the Camunda plan.
+
+## v6.29.1 (MCP: Camunda tool escapes what the diagram brings)
 
 Fix for the Camunda tool of XUnitAssured.Mcp. Upgrading from 6.29.0 requires no code changes; the other packages are unchanged.
 
