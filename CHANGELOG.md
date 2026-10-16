@@ -2,7 +2,13 @@
 
 All notable changes to the XUnitAssured packages. Upgrading from 5.1.x? See [UPGRADING.md](UPGRADING.md).
 
-## v6.30.4 (Current — the Kafka SSL sample no longer ships its CA key)
+## v6.30.5 (Current — SonarCloud badges)
+
+Docs-only release: SonarCloud badges in the README. No package changes; upgrading from 6.30.4 requires no code changes.
+
+- **The README shows the SonarCloud quality gate and the coverage**, next to the CI badge. Each one links to the project in SonarCloud.
+
+## v6.30.4 (the Kafka SSL sample no longer ships its CA key)
 
 Samples-only release: the Kafka SSL sample no longer ships its CA's private key. No package changes; upgrading from 6.30.3 requires no code changes.
 
