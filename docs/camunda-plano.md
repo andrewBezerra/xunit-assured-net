@@ -402,3 +402,25 @@ cada um com teste de ida e volta contra a 8.10.4 e exemplo no projeto de exemplo
 
 **Fase 3 concluída.** A Fase 4 (casos de teste no JSON do CPT, cobertura do diagrama, ferramenta no
 MCP) fica para quando alguém pedir.
+
+## Fase 4: extras (começou em 2026-10-16)
+
+| Entrega | O que | Versão |
+|---|---|---|
+| 4a | Cobertura dos diagramas: `camunda-coverage/index.html` (bpmn-js) e `coverage.json` | 6.28.0 |
+| 4b | Ferramenta no MCP que gera o esqueleto do teste a partir do BPMN | a fazer |
+| 4c | Casos de teste no JSON do CPT: um subconjunto que roda num cluster compartilhado | a fazer |
+
+### Achados da 4a
+
+- **[Certeza]** O que o pacote dispara por modificação (o timer pulado, o sinal, a borda do filho
+  mockado na forma B) não vira instância de elemento no Camunda: o pacote ativa o elemento seguinte.
+  Sem anotar esses eventos no laço, a cobertura os dava como nunca percorridos.
+- **[Certeza]** Gravar o relatório só na saída do processo não funciona com muitas instâncias: o
+  `dotnet test` encerra o processo antes. Com 1 teste gravou; com os 16 exemplos, não. O pacote
+  registra a cobertura quando uma asserção vê a instância completar e grava o relatório a cada
+  instância.
+- **[Certeza]** O formato JSON do CPT (`schema.json` da `stable/8.10`) tem 41 definições. Várias
+  instruções não cabem num cluster compartilhado: `INCREASE_TIME` e `SET_TIME` (relógio do cluster),
+  `BROADCAST_SIGNAL`, `MOCK_CHILD_PROCESS` e `MOCK_DMN_DECISION` (implantam algo falso para todos). A
+  4c será um intérprete de um subconjunto, com recusa explicada para o resto.

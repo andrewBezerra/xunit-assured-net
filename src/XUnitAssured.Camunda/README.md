@@ -355,6 +355,40 @@ Expected process instance 2251799813685899 (order version 4) to complete within 
   Operate: http://localhost:8080/operate/processes/2251799813685899
 ```
 
+## Diagram coverage
+
+Every test run writes a coverage report: what the test instances went through in each diagram,
+and what never ran. It lands in `camunda-coverage/` in the test output folder:
+
+- **`index.html`** draws each diagram with [bpmn-js](https://bpmn.io), the reached elements in
+  green and the missed ones in red, with the percentage per process and the list of what was
+  missed. The page loads bpmn-js from a CDN, pinned with an integrity hash; offline, the list
+  still shows, without the drawing.
+- **`coverage.json`** has the same data for a pipeline to read: per process version, the flow
+  nodes, the reached ones, the missed ones, and the coverage.
+
+What it counts:
+
+- **The flow nodes** (events, activities, gateways) of the deployed version each instance ran.
+  Each version of a process is its own entry. Sequence flows do not count: Camunda's search shows
+  elements, not flows.
+- **An element counts once any test instance went through it,** completed or terminated. The
+  instances a test's instance calls count too, under their own process.
+- **What the package triggered counts.** A skipped timer, a signal triggered in the instance or
+  a mocked child's error taking the call activity's boundary never gets an element of its own in
+  Camunda, so the package records it itself.
+
+The report is rewritten as each instance finishes, so it does not depend on the end of the test
+run. Turn it off, or move it:
+
+```json
+{
+  "camunda": {
+    "coverage": { "enabled": false, "directory": "camunda-coverage" }
+  }
+}
+```
+
 ## Why the mocks are not job workers
 
 Camunda's job activation does not filter by process instance. A job worker for `charge-card`
@@ -408,6 +442,7 @@ The `camunda` section of `testsettings.json`, beside `http`, `kafka` and `rabbit
     "assertionTimeoutSeconds": 15,
     "pollIntervalMilliseconds": 100,
     "mockLifetimeSeconds": 120
+    "coverage": { "enabled": true, "directory": "camunda-coverage" }
   }
 }
 ```
