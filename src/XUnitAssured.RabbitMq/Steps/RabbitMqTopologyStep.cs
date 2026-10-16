@@ -107,6 +107,12 @@ public class RabbitMqTopologyStep : ITestStep
 	internal bool ConnectionUriInformada => _connectionUri is not null;
 
 	/// <summary>
+	/// De onde vem a conexão, a partir da URI resolvida. Padrão: o cliente oficial
+	/// (<see cref="RabbitMqConexao.FabricaPadrao"/>); os testes do pacote põem um falso aqui.
+	/// </summary>
+	internal Func<string, IConnectionFactory> CriarFabrica { get; init; } = RabbitMqConexao.FabricaPadrao;
+
+	/// <summary>
 	/// Cria um passo com os valores padrão, para ser preenchido por um inicializador.
 	/// </summary>
 	public RabbitMqTopologyStep()
@@ -130,6 +136,7 @@ public class RabbitMqTopologyStep : ITestStep
 		Durable = source.Durable;
 		DeadLetterExchange = source.DeadLetterExchange;
 		_connectionUri = source._connectionUri;
+		CriarFabrica = source.CriarFabrica;
 	}
 
 	/// <inheritdoc />
@@ -146,11 +153,7 @@ public class RabbitMqTopologyStep : ITestStep
 			diagnostico["ConnectionUri"] = RabbitMqPublishStep.Mascarar(uri);
 			diagnostico["Operation"] = Operation.ToString();
 
-			var fabrica = new ConnectionFactory
-			{
-				Uri = new Uri(uri),
-				ClientProvidedName = RabbitMqSettings.Load().ClientProvidedName
-			};
+			var fabrica = CriarFabrica(uri);
 
 			await using var conexao = await fabrica.CreateConnectionAsync(cancellationToken)
 				.ConfigureAwait(false);

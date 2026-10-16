@@ -77,6 +77,12 @@ public class RabbitMqPublishStep : ITestStep
 	internal bool ConnectionUriInformada => _connectionUri is not null;
 
 	/// <summary>
+	/// De onde vem a conexão, a partir da URI resolvida. Padrão: o cliente oficial
+	/// (<see cref="RabbitMqConexao.FabricaPadrao"/>); os testes do pacote põem um falso aqui.
+	/// </summary>
+	internal Func<string, IConnectionFactory> CriarFabrica { get; init; } = RabbitMqConexao.FabricaPadrao;
+
+	/// <summary>
 	/// Se a publicação exige que a mensagem chegue a pelo menos uma fila. Padrão: sim.
 	/// </summary>
 	/// <remarks>
@@ -122,6 +128,7 @@ public class RabbitMqPublishStep : ITestStep
 		Value = source.Value;
 		Headers = source.Headers;
 		_connectionUri = source._connectionUri;
+		CriarFabrica = source.CriarFabrica;
 		RequireRouting = source.RequireRouting;
 		JsonOptions = source.JsonOptions;
 	}
@@ -141,11 +148,7 @@ public class RabbitMqPublishStep : ITestStep
 			diagnostico["Exchange"] = Exchange;
 			diagnostico["RoutingKey"] = RoutingKey;
 
-			var fabrica = new ConnectionFactory
-			{
-				Uri = new Uri(uri),
-				ClientProvidedName = RabbitMqSettings.Load().ClientProvidedName
-			};
+			var fabrica = CriarFabrica(uri);
 
 			await using var conexao = await fabrica.CreateConnectionAsync(cancellationToken)
 				.ConfigureAwait(false);
