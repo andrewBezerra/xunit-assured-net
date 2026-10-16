@@ -12,26 +12,42 @@ Os diagramas são os mesmos dos testes de ida e volta do pacote, ligados de
 - **`xa-envio`**: `despachar` (job `xa-despachar`) devolve `rastreio`, que a call activity copia
   para `codigoRastreio` no pedido.
 
+## O que precisa
+
+- Um Camunda 8.10 com a REST API v2. Pode ser um cluster da sua empresa, ou um local: o README do
+  pacote mostra o `podman run` (ou `docker run`) que sobe um em uns 35 segundos.
+- **Nenhum worker de `xa-cobrar` nem de `xa-despachar` nesse cluster**, nem o runtime de
+  Connectors mockando esses tipos: os exemplos respondem por eles, e um worker de verdade
+  disputaria os jobs.
+- Um usuário que possa implantar, iniciar instâncias e consultar (Basic), ou um client OAuth com
+  as mesmas permissões.
+
 ## Rodar
 
 ```powershell
+# Camunda local, sem autenticação
 ./src/XUnitAssured.Camunda.Samples.Remote.Test/rodar.ps1
+
+# Basic: a senha é pedida sem aparecer na tela (ou vem de CAMUNDA_BASIC_AUTH_PASSWORD)
+./src/XUnitAssured.Camunda.Samples.Remote.Test/rodar.ps1 -Endereco http://camunda.minha-empresa:8080 -Usuario testes
+
+# Só um grupo de testes
+./src/XUnitAssured.Camunda.Samples.Remote.Test/rodar.ps1 -Filtro "FullyQualifiedName~QaTests"
 ```
+
+Para OAuth, defina antes `CAMUNDA_CLIENT_ID`, `CAMUNDA_CLIENT_SECRET`, `CAMUNDA_OAUTH_URL` e, se o
+provedor pedir, `CAMUNDA_TOKEN_AUDIENCE`.
 
 O script:
 
-1. lê a senha do usuário `xunit` na .115 por SSH, sem mostrá-la;
-2. roda os testes;
-3. lista as instâncias que eles criaram, com versão, estado, variáveis e o link no Operate.
+1. roda os testes;
+2. lista as instâncias que eles criaram, com versão, estado, variáveis e o link no Operate.
 
-O Operate pede login: use o `admin`.
+As variáveis que ele define valem só enquanto ele roda.
 
-Só um grupo de testes: `./rodar.ps1 -Filtro "FullyQualifiedName~QaTests"`.
-
-Em outro Camunda: `./rodar.ps1 -Endereco http://localhost:8080 -Usuario tests -Senha tests-password`.
-
-Sem o script, defina `CAMUNDA_REST_ADDRESS`, `CAMUNDA_USERNAME` e `CAMUNDA_PASSWORD`, que o
-`testsettings.json` lê, e rode `dotnet test`.
+Sem o script, defina as variáveis `CAMUNDA_*` do SDK oficial (`CAMUNDA_REST_ADDRESS`,
+`CAMUNDA_BASIC_AUTH_USERNAME`, `CAMUNDA_BASIC_AUTH_PASSWORD`, ...) e rode `dotnet test` neste
+projeto. O `testsettings.json` só guarda os prazos.
 
 ## Os exemplos
 
@@ -48,7 +64,7 @@ Cada teste também escreve na própria saída a instância, o link e o que obser
 
 Os testes do QA (5 e 6) publicam os diagramas antes, como o pipeline de homologação faria. Numa
 homologação de verdade isso já aconteceu, e lá os workers reais estão rodando: teste ponta a ponta
-sem mock, ou mocke só os tipos que não têm worker. Aqui na .115 não há worker nenhum, então os dois
+sem mock, ou mocke só os tipos que não têm worker. Aqui o cluster não tem worker desses tipos, então os dois
 tipos são mockados.
 
 ## Ao evoluir o pacote

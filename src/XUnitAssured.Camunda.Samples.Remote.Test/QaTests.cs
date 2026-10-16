@@ -18,7 +18,8 @@ namespace XUnitAssured.Camunda.Samples.Remote.Test;
 /// </para>
 /// <para>
 /// Na homologação os workers de verdade estão rodando: lá, teste ponta a ponta sem mock, ou mocke só
-/// os tipos que não têm worker. Aqui na .115 não há worker nenhum, então os dois tipos são mockados.
+/// os tipos que não têm worker. Os exemplos supõem um cluster sem worker de <c>xa-cobrar</c> nem de
+/// <c>xa-despachar</c>, então os dois tipos são mockados.
 /// </para>
 /// </remarks>
 [Trait("Requires", "Camunda")]

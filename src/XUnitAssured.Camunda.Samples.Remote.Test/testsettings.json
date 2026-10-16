@@ -1,20 +1,21 @@
 {
     // ============================================================================
-    // CAMUNDA 8.10 REMOTO (a .115 da rede local, ou qualquer cluster)
+    // CAMUNDA 8.10, QUALQUER CLUSTER
     // ============================================================================
     //
-    // O rodar.ps1 preenche as três variáveis. Sem ele, defina-as antes do dotnet test.
+    // O endereço e as credenciais não ficam aqui: vêm das variáveis CAMUNDA_* que o SDK oficial
+    // lê, e que o rodar.ps1 preenche. Assim o mesmo projeto roda contra qualquer Camunda:
+    //
+    //   CAMUNDA_REST_ADDRESS          http://localhost:8080 (sem /v2)
+    //   Basic:  CAMUNDA_BASIC_AUTH_USERNAME e CAMUNDA_BASIC_AUTH_PASSWORD
+    //   OAuth:  CAMUNDA_CLIENT_ID, CAMUNDA_CLIENT_SECRET, CAMUNDA_OAUTH_URL
+    //           e, se o provedor pedir, CAMUNDA_TOKEN_AUDIENCE
+    //   Sem autenticação: nenhuma das duas
+    //
+    // Para fixar um cluster aqui em vez das variáveis, preencha "restAddress" e "authentication"
+    // como no README do pacote XUnitAssured.Camunda.
 
     "camunda": {
-        // Sem /v2 no fim
-        "restAddress": "${ENV:CAMUNDA_REST_ADDRESS}",
-
-        "authentication": {
-            "type": "Basic",
-            "username": "${ENV:CAMUNDA_USERNAME}",
-            "password": "${ENV:CAMUNDA_PASSWORD}"
-        },
-
         // Quanto cada asserção espera o estado aparecer na busca do Camunda
         "assertionTimeoutSeconds": 15,
         "pollIntervalMilliseconds": 100,
