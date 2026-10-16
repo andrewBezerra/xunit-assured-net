@@ -82,6 +82,7 @@ internal sealed class MocksDaInstancia
 	private readonly IReadOnlyCollection<string> _timers;
 	private readonly IReadOnlyDictionary<string, EventoMock> _mensagens;
 	private readonly IReadOnlyDictionary<string, EventoMock> _sinais;
+	private readonly IReadOnlyDictionary<string, FilhoMock> _filhos;
 	private readonly string? _tenantId;
 
 	// A versão da definição de cada instância da árvore, para ler o BPMN dela; e o BPMN lido.
@@ -92,6 +93,8 @@ internal sealed class MocksDaInstancia
 	private readonly ConcurrentDictionary<string, int> _timersPulados = new(StringComparer.Ordinal);
 	private readonly ConcurrentDictionary<string, int> _mensagensCorrelacionadas = new(StringComparer.Ordinal);
 	private readonly ConcurrentDictionary<string, int> _sinaisDisparados = new(StringComparer.Ordinal);
+	private readonly ConcurrentDictionary<string, int> _filhosMockados = new(StringComparer.Ordinal);
+	private readonly ConcurrentDictionary<string, InstanciaVista> _filhasVistas = new();
 
 	public MocksDaInstancia(
 		ICamundaGateway gateway,
@@ -102,7 +105,8 @@ internal sealed class MocksDaInstancia
 		IReadOnlyCollection<string>? timers = null,
 		string? definitionKey = null,
 		IReadOnlyDictionary<string, EventoMock>? mensagens = null,
-		IReadOnlyDictionary<string, EventoMock>? sinais = null)
+		IReadOnlyDictionary<string, EventoMock>? sinais = null,
+		IReadOnlyDictionary<string, FilhoMock>? filhos = null)
 	{
 		_gateway = gateway;
 		_mocks = new Dictionary<string, JobMock>(mocks, StringComparer.Ordinal);
@@ -111,6 +115,7 @@ internal sealed class MocksDaInstancia
 		_timers = (timers ?? Array.Empty<string>()).ToArray();
 		_mensagens = new Dictionary<string, EventoMock>(mensagens ?? new Dictionary<string, EventoMock>(), StringComparer.Ordinal);
 		_sinais = new Dictionary<string, EventoMock>(sinais ?? new Dictionary<string, EventoMock>(), StringComparer.Ordinal);
+		_filhos = new Dictionary<string, FilhoMock>(filhos ?? new Dictionary<string, FilhoMock>(), StringComparer.Ordinal);
 		_tenantId = settings.TenantId;
 		_intervalo = TimeSpan.FromMilliseconds(Math.Max(10, settings.PollIntervalMilliseconds));
 		_vida = TimeSpan.FromSeconds(Math.Max(1, settings.MockLifetimeSeconds));
@@ -132,12 +137,16 @@ internal sealed class MocksDaInstancia
 	/// <summary>Quantas vezes este sinal foi disparado na árvore.</summary>
 	public int SinaisDisparados(string nome) => Contagem(_sinaisDisparados, nome);
 
+	/// <summary>Quantas vezes o processo filho desta call activity foi mockado.</summary>
+	public int FilhosMockados(string callActivityId) => Contagem(_filhosMockados, callActivityId);
+
 	/// <summary>O que o teste declarou e o laço nunca usou: pistas de uma instância parada.</summary>
 	public IReadOnlyList<string> NuncaUsados() =>
 		_userTasks.Keys.Where(id => UserTasksResolvidas(id) == 0).Select(id => $"user task '{id}'")
 			.Concat(_timers.Where(id => TimersPulados(id) == 0).Select(id => $"timer '{id}'"))
 			.Concat(_mensagens.Keys.Where(n => MensagensCorrelacionadas(n) == 0).Select(n => $"message '{n}'"))
 			.Concat(_sinais.Keys.Where(n => SinaisDisparados(n) == 0).Select(n => $"signal '{n}'"))
+			.Concat(_filhos.Keys.Where(id => FilhosMockados(id) == 0).Select(id => $"child process of '{id}'"))
 			.Concat(_mocks.Keys.Where(t => Invocacoes(t) == 0).Select(t => $"job type '{t}'"))
 			.ToList();
 
@@ -268,6 +277,9 @@ internal sealed class MocksDaInstancia
 			{
 				await DescobrirFilhasAsync(ct).ConfigureAwait(false);
 
+				if (_filhos.Count > 0)
+					await InterceptarFilhasAsync(ct).ConfigureAwait(false);
+
 				if (_mocks.Count > 0)
 					await ResolverJobsAsync(ct).ConfigureAwait(false);
 
@@ -325,8 +337,118 @@ internal sealed class MocksDaInstancia
 		foreach (var filha in filhas)
 		{
 			_instancias.TryAdd(filha.ProcessInstanceKey, 0);
+			_filhasVistas[filha.ProcessInstanceKey] = filha;
 			if (filha.ProcessDefinitionKey is not null)
 				_definicaoDaInstancia.TryAdd(filha.ProcessInstanceKey, filha.ProcessDefinitionKey);
+		}
+	}
+
+	// O filho mockado roda de verdade até ser interceptado: então o pacote encerra os elementos ativos
+	// dele e ativa o evento de fim, com as variáveis do teste (forma A do plano). O filho termina como
+	// terminaria, e o mapeamento de saída da call activity roda (Fase 0, S3). Para um erro, o evento de
+	// fim com aquele código, ou, sem um, a borda de erro da call activity no pai (forma B).
+	private async Task InterceptarFilhasAsync(CancellationToken ct)
+	{
+		var elementosDoPai = new Dictionary<string, IReadOnlyList<ElementoVisto>>(StringComparer.Ordinal);
+
+		foreach (var filha in _filhasVistas.Values.Where(f => f.ParentElementInstanceKey is not null && f.ParentProcessInstanceKey is not null))
+		{
+			var tratado = "filho:" + filha.ProcessInstanceKey;
+			if (_tratados.ContainsKey(tratado))
+				continue;
+
+			var pai = filha.ParentProcessInstanceKey!;
+			if (!elementosDoPai.TryGetValue(pai, out var doPai))
+				elementosDoPai[pai] = doPai = await _gateway.SearchElementsAsync(pai, ct).ConfigureAwait(false);
+
+			// A busca ainda não mostra a call activity: tenta na volta seguinte.
+			var chamada = doPai.FirstOrDefault(e => e.ElementInstanceKey == filha.ParentElementInstanceKey);
+			if (chamada is null)
+				continue;
+
+			if (!_filhos.TryGetValue(chamada.ElementId, out var mock))
+			{
+				_tratados.TryAdd(tratado, 0);
+				continue;
+			}
+
+			if (EstadosFinais.Contains(filha.State))
+			{
+				_tratados.TryAdd(tratado, 0);
+				_problemas.Enqueue(
+					$"MockChildProcess('{chamada.ElementId}'): the child process {filha.ProcessId} (instance " +
+					$"{filha.ProcessInstanceKey}) was already {filha.State} when the mock found it, so it ran for real. A child " +
+					"with nothing to wait for (no job, timer, message or user task) ends before it can be intercepted.");
+				continue;
+			}
+
+			var modeloDaFilha = await ModeloAsync(filha.ProcessInstanceKey, ct).ConfigureAwait(false);
+			var fim = mock.ErrorCode is null
+				? modeloDaFilha?.EventoDeFim()
+				: modeloDaFilha?.EventoDeFimComErro(mock.ErrorCode);
+
+			try
+			{
+				if (fim is not null)
+				{
+					var ativos = (await _gateway.SearchElementsAsync(filha.ProcessInstanceKey, ct).ConfigureAwait(false))
+						.Where(e => e.State == "ACTIVE" && e.Type != "PROCESS")
+						.Select(e => e.ElementInstanceKey)
+						.ToList();
+
+					// Os elementos da filha ainda não aparecem na busca: tenta na volta seguinte.
+					if (ativos.Count == 0)
+						continue;
+
+					await _gateway.ModifyInstanceAsync(filha.ProcessInstanceKey, ativos, new[] { fim }, null, mock.Variables, ct)
+						.ConfigureAwait(false);
+				}
+				else if (mock.ErrorCode is null)
+				{
+					_tratados.TryAdd(tratado, 0);
+					_problemas.Enqueue(
+						$"MockChildProcess('{chamada.ElementId}'): the child process {filha.ProcessId} has no plain end event outside " +
+						"subprocesses, so the mock has nowhere to end it.");
+					continue;
+				}
+				else
+				{
+					var modeloDoPai = await ModeloAsync(pai, ct).ConfigureAwait(false);
+					var borda = modeloDoPai?.BordaDeErro(chamada.ElementId, mock.ErrorCode);
+					if (borda is null || borda.Saidas.Count == 0)
+					{
+						_tratados.TryAdd(tratado, 0);
+						_problemas.Enqueue(
+							$"MockChildProcess('{chamada.ElementId}').ThenThrowBpmnError('{mock.ErrorCode}'): the child process " +
+							$"{filha.ProcessId} has no error end event with that code, and the call activity has no boundary error " +
+							"event that catches it, so there is no path for the error to take.");
+						continue;
+					}
+
+					var escopo = borda.Escopo is null
+						? null
+						: doPai.FirstOrDefault(e => e.ElementId == borda.Escopo && e.State == "ACTIVE")?.ElementInstanceKey;
+
+					// Encerrar a call activity encerra o filho junto (Fase 0, S4).
+					await _gateway.ModifyInstanceAsync(pai, new[] { chamada.ElementInstanceKey }, borda.Saidas, escopo, mock.Variables, ct)
+						.ConfigureAwait(false);
+				}
+
+				_tratados.TryAdd(tratado, 0);
+				_filhosMockados.AddOrUpdate(chamada.ElementId, 1, (_, n) => n + 1);
+			}
+			catch (CamundaRecusouException e) when (e.Codigo == "NOT_FOUND")
+			{
+				// A filha, ou o elemento, terminou entre a busca e a modificação.
+				_tratados.TryAdd(tratado, 0);
+			}
+			catch (CamundaRecusouException e)
+			{
+				_tratados.TryAdd(tratado, 0);
+				_problemas.Enqueue(
+					$"Camunda rejected mocking the child process of '{chamada.ElementId}' (instance {filha.ProcessInstanceKey}): " +
+					$"{e.Codigo}: {e.Message}");
+			}
 		}
 	}
 

@@ -31,9 +31,39 @@ internal sealed class ModeloBpmn
 		bool EhTimer,
 		string? GatewayDeEvento,
 		string? Escopo,
-		string? Sinal = null);
+		string? Sinal = null,
+		string? CodigoDeErro = null,
+		bool SemDefinicao = false,
+		string? ProcessoChamado = null,
+		string? Vinculo = null);
 
 	public Elemento? Achar(string id) => _elementos.TryGetValue(id, out var e) ? e : null;
+
+	/// <summary>O evento de fim simples do processo, fora de subprocessos: por onde um filho mockado termina bem.</summary>
+	public string? EventoDeFim() =>
+		_elementos.Values.FirstOrDefault(e => e is { Tipo: "endEvent", SemDefinicao: true, Escopo: null })?.Id;
+
+	/// <summary>O evento de fim que lança o erro com este código, fora de subprocessos.</summary>
+	public string? EventoDeFimComErro(string codigo) =>
+		_elementos.Values.FirstOrDefault(e => e.Tipo == "endEvent" && e.CodigoDeErro == codigo && e.Escopo is null)?.Id;
+
+	/// <summary>
+	/// A borda de erro presa à atividade que pega este código (ou qualquer código, sem errorRef).
+	/// </summary>
+	public Elemento? BordaDeErro(string atividade, string codigo) =>
+		_elementos.Values
+			.Where(e => e.Tipo == "boundaryEvent" && e.AnexadoA == atividade && e.CodigoDeErro is not null)
+			.OrderBy(e => e.CodigoDeErro == codigo ? 0 : 1)
+			.FirstOrDefault(e => e.CodigoDeErro == codigo || e.CodigoDeErro!.Length == 0);
+
+	/// <summary>
+	/// As call activities sem <c>bindingType="deployment"</c> ou <c>"versionTag"</c>: chamam a última versão do
+	/// filho, que num cluster compartilhado pode ser a de outra pessoa.
+	/// </summary>
+	public IReadOnlyList<Elemento> ChamadasDaUltimaVersao() =>
+		_elementos.Values
+			.Where(e => e.Tipo == "callActivity" && (e.Vinculo is null || e.Vinculo == "latest"))
+			.ToList();
 
 	public static ModeloBpmn Ler(string xml)
 	{
@@ -43,6 +73,13 @@ internal sealed class ModeloBpmn
 			.ToList();
 
 		// O sinal se refere pelo id do bpmn:signal; o teste o chama pelo nome.
+		// O erro se refere pelo id do bpmn:error; o teste o chama pelo código. Um errorEventDefinition sem
+		// errorRef pega qualquer código: fica como "".
+		var erros = documento.Descendants(Bpmn + "error")
+			.Where(s => s.Attribute("id") is not null)
+			.ToDictionary(s => (string)s.Attribute("id")!, s => (string?)s.Attribute("errorCode") ?? string.Empty, StringComparer.Ordinal);
+		XNamespace zeebe = "http://camunda.org/schema/zeebe/1.0";
+
 		var sinais = documento.Descendants(Bpmn + "signal")
 			.Where(s => s.Attribute("id") is not null)
 			.ToDictionary(s => (string)s.Attribute("id")!, s => (string?)s.Attribute("name") ?? (string)s.Attribute("id")!, StringComparer.Ordinal);
@@ -80,7 +117,13 @@ internal sealed class ModeloBpmn
 					escopo,
 					(string?)e.Element(Bpmn + "signalEventDefinition")?.Attribute("signalRef") is { } referencia
 						? sinais.TryGetValue(referencia, out var nome) ? nome : referencia
-						: null);
+						: null,
+					e.Element(Bpmn + "errorEventDefinition") is { } erro
+						? (string?)erro.Attribute("errorRef") is { } refErro && erros.TryGetValue(refErro, out var codigo) ? codigo : string.Empty
+						: null,
+					!e.Elements().Any(d => d.Name.Namespace == Bpmn && d.Name.LocalName.EndsWith("EventDefinition", StringComparison.Ordinal)),
+					e.Name.LocalName == "callActivity" ? (string?)e.Descendants(zeebe + "calledElement").FirstOrDefault()?.Attribute("processId") : null,
+					e.Name.LocalName == "callActivity" ? (string?)e.Descendants(zeebe + "calledElement").FirstOrDefault()?.Attribute("bindingType") : null);
 			}
 		}
 

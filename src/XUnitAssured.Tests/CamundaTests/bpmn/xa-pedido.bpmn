@@ -12,6 +12,7 @@
                   modeler:executionPlatform="Camunda Cloud"
                   modeler:executionPlatformVersion="8.10.0">
   <bpmn:error id="Erro_PagamentoRecusado" name="Pagamento recusado" errorCode="PAGAMENTO_RECUSADO" />
+  <bpmn:error id="Erro_EnvioFalhou" name="Envio falhou" errorCode="ENVIO_FALHOU" />
   <bpmn:process id="xa-pedido" name="XUnitAssured - Pedido" isExecutable="true">
     <bpmn:extensionElements>
       <zeebe:versionTag value="1.0.0" />
@@ -50,6 +51,14 @@
     <bpmn:sequenceFlow id="f_cobrar_envio" sourceRef="cobrar" targetRef="chamar-envio" />
     <bpmn:sequenceFlow id="f_envio_fim" sourceRef="chamar-envio" targetRef="concluido" />
     <bpmn:sequenceFlow id="f_recusado" sourceRef="pagamento-recusado" targetRef="recusado" />
+    <bpmn:boundaryEvent id="envio-falhou" name="Envio falhou" attachedToRef="chamar-envio">
+      <bpmn:outgoing>f_envio_falhou</bpmn:outgoing>
+      <bpmn:errorEventDefinition errorRef="Erro_EnvioFalhou" />
+    </bpmn:boundaryEvent>
+    <bpmn:endEvent id="nao-enviado" name="Pedido não enviado">
+      <bpmn:incoming>f_envio_falhou</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="f_envio_falhou" sourceRef="envio-falhou" targetRef="nao-enviado" />
   </bpmn:process>
   <bpmndi:BPMNDiagram id="Diagrama_XaPedido">
     <bpmndi:BPMNPlane id="Plano_XaPedido" bpmnElement="xa-pedido">
@@ -86,6 +95,19 @@
       <bpmndi:BPMNEdge id="f_envio_fim_di" bpmnElement="f_envio_fim">
         <di:waypoint x="520" y="120" />
         <di:waypoint x="592" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNShape id="envio-falhou_di" bpmnElement="envio-falhou">
+        <dc:Bounds x="452" y="142" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="495" y="185" width="70" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="nao-enviado_di" bpmnElement="nao-enviado">
+        <dc:Bounds x="542" y="222" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="515" y="265" width="96" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="f_envio_falhou_di" bpmnElement="f_envio_falhou">
+        <di:waypoint x="470" y="178" />
+        <di:waypoint x="470" y="240" />
+        <di:waypoint x="542" y="240" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="f_recusado_di" bpmnElement="f_recusado">
         <di:waypoint x="300" y="178" />

@@ -116,6 +116,25 @@ public interface ICamundaScenario : ITestScenario
 	ICamundaSignalMock MockSignal(string signalName);
 
 	/// <summary>
+	/// Responde no lugar do processo filho que a call activity <paramref name="callActivityId"/> chama.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// O id é o da call activity no pai, e não o do processo filho: identifica qual chamada é mockada,
+	/// mesmo que o pai chame o mesmo filho em dois lugares. O filho precisa estar implantado (a call
+	/// activity o inicia de verdade); o pacote o intercepta assim que ele aparece, encerra o que ele
+	/// estiver fazendo e o termina pelo evento de fim, com as variáveis do teste. O mapeamento de saída
+	/// da call activity roda como rodaria.
+	/// </para>
+	/// <para>
+	/// Um filho sem nada a esperar (job, timer, mensagem, user task) termina antes de ser interceptado,
+	/// e o teste falha dizendo isso.
+	/// </para>
+	/// </remarks>
+	/// <param name="callActivityId">O id da call activity no BPMN do pai.</param>
+	ICamundaChildProcessMock MockChildProcess(string callActivityId);
+
+	/// <summary>
 	/// Inicia uma instância do processo.
 	/// </summary>
 	/// <remarks>
@@ -142,6 +161,23 @@ public interface ICamundaScenario : ITestScenario
 	/// Invólucro fino sobre <see cref="ExecuteAsync"/>, para uma suíte escrita na forma síncrona.
 	/// </remarks>
 	CamundaValidationBuilder Execute();
+}
+
+/// <summary>Um processo filho mockado que ainda não disse como termina.</summary>
+public interface ICamundaChildProcessMock
+{
+	/// <summary>Termina o filho pelo evento de fim, com estas variáveis, como se ele tivesse rodado.</summary>
+	/// <param name="variables">O que o filho devolveria: objeto anônimo, classe ou dicionário. Nulo: nada.</param>
+	ICamundaScenario ThenComplete(object? variables = null);
+
+	/// <summary>Termina o filho com o erro BPMN deste código, para a borda de erro da call activity pegar.</summary>
+	/// <remarks>
+	/// Pelo evento de fim de erro do filho com esse código, quando há um; senão, encerrando a call
+	/// activity e seguindo pela borda de erro dela que pega o código.
+	/// </remarks>
+	/// <param name="errorCode">O código, como no <c>errorCode</c> do <c>bpmn:error</c>.</param>
+	/// <param name="variables">Variáveis enviadas junto com o erro.</param>
+	ICamundaScenario ThenThrowBpmnError(string errorCode, object? variables = null);
 }
 
 /// <summary>Uma mensagem mockada que ainda não disse o que leva.</summary>

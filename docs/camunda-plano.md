@@ -252,7 +252,7 @@ As instâncias de cada execução ficam no cluster para conferir no Operate.
 |---|---|---|
 | **0. Prova de conceito** ✅ | Ambiente da .115. Console .NET com o SDK 10.x: implantar, iniciar por `processDefinitionKey`, completar job pela chave sem ativar, modificar instância (forma A e B do subprocesso, `SkipTimer`) | Feito em 2026-10-16: ver "Resultado da Fase 0" |
 | **1. MVP** ✅ | Pacote com `Deploy`, `StartInstance`, `MockJobWorker` (completar, erro BPMN), verificações de estado, elementos e variáveis, falha rápida quando o job está com lease de outro worker | Feito na 6.20.0 (2026-10-16): ver "Resultado da Fase 1" |
-| **2. Cobertura do BPMN** (em andamento) | User task, mensagem, sinal, `SkipTimer`, incidents, `MockChildProcess`, aviso de `bindingType="latest"` | Um exemplo por tipo de dependência. Ver "Fase 2" |
+| **2. Cobertura do BPMN** ✅ | User task, mensagem, sinal, `SkipTimer`, incidents, `MockChildProcess`, aviso de `bindingType="latest"` | Feito da 6.22.0 à 6.25.0 (2026-10-16): ver "Fase 2" |
 | **3. CI de empresa** | Modo gerenciado (Testcontainers) e cenário cruzado com o `XUnitAssured.Http` | `dotnet test` sobe o Camunda sozinho no `ubuntu-latest` |
 | **4. Extras** | Casos de teste no JSON do CPT (`cpt-test-cases/8.10`), cobertura do diagrama, ferramenta no MCP | Só quando alguém pedir |
 
@@ -347,7 +347,7 @@ Pedido do usuário antes da primeira publicação no NuGet, para servir o desenv
 | 2a | `MockUserTask(id).ThenComplete(...)`, `SkipTimer(id)`, `AssertUserTaskMocked`, `AssertTimerSkipped`; diagnóstico com as esperas sem resposta e o que foi declarado e nunca usado | 6.22.0 |
 | 2b | `MockMessage(nome).ThenCorrelate(...)` (correlação de verdade, com recusa quando outra instância espera a mesma chave) e `MockSignal(nome).ThenTrigger(...)` (só na instância), `AssertMessageCorrelated`, `AssertSignalTriggered` | 6.23.0 |
 | 2c | Incidents: `MockJobWorker(...).ThenFail(msg)` (sem tentativas, abre incident) e `AssertIncident(elemento, tipo, trecho)` | 6.24.0 |
-| 2d | `MockChildProcess(idDaCallActivity)` e o aviso de `bindingType="latest"` | a fazer |
+| 2d | `MockChildProcess(idDaCallActivity).ThenComplete(...)` / `.ThenThrowBpmnError(...)`, `AssertChildProcessMocked`, aviso de `bindingType="latest"` em `GetResult().Warnings` e na falha | 6.25.0 |
 
 ### Achados da 2b (sonda contra a 8.10.4)
 
@@ -367,3 +367,19 @@ Pedido do usuário antes da primeira publicação no NuGet, para servir o desenv
   conversor do próprio SDK, e o `AssertIncident` compara o tipo sem depender do sublinhado.
 - **[Certeza]** Um erro BPMN que nenhuma borda pega abre um incident `UNHANDLED_ERROR_EVENT` no
   elemento, com a mensagem "Expected to throw an error event with the code ..., but it was not caught".
+
+### Achados da 2d e fim da Fase 2
+
+- **[Certeza]** Forma A do mock de filho contra a 8.10.4: interceptar o filho quando aparece, encerrar os
+  elementos ativos dele e ativar o evento de fim com as variáveis numa modificação só. O filho
+  completa e o mapeamento de saída da call activity roda (`rastreio` virou `codigoRastreio`).
+- **[Certeza]** Forma B: encerrar a call activity no pai e ativar a saída da borda de erro, com as
+  variáveis da modificação, que chegaram ao escopo da instância (`motivo`).
+- **[Certeza]** A filha se liga à call activity pelo `parentElementInstanceKey` da busca de instâncias:
+  é assim que o pacote sabe qual chamada mockar quando o pai chama o mesmo filho em dois lugares.
+- O aviso de `bindingType="latest"` sai do BPMN implantado pela cadeia e não falha o teste: aparece em
+  `GetResult().Warnings` e na mensagem de uma asserção que falhar.
+
+**Fase 2 concluída** (6.22.0 a 6.25.0): user task, timers, mensagem, sinal, incidents e processo filho,
+cada um com teste de ida e volta contra a 8.10.4 e exemplo no projeto de exemplos. Próxima: Fase 3
+(Testcontainers e cenário cruzado com o `XUnitAssured.Http`).

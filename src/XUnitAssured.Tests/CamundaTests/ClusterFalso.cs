@@ -83,12 +83,15 @@ internal sealed class ClusterFalso : ICamundaGateway
 		}
 	}
 
-	public string NovaInstancia(string processId, string? pai = null)
+	/// <param name="chamadaNoPai">A call activity do pai que iniciou esta instância, como a busca a mostra.</param>
+	public string NovaInstancia(string processId, string? pai = null, string? chamadaNoPai = null, string? definicao = null)
 	{
 		lock (_trava)
 		{
 			var chave = $"pi-{++_sequencia}";
-			_instancias[chave] = new Instancia(chave, processId, pai);
+			_instancias[chave] = new Instancia(chave, processId, pai) { ChamadaNoPai = chamadaNoPai, Definicao = definicao };
+			if (pai is not null && chamadaNoPai is not null)
+				_instancias[pai].Elementos[chamadaNoPai] = "ACTIVE";
 			return chave;
 		}
 	}
@@ -583,7 +586,9 @@ internal sealed class ClusterFalso : ICamundaGateway
 		return job;
 	}
 
-	private static InstanciaVista Vista(Instancia i) => new(i.Chave, i.ProcessId, i.Estado, i.ComIncident, i.Pai, i.Definicao);
+	private static InstanciaVista Vista(Instancia i) => new(
+		i.Chave, i.ProcessId, i.Estado, i.ComIncident, i.Pai, i.Definicao,
+		i.Pai is null || i.ChamadaNoPai is null ? null : $"{i.Pai}:{i.ChamadaNoPai}");
 
 	internal sealed class Instancia
 	{
@@ -599,6 +604,7 @@ internal sealed class ClusterFalso : ICamundaGateway
 		public string? Pai { get; }
 		public string? Definicao { get; set; }
 		public List<IncidenteVisto> Incidentes { get; } = new();
+		public string? ChamadaNoPai { get; init; }
 		public string Estado { get; set; } = "ACTIVE";
 		public bool ComIncident { get; set; }
 		public Dictionary<string, string> Elementos { get; } = new();

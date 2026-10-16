@@ -158,6 +158,39 @@ public class IdaEVoltaNoCamundaTests
 			.AssertTimerSkipped("prazo-aprovacao");
 	}
 
+	// ---------- O processo filho mockado ----------
+
+	[Fact(DisplayName = "Camunda: the child process is mocked, and the call activity's output mapping still runs")]
+	public async Task Child_Process_Is_Mocked()
+	{
+		await ScenarioDsl.Given()
+			.Deploy("xa-pedido", "xa-envio")
+			.MockJobWorker("xa-cobrar").ThenComplete(new { pago = true })
+			.MockChildProcess("chamar-envio").ThenComplete(new { rastreio = "BR-FILHO" })
+			.StartInstance("xa-pedido", new { pedidoId = 9 })
+			.ExecuteAsync()
+			.AssertInstanceCompleted()
+			.AssertCompletedElements("chamar-envio", "concluido")
+			.AssertVariable("codigoRastreio", "BR-FILHO")
+			.AssertChildProcessMocked("chamar-envio")
+			.AssertJobMocked("xa-cobrar");
+	}
+
+	[Fact(DisplayName = "Camunda: a mocked child throwing a BPMN error takes the call activity's boundary error path")]
+	public async Task Child_Process_Throws()
+	{
+		await ScenarioDsl.Given()
+			.Deploy("xa-pedido", "xa-envio")
+			.MockJobWorker("xa-cobrar").ThenComplete(new { pago = true })
+			.MockChildProcess("chamar-envio").ThenThrowBpmnError("ENVIO_FALHOU", new { motivo = "transportadora fora do ar" })
+			.StartInstance("xa-pedido", new { pedidoId = 10 })
+			.ExecuteAsync()
+			.AssertInstanceCompleted()
+			.AssertCompletedElements("nao-enviado")
+			.AssertVariable("motivo", "transportadora fora do ar")
+			.AssertChildProcessMocked("chamar-envio");
+	}
+
 	// ---------- Incidents ----------
 
 	[Fact(DisplayName = "Camunda: a worker that gives up opens an incident, and the test sees it")]

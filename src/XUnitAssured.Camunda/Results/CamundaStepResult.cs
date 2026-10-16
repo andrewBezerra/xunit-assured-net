@@ -44,18 +44,31 @@ public class CamundaStepResult : TestStepResult
 	public IReadOnlyList<DeployedProcess> DeployedProcesses =>
 		GetProperty<IReadOnlyList<DeployedProcess>>("DeployedProcesses") ?? Array.Empty<DeployedProcess>();
 
+	/// <summary>
+	/// O que o pacote achou arriscado nos BPMN implantados por esta cadeia, como uma call activity que
+	/// chama a última versão do filho. Vazio quando não há nada.
+	/// </summary>
+	/// <remarks>Não falha o teste: aparece aqui e na mensagem de uma asserção que falhar.</remarks>
+	public IReadOnlyList<string> Warnings =>
+		GetProperty<IReadOnlyList<string>>("Warnings") ?? Array.Empty<string>();
+
 	/// <summary>Resultado de um deploy que o cluster aceitou.</summary>
 	public static CamundaStepResult CreateDeploySuccess(
-		IReadOnlyList<DeployedProcess> processes, TimeSpan? elapsed = null) =>
-		new()
+		IReadOnlyList<DeployedProcess> processes, TimeSpan? elapsed = null, IReadOnlyList<string>? warnings = null)
+	{
+		var propriedades = Propriedades(null, null, processes);
+		propriedades["Warnings"] = warnings ?? Array.Empty<string>();
+
+		return new()
 		{
 			Success = true,
 			Errors = Array.Empty<string>(),
 			Data = processes,
 			DataType = typeof(IReadOnlyList<DeployedProcess>),
 			Metadata = Metadados(StepStatus.Succeeded, elapsed),
-			Properties = Propriedades(null, null, processes)
+			Properties = propriedades
 		};
+	}
 
 	/// <summary>Resultado de uma instância que o cluster criou.</summary>
 	public static CamundaStepResult CreateStartSuccess(
@@ -64,9 +77,11 @@ public class CamundaStepResult : TestStepResult
 		TimeSpan? elapsed = null,
 		string? definitionKey = null,
 		int? version = null,
-		string? versionTag = null)
+		string? versionTag = null,
+		IReadOnlyList<string>? warnings = null)
 	{
 		var propriedades = Propriedades(processId, processInstanceKey, Array.Empty<DeployedProcess>());
+		propriedades["Warnings"] = warnings ?? Array.Empty<string>();
 		propriedades["DefinitionKey"] = definitionKey;
 		propriedades["Version"] = version;
 		propriedades["VersionTag"] = versionTag;

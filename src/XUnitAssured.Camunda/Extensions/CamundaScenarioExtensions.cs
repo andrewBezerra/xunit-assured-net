@@ -44,6 +44,10 @@ public static class CamundaScenarioExtensions
 	public static ICamundaSignalMock MockSignal(this ITestScenario scenario, string signalName) =>
 		CamundaVerbos.MockSignal(scenario ?? throw new ArgumentNullException(nameof(scenario)), signalName);
 
+	/// <inheritdoc cref="ICamundaScenario.MockChildProcess" />
+	public static ICamundaChildProcessMock MockChildProcess(this ITestScenario scenario, string callActivityId) =>
+		CamundaVerbos.MockChildProcess(scenario ?? throw new ArgumentNullException(nameof(scenario)), callActivityId);
+
 	/// <inheritdoc cref="ICamundaScenario.StartInstance" />
 	public static ICamundaScenario StartInstance(
 		this ITestScenario scenario, string processId, object? variables = null, int? version = null, string? versionTag = null) =>
@@ -107,6 +111,14 @@ internal static class CamundaVerbos
 		return new EventoEmDeclaracao(scenario, signalName, mensagem: false);
 	}
 
+	internal static ICamundaChildProcessMock MockChildProcess(ITestScenario scenario, string callActivityId)
+	{
+		if (string.IsNullOrWhiteSpace(callActivityId))
+			throw new ArgumentException("Call activity id is required: the id of the bpmn:callActivity in the parent.", nameof(callActivityId));
+
+		return new FilhoEmDeclaracao(scenario, callActivityId);
+	}
+
 	internal static ICamundaScenario StartInstance(
 		ITestScenario scenario, string processId, object? variables, int? version, string? versionTag)
 	{
@@ -143,6 +155,33 @@ internal static class CamundaVerbos
 		});
 
 		return CamundaScenario.De(scenario);
+	}
+
+	private sealed class FilhoEmDeclaracao : ICamundaChildProcessMock
+	{
+		private readonly ITestScenario _cenario;
+		private readonly string _chamada;
+
+		public FilhoEmDeclaracao(ITestScenario cenario, string chamada)
+		{
+			_cenario = cenario;
+			_chamada = chamada;
+		}
+
+		public ICamundaScenario ThenComplete(object? variables = null)
+		{
+			MocksDeElemento.RegistrarFilho(_cenario.Context, new FilhoMock(_chamada, variables));
+			return CamundaScenario.De(_cenario);
+		}
+
+		public ICamundaScenario ThenThrowBpmnError(string errorCode, object? variables = null)
+		{
+			if (string.IsNullOrWhiteSpace(errorCode))
+				throw new ArgumentException("Error code is required: the errorCode of the bpmn:error.", nameof(errorCode));
+
+			MocksDeElemento.RegistrarFilho(_cenario.Context, new FilhoMock(_chamada, variables, errorCode));
+			return CamundaScenario.De(_cenario);
+		}
 	}
 
 	private sealed class EventoEmDeclaracao : ICamundaMessageMock, ICamundaSignalMock
