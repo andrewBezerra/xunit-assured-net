@@ -225,16 +225,19 @@ public class AssercoesEncadeadasNaTaskTests
 	}
 
 	// O README mostra .ValidateContract<Product>() contra uma API comum, e uma API ASP.NET Core
-	// responde em camelCase. O esquema que o NJsonSchema gera do tipo tem os nomes em PascalCase,
-	// comparados com diferença de maiúsculas, e additionalProperties: false: todo campo da resposta
-	// sai como "NoAdditionalPropertiesAllowed". O próprio exemplo local evita o método por isso.
-	[Fact(
-		DisplayName = "ValidateContract should accept a camelCase response for a PascalCase model",
-		Skip = "Bug: ValidationBuilderExtensions.ValidateContract (JsonSchema.FromType) gera nomes PascalCase e " +
-			"additionalProperties false; uma resposta camelCase falha em todo campo. Ver o relatório da cobertura.")]
+	// responde em camelCase. Até a 6.30.6 o esquema só tinha os nomes em PascalCase, e todo campo de
+	// uma resposta camelCase saía como "NoAdditionalPropertiesAllowed".
+	[Fact(DisplayName = "ValidateContract should accept a camelCase response for a PascalCase model")]
 	public async Task ValidateContract_Should_Accept_CamelCase()
 	{
 		await Executar(Servidor(corpo: "{\"id\":1,\"nome\":\"Ana\"}")).ValidateContract<Cliente>();
+	}
+
+	// Quem já validava uma API PascalCase continua passando.
+	[Fact(DisplayName = "ValidateContract should still accept a PascalCase response")]
+	public async Task ValidateContract_Should_Accept_PascalCase()
+	{
+		await Executar(Servidor(corpo: "{\"Id\":1,\"Nome\":\"Ana\"}")).ValidateContract<Cliente>();
 	}
 
 	[Fact(DisplayName = "The builder's extract helpers should hand back the result and values")]
