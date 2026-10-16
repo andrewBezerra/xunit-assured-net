@@ -1,0 +1,49 @@
+<Project Sdk="Microsoft.NET.Sdk">
+	<PropertyGroup>
+		<TargetFrameworks>net8.0;net9.0;net10.0</TargetFrameworks>
+		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+		<Description>Camunda 8 process testing for XUnitAssured. Deploys BPMN, starts real process instances on a shared Camunda 8.10 cluster and mocks the diagram's external dependencies per instance, so parallel tests never see each other's jobs. Built on the official Camunda.Orchestration.Sdk.</Description>
+		<PackageId>XUnitAssured.Camunda</PackageId>
+		<PackageTags>xunit;camunda;zeebe;bpmn;process-testing;workflow;integration-testing;quality-assurance</PackageTags>
+		<RootNamespace>XUnitAssured.Camunda</RootNamespace>
+		<IsPackable>true</IsPackable>
+	</PropertyGroup>
+
+	<!--
+		O SDK oficial. A versao maior acompanha a minor do servidor (10.x = Camunda 8.10), e e
+		por isso que ela fica fixa aqui: com outra maior, o compilador deixa de garantir que o
+		que o pacote chama existe no servidor. So o Gateway/ conhece os tipos dele.
+	-->
+	<ItemGroup>
+		<PackageReference Include="Camunda.Orchestration.Sdk" Version="10.0.1" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<None Include="..\..\package-icon.png">
+			<Pack>True</Pack>
+			<PackagePath>\</PackagePath>
+		</None>
+		<None Include="README.md">
+			<Pack>True</Pack>
+			<PackagePath>\</PackagePath>
+		</None>
+		<None Include="..\..\LICENSE.md">
+			<Pack>True</Pack>
+			<PackagePath>\</PackagePath>
+		</None>
+	</ItemGroup>
+
+	<ItemGroup>
+		<InternalsVisibleTo Include="XUnitAssured.Tests" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\XUnitAssured.Core\XUnitAssured.Core.csproj" />
+	</ItemGroup>
+
+	<!-- Gera as asserções sobre a Task do builder (ver a classe *ValidationTaskExtensions). Só na compilação. -->
+	<ItemGroup>
+		<ProjectReference Include="..\XUnitAssured.SourceGenerators\XUnitAssured.SourceGenerators.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" PrivateAssets="all" />
+	</ItemGroup>
+
+</Project>

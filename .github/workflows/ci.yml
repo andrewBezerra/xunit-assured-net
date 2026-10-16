@@ -71,15 +71,15 @@ jobs:
       # material.
       - name: Test (net8.0)
         if: ${{ !cancelled() && steps.build.outcome == 'success' }}
-        run: dotnet test ${{ env.UNIT_TESTS }} --configuration Release --no-build --framework net8.0 --filter "Requires!=Network&Requires!=Broker&Requires!=Browser" --logger "trx;LogFileName=net8.0.trx" --results-directory TestResults
+        run: dotnet test ${{ env.UNIT_TESTS }} --configuration Release --no-build --framework net8.0 --filter "Requires!=Network&Requires!=Broker&Requires!=Browser&Requires!=Camunda" --logger "trx;LogFileName=net8.0.trx" --results-directory TestResults
 
       - name: Test (net9.0)
         if: ${{ !cancelled() && steps.build.outcome == 'success' }}
-        run: dotnet test ${{ env.UNIT_TESTS }} --configuration Release --no-build --framework net9.0 --filter "Requires!=Network&Requires!=Broker&Requires!=Browser" --logger "trx;LogFileName=net9.0.trx" --results-directory TestResults
+        run: dotnet test ${{ env.UNIT_TESTS }} --configuration Release --no-build --framework net9.0 --filter "Requires!=Network&Requires!=Broker&Requires!=Browser&Requires!=Camunda" --logger "trx;LogFileName=net9.0.trx" --results-directory TestResults
 
       - name: Test (net10.0)
         if: ${{ !cancelled() && steps.build.outcome == 'success' }}
-        run: dotnet test ${{ env.UNIT_TESTS }} --configuration Release --no-build --framework net10.0 --filter "Requires!=Network&Requires!=Broker&Requires!=Browser" --logger "trx;LogFileName=net10.0.trx" --results-directory TestResults
+        run: dotnet test ${{ env.UNIT_TESTS }} --configuration Release --no-build --framework net10.0 --filter "Requires!=Network&Requires!=Broker&Requires!=Browser&Requires!=Camunda" --logger "trx;LogFileName=net10.0.trx" --results-directory TestResults
 
       # In process (WebApplicationFactory over SampleWebApi), no network. The only
       # suite that sends a request through a custom HttpClient with each kind of
@@ -155,6 +155,64 @@ jobs:
         env:
           XA_RABBITMQ_URI: amqp://xa:xa-senha@127.0.0.1:5672/
         run: dotnet test ${{ env.UNIT_TESTS }} --configuration Release --framework net10.0 --filter "Requires=Broker"
+
+  # O XUnitAssured.Camunda contra um Camunda 8.10 de verdade: que o motor aceita completar um job
+  # que ninguem ativou, que a busca acha a instancia filha, que o mapeamento de saida da call
+  # activity roda. Sem arquivo de configuracao (um contendor de servico nao monta nada do
+  # repositorio): tudo por variavel, H2 em memoria e flush imediato, como o Camunda Process Test.
+  # Validado com estas mesmas variaveis num contendor descartavel em 2026-10-16: pronto em ~34 s.
+  #
+  # Nao bloqueante pelo mesmo motivo do broker.
+  camunda-round-trip:
+    name: Camunda round trip (non-blocking)
+    runs-on: ubuntu-latest
+    continue-on-error: true
+
+    services:
+      camunda:
+        image: camunda/camunda:8.10.4
+        env:
+          CAMUNDA_DATA_SECONDARYSTORAGE_TYPE: rdbms
+          CAMUNDA_DATA_SECONDARYSTORAGE_RDBMS_URL: jdbc:h2:mem:xa;DB_CLOSE_DELAY=-1;MODE=PostgreSQL
+          CAMUNDA_DATA_SECONDARYSTORAGE_RDBMS_USERNAME: sa
+          CAMUNDA_DATA_SECONDARYSTORAGE_RDBMS_FLUSHINTERVAL: PT0S
+          CAMUNDA_SECURITY_AUTHENTICATION_METHOD: basic
+          CAMUNDA_SECURITY_AUTHENTICATION_UNPROTECTEDAPI: "false"
+          CAMUNDA_SECURITY_AUTHORIZATIONS_ENABLED: "false"
+          CAMUNDA_SECURITY_INITIALIZATION_USERS_0_USERNAME: xa
+          CAMUNDA_SECURITY_INITIALIZATION_USERS_0_PASSWORD: xa-senha
+          CAMUNDA_SECURITY_INITIALIZATION_USERS_0_NAME: xa
+          CAMUNDA_SECURITY_INITIALIZATION_USERS_0_EMAIL: xa@localhost
+        ports:
+          - 8080:8080
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      # Esperar aqui, e nao num --health-cmd do servico: a imagem nao tem curl, e o comando do
+      # compose oficial precisaria de tres niveis de aspas. O runner tem curl, e este pedido e o
+      # mesmo que os testes fazem primeiro.
+      - name: Wait for Camunda
+        run: |
+          for i in $(seq 1 60); do
+            if curl -fsS -u xa:xa-senha http://127.0.0.1:8080/v2/topology >/dev/null 2>&1; then
+              echo "Camunda ready after ~$((i * 5)) s"; exit 0
+            fi
+            sleep 5
+          done
+          echo "::error::Camunda did not answer /v2/topology within 5 minutes"; exit 1
+
+      - name: Round trip against a real Camunda
+        env:
+          CAMUNDA_REST_ADDRESS: http://127.0.0.1:8080
+          CAMUNDA_BASIC_AUTH_USERNAME: xa
+          CAMUNDA_BASIC_AUTH_PASSWORD: xa-senha
+        run: dotnet test ${{ env.UNIT_TESTS }} --configuration Release --framework net10.0 --filter "Requires=Camunda"
 
   # Interceptar rota e fazer requisicao de dentro da pagina so se prova num navegador de
   # verdade, com duas origens de verdade: SameSite, o Path do cookie e o CORS com credenciais

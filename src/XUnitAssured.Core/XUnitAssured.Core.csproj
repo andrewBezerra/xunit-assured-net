@@ -16,6 +16,7 @@
 		então o nome simples basta.
 	-->
 	<ItemGroup>
+		<InternalsVisibleTo Include="XUnitAssured.Camunda" />
 		<InternalsVisibleTo Include="XUnitAssured.Http" />
 		<InternalsVisibleTo Include="XUnitAssured.Kafka" />
 		<InternalsVisibleTo Include="XUnitAssured.Playwright" />

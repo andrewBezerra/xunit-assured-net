@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 
 using Microsoft.Playwright;
 
+using XUnitAssured.Camunda.Extensions;
 using XUnitAssured.Core.Abstractions;
 using XUnitAssured.Core.Configuration;
 using XUnitAssured.Http.Configuration;
@@ -209,6 +210,24 @@ public static class ReadmeQuickStartExamples
 				.Then()
 				.AssertSuccess()
 				.AssertMessage<Order>(order => order.Status.ShouldBe("Created"));
+		}
+	}
+
+	[Trait("Category", "Examples")]
+	public class MyCamundaTests
+	{
+		[Fact(Skip = "README example - requires a Camunda 8 cluster")]
+		public async Task Order_Is_Charged_And_Shipped()
+		{
+			await Given()
+				.Deploy("bpmn/order.bpmn", "bpmn/shipping.bpmn")
+				.MockJobWorker("charge-card").ThenComplete(new { approved = true })
+				.MockJobWorker("dispatch").ThenComplete(new { trackingCode = "BR-1" })
+				.StartInstance("order", new { orderId = 42 })
+				.ExecuteAsync()
+				.AssertInstanceCompleted()
+				.AssertCompletedElements("charge", "ship")
+				.AssertVariable("trackingCode", "BR-1");
 		}
 	}
 

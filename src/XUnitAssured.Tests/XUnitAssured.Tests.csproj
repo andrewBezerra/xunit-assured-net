@@ -34,6 +34,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
+		<ProjectReference Include="..\XUnitAssured.Camunda\XUnitAssured.Camunda.csproj" />
 		<ProjectReference Include="..\XUnitAssured.Core\XUnitAssured.Core.csproj" />
 		<ProjectReference Include="..\XUnitAssured.Http\XUnitAssured.Http.csproj" />
 		<ProjectReference Include="..\XUnitAssured.Kafka\XUnitAssured.Kafka.csproj" />
@@ -50,6 +51,7 @@
 
 	<ItemGroup>
 		<None Include="PlaywrightTests\AppDeTeste\**" CopyToOutputDirectory="PreserveNewest" />
+		<None Include="CamundaTests\bpmn\*.bpmn" CopyToOutputDirectory="PreserveNewest" />
 	</ItemGroup>
 
 </Project>

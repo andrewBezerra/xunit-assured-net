@@ -1,0 +1,81 @@
+using System;
+using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
+
+using XUnitAssured.Camunda.Results;
+
+namespace XUnitAssured.Camunda.Gateway;
+
+/// <summary>
+/// Tudo o que o pacote pede ao cluster, nos termos do pacote.
+/// </summary>
+/// <remarks>
+/// <para>
+/// O SDK oficial só aparece na implementação. Duas razões: a linha estável dele começou em
+/// 2026-10-14 e pode precisar ser trocada por um cliente REST próprio sem mexer no DSL; e os
+/// testes do pacote substituem o cluster por um falso que responde estas perguntas.
+/// </para>
+/// <para>
+/// As chaves são texto. O Camunda as expõe como inteiros de 64 bits serializados em texto, e o
+/// SDK como tipos próprios; texto é o que um teste lê, imprime e cola no Operate.
+/// </para>
+/// </remarks>
+internal interface ICamundaGateway
+{
+	Task<IReadOnlyList<DeployedProcess>> DeployAsync(
+		IReadOnlyList<RecursoBpmn> recursos, CancellationToken ct);
+
+	Task<string> CreateInstanceAsync(string definitionKey, object? variables, string? tenantId, CancellationToken ct);
+
+	Task<IReadOnlyList<JobPendente>> SearchCreatedJobsAsync(
+		IReadOnlyCollection<string> processInstanceKeys, IReadOnlyCollection<string>? types, CancellationToken ct);
+
+	Task CompleteJobAsync(string jobKey, object? variables, CancellationToken ct);
+
+	Task ThrowBpmnErrorAsync(string jobKey, string errorCode, string? errorMessage, object? variables, CancellationToken ct);
+
+	Task<IReadOnlyList<InstanciaVista>> SearchChildInstancesAsync(
+		IReadOnlyCollection<string> parentKeys, CancellationToken ct);
+
+	Task<InstanciaVista?> GetInstanceAsync(string processInstanceKey, CancellationToken ct);
+
+	Task<IReadOnlyList<ElementoVisto>> SearchElementsAsync(string processInstanceKey, CancellationToken ct);
+
+	Task<IReadOnlyList<VariavelVista>> SearchVariablesAsync(string processInstanceKey, string? name, CancellationToken ct);
+
+	Task<IReadOnlyList<IncidenteVisto>> SearchActiveIncidentsAsync(string processInstanceKey, CancellationToken ct);
+
+	Task CancelInstanceAsync(string processInstanceKey, CancellationToken ct);
+}
+
+/// <summary>Um arquivo para implantar: o nome que o cluster vai mostrar e o conteúdo.</summary>
+internal sealed record RecursoBpmn(string Nome, byte[] Conteudo);
+
+/// <summary>Um job que espera ser resolvido.</summary>
+internal sealed record JobPendente(string JobKey, string Type, string ElementId, string ProcessInstanceKey);
+
+/// <summary>Uma instância como a busca a mostra.</summary>
+internal sealed record InstanciaVista(
+	string ProcessInstanceKey, string ProcessId, string State, bool HasIncident, string? ParentProcessInstanceKey);
+
+/// <summary>Um elemento de uma instância, como a busca o mostra.</summary>
+internal sealed record ElementoVisto(string ElementId, string ElementName, string Type, string State);
+
+/// <summary>Uma variável, com o valor em JSON como o Camunda guarda.</summary>
+internal sealed record VariavelVista(string Name, string ValueJson, string ScopeKey);
+
+/// <summary>Um incident aberto.</summary>
+internal sealed record IncidenteVisto(string ElementId, string ErrorType, string ErrorMessage);
+
+/// <summary>
+/// O cluster recusou um comando. <see cref="Codigo"/> é o que ele respondeu, por exemplo
+/// <c>INVALID_STATE</c> ou <c>NOT_FOUND</c>.
+/// </summary>
+internal sealed class CamundaRecusouException : Exception
+{
+	public CamundaRecusouException(string codigo, string mensagem, Exception? interna = null)
+		: base(mensagem, interna) => Codigo = codigo;
+
+	public string Codigo { get; }
+}

@@ -47,6 +47,10 @@ jobs:
             extra: ''
           - project: XUnitAssured.RabbitMq
             extra: ''
+          # Camunda: o SdkCamundaGateway só roda nos testes Requires=Camunda e aparece sem
+          # cobertura; o resto (verbos, mocks, asserções) roda contra o ClusterFalso.
+          - project: XUnitAssured.Camunda
+            extra: ''
 
     steps:
       - uses: actions/checkout@v4

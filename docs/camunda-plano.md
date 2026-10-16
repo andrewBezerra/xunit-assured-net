@@ -251,7 +251,7 @@ As instâncias de cada execução ficam no cluster para conferir no Operate.
 | Fase | Entrega | Critério para seguir |
 |---|---|---|
 | **0. Prova de conceito** ✅ | Ambiente da .115. Console .NET com o SDK 10.x: implantar, iniciar por `processDefinitionKey`, completar job pela chave sem ativar, modificar instância (forma A e B do subprocesso, `SkipTimer`) | Feito em 2026-10-16: ver "Resultado da Fase 0" |
-| **1. MVP** | Pacote com `Deploy`, `StartInstance`, `MockJobWorker` (completar, erro BPMN), verificações de estado, elementos e variáveis, falha rápida quando o job está com lease de outro worker | Testes unitários em `XUnitAssured.Tests` e job de CI com o Camunda como service container (`Requires=Camunda`) |
+| **1. MVP** ✅ | Pacote com `Deploy`, `StartInstance`, `MockJobWorker` (completar, erro BPMN), verificações de estado, elementos e variáveis, falha rápida quando o job está com lease de outro worker | Feito na 6.20.0 (2026-10-16): ver "Resultado da Fase 1" |
 | **2. Cobertura do BPMN** | User task, mensagem, sinal, `SkipTimer`, incidents, `MockChildProcess`, aviso de `bindingType="latest"` | Um exemplo por tipo de dependência |
 | **3. CI de empresa** | Modo gerenciado (Testcontainers) e cenário cruzado com o `XUnitAssured.Http` | `dotnet test` sobe o Camunda sozinho no `ubuntu-latest` |
 | **4. Extras** | Casos de teste no JSON do CPT (`cpt-test-cases/8.10`), cobertura do diagrama, ferramenta no MCP | Só quando alguém pedir |
@@ -265,6 +265,27 @@ As instâncias de cada execução ficam no cluster para conferir no Operate.
 - Filtro de traits nos passos de teste do `ci.yml`
 - `<Version>` em `Directory.Build.props`, `docs/releases/<versão>.md`, `CHANGELOG.md`
 - Tabela de pacotes no README raiz e README do pacote
+
+## Resultado da Fase 1 (2026-10-16)
+
+Pacote `src/XUnitAssured.Camunda`, versão 6.20.0. **[Certeza]** 40 testes contra o `ClusterFalso` e 4 de
+ida e volta (`Requires=Camunda`) passando contra a .115 e contra um container igual ao do CI.
+
+O que mudou em relação ao esboço:
+
+- **Mock não é passo.** `MockJobWorker(...).Then...` registra a resposta no contexto; o
+  `StartInstance` põe um laço (`MocksDaInstancia`) para trabalhar na instância e nas filhas. O laço
+  para quando a instância termina e cancela a instância esquecida depois de `mockLifetimeSeconds`.
+- **Asserções síncronas que esperam.** Para encadear como as dos outros pacotes (e serem geradas sobre
+  a `Task`), cada asserção espera dentro de si, fora do contexto de sincronização do chamador.
+- **Sem fixture no MVP** (YAGNI): o gateway vem do contexto ou é um compartilhado por configuração.
+  A interface interna `ICamundaGateway` é o que deixa trocar o SDK e testar sem cluster.
+- **[Certeza] Achado:** o SDK 10.0.1 não deduz a estratégia Basic do usuário e da senha; sem
+  `CAMUNDA_AUTH_STRATEGY` ele não manda credencial, e o cluster responde 401. O pacote deduz:
+  usuário vira Basic, client id vira OAuth.
+- **CI:** o job `Camunda round trip (non-blocking)` sobe `camunda/camunda:8.10.4` só com variáveis
+  (H2 em memória, `FLUSHINTERVAL=PT0S`, Basic). O `release.yml` e o job principal excluem
+  `Requires=Camunda`, como já excluíam `Broker` e `Browser`.
 
 ## Licença
 

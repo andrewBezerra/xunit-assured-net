@@ -37,6 +37,7 @@ ORDEM=(
   XUnitAssured.Http
   XUnitAssured.Kafka
   XUnitAssured.RabbitMq
+  XUnitAssured.Camunda
   XUnitAssured.Playwright
   XUnitAssured.Http.AspNetCore
   XUnitAssured.Playwright.AspNetCore
