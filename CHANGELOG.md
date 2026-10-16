@@ -2,7 +2,20 @@
 
 All notable changes to the XUnitAssured packages. Upgrading from 5.1.x? See [UPGRADING.md](UPGRADING.md).
 
-## v6.30.0 (Current — Camunda: JSON test cases)
+## v6.30.1 (Current — MCP: the rest of the Camunda tool escaped)
+
+Fix for the Camunda tool of XUnitAssured.Mcp. Upgrading from 6.30.0 requires no code changes; the other packages are unchanged.
+
+- **Three more places of `generate_camunda_test` now escape what the diagram brings.** 6.29.1 escaped the literals and most comments, but left these out:
+  - the id of a job-based user task in its comment;
+  - the process id and the process ids listed in the "process not found" comment;
+  - the XML parser's message.
+
+  A line break in one of them (`&#10;` in an attribute) ended the comment, and the rest became code.
+- **The hostile-diagram test now covers both:** a job-based user task with a line break in its id, and a missing process whose name carries a line break. With the old code, the test fails.
+- Found by a second automated security review.
+
+## v6.30.0 (Camunda: JSON test cases)
 
 In XUnitAssured.Camunda: JSON test cases in the Camunda Process Test format. Upgrading from 6.29.1 requires no code changes; the other packages are unchanged.
 
