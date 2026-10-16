@@ -355,6 +355,26 @@ Expected process instance 2251799813685899 (order version 4) to complete within 
   Operate: http://localhost:8080/operate/processes/2251799813685899
 ```
 
+## Writing the first test from the diagram
+
+The [XUnitAssured MCP server](../XunitAssured.MCP/README.md) has a `generate_camunda_test` tool:
+give it the BPMN, and it writes the test skeleton. Ask your assistant to "read bpmn/order.bpmn
+and generate the Camunda test for it".
+
+- **`Deploy` gets the process and the children its call activities call.**
+- **The mocks:** a `MockJobWorker` per job type, a `MockUserTask` per user task, a `MockMessage`
+  per message, a `MockSignal` per signal, and a `SkipTimer` per intermediate timer. The answers are
+  placeholders to fill in.
+- **After an event-based gateway,** the first path is taken. The other paths come as commented
+  alternatives, and so do boundary events (error, timer, message, signal) and mocking a call
+  activity's child. Taking one of them is a test of its own.
+- **The assertions:** `AssertInstanceCompleted` and the end event the start reaches through
+  sequence flows.
+- **A call activity with `bindingType="latest"`** is flagged in the generated code.
+
+The repository compiles what the tool generates for its own test diagrams against this package
+on every build, so a verb renamed here breaks there first.
+
 ## Diagram coverage
 
 Every test run writes a coverage report: what the test instances went through in each diagram,

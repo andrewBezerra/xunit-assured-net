@@ -81,7 +81,7 @@ or at the compiled executable, which starts faster because it skips project reso
 }
 ```
 
-## Available Tools (10)
+## Available Tools (11)
 
 ### Playwright (3 tools)
 
@@ -108,6 +108,12 @@ or at the compiled executable, which starts faster because it skips project reso
 | `generate_kafka_produce_consume_test` | Generates a round-trip produce/consume test |
 | `list_kafka_dsl_methods` | Lists all Kafka DSL methods (produce, consume, auth, assert) |
 
+### Camunda (1 tool)
+
+| Tool | Description |
+|------|-------------|
+| `generate_camunda_test` | Reads a BPMN diagram and writes the XUnitAssured.Camunda test skeleton: Deploy, a mock for every job type, user task, message, signal and intermediate timer, StartInstance and the assertions of the path to its end; boundary events, the other paths of an event-based gateway and call activities come as commented alternatives |
+
 ## Usage Examples
 
 In GitHub Copilot Chat (Agent mode):
@@ -119,6 +125,8 @@ In GitHub Copilot Chat (Agent mode):
 > "Generate a Kafka produce-consume round-trip test for the orders topic"
 
 > "List all HTTP DSL methods"
+
+> "Read bpmn/order.bpmn and generate the Camunda test for it"
 
 ### What the Playwright translator does to your code
 

@@ -67,7 +67,7 @@ The chain ends where it is: the last step was a browser step, so `ExecuteAsync()
 - **Camunda 8** — deploy BPMN by process id and run real process instances on a shared cluster, with the diagram's job workers, user tasks, messages, signals and child processes mocked per instance (the instance's call activities included) and its timers skipped without touching the cluster's clock, so parallel tests never answer each other's jobs; or test the version already deployed to staging, by version tag, end to end with its real workers. Assertions wait for the cluster's eventually consistent search and say which job has no mock.
 - **Browser** — clicks, fills, checks, navigation and screenshots on Playwright, with locators by role, label, test id, text and CSS, and assertions that read like the DSL. The page's network too: intercept a route and prove it answered (`InterceptRoute`, `AssertIntercepted`), or call the API from inside the page with its cookies (`FetchFromPage`). `BrowserAppFixture` starts your own ASP.NET Core API and front-end inside `dotnet test`.
 - **What the system did besides answering** — `LogCapture` records what it logged (message, exception, structured values and scopes, so a leaked value has nowhere to hide), and `OutboundHttpCapture` stands in for the outside services it calls and records every request.
-- **AI-assisted authoring** — an MCP server with 10 tools that translate Playwright Inspector recordings into the DSL and scaffold HTTP and Kafka tests from your editor (GitHub Copilot, Claude Code, VS Code and any MCP client).
+- **AI-assisted authoring** — an MCP server with 11 tools that translate Playwright Inspector recordings into the DSL and scaffold HTTP, Kafka and Camunda tests from your editor (the Camunda one reads the BPMN) (GitHub Copilot, Claude Code, VS Code and any MCP client).
 - **Diagnostics when things fail** — status codes, broker logs, exception detail and, for browser steps, a screenshot at the moment of failure.
 - **Modular** — install only the packages you need; each targets `net8.0` through `net10.0`, except `XUnitAssured.Playwright.AspNetCore`, which needs .NET 10.
 
@@ -611,7 +611,7 @@ is a breaking change, and it is the only thing that would close the gap above.
 
 ## MCP Server (AI-Assisted Test Generation)
 
-XUnitAssured includes an MCP (Model Context Protocol) server that integrates with GitHub Copilot Chat, VS Code, and any MCP-compatible AI client. It provides **10 tools** for test generation and code translation.
+XUnitAssured includes an MCP (Model Context Protocol) server that integrates with GitHub Copilot Chat, VS Code, and any MCP-compatible AI client. It provides **11 tools** for test generation and code translation.
 
 ### Available Tools
 
@@ -627,6 +627,7 @@ XUnitAssured includes an MCP (Model Context Protocol) server that integrates wit
 | `generate_kafka_consume_test` | Scaffolds a Kafka consume test method |
 | `generate_kafka_produce_consume_test` | Generates a round-trip produce→consume test |
 | `list_kafka_dsl_methods` | Lists all Kafka DSL methods (produce, consume, auth, assert) |
+| `generate_camunda_test` | Reads a BPMN diagram and writes the Camunda test skeleton: a mock per job type, user task, message, signal and timer, and the assertions of the path to its end |
 
 ### Setup
 
