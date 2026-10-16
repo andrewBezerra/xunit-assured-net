@@ -20,6 +20,13 @@ ping kafka
 # Should respond from 127.0.0.1
 ```
 
+### Step 1b: Generate the certificates
+
+The certificates are not in the repository; each machine generates its own CA. In Git Bash (needs
+`openssl` and a JDK's `keytool`), in this directory: `bash scripts/generate_ssl_certs.sh`. The CA can
+only sign for `kafka`, `localhost` and `127.0.0.1`. Up to 6.30.3 the CA's private key was committed:
+if you installed that CA, remove it first (`.\uninstall-ca-cert.ps1`).
+
 ### Step 2: Install CA Certificate
 
 Run PowerShell **as Administrator** in the docker directory:

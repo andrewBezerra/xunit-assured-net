@@ -1,6 +1,9 @@
 #!/bin/bash
 set -e
 
+# No Git Bash do Windows, sem isto o -subj "/C=BR/..." vira um caminho do Windows. No Linux, não faz nada.
+export MSYS_NO_PATHCONV=1
+
 VALIDITY_DAYS=365
 PASSWORD="kafka-secret"
 SECRETS_DIR="./secrets"
@@ -13,7 +16,11 @@ echo "===> Generating SSL certificates for Kafka..."
 
 # 1. Gerar CA (Certificate Authority)
 echo "1. Creating Certificate Authority (CA)..."
-openssl req -new -x509 -keyout ca-key -out ca-cert -days $VALIDITY_DAYS -passout pass:$PASSWORD -subj "/C=BR/ST=SP/L=SaoPaulo/O=MyOrg/OU=IT/CN=KafkaCA"
+# A CA só pode assinar certificados para o broker local (nameConstraints). Se alguém a instala na
+# Root do Windows (install-ca-cert.ps1), ela não vale para nenhum outro site, nem se a chave vazar.
+openssl req -new -x509 -keyout ca-key -out ca-cert -days $VALIDITY_DAYS -passout pass:$PASSWORD -subj "/C=BR/ST=SP/L=SaoPaulo/O=MyOrg/OU=IT/CN=KafkaCA"   -addext "basicConstraints=critical,CA:TRUE,pathlen:0"   -addext "keyUsage=critical,keyCertSign,cRLSign"   -addext "nameConstraints=critical,permitted;DNS:kafka,permitted;DNS:localhost,permitted;IP:127.0.0.1/255.255.255.255"
+# O cliente .NET (sslCaLocation) e o install-ca-cert.ps1 leem o PEM por este nome.
+cp ca-cert ca-cert.pem
 
 # 2. Criar Truststore e importar CA
 echo "2. Creating truststore and importing CA certificate..."
@@ -29,11 +36,12 @@ keytool -keystore kafka.keystore.jks -alias localhost -certreq -file cert-file -
 
 # 5. Assinar o certificado do broker com a CA
 echo "5. Signing broker certificate with CA..."
-openssl x509 -req -CA ca-cert -CAkey ca-key -in cert-file -out cert-signed -days $VALIDITY_DAYS -CAcreateserial -passin pass:$PASSWORD -extensions v3_req -extfile <(cat <<EOF
+# Num arquivo, e não por <(...): o openssl do Git Bash no Windows não abre /dev/fd.
+cat > v3_req.ext <<EOF
 [v3_req]
 subjectAltName = DNS:kafka,DNS:localhost,IP:127.0.0.1
 EOF
-)
+openssl x509 -req -CA ca-cert -CAkey ca-key -in cert-file -out cert-signed -days $VALIDITY_DAYS -CAcreateserial -passin pass:$PASSWORD -extensions v3_req -extfile v3_req.ext
 
 # 6. Importar CA e certificado assinado no keystore do broker
 echo "6. Importing CA certificate into broker keystore..."
@@ -64,7 +72,7 @@ cp kafka.truststore.jks client.truststore.jks
 
 # Limpar arquivos temporários
 echo "14. Cleaning up temporary files..."
-rm -f cert-file cert-signed client-cert-file client-cert-signed
+rm -f cert-file cert-signed client-cert-file client-cert-signed v3_req.ext
 
 echo ""
 echo "===> SSL certificates generated successfully!"
@@ -74,7 +82,7 @@ echo "  - kafka.keystore.jks      (broker keystore)"
 echo "  - kafka.truststore.jks    (broker truststore)"
 echo "  - client.keystore.jks     (client keystore)"
 echo "  - client.truststore.jks   (client truststore)"
-echo "  - ca-cert                 (CA certificate)"
+echo "  - ca-cert, ca-cert.pem    (CA certificate)"
 echo ""
 echo "Password for all stores: $PASSWORD"
 echo ""
