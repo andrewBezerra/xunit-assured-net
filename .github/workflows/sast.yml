@@ -137,10 +137,12 @@ jobs:
           #   CamundaContainerFixture   sobe o Camunda no Docker: só o job camunda-testcontainers o roda
           #   BrowserAppFixture         sobe a API e o front em portas reais para um navegador de verdade
           #   SourceGenerators          roda dentro do compilador, e não no processo dos testes
+          #   .github                   scripts de CI, e não produto; os testes .NET não medem Python
           COBERTURA_FORA="src/*Samples*/**,src/SampleWebApi/**,src/SampleWebApp/**"
           COBERTURA_FORA="$COBERTURA_FORA,src/XUnitAssured.Camunda.Testcontainers/CamundaContainerFixture.cs"
           COBERTURA_FORA="$COBERTURA_FORA,src/XUnitAssured.Playwright.AspNetCore/BrowserAppFixture.cs"
           COBERTURA_FORA="$COBERTURA_FORA,src/XUnitAssured.SourceGenerators/**"
+          COBERTURA_FORA="$COBERTURA_FORA,.github/**"
           set -- /k:"$SONAR_PROJECT_KEY" /o:"$SONAR_ORGANIZATION" \
             /d:sonar.host.url="https://sonarcloud.io" /d:sonar.token="$SONAR_TOKEN" \
             /d:sonar.sourceEncoding="UTF-8" \

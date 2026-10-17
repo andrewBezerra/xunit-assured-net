@@ -37,7 +37,7 @@ jobs:
           fi
 
       - name: Sum the downloads of every package
-        run: python3 .github/scripts/total-downloads.py AndrewBezerra badges
+        run: python3 .github/scripts/total-downloads.py
 
       - name: Publish the badge
         working-directory: badges

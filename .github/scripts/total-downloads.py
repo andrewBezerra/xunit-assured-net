@@ -7,13 +7,16 @@
 # Contador de download só cresce, então o maior valor de cada pacote entre as réplicas é o mais
 # atualizado. E o total nunca desce do que a rodada anterior gravou.
 #
-# Uso: total-downloads.py <dono> <diretório>. Escreve ali downloads.json (o badge) e
-# downloads-total.txt (o número exato, que a próxima rodada lê).
+# Uso: total-downloads.py, sem argumentos. Escreve em badges/ (o worktree do branch badges)
+# downloads.json (o badge) e downloads-total.txt (o número exato, que a próxima rodada lê). O dono
+# e o diretório são fixos: o script só tem esse uso, e nada que venha de fora vira caminho.
 import json
 import os
 import sys
 import urllib.request
 
+DONO = "AndrewBezerra"
+DIRETORIO = "badges"
 REPLICAS = ["usnc", "ussc", "ea", "sea"]
 
 
@@ -33,11 +36,11 @@ def abreviado(n):
     return str(n)
 
 
-def main(dono, diretorio):
+def main():
     maior = {}
     for replica in REPLICAS:
         try:
-            pacotes = downloads_por_replica(replica, dono)
+            pacotes = downloads_por_replica(replica, DONO)
         except Exception as erro:  # uma réplica fora do ar não impede a soma
             print(f"::warning::NuGet search replica {replica} failed: {erro}")
             continue
@@ -48,7 +51,7 @@ def main(dono, diretorio):
         sys.exit("No NuGet search replica answered; keeping the previous badge.")
 
     total = sum(t for _, t in maior.values())
-    arquivo_total = os.path.join(diretorio, "downloads-total.txt")
+    arquivo_total = os.path.join(DIRETORIO, "downloads-total.txt")
     try:
         with open(arquivo_total, encoding="utf-8") as anterior:
             total = max(total, int(anterior.read().strip() or 0))
@@ -61,7 +64,7 @@ def main(dono, diretorio):
 
     badge = {"schemaVersion": 1, "label": "downloads (all packages)",
              "message": abreviado(total), "color": "blue"}
-    with open(os.path.join(diretorio, "downloads.json"), "w", encoding="utf-8") as saida:
+    with open(os.path.join(DIRETORIO, "downloads.json"), "w", encoding="utf-8") as saida:
         json.dump(badge, saida, indent=2)
         saida.write("\n")
     with open(arquivo_total, "w", encoding="utf-8") as saida:
@@ -69,4 +72,4 @@ def main(dono, diretorio):
 
 
 if __name__ == "__main__":
-    main(sys.argv[1], sys.argv[2])
+    main()
