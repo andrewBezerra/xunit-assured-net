@@ -2,7 +2,15 @@
 
 All notable changes to the XUnitAssured packages. Upgrading from 5.1.x? See [UPGRADING.md](UPGRADING.md).
 
-## v6.31.3 (Current — community files)
+## v6.31.4 (Current — no skipped tests in the suite)
+
+Test-only release: no skipped tests left in the framework's test suite. No package changes; upgrading from 6.31.3 requires no code changes.
+
+- **The README, UPGRADING and certificate examples are compiled, not run.** They were skipped tests (xUnit1004); they now live in `…Examples` classes with no test attribute, so they still break the build if the API changes under them, and no longer show up as skipped.
+- **`HTTP POST should work with fluent DSL syntax` runs**, with the `Requires=Network` trait, in the network job.
+- **The sample projects keep their `Skip`**: it is how a sample is switched on against your own environment. xUnit1004 is turned off for them in `.editorconfig`, with the reason next to it.
+
+## v6.31.3 (community files)
 
 Docs-only release: the repository's community files. No package changes; upgrading from 6.31.2 requires no code changes.
 
