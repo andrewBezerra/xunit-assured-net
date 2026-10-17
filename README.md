@@ -473,7 +473,7 @@ Every protocol package reads its connection details and credentials from one fil
     "defaultHeaders": { "Accept": "application/json" },
     "authentication": {
       "type": "Bearer",                     // None | Basic | Bearer | ApiKey | OAuth2 | CustomHeader | Certificate
-      "bearer": { "token": "${ENV:API_TOKEN}" }
+      "bearer": { "token": "${SECRET:Api:Token}" }  // user secret, else the variable Api__Token
     }
   },
 
@@ -500,7 +500,9 @@ Comments are allowed. The full set of keys, with every authentication variant sp
 
 **Where it is looked for.** The current directory and up to three parents — which reaches your project folder from `bin/<Configuration>/<tfm>`, so no `CopyToOutputDirectory` is needed — then every folder up from the test assembly's output directory, for runners that start somewhere else. To point somewhere else, set `TESTSETTINGS_PATH=/path/to/file.json`. Every package looks for its file this way, `httpsettings.json` included.
 
-**Per-environment files.** With `TEST_ENV=staging` (or `TestSettings.Load("staging")`), `testsettings.staging.json` is laid over `testsettings.json`, in every section: it overrides what it writes and keeps the rest, so it needs only what differs — `{ "http": { "baseUrl": "https://staging.example.com" } }` keeps the base authentication. Without an environment file, the base file is used. The `"environment"` key inside a file is only a label; it does not choose a file. Keep secrets out of the file with `${ENV:...}`.
+**Per-environment files.** With `TEST_ENV=staging` (or `TestSettings.Load("staging")`), `testsettings.staging.json` is laid over `testsettings.json`, in every section: it overrides what it writes and keeps the rest, so it needs only what differs — `{ "http": { "baseUrl": "https://staging.example.com" } }` keeps the base authentication. Without an environment file, the base file is used. The `"environment"` key inside a file is only a label; it does not choose a file. Keep secrets out of the file with `${ENV:...}` or `${SECRET:...}`.
+
+**Secrets.** `${ENV:NAME}` is replaced by the environment variable. `${SECRET:Key}` reads the test project's [user secrets](https://learn.microsoft.com/aspnet/core/security/app-secrets) first (`dotnet user-secrets set "Api:Token" "..."`, with a `<UserSecretsId>` in the `.csproj`), then the environment variable with the same key and `:` written as `__` (`Api__Token`). One placeholder then works on a developer machine and in CI. Either one, when not found, stays as written, so the setting shows what is missing. A `${SECRET:...}` value is escaped for JSON, so a password with a quote or a backslash keeps the file valid. When the run loads more than one assembly with a `UserSecretsId` (a `WebApplicationFactory` loads your API project, which often has one), add `"userSecretsId": "<the test project's id>"` at the root of the file that uses `${SECRET:...}`; without it, loading fails and names the ids it found.
 
 **Kafka and RabbitMQ on Windows with Docker or Podman.** Use `127.0.0.1` rather than `localhost` for both — for RabbitMQ, each connection otherwise pays about a minute before falling back to IPv4. For Kafka, prefer `"bootstrapServers": "127.0.0.1:9092"` over `localhost:9092`. On Windows, `localhost` resolves to IPv6 `::1` first, the container only forwards IPv4, and the Kafka client gives up on each attempt only after ~20 s — a test that should fail instantly hangs, and one that should pass may time out. The broker must also advertise the same address: with the official image, set `KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://127.0.0.1:9092`, otherwise its metadata sends the client back to `localhost`. The compose files under `src/XUnitAssured.Kafka.Samples.Remote.Test/docker` are set up this way.
 
