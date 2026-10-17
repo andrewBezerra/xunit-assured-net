@@ -50,8 +50,7 @@ public class OAuth2Handler : IAuthenticationHandler
 	/// <inheritdoc />
 	public void ApplyAuthentication(IFlurlRequest request)
 	{
-		if (request == null)
-			throw new ArgumentNullException(nameof(request));
+		ArgumentNullException.ThrowIfNull(request);
 
 		// Get access token (from cache or by requesting new one)
 		var accessToken = GetAccessToken();

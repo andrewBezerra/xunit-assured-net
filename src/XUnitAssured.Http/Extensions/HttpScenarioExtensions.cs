@@ -28,8 +28,7 @@ public static class HttpScenarioExtensions
 	/// </remarks>
 	public static IHttpScenario ApiResource(this ITestScenario scenario, string url)
 	{
-		if (scenario == null)
-			throw new ArgumentNullException(nameof(scenario));
+		ArgumentNullException.ThrowIfNull(scenario);
 
 		return StartRequest(scenario, url, urlProvider: null);
 	}
@@ -58,10 +57,8 @@ public static class HttpScenarioExtensions
 	/// <returns>The scenario, typed as an HTTP scenario</returns>
 	public static IHttpScenario ApiResource(this ITestScenario scenario, Func<string> url)
 	{
-		if (scenario == null)
-			throw new ArgumentNullException(nameof(scenario));
-		if (url == null)
-			throw new ArgumentNullException(nameof(url));
+		ArgumentNullException.ThrowIfNull(scenario);
+		ArgumentNullException.ThrowIfNull(url);
 
 		return StartRequest(scenario, string.Empty, url);
 	}
@@ -164,8 +161,7 @@ public static class HttpScenarioExtensions
 	/// </example>
 	public static IHttpScenario PostFormData(this ITestScenario scenario, Dictionary<string, string> formData)
 	{
-		if (formData == null)
-			throw new ArgumentNullException(nameof(formData));
+		ArgumentNullException.ThrowIfNull(formData);
 
 		if (scenario.CurrentStep is not HttpRequestStep currentHttpStep)
 			throw new InvalidOperationException("Current step is not an HTTP step. Call ApiResource() first.");
@@ -313,8 +309,7 @@ public static class HttpScenarioExtensions
 	/// <returns>The test scenario for method chaining</returns>
 	public static IHttpScenario Concurrently(this ITestScenario scenario, IEnumerable<object?> bodies)
 	{
-		if (bodies == null)
-			throw new ArgumentNullException(nameof(bodies));
+		ArgumentNullException.ThrowIfNull(bodies);
 
 		var lista = bodies.ToList();
 		if (lista.Count == 0)
@@ -395,8 +390,7 @@ public static class HttpScenarioExtensions
 	/// </example>
 	public static IHttpScenario WithHttpClient(this ITestScenario scenario, HttpClient httpClient)
 	{
-		if (httpClient == null)
-			throw new ArgumentNullException(nameof(httpClient));
+		ArgumentNullException.ThrowIfNull(httpClient);
 
 		if (scenario.CurrentStep is HttpRequestStep httpStep)
 		{
@@ -429,8 +423,7 @@ public static class HttpScenarioExtensions
 
 	private static CorpoCru CorpoCru(string content, string contentType)
 	{
-		if (content == null)
-			throw new ArgumentNullException(nameof(content));
+		ArgumentNullException.ThrowIfNull(content);
 		if (string.IsNullOrWhiteSpace(contentType))
 			throw new ArgumentException("A raw body needs a Content-Type.", nameof(contentType));
 
