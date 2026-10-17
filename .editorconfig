@@ -14,8 +14,19 @@ trim_trailing_whitespace = true
 # TreatWarningsAsErrors do Directory.Build.props barra a volta do padrão antigo no build.
 dotnet_diagnostic.CA1510.severity = warning
 
+# CA1861: array constante como argumento vira campo static readonly, para não alocar a cada
+# chamada. Como aviso, pelo mesmo motivo do CA1510; desligado em testes e exemplos, logo abaixo.
+dotnet_diagnostic.CA1861.severity = warning
+
 # Projetos de exemplo (src/*Samples*): o Skip é o opt-in do exemplo. Cada teste roda contra o
 # ambiente de quem usa o pacote (API publicada, broker, certificado), e quem quer rodá-lo tira o
 # Skip. Nos testes do framework (XUnitAssured.Tests) o xUnit1004 continua valendo.
 [src/*Samples*/**.cs]
 dotnet_diagnostic.xUnit1004.severity = none
+
+# Testes, exemplos e a API de exemplo: o CA1861 é uma regra de desempenho, e esse código roda uma
+# vez por teste ou na subida da API. Levar o array para um campo afastaria o valor esperado da
+# asserção que o usa, sem ganho medido.
+[{src/XUnitAssured.Tests/**.cs,src/*Samples*/**.cs,src/SampleWebApi/**.cs}]
+dotnet_diagnostic.CA1861.severity = none
+
