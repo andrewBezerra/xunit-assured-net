@@ -140,7 +140,7 @@ public sealed class LogCapture : ILoggerProvider, ISupportExternalScope
 	/// <returns>The capture, for chaining</returns>
 	public LogCapture AssertNotLogged(Func<CapturedLog, bool> predicate, string? failureMessage = null)
 	{
-		if (predicate == null) throw new ArgumentNullException(nameof(predicate));
+		ArgumentNullException.ThrowIfNull(predicate);
 
 		var achadas = Entries.Where(predicate).ToList();
 		achadas.ShouldBeEmpty(
