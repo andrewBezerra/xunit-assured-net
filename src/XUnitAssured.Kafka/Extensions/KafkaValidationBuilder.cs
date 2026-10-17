@@ -65,7 +65,7 @@ public class KafkaValidationBuilder : ValidationBuilder<KafkaStepResult>
 	/// </summary>
 	public KafkaValidationBuilder AssertKey(Action<object?> assertion)
 	{
-		if (assertion == null) throw new ArgumentNullException(nameof(assertion));
+		ArgumentNullException.ThrowIfNull(assertion);
 		assertion(Result.Key);
 		return this;
 	}
@@ -75,7 +75,7 @@ public class KafkaValidationBuilder : ValidationBuilder<KafkaStepResult>
 	/// </summary>
 	public KafkaValidationBuilder AssertMessage(Action<object?> assertion)
 	{
-		if (assertion == null) throw new ArgumentNullException(nameof(assertion));
+		ArgumentNullException.ThrowIfNull(assertion);
 		assertion(Result.Message);
 		return this;
 	}
@@ -85,7 +85,7 @@ public class KafkaValidationBuilder : ValidationBuilder<KafkaStepResult>
 	/// </summary>
 	public KafkaValidationBuilder AssertMessage<T>(Action<T?> assertion)
 	{
-		if (assertion == null) throw new ArgumentNullException(nameof(assertion));
+		ArgumentNullException.ThrowIfNull(assertion);
 		var message = Result.GetMessage<T>();
 		assertion(message);
 		return this;
@@ -108,7 +108,7 @@ public class KafkaValidationBuilder : ValidationBuilder<KafkaStepResult>
 	/// </example>
 	public KafkaValidationBuilder AssertJsonPath<T>(string jsonPath, Action<T> assertion)
 	{
-		if (assertion == null) throw new ArgumentNullException(nameof(assertion));
+		ArgumentNullException.ThrowIfNull(assertion);
 		var value = Result.JsonPath<T>(jsonPath);
 		assertion(value);
 		return this;
@@ -132,7 +132,7 @@ public class KafkaValidationBuilder : ValidationBuilder<KafkaStepResult>
 	/// </example>
 	public KafkaValidationBuilder AssertJsonPath<T>(string jsonPath, Func<T, bool> predicate, string? failureMessage = null)
 	{
-		if (predicate == null) throw new ArgumentNullException(nameof(predicate));
+		ArgumentNullException.ThrowIfNull(predicate);
 		var value = Result.JsonPath<T>(jsonPath);
 		var predicateResult = predicate(value);
 		predicateResult.ShouldBeTrue(failureMessage ?? $"JSON path assertion failed for path: {jsonPath}");
@@ -157,7 +157,7 @@ public class KafkaValidationBuilder : ValidationBuilder<KafkaStepResult>
 	/// </summary>
 	public KafkaValidationBuilder AssertHeader(string key, Action<byte[]> assertion)
 	{
-		if (assertion == null) throw new ArgumentNullException(nameof(assertion));
+		ArgumentNullException.ThrowIfNull(assertion);
 		var headerBytes = Result.GetHeaderValue(key);
 		headerBytes.ShouldNotBeNull($"Header '{key}' not found");
 		assertion(headerBytes);

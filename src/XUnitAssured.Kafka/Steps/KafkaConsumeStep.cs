@@ -146,8 +146,7 @@ public class KafkaConsumeStep : ITestStep
 	/// <exception cref="ArgumentNullException">Quando <paramref name="source"/> é nulo.</exception>
 	public KafkaConsumeStep(KafkaConsumeStep source)
 	{
-		if (source == null)
-			throw new ArgumentNullException(nameof(source));
+		ArgumentNullException.ThrowIfNull(source);
 
 		Name = source.Name;
 		Topic = source.Topic;

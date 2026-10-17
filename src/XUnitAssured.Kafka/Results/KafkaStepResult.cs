@@ -241,8 +241,7 @@ public class KafkaStepResult : TestStepResult
 		IEnumerable<string>? details,
 		Dictionary<string, object?>? properties)
 	{
-		if (exception == null)
-			throw new ArgumentNullException(nameof(exception));
+		ArgumentNullException.ThrowIfNull(exception);
 
 		var merged = properties != null
 			? new Dictionary<string, object?>(properties)

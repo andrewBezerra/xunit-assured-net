@@ -32,8 +32,7 @@ public class SaslScramHandler : IKafkaAuthenticationHandler
 	/// <inheritdoc />
 	public void ApplyAuthentication(ConsumerConfig config)
 	{
-		if (config == null)
-			throw new ArgumentNullException(nameof(config));
+		ArgumentNullException.ThrowIfNull(config);
 
 		ApplyCommonConfig(config);
 	}
@@ -41,8 +40,7 @@ public class SaslScramHandler : IKafkaAuthenticationHandler
 	/// <inheritdoc />
 	public void ApplyAuthentication(ProducerConfig config)
 	{
-		if (config == null)
-			throw new ArgumentNullException(nameof(config));
+		ArgumentNullException.ThrowIfNull(config);
 
 		ApplyCommonConfig(config);
 	}
