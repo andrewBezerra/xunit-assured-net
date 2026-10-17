@@ -105,8 +105,7 @@ public class HttpValidationBuilder : ValidationBuilder<HttpStepResult>
 	/// </example>
 	public HttpValidationBuilder AssertEach(Action<HttpValidationBuilder> assertions)
 	{
-		if (assertions == null)
-			throw new ArgumentNullException(nameof(assertions));
+		ArgumentNullException.ThrowIfNull(assertions);
 
 		IReadOnlyList<HttpStepResult> respostas = base.Result is ConcurrentHttpStepResult concorrente
 			? concorrente.Responses
@@ -595,8 +594,7 @@ public class HttpValidationBuilder : ValidationBuilder<HttpStepResult>
 	/// </example>
 	public new HttpValidationBuilder Extract(Action<HttpStepResult> extractor)
 	{
-		if (extractor == null)
-			throw new ArgumentNullException(nameof(extractor));
+		ArgumentNullException.ThrowIfNull(extractor);
 
 		extractor(base.Result);
 		return this;

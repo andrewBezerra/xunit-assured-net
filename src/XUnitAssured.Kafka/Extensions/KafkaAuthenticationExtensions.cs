@@ -42,8 +42,7 @@ public static class KafkaAuthenticationExtensions
 	/// <exception cref="InvalidOperationException">When SASL/PLAIN is not configured in settings</exception>
 	public static IKafkaScenario WithSaslPlain(this ITestScenario scenario)
 	{
-		if (scenario == null)
-			throw new ArgumentNullException(nameof(scenario));
+		ArgumentNullException.ThrowIfNull(scenario);
 
 		if (scenario.CurrentStep is not KafkaConsumeStep && scenario.CurrentStep is not KafkaProduceStep)
 			throw new InvalidOperationException("Current step is not a Kafka step. Call Topic().Consume() or Topic().Produce() first.");
@@ -78,8 +77,7 @@ public static class KafkaAuthenticationExtensions
 	/// <returns>Test scenario for chaining</returns>
 	public static IKafkaScenario WithSaslPlain(this ITestScenario scenario, string username, string password, bool useSsl = true)
 	{
-		if (scenario == null)
-			throw new ArgumentNullException(nameof(scenario));
+		ArgumentNullException.ThrowIfNull(scenario);
 
 		// Create auth config
 		var authConfig = new KafkaAuthConfig();
@@ -97,11 +95,9 @@ public static class KafkaAuthenticationExtensions
 	/// <returns>Test scenario for chaining</returns>
 	public static IKafkaScenario WithKafkaAuth(this ITestScenario scenario, Action<KafkaAuthConfig> configure)
 	{
-		if (scenario == null)
-			throw new ArgumentNullException(nameof(scenario));
+		ArgumentNullException.ThrowIfNull(scenario);
 
-		if (configure == null)
-			throw new ArgumentNullException(nameof(configure));
+		ArgumentNullException.ThrowIfNull(configure);
 
 		// Create and configure auth config
 		var authConfig = new KafkaAuthConfig();
@@ -120,8 +116,7 @@ public static class KafkaAuthenticationExtensions
 	/// <exception cref="InvalidOperationException">When SASL/SCRAM is not configured in settings</exception>
 	public static IKafkaScenario WithSaslScram(this ITestScenario scenario)
 	{
-		if (scenario == null)
-			throw new ArgumentNullException(nameof(scenario));
+		ArgumentNullException.ThrowIfNull(scenario);
 
 		if (scenario.CurrentStep is not KafkaConsumeStep && scenario.CurrentStep is not KafkaProduceStep)
 			throw new InvalidOperationException("Current step is not a Kafka step. Call Topic().Consume() or Topic().Produce() first.");
@@ -156,8 +151,7 @@ public static class KafkaAuthenticationExtensions
 	/// <returns>Test scenario for chaining</returns>
 	public static IKafkaScenario WithSaslScram256(this ITestScenario scenario, string username, string password, bool useSsl = true)
 	{
-		if (scenario == null)
-			throw new ArgumentNullException(nameof(scenario));
+		ArgumentNullException.ThrowIfNull(scenario);
 
 		// Create auth config
 		var authConfig = new KafkaAuthConfig();
@@ -180,8 +174,7 @@ public static class KafkaAuthenticationExtensions
 	/// <returns>Test scenario for chaining</returns>
 	public static IKafkaScenario WithOAuthBearer(this ITestScenario scenario, string tokenEndpointUrl, string clientId, string clientSecret, string? scope = null, bool useSsl = true)
 	{
-		if (scenario == null)
-			throw new ArgumentNullException(nameof(scenario));
+		ArgumentNullException.ThrowIfNull(scenario);
 
 		var authConfig = new KafkaAuthConfig();
 		authConfig.UseOAuthBearer(tokenEndpointUrl, clientId, clientSecret, scope, useSsl);
@@ -200,8 +193,7 @@ public static class KafkaAuthenticationExtensions
 	/// <returns>Test scenario for chaining</returns>
 	public static IKafkaScenario WithSaslScram512(this ITestScenario scenario, string username, string password, bool useSsl = true)
 	{
-		if (scenario == null)
-			throw new ArgumentNullException(nameof(scenario));
+		ArgumentNullException.ThrowIfNull(scenario);
 
 		// Create auth config
 		var authConfig = new KafkaAuthConfig();
@@ -220,8 +212,7 @@ public static class KafkaAuthenticationExtensions
 	/// <exception cref="InvalidOperationException">When SSL is not configured in settings</exception>
 	public static IKafkaScenario WithSsl(this ITestScenario scenario)
 	{
-		if (scenario == null)
-			throw new ArgumentNullException(nameof(scenario));
+		ArgumentNullException.ThrowIfNull(scenario);
 
 		if (scenario.CurrentStep is not KafkaConsumeStep && scenario.CurrentStep is not KafkaProduceStep)
 			throw new InvalidOperationException("Current step is not a Kafka step. Call Topic().Consume() or Topic().Produce() first.");
@@ -255,8 +246,7 @@ public static class KafkaAuthenticationExtensions
 	/// <returns>Test scenario for chaining</returns>
 	public static IKafkaScenario WithSsl(this ITestScenario scenario, string? caLocation, bool enableCertificateVerification = true)
 	{
-		if (scenario == null)
-			throw new ArgumentNullException(nameof(scenario));
+		ArgumentNullException.ThrowIfNull(scenario);
 
 		// Create auth config
 		var authConfig = new KafkaAuthConfig();
@@ -277,8 +267,7 @@ public static class KafkaAuthenticationExtensions
 	/// <returns>Test scenario for chaining</returns>
 	public static IKafkaScenario WithMutualTls(this ITestScenario scenario, string certificateLocation, string keyLocation, string? caLocation = null, string? keyPassword = null)
 	{
-		if (scenario == null)
-			throw new ArgumentNullException(nameof(scenario));
+		ArgumentNullException.ThrowIfNull(scenario);
 
 		// Create auth config
 		var authConfig = new KafkaAuthConfig();
@@ -296,8 +285,7 @@ public static class KafkaAuthenticationExtensions
 	/// <returns>Test scenario for chaining</returns>
 	public static IKafkaScenario WithNoKafkaAuth(this ITestScenario scenario)
 	{
-		if (scenario == null)
-			throw new ArgumentNullException(nameof(scenario));
+		ArgumentNullException.ThrowIfNull(scenario);
 
 		// Create auth config with no authentication
 		var authConfig = new KafkaAuthConfig();

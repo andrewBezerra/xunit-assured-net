@@ -97,7 +97,7 @@ public class TestScenario : ITestScenario, IFronteiraDePasso
 	/// <inheritdoc />
 	public void SetCurrentStep(ITestStep step)
 	{
-		if (step == null) throw new ArgumentNullException(nameof(step));
+		ArgumentNullException.ThrowIfNull(step);
 		// Um passo de outro tipo é sempre um passo novo, mesmo sem And(). Uma reconstrução é, por
 		// definição, do mesmo tipo: é o mesmo verbo trocando um valor. Sem esta regra, misturar
 		// pacotes sem o And() substituía em silêncio — `ApiResource(...).Get().NavigateTo(...)`
@@ -124,7 +124,7 @@ public class TestScenario : ITestScenario, IFronteiraDePasso
 	/// <inheritdoc />
 	public void AddValidation(Action<ITestStepResult> validation)
 	{
-		if (validation == null) throw new ArgumentNullException(nameof(validation));
+		ArgumentNullException.ThrowIfNull(validation);
 
 		if (_passos.Count == 0)
 			throw new InvalidOperationException(

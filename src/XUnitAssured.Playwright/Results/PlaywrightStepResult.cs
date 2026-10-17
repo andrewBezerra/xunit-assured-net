@@ -150,8 +150,7 @@ public class PlaywrightStepResult : TestStepResult
 		List<string>? requests = null,
 		TimeSpan? elapsed = null)
 	{
-		if (pageContentProvider == null)
-			throw new ArgumentNullException(nameof(pageContentProvider));
+		ArgumentNullException.ThrowIfNull(pageContentProvider);
 
 		return new PlaywrightStepResult(pageContentProvider)
 		{

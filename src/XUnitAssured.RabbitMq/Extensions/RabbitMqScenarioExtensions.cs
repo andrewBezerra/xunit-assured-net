@@ -30,7 +30,7 @@ public static class RabbitMqScenarioExtensions
 	/// </remarks>
 	public static IRabbitMqScenario Queue(this ITestScenario scenario, string name)
 	{
-		if (scenario == null) throw new ArgumentNullException(nameof(scenario));
+		ArgumentNullException.ThrowIfNull(scenario);
 		if (string.IsNullOrWhiteSpace(name))
 			throw new ArgumentException("Queue name is required.", nameof(name));
 
@@ -51,8 +51,8 @@ public static class RabbitMqScenarioExtensions
 	/// </remarks>
 	public static IRabbitMqScenario Exchange(this ITestScenario scenario, string name)
 	{
-		if (scenario == null) throw new ArgumentNullException(nameof(scenario));
-		if (name == null) throw new ArgumentNullException(nameof(name));
+		ArgumentNullException.ThrowIfNull(scenario);
+		ArgumentNullException.ThrowIfNull(name);
 
 		scenario.Context.SetProperty("_RabbitMqExchange", name);
 		scenario.Context.SetProperty("_RabbitMqQueue", string.Empty);
@@ -116,8 +116,7 @@ internal static class RabbitMqVerbos
 	{
 		if (string.IsNullOrWhiteSpace(exchange))
 			throw new ArgumentException("Exchange name is required.", nameof(exchange));
-		if (routingKey == null)
-			throw new ArgumentNullException(nameof(routingKey));
+		ArgumentNullException.ThrowIfNull(routingKey);
 
 		var fila = scenario.Context.GetProperty<string>("_RabbitMqQueue");
 
@@ -198,7 +197,7 @@ internal static class RabbitMqVerbos
 
 	internal static IRabbitMqScenario WithRoutingKey(ITestScenario scenario, string routingKey)
 	{
-		if (routingKey == null) throw new ArgumentNullException(nameof(routingKey));
+		ArgumentNullException.ThrowIfNull(routingKey);
 
 		if (scenario.CurrentStep is RabbitMqPublishStep publicacao)
 			scenario.SetCurrentStep(new RabbitMqPublishStep(publicacao) { RoutingKey = routingKey });
@@ -231,7 +230,7 @@ internal static class RabbitMqVerbos
 	internal static IRabbitMqScenario WithHeaders(
 		ITestScenario scenario, IDictionary<string, object?> headers)
 	{
-		if (headers == null) throw new ArgumentNullException(nameof(headers));
+		ArgumentNullException.ThrowIfNull(headers);
 
 		if (scenario.CurrentStep is not RabbitMqPublishStep publicacao)
 			throw new InvalidOperationException(
@@ -308,7 +307,7 @@ internal static class RabbitMqVerbos
 	internal static IRabbitMqScenario Validate(
 		ITestScenario scenario, Action<RabbitMqStepResult> validation)
 	{
-		if (validation == null) throw new ArgumentNullException(nameof(validation));
+		ArgumentNullException.ThrowIfNull(validation);
 
 		scenario.AddValidation(resultado =>
 		{
@@ -325,7 +324,7 @@ internal static class RabbitMqVerbos
 	internal static IRabbitMqScenario ValidateMessage<T>(
 		ITestScenario scenario, Action<T> validation) where T : class
 	{
-		if (validation == null) throw new ArgumentNullException(nameof(validation));
+		ArgumentNullException.ThrowIfNull(validation);
 
 		return Validate(scenario, resultado =>
 		{

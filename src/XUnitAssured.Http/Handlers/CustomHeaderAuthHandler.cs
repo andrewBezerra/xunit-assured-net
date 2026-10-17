@@ -28,8 +28,7 @@ public class CustomHeaderAuthHandler : IAuthenticationHandler
 	/// <inheritdoc />
 	public void ApplyAuthentication(IFlurlRequest request)
 	{
-		if (request == null)
-			throw new ArgumentNullException(nameof(request));
+		ArgumentNullException.ThrowIfNull(request);
 
 		if (_config.Headers == null || !_config.Headers.Any())
 			throw new InvalidOperationException("At least one custom header is required.");

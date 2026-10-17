@@ -15,8 +15,7 @@ public static class ScenarioExtensions
 	/// </summary>
 	public static ITestScenario SaveStep(this ITestScenario scenario, string name)
 	{
-		if (scenario == null)
-			throw new ArgumentNullException(nameof(scenario));
+		ArgumentNullException.ThrowIfNull(scenario);
 
 		if (string.IsNullOrWhiteSpace(name))
 			throw new ArgumentException("Step name cannot be null or whitespace.", nameof(name));

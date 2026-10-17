@@ -165,8 +165,7 @@ public class HttpRequestStep : ITestStep
 	/// <exception cref="ArgumentNullException">Thrown when <paramref name="source"/> is null.</exception>
 	public HttpRequestStep(HttpRequestStep source)
 	{
-		if (source == null)
-			throw new ArgumentNullException(nameof(source));
+		ArgumentNullException.ThrowIfNull(source);
 
 		Name = source.Name;
 		Url = source.Url;

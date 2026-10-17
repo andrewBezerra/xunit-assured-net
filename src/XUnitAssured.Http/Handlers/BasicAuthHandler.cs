@@ -28,8 +28,7 @@ public class BasicAuthHandler : IAuthenticationHandler
 	/// <inheritdoc />
 	public void ApplyAuthentication(IFlurlRequest request)
 	{
-		if (request == null)
-			throw new ArgumentNullException(nameof(request));
+		ArgumentNullException.ThrowIfNull(request);
 
 		// Uma credencial vazia vai como está: mandá-la e ver a API recusar é um teste que se quer
 		// escrever. O caminho do HttpClient próprio sempre a mandou, e os exemplos contam com isso.

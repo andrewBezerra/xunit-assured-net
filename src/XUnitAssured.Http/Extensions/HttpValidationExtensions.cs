@@ -20,11 +20,9 @@ public static class HttpValidationExtensions
 	/// </summary>
 	public static IHttpScenario Validate(this ITestScenario scenario, Action<HttpStepResult> validation)
 	{
-		if (scenario == null)
-			throw new ArgumentNullException(nameof(scenario));
+		ArgumentNullException.ThrowIfNull(scenario);
 
-		if (validation == null)
-			throw new ArgumentNullException(nameof(validation));
+		ArgumentNullException.ThrowIfNull(validation);
 
 		// Registered, not run: the step has not run yet when the chain is being written.
 		// The lambda closes over whatever it needs and is called once the result exists.
@@ -74,8 +72,7 @@ public static class HttpValidationExtensions
 	/// </example>
 	public static IHttpScenario ExpectStatusCode(this ITestScenario scenario, int accepted, params int[] alsoAccepted)
 	{
-		if (scenario == null)
-			throw new ArgumentNullException(nameof(scenario));
+		ArgumentNullException.ThrowIfNull(scenario);
 
 		var aceitos = new[] { accepted }.Concat(alsoAccepted ?? Array.Empty<int>()).ToArray();
 		scenario.AddValidation(result => VerificacaoDeStatus.Verificar(result, aceitos, dizerOPedido: true));
@@ -89,11 +86,9 @@ public static class HttpValidationExtensions
 	/// </summary>
 	public static IHttpScenario Validate(this ITestScenario scenario, Action<ITestStepResult> validation)
 	{
-		if (scenario == null)
-			throw new ArgumentNullException(nameof(scenario));
+		ArgumentNullException.ThrowIfNull(scenario);
 
-		if (validation == null)
-			throw new ArgumentNullException(nameof(validation));
+		ArgumentNullException.ThrowIfNull(validation);
 
 		// Registered, not run: the step has not run yet when the chain is being written.
 		// The lambda closes over whatever it needs and is called once the result exists.

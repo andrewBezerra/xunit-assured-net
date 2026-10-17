@@ -126,8 +126,7 @@ public class ValidationBuilder<TResult> where TResult : class, ITestStepResult
 	/// <returns>The same validation builder for method chaining</returns>
 	public ValidationBuilder<TResult> AssertErrors(Action<ITestStepResult> errorAssertion)
 	{
-		if (errorAssertion == null)
-			throw new ArgumentNullException(nameof(errorAssertion));
+		ArgumentNullException.ThrowIfNull(errorAssertion);
 			
 		errorAssertion(Result);
 		return this;
@@ -144,8 +143,7 @@ public class ValidationBuilder<TResult> where TResult : class, ITestStepResult
 	{
 		if (string.IsNullOrWhiteSpace(propertyKey))
 			throw new ArgumentException("Property key cannot be null or empty", nameof(propertyKey));
-		if (assertion == null)
-			throw new ArgumentNullException(nameof(assertion));
+		ArgumentNullException.ThrowIfNull(assertion);
 
 		var propertyValue = Result.GetProperty<TProperty>(propertyKey);
 		assertion(propertyValue);
@@ -160,8 +158,7 @@ public class ValidationBuilder<TResult> where TResult : class, ITestStepResult
 	/// <returns>The same validation builder for method chaining</returns>
 	public ValidationBuilder<TResult> Validate(Action<TResult> validation)
 	{
-		if (validation == null)
-			throw new ArgumentNullException(nameof(validation));
+		ArgumentNullException.ThrowIfNull(validation);
 			
 		validation(Result);
 		return this;
@@ -210,8 +207,7 @@ public class ValidationBuilder<TResult> where TResult : class, ITestStepResult
 	/// </example>
 	public ValidationBuilder<TResult> Extract(Action<TResult> extractor)
 	{
-		if (extractor == null)
-			throw new ArgumentNullException(nameof(extractor));
+		ArgumentNullException.ThrowIfNull(extractor);
 
 		extractor(Result);
 		return this;

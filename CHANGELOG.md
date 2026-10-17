@@ -2,7 +2,14 @@
 
 All notable changes to the XUnitAssured packages. Upgrading from 5.1.x? See [UPGRADING.md](UPGRADING.md).
 
-## v6.31.1 (Current — downloads badge for every package)
+## v6.31.2 (Current — ThrowIfNull argument guards)
+
+Maintenance release: argument guards use `ArgumentNullException.ThrowIfNull` (CA1510). No behavior changes; upgrading from 6.31.1 requires no code changes.
+
+- **Null-argument guards in Core, Http, Kafka, RabbitMq, Playwright and Camunda use `ArgumentNullException.ThrowIfNull`** instead of `if (x == null) throw new ArgumentNullException(nameof(x))`. The exception type, its `ParamName` and its message stay the same.
+- **CA1510 is now a build warning**, and with `TreatWarningsAsErrors` an explicit null-argument throw fails the build.
+
+## v6.31.1 (downloads badge for every package)
 
 Docs-only release: the README's downloads badge counts every package. No package changes; upgrading from 6.31.0 requires no code changes.
 

@@ -200,8 +200,7 @@ public class RabbitMqStepResult : TestStepResult
 		IDictionary<string, object?>? diagnostics = null,
 		TimeSpan? elapsed = null)
 	{
-		if (exception == null)
-			throw new ArgumentNullException(nameof(exception));
+		ArgumentNullException.ThrowIfNull(exception);
 
 		var propriedades = new Dictionary<string, object?>
 		{

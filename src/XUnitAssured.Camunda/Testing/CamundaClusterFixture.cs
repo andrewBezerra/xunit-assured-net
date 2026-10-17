@@ -34,7 +34,7 @@ public class CamundaClusterFixture : ITestContextSeeder
 	/// <inheritdoc />
 	public virtual void Seed(ITestContext context)
 	{
-		if (context == null) throw new ArgumentNullException(nameof(context));
+		ArgumentNullException.ThrowIfNull(context);
 
 		context.SetProperty(CamundaSettings.ChaveNoContexto, Settings);
 	}

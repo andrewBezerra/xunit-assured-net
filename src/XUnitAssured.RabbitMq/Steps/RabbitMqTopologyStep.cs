@@ -124,8 +124,7 @@ public class RabbitMqTopologyStep : ITestStep
 	/// </summary>
 	public RabbitMqTopologyStep(RabbitMqTopologyStep source)
 	{
-		if (source == null)
-			throw new ArgumentNullException(nameof(source));
+		ArgumentNullException.ThrowIfNull(source);
 
 		Name = source.Name;
 		Operation = source.Operation;

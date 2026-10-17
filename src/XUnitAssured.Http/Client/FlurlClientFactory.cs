@@ -23,8 +23,7 @@ public static class FlurlClientFactory
 	/// <returns>FlurlClient configured with the certificate</returns>
 	public static IFlurlClient GetOrCreateClient(X509Certificate2 certificate)
 	{
-		if (certificate == null)
-			throw new ArgumentNullException(nameof(certificate));
+		ArgumentNullException.ThrowIfNull(certificate);
 
 		var key = certificate.Thumbprint;
 
@@ -38,8 +37,7 @@ public static class FlurlClientFactory
 	/// <returns>New FlurlClient instance</returns>
 	public static IFlurlClient CreateClient(X509Certificate2 certificate)
 	{
-		if (certificate == null)
-			throw new ArgumentNullException(nameof(certificate));
+		ArgumentNullException.ThrowIfNull(certificate);
 
 		// Create HttpClientHandler with certificate
 		var handler = new HttpClientHandler();

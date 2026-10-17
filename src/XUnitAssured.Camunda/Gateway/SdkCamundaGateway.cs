@@ -39,7 +39,7 @@ internal sealed class SdkCamundaGateway : ICamundaGateway, IDisposable
 
 	private SdkCamundaGateway(CamundaSettings settings, XmlComoJson handler)
 	{
-		if (settings == null) throw new ArgumentNullException(nameof(settings));
+		ArgumentNullException.ThrowIfNull(settings);
 
 		_client = CamundaClient.Create(new CamundaOptions
 		{

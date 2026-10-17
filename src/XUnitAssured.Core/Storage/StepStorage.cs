@@ -43,8 +43,7 @@ public class StepStorage : IStepStorage
 		if (string.IsNullOrWhiteSpace(name))
 			throw new ArgumentException("Step name cannot be null or whitespace.", nameof(name));
 
-		if (step == null)
-			throw new ArgumentNullException(nameof(step));
+		ArgumentNullException.ThrowIfNull(step);
 
 		_steps[name] = step;
 	}

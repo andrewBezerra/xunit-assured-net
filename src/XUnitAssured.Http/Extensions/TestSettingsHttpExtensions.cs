@@ -62,8 +62,7 @@ public static class TestSettingsHttpExtensions
 	/// </example>
 	public static HttpSettings? GetHttpSettings(this TestSettings testSettings)
 	{
-		if (testSettings == null)
-			throw new ArgumentNullException(nameof(testSettings));
+		ArgumentNullException.ThrowIfNull(testSettings);
 
 		lock (_lock)
 		{

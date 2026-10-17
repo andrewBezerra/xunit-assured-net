@@ -120,7 +120,7 @@ public static class PageNetworkExtensions
 	/// </example>
 	public static IBrowserScenario FetchFromPage(this ITestScenario scenario, Func<string> url, string method = "GET", Func<object?>? body = null)
 	{
-		if (url == null) throw new ArgumentNullException(nameof(url));
+		ArgumentNullException.ThrowIfNull(url);
 
 		return AdicionarBusca(scenario, new PageAction
 		{
@@ -161,7 +161,7 @@ public static class PageNetworkExtensions
 	/// </example>
 	public static IBrowserScenario ExpectFetchStatus(this ITestScenario scenario, int accepted, params int[] alsoAccepted)
 	{
-		if (scenario == null) throw new ArgumentNullException(nameof(scenario));
+		ArgumentNullException.ThrowIfNull(scenario);
 
 		var aceitos = new[] { accepted }.Concat(alsoAccepted ?? Array.Empty<int>()).ToArray();
 		scenario.AddValidation(resultado =>

@@ -53,8 +53,7 @@ public static class ScenarioDsl
 	/// </example>
 	public static ITestScenario Given(IHttpClientProvider httpClientProvider)
 	{
-		if (httpClientProvider == null)
-			throw new System.ArgumentNullException(nameof(httpClientProvider));
+		System.ArgumentNullException.ThrowIfNull(httpClientProvider);
 
 		var scenario = new TestScenario();
 
@@ -93,8 +92,7 @@ public static class ScenarioDsl
 	/// <exception cref="System.ArgumentNullException">Thrown when <paramref name="httpClient"/> is null.</exception>
 	public static ITestScenario Given(HttpClient httpClient)
 	{
-		if (httpClient == null)
-			throw new System.ArgumentNullException(nameof(httpClient));
+		System.ArgumentNullException.ThrowIfNull(httpClient);
 
 		return Given(new ClienteDado(httpClient));
 	}
@@ -124,8 +122,7 @@ public static class ScenarioDsl
 	/// <exception cref="System.ArgumentNullException">Thrown when the array or any element is null.</exception>
 	public static ITestScenario Given(params ITestContextSeeder[] seeders)
 	{
-		if (seeders == null)
-			throw new System.ArgumentNullException(nameof(seeders));
+		System.ArgumentNullException.ThrowIfNull(seeders);
 
 		var scenario = new TestScenario();
 
