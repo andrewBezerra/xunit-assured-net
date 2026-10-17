@@ -17,10 +17,12 @@ namespace XUnitAssured.Core.Configuration;
 /// HTTP settings and <c>httpsettings.json</c> did not. The same file next to the project was
 /// found by one package and not by the next.
 /// </remarks>
-internal static class ArquivoDeConfiguracao
+internal static partial class ArquivoDeConfiguracao
 {
-	private static readonly Regex VariavelDeAmbiente =
-		new(@"\$\{ENV:([^}]+)\}", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+	// Gerada em tempo de compilação e com tempo limite: o texto vem de um arquivo, e uma regex
+	// sem limite é a porta de um ReDoS (Sonar S6444).
+	[GeneratedRegex(@"\$\{ENV:([^}]+)\}", RegexOptions.IgnoreCase, matchTimeoutMilliseconds: 1000)]
+	private static partial Regex VariavelDeAmbiente();
 
 	/// <summary>
 	/// The full path of the first <paramref name="nome"/> found, or <c>null</c>.
@@ -64,8 +66,8 @@ internal static class ArquivoDeConfiguracao
 		}
 	}
 
-	private static readonly Regex Segredo =
-		new(@"\$\{SECRET:([^}]+)\}", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+	[GeneratedRegex(@"\$\{SECRET:([^}]+)\}", RegexOptions.IgnoreCase, matchTimeoutMilliseconds: 1000)]
+	private static partial Regex Segredo();
 
 	/// <summary>
 	/// Replaces <c>${ENV:NAME}</c> with the variable's value, and <c>${SECRET:Key}</c> with the
@@ -73,19 +75,19 @@ internal static class ArquivoDeConfiguracao
 	/// as written, so the setting that needed it shows what is missing.
 	/// </summary>
 	internal static string ExpandirVariaveis(string json) =>
-		ExpandirVariaveis(json, Segredo.IsMatch(json) ? SegredosDoUsuario.Para(json) : _ => null);
+		ExpandirVariaveis(json, Segredo().IsMatch(json) ? SegredosDoUsuario.Para(json) : _ => null);
 
 	/// <param name="json">The settings file's text.</param>
 	/// <param name="segredo">The user secret of a key, or <c>null</c>.</param>
 	internal static string ExpandirVariaveis(string json, Func<string, string?> segredo)
 	{
-		var comVariaveis = VariavelDeAmbiente.Replace(json, m => Environment.GetEnvironmentVariable(m.Groups[1].Value) ?? m.Value);
+		var comVariaveis = VariavelDeAmbiente().Replace(json, m => Environment.GetEnvironmentVariable(m.Groups[1].Value) ?? m.Value);
 
 		// Without a user secret, the environment variable with the same key, ':' written as '__'
 		// as .NET configuration does, so one placeholder works on a developer machine and in CI.
 		// The value is escaped for a JSON string: a password with a quote or a backslash would
 		// otherwise break the file. ${ENV:...} keeps inserting the value as it is.
-		return Segredo.Replace(comVariaveis, m =>
+		return Segredo().Replace(comVariaveis, m =>
 		{
 			var chave = m.Groups[1].Value;
 			var valor = segredo(chave) ?? Environment.GetEnvironmentVariable(chave.Replace(":", "__"));
