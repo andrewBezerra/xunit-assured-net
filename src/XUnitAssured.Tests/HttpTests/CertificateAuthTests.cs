@@ -9,8 +9,8 @@ namespace XUnitAssured.Tests.HttpTests;
 [Trait("Authentication", "Certificate")]
 /// <summary>
 /// Tests for Certificate (mTLS) authentication.
-/// Note: Most tests are skipped as they require valid X509 certificates.
-/// The framework functionality is validated through integration tests with real certificates.
+/// The example that needs a real certificate and an mTLS server is in CertificateAuthExamples,
+/// compiled but not run.
 /// </summary>
 public class CertificateAuthTests
 {
@@ -99,9 +99,16 @@ public class CertificateAuthTests
 		// Assert - No exception thrown
 		FlurlClientFactory.CachedClientCount.ShouldBe(0);
 	}
+}
 
-	[Fact(Skip = "Integration test - requires real certificate and mTLS server", DisplayName = "Integration test should authenticate with client certificate successfully")]
-	public void Integration_Should_Authenticate_With_Certificate()
+/// <summary>
+/// Examples kept here so they compile against the real API. They are not run: each needs
+/// infrastructure this suite does not start, as the comment on it says.
+/// </summary>
+public static class CertificateAuthExamples
+{
+	// Compiled, not run: requires real certificate and mTLS server.
+	public static void Integration_Should_Authenticate_With_Certificate()
 	{
 		var certPath = Environment.GetEnvironmentVariable("TEST_CLIENT_CERT_PATH");
 		var certPassword = Environment.GetEnvironmentVariable("TEST_CLIENT_CERT_PASSWORD");

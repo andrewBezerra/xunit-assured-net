@@ -9,7 +9,8 @@ namespace XUnitAssured.Tests;
 /// </summary>
 public class ConsumeRestTest
 {
-	[Fact(Skip = "Integration test - requires real API", DisplayName = "HTTP POST should work with fluent DSL syntax")]
+	[Trait("Requires", "Network")]
+	[Fact(DisplayName = "HTTP POST should work with fluent DSL syntax")]
 	public void HttpPost_Should_Work_With_Fluent_DSL()
 	{
 		// Simple HTTP test using jsonplaceholder (public API)
@@ -29,47 +30,6 @@ public class ConsumeRestTest
 			});
 	}
 
-	[Fact(Skip = "Integration test - requires real API and Kafka", DisplayName = "Complete workflow should validate API response and Kafka topic message successfully")]
-	public void GetApiRetornaValidaTopicoECSTSucesso()
-	{
-		// Complete test: HTTP POST + Kafka message validation
-		// This demonstrates the full power of the DSL
-		Given()
-			// Step 1: HTTP POST to create student
-			.ApiResource("http://minhaapi.com.br/api/v1/estudante")
-			.Post(new EstudanteRequestBody
-			{
-				name = "Carlos Bezerra",
-				DataNascimento = "1985-03-02",
-				NomeMae = "Terezinha Bezerra"
-			})
-			.SaveStep("First")
-			.Validate(response =>
-			{
-				response.StatusCode.ShouldBe(201);
-				response.IsSuccessStatusCode.ShouldBeTrue();
-			})
-			// Step 2: Validate Kafka message was published
-			.And()
-			.On()
-			.Topic("Estudante_ECST")
-			.Consume()
-			.WithSchema(typeof(EstudanteECST))
-			.SaveStep("KafkaMessage")
-			.Validate(message =>
-			{
-				message.ShouldNotBeNull();
-				var kafkaResult = message as Kafka.Results.KafkaStepResult;
-				kafkaResult.ShouldNotBeNull();
-				kafkaResult!.Topic.ShouldBe("Estudante_ECST");
-
-				// Validate message content
-				var kafkaData = kafkaResult.GetMessage<EstudanteECST>();
-				kafkaData.ShouldNotBeNull();
-				kafkaData!.name.ShouldBe("Carlos Bezerra");
-			});
-	}
-
 	[Fact(DisplayName = "Complete DSL syntax reference and documentation for HTTP and Kafka operations")]
 	public void Complete_DSL_Syntax_Documentation()
 	{
@@ -77,7 +37,6 @@ public class ConsumeRestTest
 		// COMPLETE DSL SYNTAX REFERENCE
 		// ============================================
 		// This test documents all available DSL methods
-		// Skip = true by default (for documentation)
 
 		// HTTP DSL Methods:
 		// ------------------
@@ -145,5 +104,53 @@ public class ConsumeRestTest
 	{
 		public string? Id { get; set; }
 		public string? Data { get; set; }
+	}
+}
+
+/// <summary>
+/// Examples kept here so they compile against the real API. They are not run: each needs
+/// infrastructure this suite does not start, as the comment on it says.
+/// </summary>
+public static class ConsumeRestExamples
+{
+	// Compiled, not run: requires real API and Kafka.
+	public static void GetApiRetornaValidaTopicoECSTSucesso()
+	{
+		// Complete test: HTTP POST + Kafka message validation
+		// This demonstrates the full power of the DSL
+		Given()
+			// Step 1: HTTP POST to create student
+			.ApiResource("http://minhaapi.com.br/api/v1/estudante")
+			.Post(new EstudanteRequestBody
+			{
+				name = "Carlos Bezerra",
+				DataNascimento = "1985-03-02",
+				NomeMae = "Terezinha Bezerra"
+			})
+			.SaveStep("First")
+			.Validate(response =>
+			{
+				response.StatusCode.ShouldBe(201);
+				response.IsSuccessStatusCode.ShouldBeTrue();
+			})
+			// Step 2: Validate Kafka message was published
+			.And()
+			.On()
+			.Topic("Estudante_ECST")
+			.Consume()
+			.WithSchema(typeof(EstudanteECST))
+			.SaveStep("KafkaMessage")
+			.Validate(message =>
+			{
+				message.ShouldNotBeNull();
+				var kafkaResult = message as Kafka.Results.KafkaStepResult;
+				kafkaResult.ShouldNotBeNull();
+				kafkaResult!.Topic.ShouldBe("Estudante_ECST");
+
+				// Validate message content
+				var kafkaData = kafkaResult.GetMessage<EstudanteECST>();
+				kafkaData.ShouldNotBeNull();
+				kafkaData!.name.ShouldBe("Carlos Bezerra");
+			});
 	}
 }

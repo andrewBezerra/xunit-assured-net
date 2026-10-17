@@ -76,9 +76,16 @@ public class ApiKeyAuthTests
 		config.KeyName.ShouldBe("X-API-Key");
 		config.Location.ShouldBe(ApiKeyLocation.Header);
 	}
+}
 
-	[Fact(Skip = "Integration test - requires real API with API key", DisplayName = "Integration test should authenticate with API key successfully")]
-	public void Integration_Should_Authenticate_With_ApiKey()
+/// <summary>
+/// Examples kept here so they compile against the real API. They are not run: each needs
+/// infrastructure this suite does not start, as the comment on it says.
+/// </summary>
+public static class ApiKeyAuthExamples
+{
+	// Compiled, not run: requires real API with API key.
+	public static void Integration_Should_Authenticate_With_ApiKey()
 	{
 		var apiKey = Environment.GetEnvironmentVariable("TEST_API_KEY");
 

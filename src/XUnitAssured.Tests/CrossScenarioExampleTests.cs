@@ -12,7 +12,7 @@ namespace XUnitAssured.Tests;
 /// the real DSL on every build. If a method it uses is renamed or removed, this file
 /// stops compiling and the README cannot silently drift into fiction.
 ///
-/// It is skipped because it needs a running API, a Kafka broker and a browser. The
+/// It is compiled, not run, because it needs a running API, a Kafka broker and a browser. The
 /// sample projects exercise each leg against real infrastructure.
 /// </summary>
 public class CrossScenarioExampleTests
@@ -20,7 +20,7 @@ public class CrossScenarioExampleTests
 	/// <summary>The message the API is expected to publish after creating an order.</summary>
 	private sealed record OrderCreated(int OrderId, string Status);
 
-	[Fact(Skip = "README example - requires the API, a Kafka broker and a browser", DisplayName = "Placing an order should be reflected in the API, the topic and the UI")]
+	// Compiled, not run: requires the API, a Kafka broker and a browser.
 	public async Task Placing_An_Order_Is_Reflected_Across_Api_Topic_And_Ui()
 	{
 		// In a real test these are xUnit class fixtures; see the sample projects.

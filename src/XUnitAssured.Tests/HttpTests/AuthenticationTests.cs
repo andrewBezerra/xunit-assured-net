@@ -100,9 +100,16 @@ public class AuthenticationTests
 		Should.Throw<InvalidOperationException>(() => 
 			scenario.WithBasicAuth("user", "pass"));
 	}
+}
 
-	[Fact(Skip = "Integration test - requires API with bearer token", DisplayName = "Integration test should authenticate with Bearer token successfully")]
-	public void Integration_Should_Authenticate_With_Bearer_Token()
+/// <summary>
+/// Examples kept here so they compile against the real API. They are not run: each needs
+/// infrastructure this suite does not start, as the comment on it says.
+/// </summary>
+public static class AuthenticationExamples
+{
+	// Compiled, not run: requires API with bearer token.
+	public static void Integration_Should_Authenticate_With_Bearer_Token()
 	{
 		// This test requires a real API endpoint that accepts bearer tokens
 		var token = Environment.GetEnvironmentVariable("TEST_API_TOKEN");

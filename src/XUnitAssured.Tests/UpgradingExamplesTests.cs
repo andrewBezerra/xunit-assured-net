@@ -32,25 +32,13 @@ namespace XUnitAssured.Tests;
 ///
 /// <para>
 /// So every corrected form the guide recommends lives here too. The ones that would need a
-/// broker, a browser or a running API are skipped: they are here to be compiled, not run. If a
+/// broker, a browser or a running API are in UpgradingExamples, compiled but not run. If a
 /// future change breaks one of these, the build says so, and the guide gets fixed with the code
 /// instead of drifting away from it.
 /// </para>
 /// </summary>
 public class UpgradingExamplesTests
 {
-	private sealed class Order
-	{
-		public int Id { get; set; }
-	}
-
-	private sealed class OrderCreated
-	{
-		public int OrderId { get; set; }
-
-		public string Status { get; set; } = string.Empty;
-	}
-
 	// ──────────────────────────────────────────────
 	// Ready for 7.0.0: forms that work in 6.x and keep working
 	// ──────────────────────────────────────────────
@@ -69,115 +57,17 @@ public class UpgradingExamplesTests
 		result.JsonPath<int>("$.id").ShouldBe(42);
 	}
 
-	[Fact(Skip = "Guide example — requires a broker", DisplayName = "Upgrading to 7.0: name the result type in Validate")]
-	public async Task Validate_Names_The_Result_Type()
-	{
-		await ScenarioDsl.Given()
-			.Topic("orders.created")
-			.Consume()
-			.Validate((KafkaStepResult r) => r.Success.ShouldBeTrue())
-			.ExecuteAsync();
-	}
-
 	// ──────────────────────────────────────────────
 	// One await, at the end
 	// ──────────────────────────────────────────────
-
-	[Fact(Skip = "Guide example — requires a running API", DisplayName = "Upgrading: a chain ends with ExecuteAsync")]
-	public async Task A_Chain_Ends_With_ExecuteAsync()
-	{
-		var assertions = await ScenarioDsl.Given()
-			.ApiResource("https://api.example.com/orders")
-			.Get()
-			.ExecuteAsync();
-
-		assertions.Then().AssertStatusCode(200);
-	}
 
 	// ──────────────────────────────────────────────
 	// A chain kept in a variable has to carry its type
 	// ──────────────────────────────────────────────
 
-	[Fact(Skip = "Guide example — requires a running API", DisplayName = "Upgrading: a stored chain is typed by its package")]
-	public void A_Stored_Chain_Is_Typed_By_Its_Package()
-	{
-		// `ITestScenario` here would not compile on Execute(): CS0411. `var` works too.
-		IHttpScenario scenario = ScenarioDsl.Given()
-			.ApiResource("https://api.example.com/orders")
-			.Get();
-
-		scenario.Execute().Then().AssertStatusCode(200);
-	}
-
-	[Fact(Skip = "Guide example — requires a broker", DisplayName = "Upgrading: a Kafka chain is typed by its package")]
-	public async Task A_Kafka_Chain_Is_Typed_By_Its_Package()
-	{
-		IKafkaScenario scenario = ScenarioDsl.Given()
-			.Topic("orders.created")
-			.Consume()
-			.ValidateMessage<OrderCreated>(message => message.Status.ShouldBe("Created"));
-
-		await scenario.ExecuteAsync();
-	}
-
 	// ──────────────────────────────────────────────
 	// A value an earlier step produced
 	// ──────────────────────────────────────────────
-
-	[Fact(Skip = "Guide example — requires a running API and a browser", DisplayName = "Upgrading: a deferred URL is a function")]
-	public async Task A_Deferred_Url_Is_A_Function()
-	{
-		var orderId = 0;
-
-		await ScenarioDsl.Given()
-			.ApiResource("https://api.example.com/orders")
-			.Post(new Order())
-			.Validate((HttpStepResult response) => orderId = response.JsonPath<int>("$.id"))
-			.And()
-			.NavigateTo(() => $"/orders/{orderId}")
-			.ExecuteAsync();
-	}
-
-	[Fact(Skip = "Guide example — requires a running API", DisplayName = "Upgrading: a deferred API resource is a function")]
-	public async Task A_Deferred_Api_Resource_Is_A_Function()
-	{
-		var orderId = 0;
-
-		var lido = await ScenarioDsl.Given()
-			.ApiResource("https://api.example.com/orders")
-			.Post(new Order())
-			.Validate((HttpStepResult response) => orderId = response.JsonPath<int>("$.id"))
-			.And()
-			.ApiResource(() => $"https://api.example.com/orders/{orderId}")
-			.Get()
-			.ExecuteAsync();
-
-		lido.Then().AssertStatusCode(200);
-	}
-
-	// NavigateTo e, desde a 6.2.0, ApiResource aceitam um valor adiado. Para os demais verbos,
-	// a saída é honesta e simples: duas cadeias, cada uma com a sua execução. O guia diz isso
-	// em vez de prometer uma sobrecarga que não existe.
-	[Fact(Skip = "Guide example — requires a running API", DisplayName = "Upgrading: two chains when the verb takes no function")]
-	public async Task Two_Chains_When_The_Verb_Takes_No_Function()
-	{
-		var orderId = 0;
-
-		var criado = await ScenarioDsl.Given()
-			.ApiResource("https://api.example.com/orders")
-			.Post(new Order())
-			.Validate((HttpStepResult response) => orderId = response.JsonPath<int>("$.id"))
-			.ExecuteAsync();
-
-		criado.Then().AssertStatusCode(201);
-
-		var lido = await ScenarioDsl.Given()
-			.ApiResource($"https://api.example.com/orders/{orderId}")
-			.Get()
-			.ExecuteAsync();
-
-		lido.Then().AssertStatusCode(200);
-	}
 
 	// ──────────────────────────────────────────────
 	// A custom step
@@ -235,5 +125,122 @@ public class UpgradingExamplesTests
 			validation(Result);
 			IsValid = true;
 		}
+	}
+}
+
+/// <summary>
+/// Examples kept here so they compile against the real API. They are not run: each needs
+/// infrastructure this suite does not start, as the comment on it says.
+/// </summary>
+public static class UpgradingExamples
+{
+	private sealed class Order
+	{
+		public int Id { get; set; }
+	}
+
+	private sealed class OrderCreated
+	{
+		public int OrderId { get; set; }
+
+		public string Status { get; set; } = string.Empty;
+	}
+
+	// Compiled, not run: requires a broker.
+	public static async Task Validate_Names_The_Result_Type()
+	{
+		await ScenarioDsl.Given()
+			.Topic("orders.created")
+			.Consume()
+			.Validate((KafkaStepResult r) => r.Success.ShouldBeTrue())
+			.ExecuteAsync();
+	}
+
+	// Compiled, not run: requires a running API.
+	public static async Task A_Chain_Ends_With_ExecuteAsync()
+	{
+		var assertions = await ScenarioDsl.Given()
+			.ApiResource("https://api.example.com/orders")
+			.Get()
+			.ExecuteAsync();
+
+		assertions.Then().AssertStatusCode(200);
+	}
+
+	// Compiled, not run: requires a running API.
+	public static void A_Stored_Chain_Is_Typed_By_Its_Package()
+	{
+		// `ITestScenario` here would not compile on Execute(): CS0411. `var` works too.
+		IHttpScenario scenario = ScenarioDsl.Given()
+			.ApiResource("https://api.example.com/orders")
+			.Get();
+
+		scenario.Execute().Then().AssertStatusCode(200);
+	}
+
+	// Compiled, not run: requires a broker.
+	public static async Task A_Kafka_Chain_Is_Typed_By_Its_Package()
+	{
+		IKafkaScenario scenario = ScenarioDsl.Given()
+			.Topic("orders.created")
+			.Consume()
+			.ValidateMessage<OrderCreated>(message => message.Status.ShouldBe("Created"));
+
+		await scenario.ExecuteAsync();
+	}
+
+	// Compiled, not run: requires a running API and a browser.
+	public static async Task A_Deferred_Url_Is_A_Function()
+	{
+		var orderId = 0;
+
+		await ScenarioDsl.Given()
+			.ApiResource("https://api.example.com/orders")
+			.Post(new Order())
+			.Validate((HttpStepResult response) => orderId = response.JsonPath<int>("$.id"))
+			.And()
+			.NavigateTo(() => $"/orders/{orderId}")
+			.ExecuteAsync();
+	}
+
+	// Compiled, not run: requires a running API.
+	public static async Task A_Deferred_Api_Resource_Is_A_Function()
+	{
+		var orderId = 0;
+
+		var lido = await ScenarioDsl.Given()
+			.ApiResource("https://api.example.com/orders")
+			.Post(new Order())
+			.Validate((HttpStepResult response) => orderId = response.JsonPath<int>("$.id"))
+			.And()
+			.ApiResource(() => $"https://api.example.com/orders/{orderId}")
+			.Get()
+			.ExecuteAsync();
+
+		lido.Then().AssertStatusCode(200);
+	}
+
+	// NavigateTo e, desde a 6.2.0, ApiResource aceitam um valor adiado. Para os demais verbos,
+	// a saída é honesta e simples: duas cadeias, cada uma com a sua execução. O guia diz isso
+	// em vez de prometer uma sobrecarga que não existe.
+	// Compiled, not run: requires a running API.
+	public static async Task Two_Chains_When_The_Verb_Takes_No_Function()
+	{
+		var orderId = 0;
+
+		var criado = await ScenarioDsl.Given()
+			.ApiResource("https://api.example.com/orders")
+			.Post(new Order())
+			.Validate((HttpStepResult response) => orderId = response.JsonPath<int>("$.id"))
+			.ExecuteAsync();
+
+		criado.Then().AssertStatusCode(201);
+
+		var lido = await ScenarioDsl.Given()
+			.ApiResource($"https://api.example.com/orders/{orderId}")
+			.Get()
+			.ExecuteAsync();
+
+		lido.Then().AssertStatusCode(200);
 	}
 }

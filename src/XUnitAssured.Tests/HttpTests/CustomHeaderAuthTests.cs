@@ -95,9 +95,16 @@ public class CustomHeaderAuthTests
 		Should.Throw<System.InvalidOperationException>(() =>
 			scenario.WithCustomHeader("X-Auth", "value"));
 	}
+}
 
-	[Fact(Skip = "Integration test - requires real API", DisplayName = "Integration test should authenticate with custom header successfully")]
-	public void Integration_Should_Authenticate_With_Custom_Header()
+/// <summary>
+/// Examples kept here so they compile against the real API. They are not run: each needs
+/// infrastructure this suite does not start, as the comment on it says.
+/// </summary>
+public static class CustomHeaderAuthExamples
+{
+	// Compiled, not run: requires real API.
+	public static void Integration_Should_Authenticate_With_Custom_Header()
 	{
 		var authToken = System.Environment.GetEnvironmentVariable("TEST_AUTH_TOKEN");
 

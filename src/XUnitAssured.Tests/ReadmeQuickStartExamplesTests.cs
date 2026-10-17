@@ -25,7 +25,7 @@ namespace XUnitAssured.Tests;
 /// Quick Start is here except the codegen one, which shows raw Playwright code beside its
 /// translation rather than a test.
 ///
-/// Skipped because each one needs a running API, broker or browser; the sample projects
+/// Compiled, not run, because each one needs a running API, broker or browser; the sample projects
 /// exercise the same paths against real infrastructure.
 /// </summary>
 public static class ReadmeQuickStartExamples
@@ -44,7 +44,7 @@ public static class ReadmeQuickStartExamples
 	{
 		public MyApiTests(MyApiFixture fixture) : base(fixture) { }
 
-		[Fact(Skip = "README example - requires a running API")]
+		// Compiled, not run: requires a running API.
 		public async Task Get_Users_Returns_Success()
 		{
 			var assertions = await Given()
@@ -58,7 +58,7 @@ public static class ReadmeQuickStartExamples
 				.AssertJsonPath<string>("$.name", value => value == "John", "Name should be John");
 		}
 
-		[Fact(Skip = "README example - requires a running API")]
+		// Compiled, not run: requires a running API.
 		public async Task Authentication_Examples()
 		{
 			// Bearer token
@@ -96,7 +96,7 @@ public static class ReadmeQuickStartExamples
 	{
 		public MyUiTests(PlaywrightTestFixture fixture) : base(fixture) { }
 
-		[Fact(Skip = "README example - requires a browser and a running web app")]
+		// Compiled, not run: requires a browser and a running web app.
 		public async Task Login_Should_Navigate_To_Dashboard()
 		{
 			var assertions = await Given()
@@ -118,7 +118,7 @@ public static class ReadmeQuickStartExamples
 	{
 		public MyKafkaTests(KafkaClassFixture fixture) : base(fixture) { }
 
-		[Fact(Skip = "README example - requires a Kafka broker")]
+		// Compiled, not run: requires a Kafka broker.
 		public async Task Produce_And_Consume_Message()
 		{
 			var topic = GenerateUniqueTopic("my-test");
@@ -140,7 +140,7 @@ public static class ReadmeQuickStartExamples
 				.AssertMessage<string>(msg => msg.ShouldBe("Hello, Kafka!"));
 		}
 
-		[Fact(Skip = "README example - requires a Kafka broker")]
+		// Compiled, not run: requires a Kafka broker.
 		public async Task Batch_Operations()
 		{
 			var topic = GenerateUniqueTopic("my-batch");
@@ -160,7 +160,7 @@ public static class ReadmeQuickStartExamples
 			consumed.Then().AssertSuccess().AssertBatchCount(5);
 		}
 
-		[Fact(Skip = "README example - requires Kafka brokers with authentication")]
+		// Compiled, not run: requires Kafka brokers with authentication.
 		public async Task Authentication_Examples()
 		{
 			// SASL/PLAIN
@@ -192,7 +192,7 @@ public static class ReadmeQuickStartExamples
 	[Trait("Category", "Examples")]
 	public class MyRabbitMqTests
 	{
-		[Fact(Skip = "README example - requires a RabbitMQ broker")]
+		// Compiled, not run: requires a RabbitMQ broker.
 		public async Task Publish_And_Consume_Message()
 		{
 			await Given()
@@ -216,7 +216,7 @@ public static class ReadmeQuickStartExamples
 	[Trait("Category", "Examples")]
 	public class MyCamundaTests
 	{
-		[Fact(Skip = "README example - requires a Camunda 8 cluster")]
+		// Compiled, not run: requires a Camunda 8 cluster.
 		public async Task Order_Is_Charged_And_Shipped()
 		{
 			await Given()
@@ -256,7 +256,7 @@ public static class ReadmeQuickStartExamples
 	[Trait("Category", "Examples")]
 	public class OrderTests(MyApi api) : HttpTestBase<MyApi>(api)
 	{
-		[Fact(Skip = "README example - requires the reader's API")]
+		// Compiled, not run: requires the reader's API.
 		public async Task Reader_Cannot_Delete()
 		{
 			var assertions = await Given()

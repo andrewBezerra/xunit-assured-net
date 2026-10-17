@@ -126,9 +126,16 @@ public class SaslScramAuthTests
 		Should.Throw<InvalidOperationException>(() =>
 			scenario.WithSaslScram256("user", "pass"));
 	}
+}
 
-	[Fact(Skip = "Integration test - requires Kafka broker with SASL/SCRAM-SHA-256", DisplayName = "Integration test should connect to Kafka with SASL/SCRAM-SHA-256 authentication")]
-	public void Integration_Should_Connect_With_SaslScram256()
+/// <summary>
+/// Examples kept here so they compile against the real API. They are not run: each needs
+/// infrastructure this suite does not start, as the comment on it says.
+/// </summary>
+public static class SaslScramAuthExamples
+{
+	// Compiled, not run: requires Kafka broker with SASL/SCRAM-SHA-256.
+	public static void Integration_Should_Connect_With_SaslScram256()
 	{
 		var username = Environment.GetEnvironmentVariable("MSK_USERNAME");
 		var password = Environment.GetEnvironmentVariable("MSK_PASSWORD");
@@ -148,8 +155,8 @@ public class SaslScramAuthTests
 		}
 	}
 
-	[Fact(Skip = "Integration test - requires Kafka broker with SASL/SCRAM-SHA-512", DisplayName = "Integration test should connect to Kafka with SASL/SCRAM-SHA-512 authentication")]
-	public void Integration_Should_Connect_With_SaslScram512()
+	// Compiled, not run: requires Kafka broker with SASL/SCRAM-SHA-512.
+	public static void Integration_Should_Connect_With_SaslScram512()
 	{
 		var username = Environment.GetEnvironmentVariable("KAFKA_SCRAM512_USERNAME");
 		var password = Environment.GetEnvironmentVariable("KAFKA_SCRAM512_PASSWORD");
@@ -167,4 +174,3 @@ public class SaslScramAuthTests
 		}
 	}
 }
-

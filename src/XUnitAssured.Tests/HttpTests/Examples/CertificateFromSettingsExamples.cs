@@ -7,10 +7,39 @@ namespace XUnitAssured.Tests.HttpTests.Examples;
 [Trait("Category", "Examples")]
 [Trait("Authentication", "Certificate")]
 /// <summary>
-/// Examples demonstrating the .WithCertificate() extension method
-/// that automatically loads certificate configuration from httpsettings.json
+/// Tests for the .WithCertificate() extension method that loads the certificate configuration
+/// from httpsettings.json. The examples that need a real certificate are in
+/// <see cref="CertificateFromSettingsExamples"/>.
 /// </summary>
-public class CertificateFromSettingsExamples
+public class CertificateFromSettingsTests
+{
+	/// <summary>
+	/// Example 6: Error handling when certificate not configured
+	/// </summary>
+	[Fact(DisplayName = "Example: Error handling when certificate is not configured in settings")]
+	public void Example_Error_When_Certificate_Not_In_Settings()
+	{
+		// If httpsettings.json doesn't have certificate config,
+		// .WithCertificate() will throw helpful error
+		var scenario = Given().ApiResource("/endpoint");
+
+		Should.Throw<InvalidOperationException>(() => 
+			scenario.WithCertificate())
+			.Message.ShouldContain("Certificate authentication is not configured");
+	}
+
+	private class Customer
+	{
+		public int Id { get; set; }
+		public string? Name { get; set; }
+	}
+}
+
+/// <summary>
+/// Examples kept here so they compile against the real API. They are not run: each needs
+/// infrastructure this suite does not start, as the comment on it says.
+/// </summary>
+public static class CertificateFromSettingsExamples
 {
 	/// <summary>
 	/// Example 1: Using .WithCertificate() without parameters
@@ -33,8 +62,8 @@ public class CertificateFromSettingsExamples
 	/// CLIENT_CERT_PATH=C:\Certs\client-cert.pfx
 	/// CLIENT_CERT_PASSWORD=MySecurePassword123
 	/// </summary>
-	[Fact(Skip = "Example - requires certificate in httpsettings.json", DisplayName = "Example: Using WithCertificate without parameters loads from httpsettings.json")]
-	public void Example_WithCertificate_From_Settings()
+	// Compiled, not run: requires certificate in httpsettings.json.
+	public static void Example_WithCertificate_From_Settings()
 	{
 		Given()
 			.ApiResource("/secure/endpoint")
@@ -67,8 +96,8 @@ public class CertificateFromSettingsExamples
 	/// 
 	/// Load environment: HttpSettings.Load(environment: "mtls")
 	/// </summary>
-	[Fact(Skip = "Example - requires mtls environment in httpsettings.json", DisplayName = "Example: Using environment-specific certificate configuration")]
-	public void Example_WithCertificate_From_Environment()
+	// Compiled, not run: requires mtls environment in httpsettings.json.
+	public static void Example_WithCertificate_From_Environment()
 	{
 		// Load mtls environment settings
 		var settings = HttpSettings.Load(environment: "mtls");
@@ -98,8 +127,8 @@ public class CertificateFromSettingsExamples
 	///   }
 	/// }
 	/// </summary>
-	[Fact(Skip = "Example - requires certificate in store", DisplayName = "Example: Using certificate from Windows Certificate Store via settings")]
-	public void Example_WithCertificate_From_Store_Via_Settings()
+	// Compiled, not run: requires certificate in store.
+	public static void Example_WithCertificate_From_Store_Via_Settings()
 	{
 		Given()
 			.ApiResource("/api/protected")
@@ -111,8 +140,8 @@ public class CertificateFromSettingsExamples
 	/// Example 4: Override settings with explicit certificate
 	/// Useful when you need different certificate for specific test
 	/// </summary>
-	[Fact(Skip = "Example - requires certificates", DisplayName = "Example: Override settings certificate with explicit certificate for specific test")]
-	public void Example_Override_Settings_Certificate()
+	// Compiled, not run: requires certificates.
+	public static void Example_Override_Settings_Certificate()
 	{
 		// Most tests use settings certificate
 		Given()
@@ -131,8 +160,8 @@ public class CertificateFromSettingsExamples
 	/// Example 5: Multiple requests with same certificate (cached)
 	/// The certificate and FlurlClient are cached automatically by thumbprint
 	/// </summary>
-	[Fact(Skip = "Example - demonstrates caching", DisplayName = "Example: Multiple requests with same certificate use cached FlurlClient for performance")]
-	public void Example_Certificate_Caching_Performance()
+	// Compiled, not run: demonstrates caching.
+	public static void Example_Certificate_Caching_Performance()
 	{
 		// First request: loads certificate and creates FlurlClient (~50ms)
 		Given()
@@ -154,26 +183,11 @@ public class CertificateFromSettingsExamples
 	}
 
 	/// <summary>
-	/// Example 6: Error handling when certificate not configured
-	/// </summary>
-	[Fact(DisplayName = "Example: Error handling when certificate is not configured in settings")]
-	public void Example_Error_When_Certificate_Not_In_Settings()
-	{
-		// If httpsettings.json doesn't have certificate config,
-		// .WithCertificate() will throw helpful error
-		var scenario = Given().ApiResource("/endpoint");
-
-		Should.Throw<InvalidOperationException>(() => 
-			scenario.WithCertificate())
-			.Message.ShouldContain("Certificate authentication is not configured");
-	}
-
-	/// <summary>
 	/// Example 7: Complete real-world scenario
 	/// Production-ready pattern with error handling
 	/// </summary>
-	[Fact(Skip = "Example - production pattern", DisplayName = "Example: Complete real-world scenario with production-ready error handling")]
-	public void Example_Production_Pattern()
+	// Compiled, not run: production pattern.
+	public static void Example_Production_Pattern()
 	{
 		try
 		{
@@ -200,11 +214,5 @@ public class CertificateFromSettingsExamples
 				"Certificate not configured. Please set CLIENT_CERT_PATH and CLIENT_CERT_PASSWORD environment variables.", 
 				ex);
 		}
-	}
-
-	private class Customer
-	{
-		public int Id { get; set; }
-		public string? Name { get; set; }
 	}
 }
