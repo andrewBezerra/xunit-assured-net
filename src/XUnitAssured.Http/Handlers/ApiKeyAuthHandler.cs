@@ -27,8 +27,7 @@ public class ApiKeyAuthHandler : IAuthenticationHandler
 	/// <inheritdoc />
 	public void ApplyAuthentication(IFlurlRequest request)
 	{
-		if (request == null)
-			throw new ArgumentNullException(nameof(request));
+		ArgumentNullException.ThrowIfNull(request);
 
 		if (string.IsNullOrWhiteSpace(_config.KeyName))
 			throw new InvalidOperationException("API Key name is required.");

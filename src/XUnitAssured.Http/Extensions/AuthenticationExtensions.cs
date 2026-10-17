@@ -26,8 +26,7 @@ public static class AuthenticationExtensions
 	/// <returns>Test scenario for chaining</returns>
 	public static IHttpScenario WithBasicAuth(this ITestScenario scenario, string username, string password)
 	{
-		if (scenario == null)
-			throw new ArgumentNullException(nameof(scenario));
+		ArgumentNullException.ThrowIfNull(scenario);
 
 		if (scenario.CurrentStep is not HttpRequestStep httpStep)
 			throw new InvalidOperationException("Current step is not an HTTP step. Call ApiResource() first.");
@@ -55,8 +54,7 @@ public static class AuthenticationExtensions
 	/// <returns>Test scenario for chaining</returns>
 	public static IHttpScenario WithBearerToken(this ITestScenario scenario, string token, string prefix = "Bearer")
 	{
-		if (scenario == null)
-			throw new ArgumentNullException(nameof(scenario));
+		ArgumentNullException.ThrowIfNull(scenario);
 
 		if (scenario.CurrentStep is not HttpRequestStep httpStep)
 			throw new InvalidOperationException("Current step is not an HTTP step. Call ApiResource() first.");
@@ -87,11 +85,9 @@ public static class AuthenticationExtensions
 	/// <returns>Test scenario for chaining</returns>
 	public static IHttpScenario WithAuthConfig(this ITestScenario scenario, Action<HttpAuthConfig> configure)
 	{
-		if (scenario == null)
-			throw new ArgumentNullException(nameof(scenario));
+		ArgumentNullException.ThrowIfNull(scenario);
 
-		if (configure == null)
-			throw new ArgumentNullException(nameof(configure));
+		ArgumentNullException.ThrowIfNull(configure);
 
 		if (scenario.CurrentStep is not HttpRequestStep httpStep)
 			throw new InvalidOperationException("Current step is not an HTTP step. Call ApiResource() first.");
@@ -134,8 +130,7 @@ public static class AuthenticationExtensions
 	/// <returns>Test scenario for chaining</returns>
 	public static IHttpScenario WithApiKey(this ITestScenario scenario, string keyName, string keyValue, ApiKeyLocation location)
 	{
-		if (scenario == null)
-			throw new ArgumentNullException(nameof(scenario));
+		ArgumentNullException.ThrowIfNull(scenario);
 
 		if (scenario.CurrentStep is not HttpRequestStep httpStep)
 			throw new InvalidOperationException("Current step is not an HTTP step. Call ApiResource() first.");
@@ -164,8 +159,7 @@ public static class AuthenticationExtensions
 	/// <returns>Test scenario for chaining</returns>
 	public static IHttpScenario WithOAuth2(this ITestScenario scenario, string tokenUrl, string clientId, string clientSecret, params string[] scopes)
 	{
-		if (scenario == null)
-			throw new ArgumentNullException(nameof(scenario));
+		ArgumentNullException.ThrowIfNull(scenario);
 
 		if (scenario.CurrentStep is not HttpRequestStep httpStep)
 			throw new InvalidOperationException("Current step is not an HTTP step. Call ApiResource() first.");
@@ -195,11 +189,9 @@ public static class AuthenticationExtensions
 	/// <returns>Test scenario for chaining</returns>
 	public static IHttpScenario WithOAuth2Config(this ITestScenario scenario, Action<OAuth2Config> configure)
 	{
-		if (scenario == null)
-			throw new ArgumentNullException(nameof(scenario));
+		ArgumentNullException.ThrowIfNull(scenario);
 
-		if (configure == null)
-			throw new ArgumentNullException(nameof(configure));
+		ArgumentNullException.ThrowIfNull(configure);
 
 		if (scenario.CurrentStep is not HttpRequestStep httpStep)
 			throw new InvalidOperationException("Current step is not an HTTP step. Call ApiResource() first.");
@@ -232,8 +224,7 @@ public static class AuthenticationExtensions
 	/// <returns>Test scenario for chaining</returns>
 	public static IHttpScenario WithCustomHeader(this ITestScenario scenario, string headerName, string headerValue)
 	{
-		if (scenario == null)
-			throw new ArgumentNullException(nameof(scenario));
+		ArgumentNullException.ThrowIfNull(scenario);
 
 		if (scenario.CurrentStep is not HttpRequestStep httpStep)
 			throw new InvalidOperationException("Current step is not an HTTP step. Call ApiResource() first.");
@@ -259,8 +250,7 @@ public static class AuthenticationExtensions
 	/// <returns>Test scenario for chaining</returns>
 	public static IHttpScenario WithCustomHeaders(this ITestScenario scenario, Dictionary<string, string> headers)
 	{
-		if (scenario == null)
-			throw new ArgumentNullException(nameof(scenario));
+		ArgumentNullException.ThrowIfNull(scenario);
 
 		if (headers == null || !headers.Any())
 			throw new ArgumentException("At least one header is required.", nameof(headers));
@@ -296,8 +286,7 @@ public static class AuthenticationExtensions
 	/// <exception cref="InvalidOperationException">When certificate configuration is not found in settings</exception>
 	public static IHttpScenario WithCertificate(this ITestScenario scenario)
 	{
-		if (scenario == null)
-			throw new ArgumentNullException(nameof(scenario));
+		ArgumentNullException.ThrowIfNull(scenario);
 
 		if (scenario.CurrentStep is not HttpRequestStep httpStep)
 			throw new InvalidOperationException("Current step is not an HTTP step. Call ApiResource() first.");
@@ -348,8 +337,7 @@ public static class AuthenticationExtensions
 	/// <returns>Test scenario for chaining</returns>
 	public static IHttpScenario WithCertificate(this ITestScenario scenario, string certificatePath, string? password = null)
 	{
-		if (scenario == null)
-			throw new ArgumentNullException(nameof(scenario));
+		ArgumentNullException.ThrowIfNull(scenario);
 
 		if (scenario.CurrentStep is not HttpRequestStep httpStep)
 			throw new InvalidOperationException("Current step is not an HTTP step. Call ApiResource() first.");
@@ -377,8 +365,7 @@ public static class AuthenticationExtensions
 	/// <returns>Test scenario for chaining</returns>
 	public static IHttpScenario WithCertificateFromStore(this ITestScenario scenario, string thumbprint, StoreLocation storeLocation = StoreLocation.CurrentUser, StoreName storeName = StoreName.My)
 	{
-		if (scenario == null)
-			throw new ArgumentNullException(nameof(scenario));
+		ArgumentNullException.ThrowIfNull(scenario);
 
 		if (scenario.CurrentStep is not HttpRequestStep httpStep)
 			throw new InvalidOperationException("Current step is not an HTTP step. Call ApiResource() first.");
@@ -404,11 +391,9 @@ public static class AuthenticationExtensions
 	/// <returns>Test scenario for chaining</returns>
 	public static IHttpScenario WithCertificateInstance(this ITestScenario scenario, X509Certificate2 certificate)
 	{
-		if (scenario == null)
-			throw new ArgumentNullException(nameof(scenario));
+		ArgumentNullException.ThrowIfNull(scenario);
 
-		if (certificate == null)
-			throw new ArgumentNullException(nameof(certificate));
+		ArgumentNullException.ThrowIfNull(certificate);
 
 		if (scenario.CurrentStep is not HttpRequestStep httpStep)
 			throw new InvalidOperationException("Current step is not an HTTP step. Call ApiResource() first.");
@@ -440,8 +425,7 @@ public static class AuthenticationExtensions
 	/// <returns>Test scenario for chaining</returns>
 	public static IHttpScenario WithNoAuth(this ITestScenario scenario)
 	{
-		if (scenario == null)
-			throw new ArgumentNullException(nameof(scenario));
+		ArgumentNullException.ThrowIfNull(scenario);
 
 		if (scenario.CurrentStep is not HttpRequestStep httpStep)
 			throw new InvalidOperationException("Current step is not an HTTP step. Call ApiResource() first.");

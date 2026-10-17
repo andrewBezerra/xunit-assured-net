@@ -75,8 +75,7 @@ public static class HttpArrangeExtensions
 	/// <returns>The validation builder, for further checks if needed</returns>
 	public static async Task<HttpValidationBuilder> EnsureSuccessAsync(this IHttpScenario scenario, CancellationToken cancellationToken = default)
 	{
-		if (scenario == null)
-			throw new ArgumentNullException(nameof(scenario));
+		ArgumentNullException.ThrowIfNull(scenario);
 
 		var execucao = await scenario.ExecuteAsync(cancellationToken).ConfigureAwait(false);
 		ExigirSucesso(execucao.GetResult());

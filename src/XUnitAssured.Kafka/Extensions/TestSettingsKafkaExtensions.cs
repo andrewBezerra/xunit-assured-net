@@ -65,8 +65,7 @@ public static class TestSettingsKafkaExtensions
 	/// </example>
 	public static KafkaSettings? GetKafkaSettings(this TestSettings testSettings)
 	{
-		if (testSettings == null)
-			throw new ArgumentNullException(nameof(testSettings));
+		ArgumentNullException.ThrowIfNull(testSettings);
 
 		lock (_lock)
 		{

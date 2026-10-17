@@ -162,7 +162,7 @@ public class CamundaValidationBuilder : ValidationBuilder<CamundaStepResult>
 	public CamundaValidationBuilder AssertVariable<T>(string name, Action<T> assertion)
 	{
 		if (string.IsNullOrWhiteSpace(name)) throw new ArgumentException("Variable name is required.", nameof(name));
-		if (assertion == null) throw new ArgumentNullException(nameof(assertion));
+		ArgumentNullException.ThrowIfNull(assertion);
 
 		Esperar($"to have variable '{name}' satisfying the assertion", async (a, ct) =>
 		{

@@ -193,8 +193,7 @@ public class HttpStepResult : TestStepResult
 	/// </summary>
 	public static new HttpStepResult CreateFailure(Exception exception)
 	{
-		if (exception == null)
-			throw new ArgumentNullException(nameof(exception));
+		ArgumentNullException.ThrowIfNull(exception);
 
 		return new HttpStepResult
 		{

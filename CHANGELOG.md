@@ -11,6 +11,13 @@ Docs-only release: the repository's community files. No package changes; upgradi
 - **`SECURITY.md`**: vulnerabilities are reported privately through GitHub, and fixes go into the latest release.
 - **Issue forms** for bugs and feature requests, and a **pull request template** with the release checklist.
 
+## v6.31.2 (ThrowIfNull argument guards)
+
+Maintenance release: argument guards use `ArgumentNullException.ThrowIfNull` (CA1510). No behavior changes; upgrading from 6.31.1 requires no code changes.
+
+- **Null-argument guards in Core, Http, Kafka, RabbitMq, Playwright and Camunda use `ArgumentNullException.ThrowIfNull`** instead of `if (x == null) throw new ArgumentNullException(nameof(x))`. The exception type, its `ParamName` and its message stay the same.
+- **CA1510 is now a build warning**, and with `TreatWarningsAsErrors` an explicit null-argument throw fails the build.
+
 ## v6.31.1 (downloads badge for every package)
 
 Docs-only release: the README's downloads badge counts every package. No package changes; upgrading from 6.31.0 requires no code changes.

@@ -41,8 +41,7 @@ public interface IHttpClientProvider : ITestContextSeeder
 	/// </remarks>
 	void ITestContextSeeder.Seed(ITestContext context)
 	{
-		if (context == null)
-			throw new System.ArgumentNullException(nameof(context));
+		System.ArgumentNullException.ThrowIfNull(context);
 
 		context.SetProperty("HttpClientProvider", this);
 	}

@@ -87,10 +87,8 @@ internal static class ConsumerAssignment
 		TimeSpan metadataTimeout,
 		Func<ConsumerConfig, string, TimeSpan, List<TopicPartition>> discoverPartitions)
 	{
-		if (consumer == null)
-			throw new ArgumentNullException(nameof(consumer));
-		if (config == null)
-			throw new ArgumentNullException(nameof(config));
+		ArgumentNullException.ThrowIfNull(consumer);
+		ArgumentNullException.ThrowIfNull(config);
 		if (string.IsNullOrWhiteSpace(topic))
 			throw new ArgumentException("Topic must be provided.", nameof(topic));
 
@@ -151,10 +149,8 @@ internal static class ConsumerAssignment
 		IReadOnlyList<TopicPartitionOffset> committed,
 		AutoOffsetReset? autoOffsetReset)
 	{
-		if (partitions == null)
-			throw new ArgumentNullException(nameof(partitions));
-		if (committed == null)
-			throw new ArgumentNullException(nameof(committed));
+		ArgumentNullException.ThrowIfNull(partitions);
+		ArgumentNullException.ThrowIfNull(committed);
 
 		// librdkafka's own default for auto.offset.reset is "largest".
 		var fallback = autoOffsetReset == AutoOffsetReset.Earliest ? Offset.Beginning : Offset.End;

@@ -30,8 +30,7 @@ public static class KafkaStepResultExtensions
 		"already reaches. Call that one; this extension is removed in 7.0.")]
 	public static T JsonPath<T>(this KafkaStepResult result, string path)
 	{
-		if (result == null)
-			throw new ArgumentNullException(nameof(result));
+		ArgumentNullException.ThrowIfNull(result);
 
 		// O método da própria classe sempre vence a extensão, então esta só era alcançada como
 		// KafkaStepResultExtensions.JsonPath(result, ...), com outra implementação e outras

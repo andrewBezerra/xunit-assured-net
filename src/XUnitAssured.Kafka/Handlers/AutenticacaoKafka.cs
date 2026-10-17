@@ -35,8 +35,7 @@ internal static class AutenticacaoKafka
 	/// </remarks>
 	internal static void Aplicar(ClientConfig config, KafkaAuthConfig? autenticacao)
 	{
-		if (config == null)
-			throw new ArgumentNullException(nameof(config));
+		ArgumentNullException.ThrowIfNull(config);
 
 		if (autenticacao == null || autenticacao.Type == KafkaAuthenticationType.None)
 			return;

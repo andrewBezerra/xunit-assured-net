@@ -18,11 +18,9 @@ public static class KafkaValidationExtensions
 	/// </summary>
 	public static IKafkaScenario Validate(this ITestScenario scenario, Action<KafkaStepResult> validation)
 	{
-		if (scenario == null)
-			throw new ArgumentNullException(nameof(scenario));
+		ArgumentNullException.ThrowIfNull(scenario);
 
-		if (validation == null)
-			throw new ArgumentNullException(nameof(validation));
+		ArgumentNullException.ThrowIfNull(validation);
 
 		// Registered, not run: the step has not run yet when the chain is being written.
 		// The lambda closes over whatever it needs and is called once the result exists.
@@ -51,11 +49,9 @@ public static class KafkaValidationExtensions
 	/// </remarks>
 	public static IKafkaScenario ValidateMessage<T>(this ITestScenario scenario, Action<T> validation) where T : class
 	{
-		if (scenario == null)
-			throw new ArgumentNullException(nameof(scenario));
+		ArgumentNullException.ThrowIfNull(scenario);
 
-		if (validation == null)
-			throw new ArgumentNullException(nameof(validation));
+		ArgumentNullException.ThrowIfNull(validation);
 
 		// Registered, not run: the step has not run yet when the chain is being written.
 		// The lambda closes over whatever it needs and is called once the result exists.
@@ -117,8 +113,7 @@ public static class KafkaValidationExtensions
 	/// </summary>
 	public static IKafkaScenario ValidateOffset(this ITestScenario scenario, Func<long, bool> validation)
 	{
-		if (validation == null)
-			throw new ArgumentNullException(nameof(validation));
+		ArgumentNullException.ThrowIfNull(validation);
 
 		return Validate(scenario, result =>
 		{

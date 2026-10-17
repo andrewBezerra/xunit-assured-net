@@ -9,3 +9,7 @@ trim_trailing_whitespace = true
 # Arquivos C#
 [*.cs]
 # Projeto atualizado para C# 12
+
+# CA1510: ArgumentNullException.ThrowIfNull no lugar de if/throw. Como aviso, o
+# TreatWarningsAsErrors do Directory.Build.props barra a volta do padrão antigo no build.
+dotnet_diagnostic.CA1510.severity = warning

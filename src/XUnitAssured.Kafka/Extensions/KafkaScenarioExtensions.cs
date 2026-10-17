@@ -21,8 +21,7 @@ public static class KafkaScenarioExtensions
 	/// </summary>
 	public static IKafkaScenario Topic(this ITestScenario scenario, string topic)
 	{
-		if (scenario == null)
-			throw new ArgumentNullException(nameof(scenario));
+		ArgumentNullException.ThrowIfNull(scenario);
 
 		if (string.IsNullOrWhiteSpace(topic))
 			throw new ArgumentException("Topic name cannot be null or whitespace.", nameof(topic));
@@ -599,8 +598,7 @@ public static class KafkaScenarioExtensions
 	/// </example>
 	public static IKafkaScenario WithAuth(this ITestScenario scenario, Action<KafkaAuthConfig> configure)
 	{
-		if (configure == null)
-			throw new ArgumentNullException(nameof(configure));
+		ArgumentNullException.ThrowIfNull(configure);
 
 		var authConfig = new KafkaAuthConfig();
 		configure(authConfig);

@@ -145,8 +145,7 @@ public class KafkaBatchConsumeStep : ITestStep
 	/// <exception cref="ArgumentNullException">Quando <paramref name="source"/> é nulo.</exception>
 	public KafkaBatchConsumeStep(KafkaBatchConsumeStep source)
 	{
-		if (source == null)
-			throw new ArgumentNullException(nameof(source));
+		ArgumentNullException.ThrowIfNull(source);
 
 		Name = source.Name;
 		Topic = source.Topic;

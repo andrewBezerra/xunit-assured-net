@@ -92,7 +92,7 @@ public sealed class OutboundHttpCapture : HttpMessageHandler
 	/// <returns>The capture, for chaining</returns>
 	public OutboundHttpCapture When(string urlPattern, Func<HttpRequestMessage, HttpResponseMessage> respond)
 	{
-		if (respond == null) throw new ArgumentNullException(nameof(respond));
+		ArgumentNullException.ThrowIfNull(respond);
 
 		lock (_trava) _rotas.Add((Padrao(urlPattern), respond));
 		return this;
