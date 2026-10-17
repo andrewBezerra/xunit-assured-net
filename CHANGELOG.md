@@ -2,7 +2,14 @@
 
 All notable changes to the XUnitAssured packages. Upgrading from 5.1.x? See [UPGRADING.md](UPGRADING.md).
 
-## v6.31.4 (Current — no skipped tests in the suite)
+## v6.31.5 (Current — static readonly arrays)
+
+Maintenance release: constant array arguments become `static readonly` fields (CA1861). No behavior changes; upgrading from 6.31.4 requires no code changes.
+
+- **XUnitAssured.Camunda**: telling a BPMN path from a process id no longer allocates the folder separators on every call.
+- **CA1861 is now a build warning in the packages.** It is off in the tests, the samples and the sample API, where the code runs once and the expected value reads best next to its assertion.
+
+## v6.31.4 (no skipped tests in the suite)
 
 Test-only release: no skipped tests left in the framework's test suite. No package changes; upgrading from 6.31.3 requires no code changes.
 
