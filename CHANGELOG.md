@@ -2,7 +2,16 @@
 
 All notable changes to the XUnitAssured packages. Upgrading from 5.1.x? See [UPGRADING.md](UPGRADING.md).
 
-## v6.31.5 (Current — static readonly arrays)
+## v6.32.0 (Current — secrets from user secrets)
+
+New feature: secrets from .NET user secrets in the settings files. Upgrading from 6.31.5 requires no code changes; `${ENV:...}` is unchanged.
+
+- **`${SECRET:Key}` in `testsettings.json` and `httpsettings.json`** reads the test project's user secrets (`secrets.json`, from `dotnet user-secrets`), then the environment variable with the same key and `:` written as `__`. One placeholder works on a developer machine and in CI, and nothing secret goes into the repository (#212).
+- **The value is escaped for JSON**, so a password with a quote or a backslash keeps the file valid.
+- **Which `secrets.json`**: the `UserSecretsId` of the test project. When the run loads more than one assembly with one (a `WebApplicationFactory` loads the API project), a `"userSecretsId"` at the root of the file chooses; without it, loading fails and names the ids found.
+- `XUnitAssured.Core` now depends on `Microsoft.Extensions.Configuration.UserSecrets`.
+
+## v6.31.5 (static readonly arrays)
 
 Maintenance release: constant array arguments become `static readonly` fields (CA1861). No behavior changes; upgrading from 6.31.4 requires no code changes.
 
