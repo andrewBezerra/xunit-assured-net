@@ -683,18 +683,12 @@ The full history is in **[CHANGELOG.md](https://github.com/andrewBezerra/xunit-a
 
 ## Contributing
 
-Contributions are welcome — issues and pull requests alike.
+Contributions are welcome, issues and pull requests alike. [CONTRIBUTING.md](CONTRIBUTING.md) covers building, the tests that need a broker or a browser, and the version every pull request raises. Everyone taking part follows the [Code of Conduct](CODE_OF_CONDUCT.md); vulnerabilities are reported privately, as the [security policy](SECURITY.md) describes.
 
 ```bash
 dotnet build src/XUnitAssured.Net.sln
 dotnet test src/XUnitAssured.Tests --filter "Requires!=Network&Requires!=Broker&Requires!=Browser&Requires!=Camunda&Requires!=Docker"
 ```
-
-The filter skips the tests that need the network, a running broker or an installed browser; CI runs those separately — the broker ones against its own RabbitMQ service, the browser ones after installing Chromium (`pwsh src/XUnitAssured.Tests/bin/Debug/net10.0/playwright.ps1 install chromium` does the same locally). To run the Kafka samples locally, the compose files under `src/XUnitAssured.Kafka.Samples.Remote.Test/docker` start a broker per authentication mode. The certificates and keys committed there are **test-only fixtures** for those local brokers, not credentials for anything real.
-
-Adding a protocol package? Read [Adding a protocol package](#adding-a-protocol-package) first.
-
-**Releases.** Merging to `main` publishes, so every pull request raises `<Version>` in `src/Directory.Build.props` and adds `docs/releases/<version>.md` with what ships. The pull request check fails without both; on merge, the release workflow creates the tag and the GitHub release from that file, then publishes to NuGet after a manual approval.
 
 ## License
 

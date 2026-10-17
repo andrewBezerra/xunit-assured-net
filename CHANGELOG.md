@@ -2,7 +2,16 @@
 
 All notable changes to the XUnitAssured packages. Upgrading from 5.1.x? See [UPGRADING.md](UPGRADING.md).
 
-## v6.31.1 (Current — downloads badge for every package)
+## v6.31.3 (Current — community files)
+
+Docs-only release: the repository's community files. No package changes; upgrading from 6.31.2 requires no code changes.
+
+- **`CONTRIBUTING.md`**: building, the tests that need a broker, a cluster or a browser and how to run them, and the version, release notes and changelog entry every pull request adds.
+- **`CODE_OF_CONDUCT.md`**: the Contributor Covenant 2.1.
+- **`SECURITY.md`**: vulnerabilities are reported privately through GitHub, and fixes go into the latest release.
+- **Issue forms** for bugs and feature requests, and a **pull request template** with the release checklist.
+
+## v6.31.1 (downloads badge for every package)
 
 Docs-only release: the README's downloads badge counts every package. No package changes; upgrading from 6.31.0 requires no code changes.
 
