@@ -187,7 +187,7 @@ public class OAuth2AuthTests : HttpSamplesRemoteTestBase, IClassFixture<HttpSamp
 			.AssertStatusCode(401);
 	}
 
-	[Fact(Skip = "Remote test - WithOAuth2 extension requires OAuth2Handler implementation fix for form-urlencoded", DisplayName = "OAuth2 using XUnitAssured OAuth2 extension should authenticate automatically")]
+	[Fact(Skip = "Remote test - requires deployed API environment", DisplayName = "OAuth2 using XUnitAssured OAuth2 extension should authenticate automatically")]
 	public void Example08_OAuth2_UsingXUnitAssuredOAuth2Extension()
 	{
 		// Arrange
@@ -236,7 +236,7 @@ public class OAuth2AuthTests : HttpSamplesRemoteTestBase, IClassFixture<HttpSamp
 			.AssertJsonPath<string>("$.scope", value => value == scopes, $"Should return requested scopes: {scopes}");
 	}
 
-	[Fact(Skip = "Remote test - WithOAuth2Config extension requires OAuth2Handler implementation fix for form-urlencoded", DisplayName = "OAuth2 using custom configuration should authenticate successfully")]
+	[Fact(Skip = "Remote test - requires deployed API environment", DisplayName = "OAuth2 using custom configuration should authenticate successfully")]
 	public void Example10_OAuth2_UsingCustomConfiguration()
 	{
 		// Arrange
@@ -260,7 +260,7 @@ public class OAuth2AuthTests : HttpSamplesRemoteTestBase, IClassFixture<HttpSamp
 			.AssertJsonPath<bool>("$.authenticated", value => value, "Should be authenticated with custom OAuth2 config");
 	}
 
-	[Fact(Skip = "Remote test - WithOAuth2 extension requires OAuth2Handler implementation fix for form-urlencoded", DisplayName = "OAuth2 multiple requests should reuse cached token")]
+	[Fact(Skip = "Remote test - requires deployed API environment", DisplayName = "OAuth2 multiple requests should reuse cached token")]
 	public void Example11_OAuth2_MultipleRequests_ShouldReuseToken()
 	{
 		// Arrange
