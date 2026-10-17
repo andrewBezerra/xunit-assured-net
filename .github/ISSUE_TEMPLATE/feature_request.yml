@@ -1,0 +1,24 @@
+name: Feature request
+description: Suggest a new verb, assertion, protocol or improvement.
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: The problem
+      description: What you are trying to test, and what gets in the way today.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: The test you would like to write
+      description: How the scenario would read with the feature. A sketch in the DSL is the most useful part.
+      render: csharp
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives
+      description: How you work around it now, or other designs you considered.

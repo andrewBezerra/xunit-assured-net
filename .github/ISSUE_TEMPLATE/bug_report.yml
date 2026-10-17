@@ -1,0 +1,72 @@
+name: Bug report
+description: Something in an XUnitAssured package does not work as documented.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting. A minimal test that reproduces the bug is the fastest way to a fix.
+        For a security vulnerability, do not use this form: see the [security policy](https://github.com/andrewBezerra/xunit-assured-net/security/policy).
+  - type: dropdown
+    id: package
+    attributes:
+      label: Package
+      description: The package where the bug shows up. Pick more than one if the scenario spans several.
+      multiple: true
+      options:
+        - XUnitAssured.Core
+        - XUnitAssured.Http
+        - XUnitAssured.Http.AspNetCore
+        - XUnitAssured.Kafka
+        - XUnitAssured.RabbitMq
+        - XUnitAssured.Camunda
+        - XUnitAssured.Camunda.Testcontainers
+        - XUnitAssured.Playwright
+        - XUnitAssured.Playwright.AspNetCore
+        - XUnitAssured.Mcp
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Package version
+      placeholder: "6.31.2"
+    validations:
+      required: true
+  - type: dropdown
+    id: framework
+    attributes:
+      label: Target framework
+      multiple: true
+      options:
+        - net8.0
+        - net9.0
+        - net10.0
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Minimal reproduction
+      description: The smallest test that shows the bug, with the relevant part of testsettings.json (without real credentials).
+      render: csharp
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+      description: What happened instead. Paste the full exception and the test output.
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: OS, and the broker, cluster or browser involved with its version (for example RabbitMQ 4.1 in Docker, Camunda 8.10, Chromium).
