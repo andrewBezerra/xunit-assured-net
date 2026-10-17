@@ -176,7 +176,7 @@ internal static class CamundaVerbos
 
 	internal static ICamundaScenario Validate(ITestScenario scenario, Action<CamundaStepResult> validation)
 	{
-		if (validation == null) throw new ArgumentNullException(nameof(validation));
+		ArgumentNullException.ThrowIfNull(validation);
 
 		scenario.AddValidation(resultado =>
 		{
