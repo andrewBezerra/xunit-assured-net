@@ -1,0 +1,53 @@
+name: Downloads badge
+
+# O badge de downloads do README soma os downloads de todos os pacotes. O shields.io não soma
+# vários pacotes do NuGet, então este workflow soma (.github/scripts/total-downloads.py) e grava o
+# JSON de um badge "endpoint" no branch badges, que o README lê pelo raw.githubusercontent.com.
+# O branch badges só tem esses arquivos, e só este workflow escreve nele.
+
+on:
+  schedule:
+    - cron: '0 9 * * *'   # 06:00 em Brasília
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: downloads-badge
+  cancel-in-progress: false
+
+jobs:
+  badge:
+    name: Sum the downloads
+    runs-on: ubuntu-latest
+    permissions:
+      # O push no branch badges.
+      contents: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - name: Check out the badges branch
+        run: |
+          if git fetch --depth 1 origin badges; then
+            git worktree add badges FETCH_HEAD
+            git -C badges switch -c badges
+          else
+            git worktree add --orphan -b badges badges
+          fi
+
+      - name: Sum the downloads of every package
+        run: python3 .github/scripts/total-downloads.py
+
+      - name: Publish the badge
+        working-directory: badges
+        run: |
+          git add downloads.json downloads-total.txt
+          if git diff --cached --quiet; then
+            echo "The total did not change."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "Downloads badge: $(cat downloads-total.txt)"
+          git push origin badges
