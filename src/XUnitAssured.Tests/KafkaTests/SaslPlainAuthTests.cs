@@ -124,9 +124,16 @@ public class SaslPlainAuthTests
 		scenario.CurrentStep.ShouldNotBeNull();
 		scenario.CurrentStep.ShouldBeOfType<KafkaConsumeStep>();
 	}
+}
 
-	[Fact(Skip = "Integration test - requires Kafka broker with SASL/PLAIN", DisplayName = "Integration test should connect to Kafka with SASL/PLAIN authentication")]
-	public void Integration_Should_Connect_With_SaslPlain()
+/// <summary>
+/// Examples kept here so they compile against the real API. They are not run: each needs
+/// infrastructure this suite does not start, as the comment on it says.
+/// </summary>
+public static class SaslPlainAuthExamples
+{
+	// Compiled, not run: requires Kafka broker with SASL/PLAIN.
+	public static void Integration_Should_Connect_With_SaslPlain()
 	{
 		var username = Environment.GetEnvironmentVariable("KAFKA_USERNAME");
 		var password = Environment.GetEnvironmentVariable("KAFKA_PASSWORD");
@@ -145,4 +152,3 @@ public class SaslPlainAuthTests
 		}
 	}
 }
-

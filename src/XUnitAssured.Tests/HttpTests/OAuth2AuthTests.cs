@@ -91,9 +91,16 @@ public class OAuth2AuthTests
 		Should.Throw<System.InvalidOperationException>(() =>
 			scenario.WithOAuth2("url", "id", "secret"));
 	}
+}
 
-	[Fact(Skip = "Integration test - requires real OAuth2 server", DisplayName = "Integration test should authenticate with OAuth2 successfully")]
-	public void Integration_Should_Authenticate_With_OAuth2()
+/// <summary>
+/// Examples kept here so they compile against the real API. They are not run: each needs
+/// infrastructure this suite does not start, as the comment on it says.
+/// </summary>
+public static class OAuth2AuthExamples
+{
+	// Compiled, not run: requires real OAuth2 server.
+	public static void Integration_Should_Authenticate_With_OAuth2()
 	{
 		var tokenUrl = System.Environment.GetEnvironmentVariable("OAUTH_TOKEN_URL");
 		var clientId = System.Environment.GetEnvironmentVariable("OAUTH_CLIENT_ID");

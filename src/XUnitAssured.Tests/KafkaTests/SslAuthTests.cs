@@ -144,9 +144,16 @@ public class SslAuthTests
 		Should.Throw<InvalidOperationException>(() =>
 			scenario.WithSsl("/path/to/ca-cert.pem"));
 	}
+}
 
-	[Fact(Skip = "Integration test - requires Kafka broker with SSL", DisplayName = "Integration test should connect to Kafka with SSL authentication")]
-	public void Integration_Should_Connect_With_Ssl()
+/// <summary>
+/// Examples kept here so they compile against the real API. They are not run: each needs
+/// infrastructure this suite does not start, as the comment on it says.
+/// </summary>
+public static class SslAuthExamples
+{
+	// Compiled, not run: requires Kafka broker with SSL.
+	public static void Integration_Should_Connect_With_Ssl()
 	{
 		var caLocation = Environment.GetEnvironmentVariable("KAFKA_CA_CERT_PATH");
 		var bootstrapServers = Environment.GetEnvironmentVariable("KAFKA_SSL_BOOTSTRAP_SERVERS");
@@ -165,8 +172,8 @@ public class SslAuthTests
 		}
 	}
 
-	[Fact(Skip = "Integration test - requires Kafka broker with mutual TLS", DisplayName = "Integration test should connect to Kafka with Mutual TLS authentication")]
-	public void Integration_Should_Connect_With_MutualTls()
+	// Compiled, not run: requires Kafka broker with mutual TLS.
+	public static void Integration_Should_Connect_With_MutualTls()
 	{
 		var clientCert = Environment.GetEnvironmentVariable("KAFKA_CLIENT_CERT_PATH");
 		var clientKey = Environment.GetEnvironmentVariable("KAFKA_CLIENT_KEY_PATH");
@@ -185,4 +192,3 @@ public class SslAuthTests
 		}
 	}
 }
-
