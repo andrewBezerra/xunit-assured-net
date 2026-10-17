@@ -52,8 +52,7 @@ public class RabbitMqValidationBuilder : ValidationBuilder<RabbitMqStepResult>
 	/// <summary>Afirma sobre a mensagem consumida, desserializada no tipo pedido.</summary>
 	public RabbitMqValidationBuilder AssertMessage<T>(Action<T> assertion) where T : class
 	{
-		if (assertion == null)
-			throw new ArgumentNullException(nameof(assertion));
+		ArgumentNullException.ThrowIfNull(assertion);
 
 		var mensagem = Result.GetMessage<T>();
 		mensagem.ShouldNotBeNull($"the message did not deserialize to {typeof(T).Name}");

@@ -125,8 +125,7 @@ public class RabbitMqConsumeStep : ITestStep
 	/// </remarks>
 	public RabbitMqConsumeStep(RabbitMqConsumeStep source)
 	{
-		if (source == null)
-			throw new ArgumentNullException(nameof(source));
+		ArgumentNullException.ThrowIfNull(source);
 
 		Name = source.Name;
 		Queue = source.Queue;

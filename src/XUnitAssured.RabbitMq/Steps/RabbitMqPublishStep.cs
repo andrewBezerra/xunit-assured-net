@@ -119,8 +119,7 @@ public class RabbitMqPublishStep : ITestStep
 	/// </remarks>
 	public RabbitMqPublishStep(RabbitMqPublishStep source)
 	{
-		if (source == null)
-			throw new ArgumentNullException(nameof(source));
+		ArgumentNullException.ThrowIfNull(source);
 
 		Name = source.Name;
 		Exchange = source.Exchange;
