@@ -2,7 +2,13 @@
 
 All notable changes to the XUnitAssured packages. Upgrading from 5.1.x? See [UPGRADING.md](UPGRADING.md).
 
-## v6.31.0 (Current — bugs found by unit tests: Kafka, Camunda, Http)
+## v6.31.1 (Current — downloads badge for every package)
+
+Docs-only release: the README's downloads badge counts every package. No package changes; upgrading from 6.31.0 requires no code changes.
+
+- **The downloads badge sums the downloads of all the XUnitAssured packages**, the total the NuGet profile shows. Before, it counted only `XUnitAssured.Core`, read from a NuGet search replica that can lag behind by thousands of downloads. A daily workflow sums them and publishes the badge on the `badges` branch. Every package depends on Core, so installing one package counts two downloads.
+
+## v6.31.0 (bugs found by unit tests: Kafka, Camunda, Http)
 
 Bug fixes found by the new unit tests, in Kafka, Camunda and Http. Upgrading from 6.30.x requires no code changes. Some tests that passed by accident may now behave differently: see each item.
 
