@@ -26,6 +26,8 @@ internal static class ArquivosBpmn
 
 	private static readonly string[] Extensoes = { ".bpmn", ".dmn", ".form" };
 
+	private static readonly char[] SeparadoresDePasta = { '/', '\\' };
+
 	private static readonly ConcurrentDictionary<string, Lazy<Indice>> Indices = new(StringComparer.OrdinalIgnoreCase);
 
 	/// <summary>
@@ -34,7 +36,7 @@ internal static class ArquivosBpmn
 	/// só essas extensões contam.
 	/// </summary>
 	internal static bool EhCaminho(string argumento) =>
-		argumento.IndexOfAny(new[] { '/', '\\' }) >= 0 ||
+		argumento.IndexOfAny(SeparadoresDePasta) >= 0 ||
 		Extensoes.Any(e => argumento.EndsWith(e, StringComparison.OrdinalIgnoreCase));
 
 	/// <summary>O arquivo que declara o processo, na pasta dada e nas de dentro dela.</summary>
