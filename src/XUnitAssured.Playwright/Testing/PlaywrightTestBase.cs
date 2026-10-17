@@ -142,8 +142,7 @@ public abstract class PlaywrightTestBase<TFixture> : IAsyncLifetime, ITestContex
 	/// <param name="context">The context of the scenario being started.</param>
 	public void Seed(ITestContext context)
 	{
-		if (context == null)
-			throw new ArgumentNullException(nameof(context));
+		ArgumentNullException.ThrowIfNull(context);
 
 		context.SetProperty("_PlaywrightPage", Page);
 		context.SetProperty("_PlaywrightSettings", Settings);

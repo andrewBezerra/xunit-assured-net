@@ -26,8 +26,8 @@ public static class PlaywrightValidationExtensions
 	/// <returns>The scenario, typed as a browser scenario</returns>
 	public static IBrowserScenario Validate(this ITestScenario scenario, Action<PlaywrightStepResult> validation)
 	{
-		if (scenario == null) throw new ArgumentNullException(nameof(scenario));
-		if (validation == null) throw new ArgumentNullException(nameof(validation));
+		ArgumentNullException.ThrowIfNull(scenario);
+		ArgumentNullException.ThrowIfNull(validation);
 
 		// Registrado, não executado: o passo ainda não rodou enquanto a cadeia é escrita.
 		scenario.AddValidation(resultado =>

@@ -39,8 +39,8 @@ public static class PlaywrightScenarioExtensions
 	/// </remarks>
 	public static IBrowserScenario NavigateTo(this ITestScenario scenario, Func<string> url)
 	{
-		if (scenario == null) throw new ArgumentNullException(nameof(scenario));
-		if (url == null) throw new ArgumentNullException(nameof(url));
+		ArgumentNullException.ThrowIfNull(scenario);
+		ArgumentNullException.ThrowIfNull(url);
 
 		GetOrCreateStep(scenario).AddAction(new PageAction
 		{
@@ -64,7 +64,7 @@ public static class PlaywrightScenarioExtensions
 	/// <returns>The scenario, typed as a browser scenario</returns>
 	public static IBrowserScenario NavigateTo(this ITestScenario scenario, string url)
 	{
-		if (scenario == null) throw new ArgumentNullException(nameof(scenario));
+		ArgumentNullException.ThrowIfNull(scenario);
 		if (string.IsNullOrWhiteSpace(url)) throw new ArgumentException("URL cannot be null or empty.", nameof(url));
 
 		var step = GetOrCreateStep(scenario);
@@ -997,7 +997,7 @@ public static class PlaywrightScenarioExtensions
 	/// </example>
 	public static IBrowserScenario RecordAndPause(this ITestScenario scenario)
 	{
-		if (scenario == null) throw new ArgumentNullException(nameof(scenario));
+		ArgumentNullException.ThrowIfNull(scenario);
 
 		var step = GetOrCreateStep(scenario);
 		step.AddAction(new PageAction
@@ -1018,7 +1018,7 @@ public static class PlaywrightScenarioExtensions
 		LocatorStrategy locator,
 		string? value = null)
 	{
-		if (scenario == null) throw new ArgumentNullException(nameof(scenario));
+		ArgumentNullException.ThrowIfNull(scenario);
 
 		var step = GetOrCreateStep(scenario);
 		step.AddAction(new PageAction
@@ -1036,7 +1036,7 @@ public static class PlaywrightScenarioExtensions
 		LocatorStrategy locator,
 		string[] filePaths)
 	{
-		if (scenario == null) throw new ArgumentNullException(nameof(scenario));
+		ArgumentNullException.ThrowIfNull(scenario);
 		if (filePaths == null || filePaths.Length == 0)
 			throw new ArgumentException("At least one file path must be provided.", nameof(filePaths));
 
@@ -1056,7 +1056,7 @@ public static class PlaywrightScenarioExtensions
 		LocatorStrategy source,
 		LocatorStrategy target)
 	{
-		if (scenario == null) throw new ArgumentNullException(nameof(scenario));
+		ArgumentNullException.ThrowIfNull(scenario);
 
 		var step = GetOrCreateStep(scenario);
 		step.AddAction(new PageAction
@@ -1073,7 +1073,7 @@ public static class PlaywrightScenarioExtensions
 		ITestScenario scenario,
 		LocatorStrategy locator)
 	{
-		if (scenario == null) throw new ArgumentNullException(nameof(scenario));
+		ArgumentNullException.ThrowIfNull(scenario);
 
 		var step = GetOrCreateStep(scenario);
 		step.AddAction(new PageAction
@@ -1091,7 +1091,7 @@ public static class PlaywrightScenarioExtensions
 		LocatorStrategy locator,
 		string[] modifiers)
 	{
-		if (scenario == null) throw new ArgumentNullException(nameof(scenario));
+		ArgumentNullException.ThrowIfNull(scenario);
 		if (modifiers == null || modifiers.Length == 0)
 			throw new ArgumentException("At least one modifier must be provided.", nameof(modifiers));
 
@@ -1111,7 +1111,7 @@ public static class PlaywrightScenarioExtensions
 		LocatorStrategy locator,
 		string[] values)
 	{
-		if (scenario == null) throw new ArgumentNullException(nameof(scenario));
+		ArgumentNullException.ThrowIfNull(scenario);
 		if (values == null || values.Length == 0)
 			throw new ArgumentException("At least one value must be provided.", nameof(values));
 
