@@ -64,6 +64,8 @@ Given()
     .WithKey("my-key")                                 // Set message key
     .WithHeader("correlation-id", "abc-123")           // Add message header
     .WithBootstrapServers("localhost:9092")             // Override bootstrap servers
+    .FromTimestamp(testStart)                          // Only messages written from this moment on
+    .WhereKey("order-42")                              // Only a message with this key
 ```
 
 ### Produce Batch
@@ -252,6 +254,31 @@ public async Task RoundTrip_ProduceAndConsume()
         .AssertMessage<string>(msg => msg.ShouldBe("Hello, Kafka!"));
 }
 ```
+
+## Consuming on a topic with history
+
+A consume starts at the group's committed offset or at `AutoOffsetReset`, and returns the first message
+it finds. On a shared topic that already has messages, that is an old one, not the one the test
+caused. `FromTimestamp` starts every partition at the first message written at or after a moment,
+and `WhereKey` skips messages with another key until one arrives or the timeout ends:
+
+```csharp
+var testStart = DateTimeOffset.UtcNow;
+
+await Given().Topic("orders").Produce("order-42", order).ExecuteAsync();
+
+await Given()
+    .Topic("orders")
+    .Consume()
+    .FromTimestamp(testStart)
+    .WhereKey("order-42")
+    .ExecuteAsync()
+    .AssertSuccess();
+```
+
+The timestamps are the broker's (`CreateTime` by default, from the producer's clock), so a moment
+taken on the test machine works when the producer runs there too. `FromTimestamp` ignores committed
+offsets, and both apply to `Consume`, not to `ConsumeBatch`.
 
 ## One sharp edge: `Validate` with an untyped lambda
 

@@ -85,7 +85,8 @@ internal static class ConsumerAssignment
 		ConsumerConfig config,
 		string topic,
 		TimeSpan metadataTimeout,
-		Func<ConsumerConfig, string, TimeSpan, List<TopicPartition>> discoverPartitions)
+		Func<ConsumerConfig, string, TimeSpan, List<TopicPartition>> discoverPartitions,
+		DateTimeOffset? from = null)
 	{
 		ArgumentNullException.ThrowIfNull(consumer);
 		ArgumentNullException.ThrowIfNull(config);
@@ -97,13 +98,48 @@ internal static class ConsumerAssignment
 			throw new InvalidOperationException(
 				$"Topic '{topic}' has no partitions. It probably does not exist on the broker.");
 
-		var committed = LookUpCommittedOffsets(consumer, partitions, metadataTimeout);
-		var assignment = ResolveStartOffsets(partitions, committed, config.AutoOffsetReset);
+		IReadOnlyList<TopicPartitionOffset> assignment;
+		if (from is { } momento)
+		{
+			// Um momento pedido vale mais que o offset do grupo: o teste quer o que veio depois dele.
+			var porMomento = consumer.OffsetsForTimes(
+				partitions.Select(p => new TopicPartitionTimestamp(p, new Timestamp(momento.UtcDateTime))),
+				metadataTimeout);
+			assignment = ResolveTimestampOffsets(partitions, porMomento ?? new List<TopicPartitionOffset>());
+		}
+		else
+		{
+			var committed = LookUpCommittedOffsets(consumer, partitions, metadataTimeout);
+			assignment = ResolveStartOffsets(partitions, committed, config.AutoOffsetReset);
+		}
 
 		WarmLeaderMetadata(consumer, partitions[0], metadataTimeout);
 
 		consumer.Assign(assignment);
 		return assignment;
+	}
+
+	/// <summary>
+	/// Where each partition starts when the consume asks for the messages written from a moment on:
+	/// the offset the broker found for that moment, or the end of the partition when it has nothing
+	/// as new (the broker answers with an unset offset). Pure, so the rule can be tested without a broker.
+	/// </summary>
+	/// <param name="partitions">Partitions to resolve.</param>
+	/// <param name="byTimestamp">The broker's answer to <c>OffsetsForTimes</c>.</param>
+	public static IReadOnlyList<TopicPartitionOffset> ResolveTimestampOffsets(
+		IReadOnlyList<TopicPartition> partitions,
+		IReadOnlyList<TopicPartitionOffset> byTimestamp)
+	{
+		ArgumentNullException.ThrowIfNull(partitions);
+		ArgumentNullException.ThrowIfNull(byTimestamp);
+
+		var encontrados = byTimestamp
+			.Where(o => o.Offset.IsSpecial == false && o.Offset.Value >= 0)
+			.ToDictionary(o => o.TopicPartition, o => o.Offset);
+
+		return partitions
+			.Select(p => new TopicPartitionOffset(p, encontrados.TryGetValue(p, out var offset) ? offset : Offset.End))
+			.ToList();
 	}
 
 	/// <summary>
