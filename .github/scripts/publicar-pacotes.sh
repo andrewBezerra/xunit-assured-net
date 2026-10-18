@@ -34,6 +34,7 @@ PRAZO="${NUGET_PUSH_TIMEOUT:-900}"
 # Cada um depois de tudo de que depende (os ProjectReference dos .csproj).
 ORDEM=(
   XUnitAssured.Core
+  XUnitAssured.Jsonata
   XUnitAssured.Http
   XUnitAssured.Kafka
   XUnitAssured.RabbitMq

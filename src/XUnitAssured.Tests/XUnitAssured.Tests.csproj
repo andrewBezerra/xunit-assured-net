@@ -41,6 +41,7 @@
 		<ProjectReference Include="..\XUnitAssured.Camunda.Testcontainers\XUnitAssured.Camunda.Testcontainers.csproj" />
 		<ProjectReference Include="..\XUnitAssured.Core\XUnitAssured.Core.csproj" />
 		<ProjectReference Include="..\XUnitAssured.Http\XUnitAssured.Http.csproj" />
+		<ProjectReference Include="..\XUnitAssured.Jsonata\XUnitAssured.Jsonata.csproj" />
 		<ProjectReference Include="..\XUnitAssured.Kafka\XUnitAssured.Kafka.csproj" />
 		<ProjectReference Include="..\XUnitAssured.Playwright\XUnitAssured.Playwright.csproj" />
 		<ProjectReference Include="..\XUnitAssured.RabbitMq\XUnitAssured.RabbitMq.csproj" />

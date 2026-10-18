@@ -106,6 +106,29 @@ public class HttpStepResult : TestStepResult
 	public bool IsServerError => StatusCode >= 500 && StatusCode <= 599;
 
 	/// <summary>
+	/// A resposta como JSON, para uma expressão ler: <c>{ "status", "headers", "body" }</c>.
+	/// </summary>
+	/// <remarks>
+	/// Os nomes dos headers vão em minúsculas, porque o HTTP não distingue maiúsculas neles e uma
+	/// expressão distingue; um header repetido junta os valores com <c>", "</c>, como o HTTP permite.
+	/// <c>body</c> é o JSON do corpo quando ele é JSON, o texto quando não é, e <c>null</c> sem corpo.
+	/// </remarks>
+	public System.Text.Json.Nodes.JsonObject ToJsonObject()
+	{
+		var headers = new System.Text.Json.Nodes.JsonObject();
+		foreach (var grupo in (Headers ?? new Dictionary<string, IEnumerable<string>>())
+			.GroupBy(h => h.Key.ToLowerInvariant(), StringComparer.Ordinal))
+			headers[grupo.Key] = string.Join(", ", grupo.SelectMany(h => h.Value));
+
+		return new System.Text.Json.Nodes.JsonObject
+		{
+			["status"] = StatusCode,
+			["headers"] = headers,
+			["body"] = ResultJson.Body(ResponseBody?.ToString()),
+		};
+	}
+
+	/// <summary>
 	/// Creates a successful HTTP result.
 	/// </summary>
 	public static HttpStepResult CreateHttpSuccess(
