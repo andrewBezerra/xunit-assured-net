@@ -8,6 +8,7 @@ using System.Threading;
 using System.Threading.Tasks;
 
 using XUnitAssured.Core.Abstractions;
+using XUnitAssured.Http.Configuration;
 
 namespace XUnitAssured.Tests.HttpTests;
 
@@ -57,6 +58,15 @@ internal sealed record Recebido(string Metodo, string Caminho, string Consulta, 
 /// <summary>Entrega à DSL um HttpClient que fala com o servidor de mentira.</summary>
 internal sealed class ProvedorDeMentira(HttpMessageHandler servidor) : IHttpClientProvider
 {
+	public HttpClient CreateClient() =>
+		new(servidor, disposeHandler: false) { BaseAddress = new Uri("http://servidor.teste") };
+}
+
+/// <summary>Um provedor que diz de quem são os tokens dele, como uma API de uma fixture com várias.</summary>
+internal sealed class ProvedorComDono(HttpMessageHandler servidor, object? dono) : IHttpClientProvider, IHttpTokenOwnerProvider
+{
+	public object? TokenOwner => dono;
+
 	public HttpClient CreateClient() =>
 		new(servidor, disposeHandler: false) { BaseAddress = new Uri("http://servidor.teste") };
 }
