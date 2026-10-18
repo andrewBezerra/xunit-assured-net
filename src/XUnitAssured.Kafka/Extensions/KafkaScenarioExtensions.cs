@@ -379,6 +379,40 @@ public static class KafkaScenarioExtensions
 		return KafkaScenario.De(scenario);
 	}
 
+	// ========== CONSUME FILTERS ==========
+
+	/// <summary>
+	/// Makes a consume start at the first message written at or after <paramref name="moment"/>, on
+	/// every partition, ignoring the group's committed offsets. Use the moment the test started to read
+	/// only what the test itself caused on a topic with history.
+	/// Usage: Consume().FromTimestamp(inicio)
+	/// </summary>
+	/// <exception cref="InvalidOperationException">The current step is not a Kafka consume step.</exception>
+	public static IKafkaScenario FromTimestamp(this ITestScenario scenario, DateTimeOffset moment)
+	{
+		if (scenario.CurrentStep is not KafkaConsumeStep consumeStep)
+			throw new InvalidOperationException("FromTimestamp applies to a Kafka consume step: call Consume() first.");
+
+		scenario.SetCurrentStep(new KafkaConsumeStep(consumeStep) { ConsumeFrom = moment });
+		return KafkaScenario.De(scenario);
+	}
+
+	/// <summary>
+	/// Makes a consume return only a message with exactly this key, skipping the others until one
+	/// arrives or the timeout ends.
+	/// Usage: Consume().WhereKey("pedido-42")
+	/// </summary>
+	/// <exception cref="InvalidOperationException">The current step is not a Kafka consume step.</exception>
+	public static IKafkaScenario WhereKey(this ITestScenario scenario, string key)
+	{
+		ArgumentNullException.ThrowIfNull(key);
+		if (scenario.CurrentStep is not KafkaConsumeStep consumeStep)
+			throw new InvalidOperationException("WhereKey applies to a Kafka consume step: call Consume() first.");
+
+		scenario.SetCurrentStep(new KafkaConsumeStep(consumeStep) { KeyFilter = key });
+		return KafkaScenario.De(scenario);
+	}
+
 	// ========== KEY CONFIGURATION ==========
 
 	/// <summary>

@@ -20,7 +20,7 @@ The filter skips the tests that need something outside the process, each marked 
 | Trait | Needs |
 |-------|-------|
 | `Network` | Internet access |
-| `Broker` | A RabbitMQ broker on `127.0.0.1:5672` |
+| `Broker` | A RabbitMQ broker on `127.0.0.1:5672` and a Kafka broker on `127.0.0.1:9092` |
 | `Browser` | Chromium for Playwright: `pwsh src/XUnitAssured.Tests/bin/Debug/net10.0/playwright.ps1 install chromium` |
 | `Camunda` | A Camunda 8 cluster on `localhost:8080` |
 | `Docker` | Docker, for Testcontainers |

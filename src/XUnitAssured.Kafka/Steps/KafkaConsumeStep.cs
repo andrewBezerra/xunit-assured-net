@@ -110,6 +110,24 @@ public class KafkaConsumeStep : ITestStep
 	public KafkaAuthConfig? AuthConfig { get; init; }
 
 	/// <summary>
+	/// When set, the consumer starts at the first message written at or after this moment, on every
+	/// partition, instead of the committed offset or <c>AutoOffsetReset</c>. A partition with nothing
+	/// newer starts at its end.
+	/// </summary>
+	/// <remarks>
+	/// A test that produces and then consumes on a topic with history needs this: from the committed
+	/// offsets or the beginning, the consume returns an older message, not the one the test produced.
+	/// The timestamps are the broker's (<c>CreateTime</c> by default, set by the producer's clock).
+	/// </remarks>
+	public DateTimeOffset? ConsumeFrom { get; init; }
+
+	/// <summary>
+	/// When set, only a message with exactly this key is returned; the others are skipped until one
+	/// arrives or the timeout ends.
+	/// </summary>
+	public string? KeyFilter { get; init; }
+
+	/// <summary>
 	/// De onde vêm o consumidor e as partições do tópico. Fora dos testes do pacote, é sempre
 	/// <see cref="FabricaDeConsumidor.Real"/>.
 	/// </summary>
@@ -156,6 +174,8 @@ public class KafkaConsumeStep : ITestStep
 		_groupId = source._groupId;
 		_bootstrapServers = source._bootstrapServers;
 		AuthConfig = source.AuthConfig;
+		ConsumeFrom = source.ConsumeFrom;
+		KeyFilter = source.KeyFilter;
 		Fabrica = source.Fabrica;
 	}
 
@@ -208,7 +228,7 @@ public class KafkaConsumeStep : ITestStep
 			// for a broker that is not answering at all.
 			var metadataTimeout = Timeout < TimeSpan.FromSeconds(5) ? Timeout : TimeSpan.FromSeconds(5);
 			var assignment = ConsumerAssignment.AssignAllPartitions(
-				consumer, config, Topic, metadataTimeout, Fabrica.DescobrirParticoes);
+				consumer, config, Topic, metadataTimeout, Fabrica.DescobrirParticoes, ConsumeFrom);
 			diagnosticProperties["AssignedPartitions"] = string.Join(",", assignment.Select(a => a.TopicPartition));
 
 			var deadline = DateTime.UtcNow.Add(Timeout);
@@ -228,6 +248,10 @@ public class KafkaConsumeStep : ITestStep
 
 				if (consumeResult?.Message != null)
 				{
+					// Outra chave: segue lendo, sem esperar, porque o cliente pode já ter a próxima.
+					if (KeyFilter is not null && !string.Equals(consumeResult.Message.Key, KeyFilter, StringComparison.Ordinal))
+						continue;
+
 					// Create success result
 					Result = KafkaStepResult.CreateKafkaConsumeSuccess(consumeResult);
 					return Result;
