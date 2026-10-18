@@ -99,6 +99,50 @@ public class FilaTemporariaTests
 	}
 }
 
+/// <summary>
+/// <c>AssertJsonPath</c> e <c>AssertHeader(nome, valor)</c> no consumo, como nos pacotes Http e Kafka:
+/// o que se verifica numa mensagem que um teste escutou.
+/// </summary>
+[Trait("Category", "RabbitMq")]
+[Trait("Component", "Validation")]
+public class AsercoesDoRabbitMqTests
+{
+	private static async Task<XUnitAssured.RabbitMq.Extensions.RabbitMqValidationBuilder> Consumir(BrokerDeMentira broker)
+	{
+		var cadeia = ScenarioDsl.Given().Queue("pedidos").Consume().WithTimeout(TimeSpan.FromSeconds(5));
+		broker.Ligar(cadeia);
+		return await cadeia.ExecuteAsync();
+	}
+
+	[Fact(DisplayName = "AssertJsonPath and AssertHeader with a value should pass on the consumed message, with a byte[] header read as UTF-8")]
+	public async Task Assertions_Should_Pass()
+	{
+		var broker = new BrokerDeMentira().ComMensagem("""{"pedido":{"id":42,"status":"pago"}}""", "pedido.pago",
+			new Dictionary<string, object?> { ["origem"] = System.Text.Encoding.UTF8.GetBytes("loja"), ["tentativa"] = 2 });
+
+		(await Consumir(broker)).Then().AssertSuccess()
+			.AssertJsonPath<int>("$.pedido.id", id => id == 42)
+			.AssertJsonPath<string>("$.pedido.status", s => s == "pago", "should be paid")
+			.AssertHeader("origem", "loja")
+			.AssertHeader("tentativa", "2");
+	}
+
+	[Fact(DisplayName = "AssertJsonPath and AssertHeader should fail saying what was found")]
+	public async Task Assertions_Should_Fail_With_What_Was_Found()
+	{
+		var broker = new BrokerDeMentira().ComMensagem("""{"status":"cancelado"}""", "r",
+			new Dictionary<string, object?> { ["origem"] = System.Text.Encoding.UTF8.GetBytes("outra") });
+		var validacao = (await Consumir(broker)).Then();
+
+		Should.Throw<ShouldAssertException>(() => validacao.AssertJsonPath<string>("$.status", s => s == "pago", "should be paid"))
+			.Message.ShouldContain("should be paid");
+		Should.Throw<ShouldAssertException>(() => validacao.AssertHeader("origem", "loja"))
+			.Message.ShouldContain("outra");
+		Should.Throw<ShouldAssertException>(() => validacao.AssertHeader("ausente", "x"))
+			.Message.ShouldContain("no header named 'ausente'");
+	}
+}
+
 /// <summary>A fila temporária num RabbitMQ de verdade: escuta uma exchange, recebe, e some ao ser apagada.</summary>
 [Trait("Category", "RabbitMq")]
 [Trait("Component", "Integration")]
