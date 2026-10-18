@@ -121,6 +121,12 @@ public static class JsonataExpression
 		{
 			throw new JsonataEvaluationException(expression, erro.Message, erro);
 		}
+		// A biblioteca também deixa escapar exceções do .NET (um cast que ela não previu): a falha é da
+		// avaliação, e diz o que houve, em vez de "One or more errors occurred".
+		catch (AggregateException ex) when (ex.InnerException is { } erro and not OutOfMemoryException)
+		{
+			throw new JsonataEvaluationException(expression, $"the evaluation failed: {erro.GetType().Name}: {erro.Message}", erro);
+		}
 
 		if (!terminou)
 			throw new JsonataEvaluationException(expression,

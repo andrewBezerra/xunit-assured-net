@@ -125,6 +125,15 @@ public class JsonataExpressionTests
 			.Message.ShouldContain("U1001");
 	}
 
+	[Fact(DisplayName = "A .NET exception from the library should fail the expression with what happened")]
+	public void ExcecaoDaBiblioteca()
+	{
+		// Válida na JSONata, e o jsonata-js filtra o array; o Jsonata.Net.Native 3.0.0 lança um
+		// InvalidCastException por dentro. O que importa aqui é a mensagem dizer isso.
+		Should.Throw<JsonataEvaluationException>(() => Valor("[body][id > 5].id"))
+			.Message.ShouldContain("the evaluation failed: InvalidCastException");
+	}
+
 	[Fact(DisplayName = "An expression past the time limit should fail with the limit in the message")]
 	public void LimiteDeTempo()
 	{
