@@ -27,7 +27,7 @@
   </PropertyGroup>
 
   <PropertyGroup>
-    <Version>6.34.0</Version>
+    <Version>6.35.0</Version>
 
     <!--
       O que a página do pacote no nuget.org mostra. Sem isto ela fica muda, e quem atualiza

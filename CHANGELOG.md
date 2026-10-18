@@ -2,7 +2,16 @@
 
 All notable changes to the XUnitAssured packages. Upgrading from 5.1.x? See [UPGRADING.md](UPGRADING.md).
 
-## v6.34.0 (Current — Kafka consume filters)
+## v6.35.0 (Current — RabbitMQ temporary queues)
+
+New feature in XUnitAssured.RabbitMq: a test can listen to an exchange with a temporary queue of its own. Upgrading from 6.34.0 requires no code changes.
+
+- **`ExpiringAfter(TimeSpan)`** after `DeclareQueue()` declares the queue with `x-expires`: the broker deletes it by itself once it goes unused for that long, so a test that stops before cleaning up does not leave the queue behind on a shared broker. It goes next to the dead-letter exchange, when there is one.
+- **`DeleteQueue()`** deletes the named queue, with whatever is in it.
+- **`RabbitMqTopologyStep.ExpiresAfter`** and **`RabbitMqTopologyOperation.DeleteQueue`** back them; the copy constructor keeps the expiry. Both verbs are members of `IRabbitMqScenario`, like the other RabbitMQ verbs.
+- The pattern they enable, in the package README ("Listening to an exchange with a temporary queue"): bind a queue to the exchange before the system acts, consume from it, delete it. Only what is published after the binding reaches it.
+
+## v6.34.0 (Kafka consume filters)
 
 New feature in XUnitAssured.Kafka: a consume can read only what the test produced on a topic with history. Upgrading from 6.33.0 requires no code changes; a consume without the new verbs behaves as before.
 

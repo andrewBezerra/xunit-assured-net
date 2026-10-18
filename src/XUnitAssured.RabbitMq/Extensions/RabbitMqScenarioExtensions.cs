@@ -90,6 +90,34 @@ internal static class RabbitMqVerbos
 		return RabbitMqScenario.De(scenario);
 	}
 
+	internal static IRabbitMqScenario ExpiringAfter(ITestScenario scenario, TimeSpan unused)
+	{
+		if (scenario.CurrentStep is not RabbitMqTopologyStep { Operation: RabbitMqTopologyOperation.DeclareQueue } declarar)
+			throw new InvalidOperationException("ExpiringAfter applies to a queue declaration: call DeclareQueue() first.");
+		if (unused <= TimeSpan.Zero || unused.TotalMilliseconds > int.MaxValue)
+			throw new ArgumentOutOfRangeException(nameof(unused), unused, "The expiry must be positive and fit in x-expires (milliseconds as an int).");
+
+		scenario.SetCurrentStep(new RabbitMqTopologyStep(declarar) { ExpiresAfter = unused });
+		return RabbitMqScenario.De(scenario);
+	}
+
+	internal static IRabbitMqScenario DeleteQueue(ITestScenario scenario)
+	{
+		var fila = scenario.Context.GetProperty<string>("_RabbitMqQueue");
+
+		if (string.IsNullOrWhiteSpace(fila))
+			throw new InvalidOperationException(
+				"No queue to delete. Call Queue(name) first.");
+
+		scenario.SetCurrentStep(new RabbitMqTopologyStep
+		{
+			Operation = RabbitMqTopologyOperation.DeleteQueue,
+			Queue = fila!
+		});
+
+		return RabbitMqScenario.De(scenario);
+	}
+
 	internal static IRabbitMqScenario DeclareExchange(ITestScenario scenario, string type)
 	{
 		if (string.IsNullOrWhiteSpace(type))
