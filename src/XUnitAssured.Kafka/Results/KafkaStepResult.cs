@@ -122,6 +122,44 @@ public class KafkaStepResult : TestStepResult
 	}
 
 	/// <summary>
+	/// A mensagem como JSON, para uma expressão ler:
+	/// <c>{ "topic", "partition", "offset", "timestamp", "key", "headers", "body", "status" }</c>.
+	/// </summary>
+	/// <remarks>
+	/// <c>body</c> é o JSON da mensagem quando ela é JSON, o texto quando não é: a mesma palavra da
+	/// resposta HTTP, para quem escreve a expressão não trocar de termo entre os protocolos.
+	/// <c>timestamp</c> vai em ISO 8601 UTC com milissegundos, o formato que o <c>$toMillis</c> lê.
+	/// Um header vai como texto UTF-8, e um nome repetido fica com o último valor, como o Kafka entrega
+	/// ao consumidor que lê só um. <c>status</c> é o da gravação, ao produzir (<c>Persisted</c>...), e
+	/// <c>null</c> ao consumir.
+	/// </remarks>
+	public System.Text.Json.Nodes.JsonObject ToJsonObject()
+	{
+		var headers = new System.Text.Json.Nodes.JsonObject();
+		foreach (var header in Headers ?? new Headers())
+			headers[header.Key] = header.GetValueBytes() is { } bytes ? System.Text.Encoding.UTF8.GetString(bytes) : null;
+
+		return new System.Text.Json.Nodes.JsonObject
+		{
+			["topic"] = Topic,
+			["partition"] = Partition,
+			["offset"] = Offset,
+			["timestamp"] = Timestamp is { } quando
+				? DateTime.SpecifyKind(quando, DateTimeKind.Utc).ToString("yyyy-MM-dd'T'HH:mm:ss.fff'Z'", System.Globalization.CultureInfo.InvariantCulture)
+				: null,
+			["key"] = Key?.ToString(),
+			["headers"] = headers,
+			["body"] = Message switch
+			{
+				null => null,
+				string texto => ResultJson.Body(texto),
+				var outro => ResultJson.Body(JsonSerializer.Serialize(outro)),
+			},
+			["status"] = Status?.ToString(),
+		};
+	}
+
+	/// <summary>
 	/// Gets a specific header value by key.
 	/// </summary>
 	public byte[]? GetHeaderValue(string key)

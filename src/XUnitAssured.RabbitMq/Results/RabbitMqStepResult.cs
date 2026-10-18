@@ -88,6 +88,35 @@ public class RabbitMqStepResult : TestStepResult
 		return JsonPathNavigator.Navigate<T>(raiz, path);
 	}
 
+	/// <summary>
+	/// A mensagem como JSON, para uma expressão ler: <c>{ "destination", "routingKey", "headers", "body" }</c>.
+	/// </summary>
+	/// <remarks>
+	/// <c>body</c> é o JSON da mensagem quando ela é JSON, o texto quando não é, e <c>null</c> ao
+	/// publicar: a mesma palavra da resposta HTTP e da mensagem Kafka. Um header de texto chega do
+	/// RabbitMQ.Client como <c>byte[]</c> e vai como UTF-8, como no <c>AssertHeader</c>; outro tipo vai
+	/// pelo texto dele.
+	/// </remarks>
+	public System.Text.Json.Nodes.JsonObject ToJsonObject()
+	{
+		var headers = new System.Text.Json.Nodes.JsonObject();
+		foreach (var (nome, valor) in Headers)
+			headers[nome] = valor switch
+			{
+				null => null,
+				byte[] bytes => System.Text.Encoding.UTF8.GetString(bytes),
+				_ => Convert.ToString(valor, System.Globalization.CultureInfo.InvariantCulture),
+			};
+
+		return new System.Text.Json.Nodes.JsonObject
+		{
+			["destination"] = Destination,
+			["routingKey"] = RoutingKey,
+			["headers"] = headers,
+			["body"] = ResultJson.Body(Message),
+		};
+	}
+
 	/// <summary>Resultado de uma publicação que o broker aceitou.</summary>
 	public static RabbitMqStepResult CreatePublishSuccess(
 		string destination, string routingKey, TimeSpan? elapsed = null) =>

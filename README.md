@@ -98,6 +98,7 @@ In order of intent, not of promise:
 | Package | Version | Description |
 |---------|---------|-------------|
 | **XUnitAssured.Core** | [![NuGet](https://img.shields.io/nuget/v/XUnitAssured.Core.svg?label=)](https://www.nuget.org/packages/XUnitAssured.Core) | Core abstractions, DSL infrastructure, DI support (`DITestFixture`), `ValidationBuilder`, and BDD extensions |
+| **XUnitAssured.Jsonata** | [![NuGet](https://img.shields.io/nuget/v/XUnitAssured.Jsonata.svg?label=)](https://www.nuget.org/packages/XUnitAssured.Jsonata) | JSONata expressions over the JSON a step returns (`ToJsonObject()` on the HTTP, Kafka and RabbitMQ results) — select, transform and assert, with a time limit and `$jwt`. See its [README](src/XUnitAssured.Jsonata/README.md) |
 
 ### Protocol Packages
 
