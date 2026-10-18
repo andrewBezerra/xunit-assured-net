@@ -368,6 +368,18 @@ await Given()
     .AssertStatusCode(200);
 ```
 
+The token is requested once and reused while it is valid: by the scenarios of one fixture, or by the scenarios given the same `HttpClient`. A fixture that hands out one provider per API can make them share the token by naming itself as the owner, with `IHttpTokenOwnerProvider`:
+
+```csharp
+public sealed class Api(ApisFixture owner, HttpSettings http)
+    : IHttpClientProvider, IHttpClientAuthProvider, IHttpTokenOwnerProvider
+{
+    public object? TokenOwner => owner;
+    public HttpClient CreateClient() => new() { BaseAddress = new Uri(http.BaseUrl!) };
+    public HttpAuthConfig? GetAuthenticationConfig() => http.Authentication;
+}
+```
+
 ### Certificate (mTLS)
 
 ```csharp

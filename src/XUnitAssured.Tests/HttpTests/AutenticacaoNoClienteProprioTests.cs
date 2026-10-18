@@ -138,6 +138,53 @@ public class AutenticacaoNoClienteProprioTests
 		Autorizacoes(servidor).ShouldBe(["Bearer tk-1", "Bearer tk-1", "Bearer tk-2"]);
 	}
 
+	// Uma fixture com várias APIs dá um provedor por API, e as que usam a mesma autenticação dividem o token.
+	[Fact(DisplayName = "Providers that name the same token owner share its OAuth2 token, and another owner asks for its own")]
+	public async Task OAuth2_Token_Is_Shared_By_Providers_With_The_Same_Owner()
+	{
+		var servidor = ServidorDeTokens();
+		var dono = new object();
+
+		await Cenario(ScenarioDsl.Given(new ProvedorComDono(servidor, dono)));
+		await Cenario(ScenarioDsl.Given(new ProvedorComDono(servidor, dono)));
+		await Cenario(ScenarioDsl.Given(new ProvedorComDono(servidor, new object())));
+
+		Autorizacoes(servidor).ShouldBe(["Bearer tk-1", "Bearer tk-1", "Bearer tk-2"]);
+	}
+
+	[Fact(DisplayName = "A provider that names no token owner keeps its tokens to itself")]
+	public async Task OAuth2_Token_Without_Owner_Stays_With_The_Provider()
+	{
+		var servidor = ServidorDeTokens();
+		var provedor = new ProvedorComDono(servidor, null);
+
+		await Cenario(ScenarioDsl.Given(provedor));
+		await Cenario(ScenarioDsl.Given(provedor));
+		await Cenario(ScenarioDsl.Given(new ProvedorComDono(servidor, null)));
+
+		Autorizacoes(servidor).ShouldBe(["Bearer tk-1", "Bearer tk-1", "Bearer tk-2"]);
+	}
+
+	// O dono dos tokens é da fixture: um cliente dado por WithHttpClient pode ser outro servidor.
+	[Fact(DisplayName = "WithHttpClient on a scenario of an owned provider does not reuse the owner's token")]
+	public async Task WithHttpClient_Does_Not_Reuse_The_Owner_Token()
+	{
+		var daFixture = ServidorDeTokens();
+		var outro = ServidorDeTokens();
+		var dono = new object();
+
+		await Cenario(ScenarioDsl.Given(new ProvedorComDono(daFixture, dono)));
+		await ScenarioDsl.Given(new ProvedorComDono(daFixture, dono))
+			.ApiResource("/recurso")
+			.WithHttpClient(Cliente(outro))
+			.WithOAuth2("/token", "cliente", "segredo")
+			.Get()
+			.ExecuteAsync();
+
+		Autorizacoes(daFixture).ShouldBe(["Bearer tk-1"]);
+		Autorizacoes(outro).ShouldBe(["Bearer tk-1"]);
+	}
+
 	// Depois de .And(), o passo novo herda o cliente do anterior, e com ele a fixture dos tokens.
 	[Fact(DisplayName = "A step after And() keeps the fixture's token, as the next scenario of the fixture does")]
 	public async Task Step_After_And_Keeps_The_Fixture_Token()

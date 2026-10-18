@@ -87,8 +87,14 @@ public static class HttpScenarioExtensions
 
 				// Os cenários de uma fixture falam com o mesmo servidor e dividem o token OAuth2.
 				// O cliente dado em Given(HttpClient) vem num provedor novo a cada cenário: lá o
-				// token fica com o cliente.
-				donoDosTokens = provider is Core.DSL.ScenarioDsl.ClienteDado ? null : provider;
+				// token fica com o cliente. Um provedor pode dar outro dono, para provedores de uma
+				// mesma fixture (um por API) dividirem o token.
+				donoDosTokens = provider switch
+				{
+					Core.DSL.ScenarioDsl.ClienteDado => null,
+					IHttpTokenOwnerProvider { TokenOwner: { } dono } => dono,
+					_ => provider
+				};
 
 				// Check if provider also implements IHttpClientAuthProvider
 				if (provider is IHttpClientAuthProvider authProvider && existingAuthConfig == null)

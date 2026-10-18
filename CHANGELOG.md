@@ -2,7 +2,15 @@
 
 All notable changes to the XUnitAssured packages. Upgrading from 5.1.x? See [UPGRADING.md](UPGRADING.md).
 
-## v6.32.0 (Current — secrets from user secrets)
+## v6.33.0 (Current — shared OAuth2 token across providers)
+
+New feature: providers of one fixture can share an OAuth 2.0 token. Upgrading from 6.32.0 requires no code changes; without the new interface, tokens are kept as before.
+
+- **`IHttpTokenOwnerProvider`** (`XUnitAssured.Http.Configuration`) lets a client provider name the owner of the tokens obtained through it. Providers that name the same owner share a token. A fixture that hands out one provider per API, each with its own base URL, used to ask for a token per API even when the APIs use the same identity provider and client; with the fixture as the owner, it asks once.
+- **Different credentials still get different tokens**: the token is looked up by everything in the token request (URL, client, secret, scopes), as before.
+- **A provider that names no owner** (`null`), or does not implement the interface, keeps its tokens to itself, and a client given by `WithHttpClient` still never reuses the provider's token.
+
+## v6.32.0 (secrets from user secrets)
 
 New feature: secrets from .NET user secrets in the settings files. Upgrading from 6.31.5 requires no code changes; `${ENV:...}` is unchanged.
 
