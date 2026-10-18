@@ -85,6 +85,43 @@ public class RabbitMqValidationBuilder : ValidationBuilder<RabbitMqStepResult>
 	}
 
 	/// <summary>
+	/// Afirma que um header AMQP veio com a mensagem e tem este valor.
+	/// </summary>
+	/// <remarks>
+	/// Um header de texto chega do RabbitMQ.Client como <c>byte[]</c>: ele é lido como UTF-8. Outro
+	/// tipo é comparado pelo texto dele.
+	/// </remarks>
+	public RabbitMqValidationBuilder AssertHeader(string name, string expected)
+	{
+		Result.Headers.TryGetValue(name, out var valor).ShouldBeTrue($"no header named '{name}' on the message");
+		var texto = valor switch
+		{
+			byte[] bytes => System.Text.Encoding.UTF8.GetString(bytes),
+			null => null,
+			_ => Convert.ToString(valor, System.Globalization.CultureInfo.InvariantCulture),
+		};
+		texto.ShouldBe(expected, $"the header '{name}' should be '{expected}'");
+		return this;
+	}
+
+	/// <summary>
+	/// Afirma sobre um valor da mensagem consumida, lido por caminho JSON, como nos pacotes Http e Kafka.
+	/// </summary>
+	/// <example>
+	/// <code>
+	/// .AssertJsonPath&lt;string&gt;("$.status", status =&gt; status == "pago", "the order should be paid")
+	/// </code>
+	/// </example>
+	public RabbitMqValidationBuilder AssertJsonPath<T>(string jsonPath, Func<T, bool> predicate, string? failureMessage = null)
+	{
+		ArgumentNullException.ThrowIfNull(predicate);
+
+		var valor = Result.JsonPath<T>(jsonPath);
+		predicate(valor).ShouldBeTrue(failureMessage ?? $"the value at {jsonPath} did not satisfy the predicate (it was {valor})");
+		return this;
+	}
+
+	/// <summary>
 	/// Afirma que a fila ficou vazia depois desta mensagem.
 	/// </summary>
 	/// <remarks>

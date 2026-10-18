@@ -22,7 +22,10 @@ public enum RabbitMqTopologyOperation
 	DeclareExchange = 1,
 
 	/// <summary>Liga a fila nomeada pela cadeia a uma exchange, por uma routing key.</summary>
-	BindQueue = 2
+	BindQueue = 2,
+
+	/// <summary>Apaga a fila nomeada pela cadeia, com o que houver nela.</summary>
+	DeleteQueue = 3
 }
 
 /// <summary>
@@ -96,6 +99,16 @@ public class RabbitMqTopologyStep : ITestStep
 	/// </remarks>
 	public string? DeadLetterExchange { get; init; }
 
+	/// <summary>
+	/// Quanto tempo a fila pode ficar sem uso (sem consumidor nem leitura) antes de o broker a
+	/// apagar, ou nulo para não expirar.
+	/// </summary>
+	/// <remarks>
+	/// Vai como o argumento <c>x-expires</c>, em milissegundos. É o que faz uma fila de teste não
+	/// ficar para trás num broker compartilhado quando o teste para antes de apagá-la.
+	/// </remarks>
+	public TimeSpan? ExpiresAfter { get; init; }
+
 	/// <summary>A URI de conexão, quando não vem do contexto nem do arquivo.</summary>
 	public string ConnectionUri
 	{
@@ -134,6 +147,7 @@ public class RabbitMqTopologyStep : ITestStep
 		RoutingKey = source.RoutingKey;
 		Durable = source.Durable;
 		DeadLetterExchange = source.DeadLetterExchange;
+		ExpiresAfter = source.ExpiresAfter;
 		_connectionUri = source._connectionUri;
 		CriarFabrica = source.CriarFabrica;
 	}
@@ -162,12 +176,11 @@ public class RabbitMqTopologyStep : ITestStep
 			switch (Operation)
 			{
 				case RabbitMqTopologyOperation.DeclareQueue:
-					var argumentos = DeadLetterExchange is null
-						? null
-						: new Dictionary<string, object?>
-						{
-							["x-dead-letter-exchange"] = DeadLetterExchange
-						};
+					Dictionary<string, object?>? argumentos = null;
+					if (DeadLetterExchange is not null)
+						(argumentos ??= [])["x-dead-letter-exchange"] = DeadLetterExchange;
+					if (ExpiresAfter is { } prazo)
+						(argumentos ??= [])["x-expires"] = checked((int)prazo.TotalMilliseconds);
 
 					await canal.QueueDeclareAsync(
 							Queue, durable: Durable, exclusive: false, autoDelete: false,
@@ -185,6 +198,11 @@ public class RabbitMqTopologyStep : ITestStep
 				case RabbitMqTopologyOperation.BindQueue:
 					await canal.QueueBindAsync(
 							Queue, Exchange, RoutingKey, cancellationToken: cancellationToken)
+						.ConfigureAwait(false);
+					break;
+
+				case RabbitMqTopologyOperation.DeleteQueue:
+					await canal.QueueDeleteAsync(Queue, cancellationToken: cancellationToken)
 						.ConfigureAwait(false);
 					break;
 

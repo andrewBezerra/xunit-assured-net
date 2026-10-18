@@ -94,6 +94,31 @@ The round-trip tests in this repository did exactly that in a helper, which is t
 a DSL stops earning its place: it had verbs for publishing and consuming and none for the topology
 without which neither has anywhere to happen.
 
+## Listening to an exchange with a temporary queue
+
+To check what a system publishes, a test binds a queue of its own to the exchange before the system
+acts, reads from it and deletes it at the end. `ExpiringAfter` makes the broker delete the queue by
+itself after it goes unused for that long (`x-expires`), so a test that stops early does not leave it
+behind on a shared broker:
+
+```csharp
+var listener = $"test-{Guid.NewGuid():N}";
+
+await Given()
+    .Queue(listener).DeclareQueue().ExpiringAfter(TimeSpan.FromMinutes(10))
+    .And()
+    .BindQueueTo("eventos", "pedidos.*")
+    .ExecuteAsync();
+
+// ... the system publishes ...
+
+await Given().Queue(listener).Consume().WithTimeout(TimeSpan.FromSeconds(10)).ExecuteAsync();
+await Given().Queue(listener).DeleteQueue().ExecuteAsync();
+```
+
+Only what is published after the binding reaches the queue, so an older message on the exchange or
+on another queue does not get in the way.
+
 ## A publish that reaches no queue is a failure
 
 AMQP has a case Kafka does not: publishing to an exchange that matches no binding. The broker

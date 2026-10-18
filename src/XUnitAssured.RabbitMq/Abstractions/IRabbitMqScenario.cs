@@ -52,6 +52,22 @@ public interface IRabbitMqScenario : ITestScenario
 	IRabbitMqScenario DeclareQueue(string? deadLetterExchange = null);
 
 	/// <summary>
+	/// Faz a fila que <see cref="DeclareQueue"/> declara expirar depois de ficar sem uso por esse
+	/// tempo (o argumento <c>x-expires</c>): o broker a apaga sozinho.
+	/// </summary>
+	/// <remarks>
+	/// Para a fila de um teste, que liga uma fila própria a uma exchange para escutar o que o sistema
+	/// publica: se o teste parar antes de apagá-la, ela não fica para trás num broker compartilhado.
+	/// </remarks>
+	/// <exception cref="InvalidOperationException">O passo atual não é um <see cref="DeclareQueue"/>.</exception>
+	IRabbitMqScenario ExpiringAfter(TimeSpan unused);
+
+	/// <summary>
+	/// Apaga a fila que a cadeia nomeou, com as mensagens que houver nela.
+	/// </summary>
+	IRabbitMqScenario DeleteQueue();
+
+	/// <summary>
 	/// Declara no broker a exchange que a cadeia nomeou.
 	/// </summary>
 	/// <param name="type"><c>direct</c>, <c>topic</c>, <c>fanout</c> ou <c>headers</c>.</param>

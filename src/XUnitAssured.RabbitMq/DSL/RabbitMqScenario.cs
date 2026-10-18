@@ -74,6 +74,10 @@ internal sealed class RabbitMqScenario : IRabbitMqScenario, IFronteiraDePasso
 	public IRabbitMqScenario DeclareQueue(string? deadLetterExchange = null) =>
 		RabbitMqVerbos.DeclareQueue(_cenario, deadLetterExchange);
 
+	public IRabbitMqScenario ExpiringAfter(TimeSpan unused) => RabbitMqVerbos.ExpiringAfter(_cenario, unused);
+
+	public IRabbitMqScenario DeleteQueue() => RabbitMqVerbos.DeleteQueue(_cenario);
+
 	public IRabbitMqScenario DeclareExchange(string type = "direct") =>
 		RabbitMqVerbos.DeclareExchange(_cenario, type);
 
