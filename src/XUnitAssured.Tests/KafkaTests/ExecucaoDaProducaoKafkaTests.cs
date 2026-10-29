@@ -208,6 +208,39 @@ public class ExecucaoDaProducaoKafkaTests
 		resultado.Topic.ShouldBe("pedidos");
 	}
 
+	// ---------- O cancelamento de quem chama (#218) ----------
+
+	[Fact(DisplayName = "A produce started with a cancelled token should send nothing and report the cancellation (#218)")]
+	public async Task Produce_With_Cancelled_Token_Should_Send_Nothing()
+	{
+		var produtor = FalsosDoKafka.ProdutorQueGrava();
+		using var cancelado = new CancellationTokenSource();
+		await cancelado.CancelAsync();
+
+		var resultado = (KafkaStepResult)await new KafkaProduceStep { Topic = "pedidos", Value = "v" }
+			.ExecuteAsync(FalsosDoKafka.ContextoComProdutor(produtor), cancelado.Token);
+
+		resultado.Success.ShouldBeFalse();
+		resultado.GetProperty<string>("ExceptionType")!.ShouldContain("Canceled");
+		_ = produtor.DidNotReceiveWithAnyArgs().ProduceAsync(default(string)!, default!, default);
+	}
+
+	[Fact(DisplayName = "A produce cancelled while it waits for the broker should stop, and not be reported as a timeout (#218)")]
+	public async Task Produce_Cancelled_While_Waiting_Should_Stop()
+	{
+		var produtor = FalsosDoKafka.ProdutorQueNaoResponde();
+		using var cancelamento = new CancellationTokenSource(TimeSpan.FromMilliseconds(100));
+
+		var cronometro = System.Diagnostics.Stopwatch.StartNew();
+		var resultado = (KafkaStepResult)await new KafkaProduceStep { Topic = "pedidos", Value = "v", Timeout = TimeSpan.FromMinutes(1) }
+			.ExecuteAsync(FalsosDoKafka.ContextoComProdutor(produtor), cancelamento.Token);
+
+		cronometro.Elapsed.ShouldBeLessThan(TimeSpan.FromSeconds(30), "cancelling must not wait out the step timeout");
+		resultado.Success.ShouldBeFalse();
+		resultado.GetProperty<string>("ExceptionType")!.ShouldContain("Canceled");
+		resultado.Errors.ShouldNotContain(e => e.Contains("within timeout"));
+	}
+
 	[Fact(DisplayName = "A produce the broker rejects should fail with the broker's reason")]
 	public void Rejected_Produce_Should_Fail_With_Reason()
 	{
@@ -396,6 +429,46 @@ public class ExecucaoDaProducaoKafkaTests
 		resultado.Success.ShouldBeFalse();
 		resultado.Errors.ShouldContain(e => e.StartsWith("Failed to produce message to topic 'pedidos' within timeout"));
 		resultado.Topic.ShouldBe("pedidos");
+	}
+
+	[Fact(DisplayName = "A batch started with a cancelled token should send nothing and report the cancellation (#218)")]
+	public async Task Batch_With_Cancelled_Token_Should_Send_Nothing()
+	{
+		var produtor = FalsosDoKafka.ProdutorQueGrava();
+		using var cancelado = new CancellationTokenSource();
+		await cancelado.CancelAsync();
+		var passo = new KafkaBatchProduceStep
+		{
+			Topic = "pedidos",
+			Messages = new List<KeyValuePair<object?, object>> { new("k", "a"), new("k", "b") }
+		};
+
+		var resultado = (KafkaStepResult)await passo.ExecuteAsync(FalsosDoKafka.ContextoComProdutor(produtor), cancelado.Token);
+
+		resultado.Success.ShouldBeFalse();
+		resultado.GetProperty<string>("ExceptionType")!.ShouldContain("Canceled");
+		_ = produtor.DidNotReceiveWithAnyArgs().ProduceAsync(default(string)!, default!, default);
+	}
+
+	[Fact(DisplayName = "A batch cancelled while it waits for the broker should stop, and not be reported as a timeout (#218)")]
+	public async Task Batch_Cancelled_While_Waiting_Should_Stop()
+	{
+		var produtor = FalsosDoKafka.ProdutorQueNaoResponde();
+		using var cancelamento = new CancellationTokenSource(TimeSpan.FromMilliseconds(100));
+		var passo = new KafkaBatchProduceStep
+		{
+			Topic = "pedidos",
+			Timeout = TimeSpan.FromMinutes(1),
+			Messages = new List<KeyValuePair<object?, object>> { new("k", "a") }
+		};
+
+		var cronometro = System.Diagnostics.Stopwatch.StartNew();
+		var resultado = (KafkaStepResult)await passo.ExecuteAsync(FalsosDoKafka.ContextoComProdutor(produtor), cancelamento.Token);
+
+		cronometro.Elapsed.ShouldBeLessThan(TimeSpan.FromSeconds(30), "cancelling must not wait out the step timeout");
+		resultado.Success.ShouldBeFalse();
+		resultado.GetProperty<string>("ExceptionType")!.ShouldContain("Canceled");
+		resultado.Errors.ShouldNotContain(e => e.Contains("within timeout"));
 	}
 
 	[Fact(DisplayName = "A batch the broker rejects should fail with the broker's reason")]

@@ -2,7 +2,15 @@
 
 All notable changes to the XUnitAssured packages. Upgrading from 5.1.x? See [UPGRADING.md](UPGRADING.md).
 
-## v6.36.0 (Current — JSONata expressions)
+## v6.36.1 (Current — Kafka cancellation and missing topics, JSONata stack)
+
+Bug fix release in XUnitAssured.Kafka and XUnitAssured.Jsonata. Upgrading from 6.36.0 requires no code changes.
+
+- **A consume waits for a topic that does not exist yet** (#219): the consume steps look the partitions up again, every 250 ms, until the step's `Timeout`, instead of failing at once. A topic that never appears fails as before, once the timeout is up. The step's `Timeout` now covers the wait for the topic too.
+- **The produce steps honour the caller's cancellation token** (#218): a step started with a cancelled token sends nothing, and one cancelled while it waits for the broker stops there. Both report a failure with the `OperationCanceledException`, not a produce timeout.
+- **A JSONata evaluation runs on a thread of its own, with a 16 MB stack** (#221): on a thread-pool thread, on net8.0 on Windows, a recursion that never ends overflowed the stack before the limit of 250 calls, and killed the process. Now it fails with `U1001`, as intended.
+
+## v6.36.0 (JSONata expressions)
 
 New package **XUnitAssured.Jsonata**: JSONata expressions to select, transform and assert on the JSON a step returns. New in the HTTP, Kafka and RabbitMQ packages: `ToJsonObject()` on their results, the document an expression reads. Upgrading from 6.35.0 requires no code changes.
 

@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Text.Json.Nodes;
+using System.Threading;
+using System.Threading.Tasks;
 
 using Shouldly;
 using Xunit;
@@ -123,6 +125,34 @@ public class JsonataExpressionTests
 	{
 		Should.Throw<JsonataEvaluationException>(() => Valor("($f := function($n){ $n + $f($n - 1) }; $f(5))"))
 			.Message.ShouldContain("U1001");
+	}
+
+	// No net8.0 do Windows do CI, as 250 chamadas da recursão, com o tratamento da exceção subindo por elas, passaram da
+	// pilha de uma thread do pool e derrubaram o processo (#221). A folga não pode depender de onde a avaliação roda.
+	[Fact(DisplayName = "The evaluation should run on a thread of its own, with room for the recursion limit, not on the pool (#221)")]
+	public async Task ThreadPropria()
+	{
+		var quemChamou = Environment.CurrentManagedThreadId;
+
+		var (doPool, outra, niveis) = await JsonataExpression.NumaThreadPropria(() =>
+		{
+			var doPool = Thread.CurrentThread.IsThreadPoolThread;
+			// Uns 4 MB de pilha, mais que a de uma thread do pool. Só fora do pool: antes da correção, o teste falha
+			// pela asserção, em vez de derrubar o processo.
+			return (doPool, Environment.CurrentManagedThreadId != quemChamou, doPool ? 0 : Descer(256));
+		});
+
+		doPool.ShouldBeFalse("a pool thread has the platform's stack, not one sized for the recursion limit");
+		outra.ShouldBeTrue("the evaluation must not run on the caller's thread, whatever stack it has");
+		niveis.ShouldBe(256);
+	}
+
+	// Uma chamada com 16 KB de pilha por nível.
+	private static int Descer(int niveis)
+	{
+		Span<byte> quadro = stackalloc byte[16 * 1024];
+		quadro[^1] = (byte)niveis;
+		return niveis == 0 ? 0 : 1 + Descer(niveis - 1) + (quadro[^1] == (byte)niveis ? 0 : 1);
 	}
 
 	[Fact(DisplayName = "A .NET exception from the library should fail the expression with what happened")]

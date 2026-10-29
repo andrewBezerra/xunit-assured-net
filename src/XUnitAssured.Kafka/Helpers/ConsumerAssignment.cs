@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 
 using Confluent.Kafka;
 
@@ -200,6 +202,38 @@ internal static class ConsumerAssignment
 				p,
 				committedByPartition.TryGetValue(p, out var offset) ? offset : fallback))
 			.ToList();
+	}
+
+	/// <summary>
+	/// Quanto esperar entre duas consultas a um tópico que ainda não tem partições. Cada consulta cria um cliente de
+	/// administração, então ela não acompanha o intervalo curto das olhadas do consumo.
+	/// </summary>
+	internal static readonly TimeSpan EsperaPeloTopico = TimeSpan.FromMilliseconds(250);
+
+	/// <summary>
+	/// As partições do tópico, consultadas de novo até <paramref name="deadline"/> enquanto ele não tiver nenhuma (#219):
+	/// um consumo que começa antes de o produtor criar o tópico espera por ele, como esperava com o <c>Subscribe</c>,
+	/// em vez de falhar na hora. Vazia se o tópico não aparecer até lá.
+	/// </summary>
+	/// <exception cref="OperationCanceledException">Quando quem chamou cancela durante a espera.</exception>
+	internal static async Task<List<TopicPartition>> WaitForPartitionsAsync(
+		Func<ConsumerConfig, string, TimeSpan, List<TopicPartition>> discoverPartitions,
+		ConsumerConfig config,
+		string topic,
+		TimeSpan metadataTimeout,
+		DateTime deadline,
+		CancellationToken cancellationToken)
+	{
+		while (true)
+		{
+			cancellationToken.ThrowIfCancellationRequested();
+			var partitions = discoverPartitions(config, topic, metadataTimeout);
+			var falta = deadline - DateTime.UtcNow;
+			if (partitions.Count > 0 || falta <= TimeSpan.Zero)
+				return partitions;
+
+			await Task.Delay(falta < EsperaPeloTopico ? falta : EsperaPeloTopico, cancellationToken).ConfigureAwait(false);
+		}
 	}
 
 	internal static List<TopicPartition> DiscoverPartitions(ConsumerConfig config, string topic, TimeSpan timeout)

@@ -4,6 +4,7 @@ using System.Linq;
 using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using System.Threading;
 using System.Threading.Tasks;
 
 using Jsonata.Net.Native;
@@ -111,7 +112,7 @@ public static class JsonataExpression
 		// A biblioteca não tem cancelamento: a avaliação roda noutra thread, e quem espera desiste no
 		// prazo. O .NET não aborta threads; a que estourou segue até terminar, e o resultado dela
 		// é descartado.
-		var avaliacao = Task.Run(() => consulta.Eval(dados, ambiente));
+		var avaliacao = NumaThreadPropria(() => consulta.Eval(dados, ambiente));
 		bool terminou;
 		try
 		{
@@ -168,6 +169,40 @@ public static class JsonataExpression
 		JsonValue v when v.GetValueKind() == JsonValueKind.String => v.GetValue<string>(),
 		_ => value.ToJsonString(),
 	};
+
+	/// <summary>
+	/// A pilha da thread que avalia. No net8.0 do Windows do CI, as <see cref="MaxDepth"/> chamadas, com o tratamento da
+	/// exceção subindo por elas, gastaram uns 11 KB por nível e passaram da pilha de uma thread do pool (#221): uns 3 MB.
+	/// 16 MB deixam folga para isso e para quem chama com mais fundo.
+	/// </summary>
+	internal const int PilhaDaAvaliacao = 16 * 1024 * 1024;
+
+	/// <summary>
+	/// Roda a avaliação numa thread só dela, com <see cref="PilhaDaAvaliacao"/> (#221). Com <c>Task.Run</c>, ela ia para
+	/// uma thread do pool, com a pilha da plataforma, ou, se ainda não tinha começado, o <c>Wait</c> a rodava na thread de
+	/// quem espera, com o fundo que ela já tivesse. Como antes, a thread que estoura o prazo segue até terminar, em fundo.
+	/// </summary>
+	internal static Task<T> NumaThreadPropria<T>(Func<T> avaliar)
+	{
+		var resultado = new TaskCompletionSource<T>(TaskCreationOptions.RunContinuationsAsynchronously);
+		var thread = new Thread(() =>
+		{
+			try
+			{
+				resultado.SetResult(avaliar());
+			}
+			catch (Exception ex)
+			{
+				resultado.SetException(ex);
+			}
+		}, PilhaDaAvaliacao)
+		{
+			IsBackground = true,
+			Name = "XUnitAssured.Jsonata",
+		};
+		thread.Start();
+		return resultado.Task;
+	}
 
 	private static EvaluationEnvironment Ambiente(IReadOnlyDictionary<string, JsonNode?>? variaveis)
 	{

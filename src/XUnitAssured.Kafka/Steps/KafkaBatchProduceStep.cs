@@ -138,6 +138,9 @@ public class KafkaBatchProduceStep : ITestStep
 
 		try
 		{
+			// Cancelado antes de começar, o lote não envia nada (#218), como o passo de uma mensagem.
+			cancellationToken.ThrowIfCancellationRequested();
+
 			// Check for shared producer from fixture (via context)
 			var sharedProducer = context.GetProperty<IProducer<string, string>>("_KafkaSharedProducer");
 			// As mesmas condições do passo de uma mensagem: um broker, uma autenticação ou uma config
@@ -163,7 +166,9 @@ public class KafkaBatchProduceStep : ITestStep
 
 			try
 			{
-				using var cts = new CancellationTokenSource(Timeout);
+				// O prazo do passo e o cancelamento de quem chamou valem os dois (#218).
+				using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+				cts.CancelAfter(Timeout);
 
 				// Produce all messages in parallel
 				var tasks = Messages.Select(msg =>
@@ -194,8 +199,9 @@ public class KafkaBatchProduceStep : ITestStep
 					Result = KafkaStepResult.CreateBatchProduceSuccess(deliveryResults);
 					return Result;
 				}
-				catch (OperationCanceledException)
+				catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
 				{
+					// O cancelamento de quem chamou não é timeout: ele segue para a falha, abaixo.
 					Result = KafkaStepResult.CreateProduceTimeout(Topic, Timeout);
 					return Result;
 				}

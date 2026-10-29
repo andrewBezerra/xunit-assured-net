@@ -227,11 +227,15 @@ public class KafkaConsumeStep : ITestStep
 			// a step that was given a shorter timeout should not wait longer than that
 			// for a broker that is not answering at all.
 			var metadataTimeout = Timeout < TimeSpan.FromSeconds(5) ? Timeout : TimeSpan.FromSeconds(5);
-			var assignment = ConsumerAssignment.AssignAllPartitions(
-				consumer, config, Topic, metadataTimeout, Fabrica.DescobrirParticoes, ConsumeFrom);
-			diagnosticProperties["AssignedPartitions"] = string.Join(",", assignment.Select(a => a.TopicPartition));
-
+			// Um prazo só, do começo do passo: a espera pelo tópico e a pela mensagem cabem nele.
 			var deadline = DateTime.UtcNow.Add(Timeout);
+			// O tópico que ainda não existe é esperado até o prazo, e não falha na hora (#219): o produtor que o cria
+			// pode começar junto com o consumo.
+			var particoes = await ConsumerAssignment.WaitForPartitionsAsync(
+				Fabrica.DescobrirParticoes, config, Topic, metadataTimeout, deadline, cancellationToken).ConfigureAwait(false);
+			var assignment = ConsumerAssignment.AssignAllPartitions(
+				consumer, config, Topic, metadataTimeout, (_, _, _) => particoes, ConsumeFrom);
+			diagnosticProperties["AssignedPartitions"] = string.Join(",", assignment.Select(a => a.TopicPartition));
 
 			while (DateTime.UtcNow <= deadline)
 			{
