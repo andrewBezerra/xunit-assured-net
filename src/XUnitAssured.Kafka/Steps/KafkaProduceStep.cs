@@ -159,6 +159,10 @@ public class KafkaProduceStep : ITestStep
 
 		try
 		{
+			// Cancelado antes de começar, o passo não envia nada (#218): o ProduceAsync do cliente só para de esperar com
+			// o token, e a mensagem ainda pode ir.
+			cancellationToken.ThrowIfCancellationRequested();
+
 			// Check for shared producer from fixture (via context)
 			var sharedProducer = context.GetProperty<IProducer<string, string>>("_KafkaSharedProducer");
 			var contextAuthConfig = context.GetProperty<KafkaAuthConfig>("_KafkaAuthConfig");
@@ -230,7 +234,9 @@ public class KafkaProduceStep : ITestStep
 				// Produce message with timeout
 				DeliveryResult<string, string> deliveryResult;
 
-				using var cts = new CancellationTokenSource(Timeout);
+				// O prazo do passo e o cancelamento de quem chamou valem os dois (#218), como no consumo.
+				using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+				cts.CancelAfter(Timeout);
 
 				try
 				{
@@ -251,9 +257,9 @@ public class KafkaProduceStep : ITestStep
 					Result = KafkaStepResult.CreateKafkaProduceSuccess(deliveryResult);
 					return Result;
 				}
-				catch (OperationCanceledException)
+				catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
 				{
-					// Timeout
+					// Timeout. O cancelamento de quem chamou não é timeout: ele segue para a falha, abaixo.
 					Result = KafkaStepResult.CreateProduceTimeout(Topic, Timeout, errorDetails, diagnosticProperties);
 					return Result;
 				}
