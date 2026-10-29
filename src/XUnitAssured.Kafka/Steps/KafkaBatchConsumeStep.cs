@@ -196,12 +196,18 @@ public class KafkaBatchConsumeStep : ITestStep
 			// Bounded by the step's own timeout: a step given one second must not wait
 			// five for metadata from a broker that is not answering.
 			var metadataTimeout = Timeout < TimeSpan.FromSeconds(5) ? Timeout : TimeSpan.FromSeconds(5);
-			ConsumerAssignment.AssignAllPartitions(consumer, config, Topic, metadataTimeout, Fabrica.DescobrirParticoes);
 
 			// O prazo do passo e o cancelamento de quem chamou valem os dois: o que vier
-			// primeiro encerra a espera.
+			// primeiro encerra a espera. Um prazo só, do começo do passo: a espera pelo
+			// tópico e a pelas mensagens cabem nele.
 			using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
 			cts.CancelAfter(Timeout);
+			var deadline = DateTime.UtcNow.Add(Timeout);
+
+			// O tópico que ainda não existe é esperado até o prazo, e não falha na hora (#219).
+			var particoes = await ConsumerAssignment.WaitForPartitionsAsync(
+				Fabrica.DescobrirParticoes, config, Topic, metadataTimeout, deadline, cancellationToken).ConfigureAwait(false);
+			ConsumerAssignment.AssignAllPartitions(consumer, config, Topic, metadataTimeout, (_, _, _) => particoes);
 
 			var consumedResults = new List<ConsumeResult<string, string>>(MessageCount);
 

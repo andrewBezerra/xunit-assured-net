@@ -153,6 +153,15 @@ internal sealed class FabricaFalsa : IFabricaDeConsumidor
 	/// <summary>O prazo que o passo deu à consulta de metadados.</summary>
 	public TimeSpan? PrazoDosMetadados { get; private set; }
 
+	/// <summary>
+	/// Quantas das primeiras consultas acham o tópico sem partições, como um tópico que ainda não existe e é criado
+	/// depois; <see cref="int.MaxValue"/>, um tópico que nunca aparece.
+	/// </summary>
+	public int ConsultasSemParticoes { get; set; }
+
+	/// <summary>Quantas vezes o passo consultou as partições.</summary>
+	public int Consultas { get; private set; }
+
 	/// <summary>Logs que o cliente "emite" assim que é criado.</summary>
 	public List<LogMessage> LogsAoCriar { get; } = new();
 
@@ -186,8 +195,11 @@ internal sealed class FabricaFalsa : IFabricaDeConsumidor
 	public List<TopicPartition> DescobrirParticoes(ConsumerConfig config, string topico, TimeSpan prazo)
 	{
 		PrazoDosMetadados = prazo;
+		Consultas++;
 
 		var particoes = new List<TopicPartition>();
+		if (Consultas <= ConsultasSemParticoes)
+			return particoes;
 		foreach (var particao in Particoes)
 			particoes.Add(new TopicPartition(topico, new Partition(particao)));
 		return particoes;

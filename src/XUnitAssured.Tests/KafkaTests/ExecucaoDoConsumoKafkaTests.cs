@@ -183,6 +183,75 @@ public class ExecucaoDoConsumoKafkaTests
 		resultado.GetProperty<string>("ExceptionType")!.ShouldContain("Canceled");
 	}
 
+	// ---------- O tópico que ainda não existe (#219) ----------
+
+	[Fact(DisplayName = "A consume started before its topic exists should wait for the topic and read the message (#219)")]
+	public async Task Consume_Should_Wait_For_Missing_Topic()
+	{
+		// O tópico aparece na terceira consulta, como um tópico que o produtor cria logo depois de o consumo começar.
+		var fabrica = new FabricaFalsa(0) { ConsultasSemParticoes = 2 }.Chegam(FalsosDoKafka.Consumida("pedidos", "k", "v"));
+
+		var resultado = (KafkaStepResult)await new KafkaConsumeStep
+		{
+			Topic = "pedidos", BootstrapServers = "b:1", Timeout = TimeSpan.FromSeconds(10), Fabrica = fabrica
+		}.ExecuteAsync(new ContextoDeTeste());
+
+		resultado.Success.ShouldBeTrue(string.Join("; ", resultado.Errors));
+		resultado.Message.ShouldBe("v");
+		fabrica.Consultas.ShouldBe(3);
+	}
+
+	[Fact(DisplayName = "A consume from a topic that never appears should wait out its timeout before failing (#219)")]
+	public async Task Consume_Should_Wait_Out_Timeout_For_Topic()
+	{
+		var fabrica = new FabricaFalsa(0) { ConsultasSemParticoes = int.MaxValue };
+
+		var cronometro = System.Diagnostics.Stopwatch.StartNew();
+		var resultado = await new KafkaConsumeStep
+		{
+			Topic = "nao-existe", BootstrapServers = "b:1", Timeout = TimeSpan.FromMilliseconds(800), Fabrica = fabrica
+		}.ExecuteAsync(new ContextoDeTeste());
+
+		cronometro.Elapsed.ShouldBeGreaterThanOrEqualTo(TimeSpan.FromMilliseconds(700), "the topic may still be created within the timeout");
+		resultado.Success.ShouldBeFalse();
+		resultado.GetProperty<string>("ExceptionMessage")
+			.ShouldBe("Topic 'nao-existe' has no partitions. It probably does not exist on the broker.");
+		fabrica.Consultas.ShouldBeGreaterThan(1);
+	}
+
+	[Fact(DisplayName = "A consume waiting for its topic should stop when the caller cancels (#219)")]
+	public async Task Consume_Waiting_For_Topic_Should_Stop_On_Cancel()
+	{
+		var fabrica = new FabricaFalsa(0) { ConsultasSemParticoes = int.MaxValue };
+		using var cancelamento = new CancellationTokenSource(TimeSpan.FromMilliseconds(150));
+
+		var cronometro = System.Diagnostics.Stopwatch.StartNew();
+		var resultado = await new KafkaConsumeStep
+		{
+			Topic = "nao-existe", BootstrapServers = "b:1", Timeout = TimeSpan.FromMinutes(1), Fabrica = fabrica
+		}.ExecuteAsync(new ContextoDeTeste(), cancelamento.Token);
+
+		cronometro.Elapsed.ShouldBeLessThan(TimeSpan.FromSeconds(30), "cancelling must not wait out the step timeout");
+		resultado.Success.ShouldBeFalse();
+		resultado.GetProperty<string>("ExceptionType")!.ShouldContain("Canceled");
+	}
+
+	[Fact(DisplayName = "A batch consume started before its topic exists should wait for the topic and collect the batch (#219)")]
+	public async Task Batch_Consume_Should_Wait_For_Missing_Topic()
+	{
+		var fabrica = new FabricaFalsa(0) { ConsultasSemParticoes = 2 }
+			.Chegam(FalsosDoKafka.Consumida("pedidos", "a", "1"), FalsosDoKafka.Consumida("pedidos", "b", "2"));
+
+		var resultado = (KafkaStepResult)await new KafkaBatchConsumeStep
+		{
+			Topic = "pedidos", MessageCount = 2, BootstrapServers = "b:1", Timeout = TimeSpan.FromSeconds(10), Fabrica = fabrica
+		}.ExecuteAsync(new ContextoDeTeste());
+
+		resultado.Success.ShouldBeTrue(string.Join("; ", resultado.Errors));
+		resultado.GetProperty<int>("BatchSize").ShouldBe(2);
+		fabrica.Consultas.ShouldBe(3);
+	}
+
 	[Fact(DisplayName = "The copy constructor should carry the consumer factory along")]
 	public void Copy_Should_Carry_Factory()
 	{
