@@ -15,7 +15,7 @@
 		que o pacote chama existe no servidor. So o Gateway/ conhece os tipos dele.
 	-->
 	<ItemGroup>
-		<PackageReference Include="Camunda.Orchestration.Sdk" Version="10.0.1" />
+		<PackageReference Include="Camunda.Orchestration.Sdk" Version="10.0.3" />
 		<!-- O [CamundaTestCases], que vira uma linha de [Theory] por caso de teste JSON. -->
 		<PackageReference Include="xunit.extensibility.core" Version="2.9.3" />
 	</ItemGroup>
