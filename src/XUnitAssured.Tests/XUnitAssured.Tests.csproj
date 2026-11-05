@@ -20,6 +20,7 @@
 		<PackageReference Include="Shouldly" Version="4.3.0" />
 		<!-- Falsos do IPage, do ILocator, do IProducer e companhia: interfaces grandes demais para um falso escrito à mão. -->
 		<PackageReference Include="NSubstitute" Version="6.2.0" />
+		<PackageReference Include="Microsoft.Extensions.TimeProvider.Testing" Version="10.11.0" />
 		<PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="9.0.8" Condition="'$(TargetFramework)' == 'net8.0' Or '$(TargetFramework)' == 'net9.0'" />
 		<PackageReference Include="Microsoft.Extensions.Logging" Version="9.0.8" Condition="'$(TargetFramework)' == 'net8.0' Or '$(TargetFramework)' == 'net9.0'" />
 		<PackageReference Include="Microsoft.Extensions.Http" Version="9.0.8" Condition="'$(TargetFramework)' == 'net8.0' Or '$(TargetFramework)' == 'net9.0'" />
