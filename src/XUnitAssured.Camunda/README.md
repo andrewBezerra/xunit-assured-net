@@ -63,6 +63,24 @@ await Given()
 - **`MockJobWorker(type)`** answers jobs of that type with `ThenComplete(variables)` or
   `ThenThrowBpmnError(code, message, variables)`. It covers the instance and every instance it
   calls. A mock that does not say what it answers does not compile.
+- **`ThenCompleteWith(job => ...)`** completes the job with what a function returns, from the job
+  (`JobKey`, `JobType`, `ElementId`, `ProcessInstanceKey`) and the instance's `Variables`. It is where a
+  test runs what the worker would do, such as calling the API, and completes the job with what came
+  back. `MockMessage(name).ThenCorrelateWith(message => ...)` does the same for a message. A function
+  that throws fails the job with no retries (the message is left uncorrelated), and the next assertion
+  says which one and why.
+
+```csharp
+.MockJobWorker("charge-card").ThenCompleteWith(async job =>
+{
+    var order = job.Variables["orderId"].GetInt32();
+    var charge = await payments.ChargeAsync(order, job.CancellationToken);
+    return new { approved = charge.Approved };
+})
+```
+
+  The variables are the process-scope ones, as Camunda's search shows them when the job appears; the
+  search may truncate a very large value.
 
 The chain is awaited once, and the assertions chain right after `ExecuteAsync()`. Await it:
 without `await` the steps still run, but a failed assertion is never seen.
@@ -332,6 +350,8 @@ the engine and shows up completed in the search a moment later. Every assertion 
 | `AssertInstanceActive()` | the instance is still running |
 | `AssertCompletedElements(ids)` | each element id of the BPMN completed in the instance |
 | `AssertActiveElements(ids)` | the instance is waiting at each element |
+| `AssertElementCompleted(id, times)` | that element completed exactly `times` times in the instance (with 0, once the instance ended) |
+| `AssertEndedAt(id)` | the instance completed through that end event, and not another |
 | `AssertVariable(name, value)` | the variable equals the value, compared as JSON |
 | `AssertVariable<T>(name, assertion)` | the assertion passes on the variable read as `T` |
 | `AssertJobMocked(type, times)` | the mock of that type resolved exactly `times` jobs |
@@ -529,6 +549,12 @@ with environment variables alone.
 With no `type`, and no `CAMUNDA_AUTH_STRATEGY`, a username means `Basic` and a client id means
 `OAuth`. The SDK on its own does not infer `Basic`: without the strategy it sends no credentials,
 and the cluster answers 401.
+
+With no address at all, a chain uses `http://localhost:8080`. A test that only makes sense on a real
+cluster, such as one a generator writes to run the customer's process, uses the
+**`RequiredCamundaClusterFixture`** (or `CamundaSettings.LoadRequired()`) instead: without the
+`restAddress` and without `CAMUNDA_REST_ADDRESS`, it fails saying what to add, and does not fall back to
+localhost.
 
 ## The client underneath
 
