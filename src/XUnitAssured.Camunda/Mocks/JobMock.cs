@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 
 using XUnitAssured.Core.Abstractions;
 
@@ -21,7 +22,8 @@ internal sealed record JobMock(
 	AcaoDoMock Acao,
 	object? Variables,
 	string? ErrorCode = null,
-	string? ErrorMessage = null)
+	string? ErrorMessage = null,
+	Func<CamundaJobContext, Task<object?>>? Calculo = null)
 {
 	public string Descrever() => Acao switch
 	{

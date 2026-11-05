@@ -2,7 +2,15 @@
 
 All notable changes to the XUnitAssured packages. Upgrading from 5.1.x? See [UPGRADING.md](UPGRADING.md).
 
-## v6.37.1 (Current — The browser tests run again)
+## v6.38.0 (Current — The verbs a generated test needs on Camunda)
+
+New in XUnitAssured.Camunda: a mock that computes its answer from the job, or from the message's subscription, and the instance's variables (`ThenCompleteWith`, `ThenCorrelateWith`); a required cluster (`CamundaSettings.LoadRequired()`, `RequiredCamundaClusterFixture`), which fails instead of falling back to localhost; and two assertions on the path the instance took (`AssertElementCompleted(id, times)`, `AssertEndedAt(id)`). Upgrading from 6.37.1 requires no code changes.
+
+- **`ThenCompleteWith(job => ...)` and `ThenCorrelateWith(message => ...)`**: an asynchronous function gets the job (or the subscription) and the process-scope variables, and returns the variables to complete (or correlate) with. A function that throws fails the job with no retries (the message is left uncorrelated), and the next assertion says which one and why.
+- **`LoadRequired()` and `RequiredCamundaClusterFixture`**: without a `restAddress` and without `CAMUNDA_REST_ADDRESS`, the test fails saying what to add. A chain without the fixture still uses `http://localhost:8080`.
+- **`AssertElementCompleted(id, times)`** counts the element's completions; **`AssertEndedAt(id)`** asserts the end event the instance completed through, naming the other one when it was not.
+
+## v6.37.1 (The browser tests run again)
 
 No change in the packages: they are the same as in 6.37.0. This release only fixes the CI, which every pull request has to ship as a version. Upgrading from 6.37.0 requires no code changes.
 

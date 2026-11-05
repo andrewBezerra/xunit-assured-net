@@ -141,6 +141,12 @@ internal sealed class ClusterFalso : ICamundaGateway
 		lock (_trava) _instancias[instancia].Elementos[elemento] = estado;
 	}
 
+	/// <summary>Mais uma instância de elemento, além da de <see cref="Elemento"/>: um elemento que rodou de novo, um fim.</summary>
+	public void MaisUmElemento(string instancia, string elemento, string tipo, string estado)
+	{
+		lock (_trava) _instancias[instancia].ElementosExtras.Add((elemento, tipo, estado));
+	}
+
 	public string EstadoDe(string instancia)
 	{
 		lock (_trava) return _instancias[instancia].Estado;
@@ -313,8 +319,11 @@ internal sealed class ClusterFalso : ICamundaGateway
 	{
 		lock (_trava)
 		{
-			IReadOnlyList<ElementoVisto> elementos = _instancias[processInstanceKey].Elementos
+			var instancia = _instancias[processInstanceKey];
+			IReadOnlyList<ElementoVisto> elementos = instancia.Elementos
 				.Select(e => new ElementoVisto(e.Key, e.Key, "SERVICE_TASK", e.Value, $"{processInstanceKey}:{e.Key}"))
+				.Concat(instancia.ElementosExtras.Select((e, i) =>
+					new ElementoVisto(e.Elemento, e.Elemento, e.Tipo, e.Estado, $"{processInstanceKey}:{e.Elemento}:{i}")))
 				.ToList();
 			return Task.FromResult(elementos);
 		}
@@ -683,6 +692,7 @@ internal sealed class ClusterFalso : ICamundaGateway
 		public string Estado { get; set; } = "ACTIVE";
 		public bool ComIncident { get; set; }
 		public Dictionary<string, string> Elementos { get; } = new();
+		public List<(string Elemento, string Tipo, string Estado)> ElementosExtras { get; } = new();
 		public Dictionary<string, string> Variaveis { get; } = new();
 	}
 

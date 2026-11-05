@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 
 using XUnitAssured.Core.Abstractions;
 
@@ -9,7 +10,8 @@ namespace XUnitAssured.Camunda.Mocks;
 internal sealed record UserTaskMock(string ElementId, object? Variables);
 
 /// <summary>As variáveis que vão com a mensagem ou o sinal, quando o teste responde por quem os enviaria.</summary>
-internal sealed record EventoMock(string Nome, object? Variables);
+/// <remarks>Com <paramref name="Calculo"/>, as variáveis saem dele, na hora de correlacionar.</remarks>
+internal sealed record EventoMock(string Nome, object? Variables, Func<CamundaMessageContext, Task<object?>>? Calculo = null);
 
 /// <summary>
 /// A resposta combinada para o processo filho que uma call activity chama: terminar com estas

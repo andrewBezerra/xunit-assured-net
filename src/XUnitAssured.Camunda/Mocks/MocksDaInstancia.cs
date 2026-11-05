@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -665,8 +666,12 @@ internal sealed class MocksDaInstancia
 
 			try
 			{
+				var (calculou, variaveis) = await VariaveisDaMensagemAsync(assinatura, mock, ct).ConfigureAwait(false);
+				if (!calculou)
+					continue;
+
 				var recebeu = await _gateway.CorrelateMessageAsync(
-					assinatura.MessageName, assinatura.CorrelationKey, mock.Variables, _tenantId, ct).ConfigureAwait(false);
+					assinatura.MessageName, assinatura.CorrelationKey, variaveis, _tenantId, ct).ConfigureAwait(false);
 
 				if (!arvore.Contains(recebeu))
 					_problemas.Enqueue(
@@ -781,7 +786,13 @@ internal sealed class MocksDaInstancia
 				else if (mock.Acao == AcaoDoMock.Falhar)
 					await _gateway.FailJobAsync(job.JobKey, mock.ErrorMessage ?? "Failed by the test's mock.", ct).ConfigureAwait(false);
 				else
-					await _gateway.CompleteJobAsync(job.JobKey, mock.Variables, ct).ConfigureAwait(false);
+				{
+					var (calculou, variaveis) = await VariaveisDoJobAsync(job, mock, ct).ConfigureAwait(false);
+					if (!calculou)
+						continue;
+
+					await _gateway.CompleteJobAsync(job.JobKey, variaveis, ct).ConfigureAwait(false);
+				}
 
 				_invocacoes.AddOrUpdate(job.Type, 1, (_, n) => n + 1);
 			}
@@ -812,6 +823,76 @@ internal sealed class MocksDaInstancia
 				throw;
 			}
 		}
+	}
+
+	// As variáveis com que o mock completa o job: as fixas, ou as que a função calcula. A função que lança
+	// falha o job, sem tentativas, para a instância não ficar esperando um job que ninguém vai completar.
+	private async Task<(bool Calculou, object? Variaveis)> VariaveisDoJobAsync(JobPendente job, JobMock mock, CancellationToken ct)
+	{
+		if (mock.Calculo is null)
+			return (true, mock.Variables);
+
+		var contexto = new CamundaJobContext(
+			job.JobKey, job.Type, job.ElementId, job.ProcessInstanceKey,
+			await VariaveisDaInstanciaAsync(job.ProcessInstanceKey, ct).ConfigureAwait(false), ct);
+		try
+		{
+			return (true, await mock.Calculo(contexto).ConfigureAwait(false));
+		}
+		catch (Exception e) when (!(e is OperationCanceledException && ct.IsCancellationRequested))
+		{
+			var mensagem = $"The function that completes job '{job.Type}' at element '{job.ElementId}' (job {job.JobKey}) " +
+				$"threw {e.GetType().Name}: {e.Message}";
+			_problemas.Enqueue(mensagem);
+			await _gateway.FailJobAsync(job.JobKey, mensagem, ct).ConfigureAwait(false);
+			return (false, null);
+		}
+	}
+
+	// As variáveis com que o mock correlaciona a mensagem: as fixas, ou as que a função calcula. A função que
+	// lança deixa a mensagem sem correlacionar.
+	private async Task<(bool Calculou, object? Variaveis)> VariaveisDaMensagemAsync(
+		AssinaturaVista assinatura, EventoMock mock, CancellationToken ct)
+	{
+		if (mock.Calculo is null)
+			return (true, mock.Variables);
+
+		var contexto = new CamundaMessageContext(
+			assinatura.MessageName, assinatura.CorrelationKey, assinatura.ElementId, assinatura.ProcessInstanceKey,
+			await VariaveisDaInstanciaAsync(assinatura.ProcessInstanceKey, ct).ConfigureAwait(false), ct);
+		try
+		{
+			return (true, await mock.Calculo(contexto).ConfigureAwait(false));
+		}
+		catch (Exception e) when (!(e is OperationCanceledException && ct.IsCancellationRequested))
+		{
+			_problemas.Enqueue(
+				$"The function that correlates message '{assinatura.MessageName}' with correlation key " +
+				$"'{assinatura.CorrelationKey}' (waiting at '{assinatura.ElementId}') threw {e.GetType().Name}: {e.Message}");
+			return (false, null);
+		}
+	}
+
+	// As variáveis do escopo do processo, pelo nome. Um valor que a busca truncou, e que por isso não é JSON,
+	// vai como o texto que veio.
+	private async Task<IReadOnlyDictionary<string, JsonElement>> VariaveisDaInstanciaAsync(string instancia, CancellationToken ct)
+	{
+		var variaveis = await _gateway.SearchVariablesAsync(instancia, null, ct).ConfigureAwait(false);
+		var porNome = new Dictionary<string, JsonElement>(StringComparer.Ordinal);
+		foreach (var variavel in variaveis.Where(v => v.ScopeKey == instancia))
+		{
+			try
+			{
+				using var documento = JsonDocument.Parse(variavel.ValueJson);
+				porNome[variavel.Name] = documento.RootElement.Clone();
+			}
+			catch (JsonException)
+			{
+				porNome[variavel.Name] = JsonSerializer.SerializeToElement(variavel.ValueJson);
+			}
+		}
+
+		return porNome;
 	}
 
 	private async Task<bool> TerminouAsync(CancellationToken ct)

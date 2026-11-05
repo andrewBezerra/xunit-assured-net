@@ -1,5 +1,6 @@
 using System;
 using System.Linq;
+using System.Threading.Tasks;
 
 using XUnitAssured.Camunda.Abstractions;
 using XUnitAssured.Camunda.DSL;
@@ -236,6 +237,14 @@ internal static class CamundaVerbos
 			return CamundaScenario.De(_cenario);
 		}
 
+		public ICamundaScenario ThenCorrelateWith(Func<CamundaMessageContext, Task<object?>> variables)
+		{
+			ArgumentNullException.ThrowIfNull(variables);
+
+			MocksDeElemento.RegistrarMensagem(_cenario.Context, new EventoMock(_nome, null, variables));
+			return CamundaScenario.De(_cenario);
+		}
+
 		public ICamundaScenario ThenTrigger(object? variables = null)
 		{
 			MocksDeElemento.RegistrarSinal(_cenario.Context, new EventoMock(_nome, variables));
@@ -277,6 +286,14 @@ internal static class CamundaVerbos
 		public ICamundaScenario ThenComplete(object? variables = null)
 		{
 			MocksDaCadeia.Registrar(_cenario.Context, new JobMock(_tipo, AcaoDoMock.Completar, variables));
+			return CamundaScenario.De(_cenario);
+		}
+
+		public ICamundaScenario ThenCompleteWith(Func<CamundaJobContext, Task<object?>> variables)
+		{
+			ArgumentNullException.ThrowIfNull(variables);
+
+			MocksDaCadeia.Registrar(_cenario.Context, new JobMock(_tipo, AcaoDoMock.Completar, null, Calculo: variables));
 			return CamundaScenario.De(_cenario);
 		}
 
