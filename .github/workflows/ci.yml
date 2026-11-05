@@ -267,7 +267,9 @@ jobs:
   # Nao bloqueante pelo mesmo motivo do broker: baixar e instalar navegador depende do runner.
   browser-tests:
     name: Browser tests (non-blocking)
-    runs-on: ubuntu-latest
+    # O ubuntu-latest passou a ser o 26.04, para o qual o Playwright ainda não tem o Chromium
+    # ("Playwright does not support chromium on ubuntu26.04-x64", 2026-11-05).
+    runs-on: ubuntu-24.04
     continue-on-error: true
 
     steps:
