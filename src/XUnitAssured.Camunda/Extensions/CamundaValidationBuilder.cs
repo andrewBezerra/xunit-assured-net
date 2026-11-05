@@ -130,6 +130,80 @@ public class CamundaValidationBuilder : ValidationBuilder<CamundaStepResult>
 	}
 
 	/// <summary>
+	/// Afirma quantas vezes o elemento completou na instância: uma task que rodou de novo num laço, ou
+	/// nenhuma vez.
+	/// </summary>
+	/// <remarks>
+	/// Espera a contagem chegar a <paramref name="times"/>, e desiste logo que ela passa. Menos vezes só
+	/// falha quando a instância já terminou, ou no fim do prazo: com 0, a asserção espera a instância
+	/// terminar. Só a instância iniciada conta, não as que ela chamou.
+	/// </remarks>
+	/// <param name="elementId">O id do elemento no BPMN.</param>
+	/// <param name="times">Quantas vezes ele deve ter completado.</param>
+	public CamundaValidationBuilder AssertElementCompleted(string elementId, int times)
+	{
+		if (string.IsNullOrWhiteSpace(elementId)) throw new ArgumentException("Element id is required.", nameof(elementId));
+		if (times < 0) throw new ArgumentOutOfRangeException(nameof(times), "Times cannot be negative.");
+
+		Esperar($"to complete '{elementId}' {times} time(s)", async (a, ct) =>
+		{
+			var feitas = (await a.Gateway.SearchElementsAsync(a.Chave, ct).ConfigureAwait(false))
+				.Count(e => e.ElementId == elementId && e.State == "COMPLETED");
+			if (feitas > times)
+				return Verificacao.Impossivel($"it completed {feitas} time(s)");
+
+			var instancia = await a.Gateway.GetInstanceAsync(a.Chave, ct).ConfigureAwait(false);
+			var terminou = instancia is { State: "COMPLETED" or "TERMINATED" };
+			if (feitas == times && (times > 0 || terminou))
+				return Verificacao.Ok;
+
+			return terminou
+				? Verificacao.Impossivel($"it completed {feitas} time(s), and the instance is {instancia!.State}")
+				: Verificacao.Pendente($"it completed {feitas} time(s)");
+		});
+
+		return this;
+	}
+
+	/// <summary>
+	/// Afirma que a instância completou por este evento de fim, e não por outro.
+	/// </summary>
+	/// <remarks>
+	/// Espera a instância completar. Desiste logo quando ela completa por outro fim, ou é encerrada.
+	/// </remarks>
+	/// <param name="endEventId">O id, no BPMN, do evento de fim.</param>
+	public CamundaValidationBuilder AssertEndedAt(string endEventId)
+	{
+		if (string.IsNullOrWhiteSpace(endEventId)) throw new ArgumentException("End event id is required.", nameof(endEventId));
+
+		Esperar($"to end at '{endEventId}'", async (a, ct) =>
+		{
+			var instancia = await a.Gateway.GetInstanceAsync(a.Chave, ct).ConfigureAwait(false);
+			if (instancia is null) return Verificacao.Pendente("it has not shown up in the search yet");
+			if (instancia.State == "TERMINATED") return Verificacao.Impossivel("it was terminated");
+			if (instancia.State != "COMPLETED")
+				return instancia.HasIncident
+					? Verificacao.Impossivel("it has an open incident")
+					: Verificacao.Pendente($"it is {instancia.State}");
+
+			var fins = (await a.Gateway.SearchElementsAsync(a.Chave, ct).ConfigureAwait(false))
+				.Where(e => e.Type == "END_EVENT" && e.State == "COMPLETED")
+				.Select(e => e.ElementId)
+				.Distinct()
+				.ToList();
+			if (fins.Contains(endEventId))
+				return Verificacao.Ok;
+
+			// A busca dos elementos fica atrás da da instância: o fim pode ainda não ter aparecido.
+			return fins.Count == 0
+				? Verificacao.Pendente("it completed, and its end event has not shown up in the search yet")
+				: Verificacao.Impossivel($"it ended at {string.Join(", ", fins.Select(f => $"'{f}'"))}");
+		});
+
+		return this;
+	}
+
+	/// <summary>
 	/// Afirma o valor de uma variável da instância, comparado como JSON.
 	/// </summary>
 	/// <param name="name">O nome da variável.</param>

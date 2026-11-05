@@ -209,6 +209,23 @@ public interface ICamundaMessageMock
 	/// <summary>Correlaciona a mensagem, com estas variáveis, como o sistema de fora faria.</summary>
 	/// <param name="variables">O conteúdo da mensagem: objeto anônimo, classe ou dicionário. Nulo: nada.</param>
 	ICamundaScenario ThenCorrelate(object? variables = null);
+
+	/// <summary>
+	/// Correlaciona a mensagem com as variáveis que a função calcula, a partir da assinatura que espera
+	/// por ela e das variáveis da instância.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// É o lugar de rodar o que o sistema de fora faria para mandar a mensagem, como consumir o evento
+	/// num tópico, e responder com o que veio. A função roda uma vez por assinatura, quando ela aparece.
+	/// </para>
+	/// <para>
+	/// Se a função lança, a mensagem não é correlacionada, e a próxima asserção falha dizendo qual
+	/// mensagem e o porquê.
+	/// </para>
+	/// </remarks>
+	/// <param name="variables">Recebe a mensagem esperada e devolve o conteúdo dela: objeto anônimo, classe ou dicionário. Nulo: nada.</param>
+	ICamundaScenario ThenCorrelateWith(Func<CamundaMessageContext, Task<object?>> variables);
 }
 
 /// <summary>Um sinal mockado que ainda não disse o que leva.</summary>
@@ -242,6 +259,23 @@ public interface ICamundaJobMock
 	/// <summary>Completa o job, com estas variáveis, como o worker faria.</summary>
 	/// <param name="variables">O que o worker devolveria: objeto anônimo, classe ou dicionário. Nulo: nada.</param>
 	ICamundaScenario ThenComplete(object? variables = null);
+
+	/// <summary>
+	/// Completa o job com as variáveis que a função calcula, a partir do job e das variáveis da instância,
+	/// como o worker de verdade faria.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// É o lugar de rodar o que o worker faria, como chamar a API e extrair o que ela devolveu, e
+	/// completar o job com isso. A função roda uma vez por job, quando ele aparece.
+	/// </para>
+	/// <para>
+	/// Se a função lança, o job falha sem tentativas restantes (o Camunda abre um incident), e a próxima
+	/// asserção falha dizendo qual job e o porquê.
+	/// </para>
+	/// </remarks>
+	/// <param name="variables">Recebe o job e devolve o que o worker devolveria: objeto anônimo, classe ou dicionário. Nulo: nada.</param>
+	ICamundaScenario ThenCompleteWith(Func<CamundaJobContext, Task<object?>> variables);
 
 	/// <summary>
 	/// Lança um erro BPMN no job, como um worker que recusa o trabalho por regra de negócio.

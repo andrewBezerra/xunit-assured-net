@@ -1,3 +1,4 @@
+using System;
 using System.Text.Json.Serialization;
 
 using XUnitAssured.Core.Abstractions;
@@ -76,6 +77,36 @@ public class CamundaSettings
 	/// </remarks>
 	public static CamundaSettings Load() =>
 		TestSettingsSection.Read<CamundaSettings>("camunda") ?? new CamundaSettings();
+
+	/// <summary>
+	/// Carrega a seção <c>camunda</c> como <see cref="Load"/>, mas exige o endereço do cluster: sem a seção
+	/// com o <c>restAddress</c>, e sem a variável <c>CAMUNDA_REST_ADDRESS</c>, lança em vez de deixar o
+	/// cliente usar o localhost.
+	/// </summary>
+	/// <remarks>
+	/// Para o teste que só faz sentido num cluster de verdade, como o que um gerador escreve para rodar o
+	/// processo no Camunda do cliente: ele falha dizendo o que falta, e não roda contra um Camunda que
+	/// alguém deixou de pé na máquina. A cadeia sem fixture continua com o <see cref="Load"/>.
+	/// </remarks>
+	/// <exception cref="InvalidOperationException">Não há endereço do cluster.</exception>
+	public static CamundaSettings LoadRequired() =>
+		LoadRequired(TestSettingsSection.Read<CamundaSettings>("camunda"), Environment.GetEnvironmentVariable);
+
+	internal static CamundaSettings LoadRequired(CamundaSettings? lida, Func<string, string?> ambiente)
+	{
+		ArgumentNullException.ThrowIfNull(ambiente);
+
+		// Os mesmos lugares de onde o cliente tira o endereço: a seção, e senão as variáveis do SDK.
+		var endereco = lida?.RestAddress ?? ambiente("CAMUNDA_REST_ADDRESS") ?? ambiente("ZEEBE_REST_ADDRESS");
+		if (string.IsNullOrWhiteSpace(endereco))
+			throw new InvalidOperationException(
+				"This test runs on Camunda, but no cluster is configured: testsettings.json has no \"camunda\" section " +
+				"with a \"restAddress\", and CAMUNDA_REST_ADDRESS is not set. Add the cluster's address, for example " +
+				"{ \"camunda\": { \"restAddress\": \"http://localhost:8080\" } }, with its authentication: the test does not " +
+				"fall back to localhost on its own.");
+
+		return lida ?? new CamundaSettings();
+	}
 
 	internal const string ChaveNoContexto = "_CamundaSettings";
 
