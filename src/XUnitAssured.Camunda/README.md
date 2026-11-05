@@ -521,7 +521,7 @@ The `camunda` section of `testsettings.json`, beside `http`, `kafka` and `rabbit
 ```
 
 `restAddress` has no `/v2`. `authentication.type` is `None`, `Basic` or `OAuth` (with `clientId`,
-`clientSecret`, `oauthUrl` and, when the provider asks, `audience`). What the section leaves out
+`clientSecret`, `oauthUrl` and, when the provider asks, `audience` and `scope`). What the section leaves out
 comes from the `CAMUNDA_*` variables the SDK reads (`CAMUNDA_REST_ADDRESS`,
 `CAMUNDA_BASIC_AUTH_USERNAME`, `CAMUNDA_BASIC_AUTH_PASSWORD`, ...), so a CI job can configure it
 with environment variables alone.
@@ -529,6 +529,44 @@ with environment variables alone.
 With no `type`, and no `CAMUNDA_AUTH_STRATEGY`, a username means `Basic` and a client id means
 `OAuth`. The SDK on its own does not infer `Basic`: without the strategy it sends no credentials,
 and the cluster answers 401.
+
+## The client underneath
+
+The steps talk to the cluster through **`CamundaApiClient`**, which is public, for a tool that
+drives an instance itself instead of through the DSL: it activates and completes the jobs, reads
+the instance, waits for its user tasks.
+
+```csharp
+using XUnitAssured.Camunda.Client;
+
+var client = CamundaApiClient.For(settings); // the camunda section, or what the CAMUNDA_* variables say
+
+var jobs = await client.ActivateJobsAsync(
+    new CamundaJobActivationRequest("charge-card", 32, TimeSpan.FromSeconds(30), TimeSpan.FromSeconds(1), "my-tool"),
+    observe: call => Console.WriteLine($"{call.Method} {call.Path} -> {call.Status} in {call.Duration.TotalMilliseconds} ms"));
+foreach (var job in jobs)
+    await client.CompleteJobAsync(job.JobKey, new JsonObject { ["approved"] = true });
+```
+
+- **One per configuration.** `For` returns the same client for the same settings, for the life
+  of the process, with one `HttpClient` that reuses its connections. A loop that polls the
+  cluster does not open a connection per call. The steps of the DSL use the same client, so a
+  tool and the tests in one process share the connection and the token.
+- **A deadline per call.** Each operation takes a `timeout`: 10 s by default, 30 s for a
+  deployment, the long wait plus 10 s for a job activation. Past it, the call throws
+  `CamundaUnavailableException`; the caller's cancellation throws `OperationCanceledException`.
+- **What can go wrong.** `CamundaApiException` (the status, the `title` and the `detail` of the
+  problem, and the path), `CamundaCredentialException` (the identity provider refused, answered
+  without a token, or the Camunda refused the credentials) and `CamundaUnavailableException`
+  (no answer, from the Camunda or the identity provider). A command on a job, an instance or a
+  user task that no longer exists returns `false`.
+- **The token** is asked by client credentials, kept until 30 s before it expires, asked once
+  for concurrent calls and renewed once when the Camunda refuses it.
+- **Job commands** (complete, throw the error, fail) are tried again up to 3 times when the
+  Camunda does not answer. **`SearchSettledElementsAsync`** searches the elements again while the
+  search, which lags behind the engine, still shows one active for an instance that ended.
+- **`observe`** hears each HTTP request of the operation, the token request included, without
+  the authorization header, the token or the secret.
 
 ## Running Camunda locally
 
