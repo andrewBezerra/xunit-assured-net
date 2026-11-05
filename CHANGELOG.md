@@ -2,7 +2,13 @@
 
 All notable changes to the XUnitAssured packages. Upgrading from 5.1.x? See [UPGRADING.md](UPGRADING.md).
 
-## v6.37.0 (Current — A public Camunda client, with its connections reused)
+## v6.37.1 (Current — The browser tests run again)
+
+No change in the packages: they are the same as in 6.37.0. This release only fixes the CI, which every pull request has to ship as a version. Upgrading from 6.37.0 requires no code changes.
+
+- **The browser tests run again** on `ubuntu-24.04`. `ubuntu-latest` moved to Ubuntu 26.04, where Playwright does not install Chromium yet ("Playwright does not support chromium on ubuntu26.04-x64"), so the job failed before running a test.
+
+## v6.37.0 (A public Camunda client, with its connections reused)
 
 New in XUnitAssured.Camunda: `CamundaApiClient`, a public client of the Camunda 8.10 REST API on the official SDK, which the test DSL now runs on too. The SDK goes to 10.0.3. Upgrading from 6.36.1 requires no code changes.
 
