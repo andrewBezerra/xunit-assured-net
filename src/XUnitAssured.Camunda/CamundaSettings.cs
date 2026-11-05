@@ -126,6 +126,10 @@ public class CamundaAuthenticationSettings
 	/// <summary>A audiência do token, para <c>OAuth</c>, quando o provedor exige.</summary>
 	[JsonPropertyName("audience")]
 	public string? Audience { get; set; }
+
+	/// <summary>O scope do token, para <c>OAuth</c>, quando o provedor exige (o <c>CAMUNDA_OAUTH_SCOPE</c>).</summary>
+	[JsonPropertyName("scope")]
+	public string? Scope { get; set; }
 }
 
 /// <summary>

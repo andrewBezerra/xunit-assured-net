@@ -2,7 +2,18 @@
 
 All notable changes to the XUnitAssured packages. Upgrading from 5.1.x? See [UPGRADING.md](UPGRADING.md).
 
-## v6.36.1 (Current — Kafka cancellation and missing topics, JSONata stack)
+## v6.37.0 (Current — A public Camunda client, with its connections reused)
+
+New in XUnitAssured.Camunda: `CamundaApiClient`, a public client of the Camunda 8.10 REST API on the official SDK, which the test DSL now runs on too. The SDK goes to 10.0.3. Upgrading from 6.36.1 requires no code changes.
+
+- **One client per configuration** (`CamundaApiClient.For(settings)`), shared for the life of the process, on one `HttpClient` that reuses its connections: a loop that polls the cluster no longer opens a connection per call.
+- **The operations a run needs**: deploying, starting and cancelling instances, activating, completing, failing and giving back jobs, renewing a job timeout, searching and completing user tasks, searching instances, elements, incidents and message subscriptions, correlating a message.
+- **A deadline per call** from the cancellation token (10 s, 30 s for a deployment, the long wait plus 10 s for an activation), and three exceptions: `CamundaApiException`, `CamundaCredentialException` and `CamundaUnavailableException`. A command whose target no longer exists returns `false`.
+- **The OAuth token** is kept until 30 s before it expires, asked once for concurrent calls and renewed once when refused; `camunda.authentication.scope` is new.
+- **Job commands are tried again** up to 3 times when the Camunda does not answer, and **`SearchSettledElementsAsync`** waits for the search to catch up with an instance that ended.
+- **Each HTTP request is told to its caller** (`CamundaCall`), without the authorization header, the token or the secret.
+
+## v6.36.1 (Kafka cancellation and missing topics, JSONata stack)
 
 Bug fix release in XUnitAssured.Kafka and XUnitAssured.Jsonata. Upgrading from 6.36.0 requires no code changes.
 

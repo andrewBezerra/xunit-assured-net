@@ -5,6 +5,7 @@ using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 
+using XUnitAssured.Camunda.Client;
 using XUnitAssured.Camunda.Results;
 
 using Camunda.Orchestration.Sdk;
@@ -15,44 +16,47 @@ namespace XUnitAssured.Camunda.Gateway;
 /// O <see cref="ICamundaGateway"/> sobre o <c>Camunda.Orchestration.Sdk</c>.
 /// </summary>
 /// <remarks>
-/// É o único lugar do pacote que conhece os tipos do SDK. Toda recusa do cluster sai daqui como
-/// <see cref="CamundaRecusouException"/>, com o código que o cluster respondeu, porque é pelo
-/// código que o pacote decide o que uma recusa significa.
+/// <para>
+/// Toda recusa do cluster sai daqui como <see cref="CamundaRecusouException"/>, com o código que o
+/// cluster respondeu, porque é pelo código que o pacote decide o que uma recusa significa.
+/// </para>
+/// <para>
+/// O SDK é o do <see cref="CamundaApiClient"/> da mesma configuração (spec do conexoes-do-camunda,
+/// D1): a DSL e o cliente público dividem o HttpClient, a conexão e o token.
+/// </para>
 /// </remarks>
 internal sealed class SdkCamundaGateway : ICamundaGateway, IDisposable
 {
 	private readonly CamundaClient _client;
 
 	public SdkCamundaGateway(CamundaSettings settings)
-		: this(settings, new XmlComoJson())
+		: this(CamundaApiClient.For(settings ?? throw new ArgumentNullException(nameof(settings))))
 	{
 	}
 
 	/// <summary>
-	/// Com o handler HTTP embaixo do contorno do XML: os testes do pacote passam um que responde
-	/// como o cluster, sem rede.
+	/// Com o handler HTTP embaixo do cliente: os testes do pacote passam um que responde como o
+	/// cluster, sem rede.
 	/// </summary>
 	internal SdkCamundaGateway(CamundaSettings settings, HttpMessageHandler interno)
-		: this(settings, new XmlComoJson(interno ?? throw new ArgumentNullException(nameof(interno))))
+		: this(new CamundaApiClient(
+			settings ?? throw new ArgumentNullException(nameof(settings)),
+			interno ?? throw new ArgumentNullException(nameof(interno)),
+			TimeProvider.System,
+			Ambiente))
 	{
 	}
 
-	private SdkCamundaGateway(CamundaSettings settings, XmlComoJson handler)
-	{
-		ArgumentNullException.ThrowIfNull(settings);
-
-		_client = CamundaClient.Create(new CamundaOptions
-		{
-			Config = Configuracao(settings),
-			HttpMessageHandler = handler
-		});
-	}
+	private SdkCamundaGateway(CamundaApiClient cliente) => _client = cliente.Sdk;
 
 	/// <summary>
 	/// Traduz a seção <c>camunda</c> para as chaves do SDK. Só entra o que foi preenchido: o que
-	/// faltar, o SDK busca nas variáveis <c>CAMUNDA_*</c> e depois nos padrões dele.
+	/// faltar vem das variáveis <c>CAMUNDA_*</c> e depois dos padrões.
 	/// </summary>
-	internal static Dictionary<string, string> Configuracao(CamundaSettings settings)
+	internal static Dictionary<string, string> Configuracao(CamundaSettings settings) => Configuracao(settings, Ambiente);
+
+	/// <summary>O mesmo, com as variáveis de ambiente dadas (as do processo, ou as dos testes).</summary>
+	internal static Dictionary<string, string> Configuracao(CamundaSettings settings, Func<string, string?> ambiente)
 	{
 		var config = new Dictionary<string, string>();
 		var auth = settings.Authentication ?? new CamundaAuthenticationSettings();
@@ -69,11 +73,11 @@ internal sealed class SdkCamundaGateway : ICamundaGateway, IDisposable
 		// não manda credencial nenhuma, e o cluster responde 401 (medido contra a 8.10.4). Então,
 		// sem tipo no arquivo nem na variável, o tipo sai do que foi preenchido.
 		var tipo = auth.Type;
-		if (string.IsNullOrWhiteSpace(tipo) && string.IsNullOrWhiteSpace(Ambiente("CAMUNDA_AUTH_STRATEGY")))
+		if (string.IsNullOrWhiteSpace(tipo) && string.IsNullOrWhiteSpace(ambiente("CAMUNDA_AUTH_STRATEGY")))
 		{
-			if (!string.IsNullOrWhiteSpace(auth.Username ?? Ambiente("CAMUNDA_BASIC_AUTH_USERNAME")))
+			if (!string.IsNullOrWhiteSpace(auth.Username ?? ambiente("CAMUNDA_BASIC_AUTH_USERNAME")))
 				tipo = "BASIC";
-			else if (!string.IsNullOrWhiteSpace(auth.ClientId ?? Ambiente("CAMUNDA_CLIENT_ID")))
+			else if (!string.IsNullOrWhiteSpace(auth.ClientId ?? ambiente("CAMUNDA_CLIENT_ID")))
 				tipo = "OAUTH";
 		}
 
@@ -95,6 +99,7 @@ internal sealed class SdkCamundaGateway : ICamundaGateway, IDisposable
 		Por("CAMUNDA_CLIENT_SECRET", auth.ClientSecret);
 		Por("CAMUNDA_OAUTH_URL", auth.OAuthUrl);
 		Por("CAMUNDA_TOKEN_AUDIENCE", auth.Audience);
+		Por("CAMUNDA_OAUTH_SCOPE", auth.Scope);
 
 		return config;
 	}
@@ -473,19 +478,7 @@ internal sealed class SdkCamundaGateway : ICamundaGateway, IDisposable
 			return (texto ?? string.Empty).TrimStart((char)0xFEFF);
 		});
 
-	// O nome que o Camunda e o Operate usam (JOB_NO_RETRIES, SERVICE_TASK), e não o do enum do SDK
-	// (JOBNORETRIES). O SDK 10.0.1 o declara num [JsonPropertyName] em cada membro, que o
-	// JsonStringEnumConverter não lê: serializar o valor devolvia o nome do membro, sem sublinhado.
-	private static string Nome<T>(T valor) where T : struct, Enum
-	{
-		var membro = valor.ToString();
-		var campo = typeof(T).GetField(membro, System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static);
-		var nome = campo?.GetCustomAttributes(typeof(System.Text.Json.Serialization.JsonPropertyNameAttribute), false)
-			.OfType<System.Text.Json.Serialization.JsonPropertyNameAttribute>()
-			.FirstOrDefault()?.Name;
-
-		return string.IsNullOrEmpty(nome) ? membro : nome!;
-	}
+	private static string Nome<T>(T valor) where T : struct, Enum => NomesDoSdk.Nome(valor);
 
 	// O tipo da espera vem da classe dos detalhes: MessageWaitStateDetails é MESSAGE.
 	private static string Tipo(WaitStateDetails? detalhes) => detalhes switch
@@ -499,7 +492,10 @@ internal sealed class SdkCamundaGateway : ICamundaGateway, IDisposable
 		var outro => outro.GetType().Name.Replace("WaitStateDetails", string.Empty).ToUpperInvariant()
 	};
 
-	public void Dispose() => _client.Dispose();
+	// O cliente do SDK é o do CamundaApiClient, que vive enquanto o processo viver: nada a descartar.
+	public void Dispose()
+	{
+	}
 
 	private static InstanciaVista Vista(ProcessInstanceResult p) => new(
 		p.ProcessInstanceKey.Value,
