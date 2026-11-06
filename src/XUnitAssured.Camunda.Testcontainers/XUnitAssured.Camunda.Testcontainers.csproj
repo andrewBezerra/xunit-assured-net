@@ -11,6 +11,8 @@
 
 	<ItemGroup>
 		<PackageReference Include="Testcontainers" Version="4.16.0" />
+		<!-- O truststore PKCS12 do Java, com a autoridade de teste marcada como confiável. -->
+		<PackageReference Include="System.Security.Cryptography.Pkcs" Version="10.0.14" />
 		<!-- O IAsyncLifetime do xUnit v2, para o fixture subir e derrubar o container. -->
 		<PackageReference Include="xunit.extensibility.core" Version="2.9.3" />
 	</ItemGroup>
@@ -32,6 +34,11 @@
 
 	<ItemGroup>
 		<ProjectReference Include="..\XUnitAssured.Camunda\XUnitAssured.Camunda.csproj" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<!-- Os testes do pacote trocam o Docker por um criador de containers falso. -->
+		<InternalsVisibleTo Include="XUnitAssured.Tests" />
 	</ItemGroup>
 
 </Project>

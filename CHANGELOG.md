@@ -2,7 +2,11 @@
 
 All notable changes to the XUnitAssured packages. Upgrading from 5.1.x? See [UPGRADING.md](UPGRADING.md).
 
-## v6.38.0 (Current — The verbs a generated test needs on Camunda)
+## v6.39.0 (Current — The customer's workers in Docker)
+
+New in XUnitAssured.Camunda.Testcontainers: `CamundaFixture`, which starts the Camunda and the customer's workers in Docker from a `camunda.containers` list in `testsettings.json` (one network, `dependsOn` order, the Camunda's address and credential handed to each worker), with `none` or `basic` authentication, or runs on the configured cluster. **The Camunda in Docker now speaks only TLS**, with a test authority generated on every run that the test's client (the new `camunda.caCertificatePath`) and the workers (`SSL_CERT_FILE`, `NODE_EXTRA_CA_CERTS`, `REQUESTS_CA_BUNDLE`, the Camunda SDK variables and a Java truststore) trust alone. Upgrading from 6.38.0 requires no code changes; a test that called `CamundaContainerFixture`'s address outside the chains has to trust its authority.
+
+## v6.38.0 (The verbs a generated test needs on Camunda)
 
 New in XUnitAssured.Camunda: a mock that computes its answer from the job, or from the message's subscription, and the instance's variables (`ThenCompleteWith`, `ThenCorrelateWith`); a required cluster (`CamundaSettings.LoadRequired()`, `RequiredCamundaClusterFixture`), which fails instead of falling back to localhost; and two assertions on the path the instance took (`AssertElementCompleted(id, times)`, `AssertEndedAt(id)`). Upgrading from 6.37.1 requires no code changes.
 

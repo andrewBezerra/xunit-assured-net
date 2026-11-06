@@ -71,7 +71,8 @@ public sealed partial class CamundaApiClient
 	public static CamundaApiClient For(CamundaSettings settings)
 	{
 		ArgumentNullException.ThrowIfNull(settings);
-		return Compartilhados.GetOrAdd(Key(settings), _ => new CamundaApiClient(settings, Transporte(), TimeProvider.System, Environment.GetEnvironmentVariable));
+		return Compartilhados.GetOrAdd(Key(settings), _ =>
+			new CamundaApiClient(settings, Transporte(settings, Environment.GetEnvironmentVariable), TimeProvider.System, Environment.GetEnvironmentVariable));
 	}
 
 	/// <summary>
@@ -137,7 +138,7 @@ public sealed partial class CamundaApiClient
 		return JsonSerializer.Serialize(new[]
 		{
 			settings.RestAddress, settings.TenantId, auth.Type, auth.Username, Hash(auth.Password), auth.ClientId, Hash(auth.ClientSecret),
-			auth.OAuthUrl, auth.Audience, auth.Scope
+			auth.OAuthUrl, auth.Audience, auth.Scope, settings.CaCertificatePath
 		});
 	}
 
@@ -145,12 +146,18 @@ public sealed partial class CamundaApiClient
 		segredo is null ? null : Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(segredo)));
 
 	// O pool de conexões do cliente: relidas a cada 5 min (o DNS e o balanceador), fechadas depois de 1 min ociosas. O
-	// prazo é por chamada, e não do HttpClient.
-	private static SocketsHttpHandler Transporte() => new()
+	// prazo é por chamada, e não do HttpClient. Com a autoridade do cluster, o TLS confia só nela.
+	internal static SocketsHttpHandler Transporte(CamundaSettings settings, Func<string, string?> ambiente)
 	{
-		PooledConnectionLifetime = TimeSpan.FromMinutes(5),
-		PooledConnectionIdleTimeout = TimeSpan.FromMinutes(1),
-	};
+		var transporte = new SocketsHttpHandler
+		{
+			PooledConnectionLifetime = TimeSpan.FromMinutes(5),
+			PooledConnectionIdleTimeout = TimeSpan.FromMinutes(1),
+		};
+		if ((settings.CaCertificatePath ?? ambiente("CAMUNDA_MTLS_CA_PATH")) is { Length: > 0 } autoridade)
+			transporte.SslOptions.RemoteCertificateValidationCallback = ConfiancaNaAutoridade.Callback(ConfiancaNaAutoridade.Ler(autoridade));
+		return transporte;
+	}
 
 	/// <summary>
 	/// Uma operação: o escopo que leva os avisos à quem chamou, o prazo ligado ao cancelamento de quem chamou, e a tradução
