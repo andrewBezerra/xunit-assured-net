@@ -2,7 +2,11 @@
 
 All notable changes to the XUnitAssured packages. Upgrading from 5.1.x? See [UPGRADING.md](UPGRADING.md).
 
-## v6.41.0 (Current — OAuth for the customer's workers in Docker)
+## v6.42.0 (Current — Following an instance by a value the test instance gets while it runs)
+
+New in XUnitAssured.Camunda: `FollowInstanceByInstanceVariable(processId, variable, sourceInstanceKey, sourceVariable)` reads a variable from a running instance when the step runs and follows the instance of another process that has the same value, waiting for both within `assertionTimeoutSeconds`. Upgrading from 6.41.0 requires no code changes.
+
+## v6.41.0 (OAuth for the customer's workers in Docker)
 
 New in XUnitAssured.Camunda.Testcontainers: `camunda.containers.authentication: "oauth"`. The `CamundaFixture` starts a Keycloak (`camunda/keycloak:quay-26.6.4`, over https only, with the test authority), imports a `camunda-platform` realm it writes, points the Camunda's OIDC at it, and hands the workers the token endpoint, client, secret and audience in the Camunda SDK, Camunda Spring SDK and Zeebe Java client names. The customer only names the worker's client in `camunda.containers.oauth.clientId`. Upgrading from 6.40.0 requires no code changes.
 
