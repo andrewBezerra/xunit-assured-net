@@ -53,6 +53,45 @@ public class CamundaNoContainerTests(CamundaContainerFixture camunda)
 }
 
 /// <summary>
+/// O OAuth no Docker de verdade (5e, no CI): o <see cref="CamundaFixture"/> sobe o Keycloak em https com o realm importado,
+/// e o Camunda validando o token por ele; o pedido roda de ponta a ponta com o token do client do próprio teste.
+/// </summary>
+[Trait("Category", "Camunda")]
+[Trait("Component", "Integration")]
+[Trait("Requires", "Docker")]
+public class CamundaComOAuthNoContainerTests(CamundaComOAuthNoContainerTests.ComOAuth camunda)
+	: CamundaTestBase<CamundaComOAuthNoContainerTests.ComOAuth>(camunda), IClassFixture<CamundaComOAuthNoContainerTests.ComOAuth>
+{
+	/// <summary>O fixture no modo <c>oauth</c>, sem worker: só o Keycloak e o Camunda.</summary>
+	public sealed class ComOAuth() : CamundaFixture(
+		new CamundaSectionWithContainers
+		{
+			Containers = new CamundaContainersSettings
+			{
+				Authentication = "oauth",
+				OAuth = new CamundaContainersOAuth { ClientId = "worker-do-cliente" }
+			}
+		},
+		Environment.GetEnvironmentVariable, new CriadorNoDocker());
+
+	[Fact(DisplayName = "Testcontainers with OAuth: the order runs end to end with a token from the Keycloak the fixture started")]
+	public async Task Order_Runs_With_OAuth()
+	{
+		Fixture.Settings.Authentication.Type.ShouldBe("OAuth");
+		Fixture.Settings.RestAddress.ShouldStartWith("https://");
+
+		await Given()
+			.Deploy("xa-pedido", "xa-envio")
+			.MockJobWorker("xa-cobrar").ThenComplete(new { pago = true })
+			.MockChildProcess("chamar-envio").ThenComplete(new { rastreio = "BR-OAUTH" })
+			.StartInstance("xa-pedido", new { pedidoId = 2 })
+			.ExecuteAsync()
+			.AssertInstanceCompleted()
+			.AssertVariable("codigoRastreio", "BR-OAUTH");
+	}
+}
+
+/// <summary>
 /// O fixture de cluster, sem cluster: o que ele entrega às cadeias.
 /// </summary>
 [Trait("Category", "Camunda")]

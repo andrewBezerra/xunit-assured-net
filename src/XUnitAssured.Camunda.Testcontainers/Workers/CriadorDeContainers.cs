@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Net;
 using System.Net.Http;
 using System.Security.Cryptography.X509Certificates;
 using System.Text.RegularExpressions;
@@ -28,6 +29,8 @@ namespace XUnitAssured.Camunda.Testcontainers;
 /// <param name="Autoridade">
 /// A autoridade em que o pedido HTTP da espera confia, quando o container responde em https; nula, http.
 /// </param>
+/// <param name="Comando">O comando do container, no lugar do da imagem; nulo, o da imagem.</param>
+/// <param name="StatusDaEspera">O status que o pedido HTTP da espera tem de receber; nulo, um de sucesso.</param>
 internal sealed record DefinicaoDeContainer(
 	string Nome,
 	string Imagem,
@@ -36,7 +39,9 @@ internal sealed record DefinicaoDeContainer(
 	CamundaContainerWait? Espera,
 	(string Usuario, string Senha)? Basic,
 	IReadOnlyDictionary<string, byte[]> Arquivos,
-	X509Certificate2? Autoridade);
+	X509Certificate2? Autoridade,
+	IReadOnlyList<string>? Comando = null,
+	HttpStatusCode? StatusDaEspera = null);
 
 /// <summary>A rede de uma execução, onde os containers se acham pelo nome.</summary>
 internal interface IRedeDoTeste : IAsyncDisposable
@@ -82,6 +87,8 @@ internal sealed class CriadorNoDocker : ICriadorDeContainers
 			.WithNetwork(((Rede)rede).Docker)
 			.WithNetworkAliases(definicao.Nome)
 			.WithEnvironment(definicao.Variaveis);
+		if (definicao.Comando is { Count: > 0 } comando)
+			builder = builder.WithCommand([.. comando]);
 		foreach (var porta in definicao.Portas)
 			builder = builder.WithPortBinding(porta, assignRandomHostPort: true);
 		// Copiados, e não montados: valem também com um Docker remoto e com o Podman sem root.
@@ -116,6 +123,8 @@ internal sealed class CriadorNoDocker : ICriadorDeContainers
 			return aguardar.UntilHttpRequestIsSucceeded(pedido =>
 			{
 				pedido = pedido.ForPort((ushort)(espera.Port ?? definicao.Portas[0])).ForPath(caminho);
+				if (definicao.StatusDaEspera is { } status)
+					pedido = pedido.ForStatusCode(status);
 				if (definicao.Autoridade is { } autoridade)
 					pedido = pedido.UsingTls().UsingHttpMessageHandler(ConfiandoNa(autoridade));
 				return definicao.Basic is var (usuario, senha) ? pedido.WithBasicAuthentication(usuario, senha) : pedido;
