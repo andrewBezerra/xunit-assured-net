@@ -2,7 +2,15 @@
 
 All notable changes to the XUnitAssured packages. Upgrading from 5.1.x? See [UPGRADING.md](UPGRADING.md).
 
-## v6.40.0 (Current — The variables of a process instance)
+## v6.41.0 (Current — OAuth for the customer's workers in Docker)
+
+New in XUnitAssured.Camunda.Testcontainers: `camunda.containers.authentication: "oauth"`. The `CamundaFixture` starts a Keycloak (`camunda/keycloak:quay-26.6.4`, over https only, with the test authority), imports a `camunda-platform` realm it writes, points the Camunda's OIDC at it, and hands the workers the token endpoint, client, secret and audience in the Camunda SDK, Camunda Spring SDK and Zeebe Java client names. The customer only names the worker's client in `camunda.containers.oauth.clientId`. Upgrading from 6.40.0 requires no code changes.
+
+- **The realm comes from a file, not the admin API:** ready when it publishes its OpenID configuration, with no admin password.
+- **The test's own client** gets its token from the same Keycloak, as `xunitassured-test`.
+- **Outside oauth, an OAuth placeholder is a configuration error;** before, it said OAuth "comes in 6.40.0".
+
+## v6.40.0 (The variables of a process instance)
 
 New in XUnitAssured.Camunda: **`CamundaApiClient.SearchInstanceVariablesAsync`**, the variables of a process instance read from the Camunda. A tool that drives an instance itself, like a run of a scenario, can now offer the scenario the values the customer's workers wrote, and not only the ones it saw in the jobs it served. Upgrading from 6.39.0 requires no code changes.
 
