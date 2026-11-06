@@ -591,6 +591,8 @@ foreach (var job in jobs)
 - **Job commands** (complete, throw the error, fail) are tried again up to 3 times when the
   Camunda does not answer. **`SearchSettledElementsAsync`** searches the elements again while the
   search, which lags behind the engine, still shows one active for an instance that ended.
+- **`SearchInstanceVariablesAsync`** reads the variables at the instance's own scope, by name,
+  each value as JSON, whole and across every page.
 - **`observe`** hears each HTTP request of the operation, the token request included, without
   the authorization header, the token or the secret.
 

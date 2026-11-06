@@ -430,6 +430,50 @@ public sealed partial class CamundaApiClient
 		}
 	}
 
+	/// <summary>
+	/// The variables of the instance, at its own scope (not the local ones of an element), by name, each value read as the
+	/// JSON the Camunda keeps. The search is asked without truncating the values, and follows the pages until the last one;
+	/// a value that still comes truncated is read whole by its key.
+	/// </summary>
+	/// <param name="processInstanceKey">The instance.</param>
+	/// <param name="timeout">The deadline of the whole search; <see cref="DefaultTimeout"/> when <see langword="null"/>.</param>
+	/// <param name="observe">Hears each HTTP request of the operation.</param>
+	/// <param name="cancellationToken">The caller's cancellation.</param>
+	/// <returns>The variables by name; empty when the instance has none, or while it has not reached the search yet.</returns>
+	public Task<IReadOnlyDictionary<string, JsonNode?>> SearchInstanceVariablesAsync(
+		string processInstanceKey, TimeSpan? timeout = null, Action<CamundaCall>? observe = null, CancellationToken cancellationToken = default) =>
+		Executar<IReadOnlyDictionary<string, JsonNode?>>(async (sdk, ct) =>
+		{
+			var instancia = ProcessInstanceKey.AssumeExists(processInstanceKey);
+			var variaveis = new Dictionary<string, JsonNode?>(StringComparer.Ordinal);
+			EndCursor? depois = null;
+			while (true)
+			{
+				var resposta = await sdk.SearchVariablesAsync(new VariableSearchQuery
+				{
+					Filter = new VariableFilter
+					{
+						ProcessInstanceKey = new ProcessInstanceKeyFilterProperty { Eq = instancia },
+						ScopeKey = new ScopeKeyFilterProperty { Eq = ScopeKey.AssumeExists(processInstanceKey) }
+					},
+					Page = new CursorForwardPagination { Limit = Limite, After = depois }
+				}, false, null, ct).ConfigureAwait(false);
+
+				foreach (var variavel in resposta.Items)
+				{
+					var valor = variavel.IsTruncated == true
+						? (await sdk.GetVariableAsync(variavel.VariableKey, null, ct).ConfigureAwait(false)).Value
+						: variavel.Value;
+					variaveis[variavel.Name] = valor is null ? null : JsonNode.Parse(valor);
+				}
+
+				// A última página: veio vazia, ou já se leu o total, ou não há de onde seguir.
+				depois = resposta.Page?.EndCursor;
+				if (resposta.Items.Count == 0 || variaveis.Count >= (resposta.Page?.TotalItems ?? 0) || depois is null)
+					return variaveis;
+			}
+		}, timeout ?? DefaultTimeout, observe, cancellationToken);
+
 	/// <summary>The incidents of the instance, at most a thousand.</summary>
 	/// <param name="processInstanceKey">The instance.</param>
 	/// <param name="timeout">The deadline; <see cref="DefaultTimeout"/> when <see langword="null"/>.</param>
