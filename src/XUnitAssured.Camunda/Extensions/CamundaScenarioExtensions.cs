@@ -57,6 +57,12 @@ public static class CamundaScenarioExtensions
 	public static ICamundaScenario FollowInstance(this ITestScenario scenario, string processId, (string Name, object? Value) variable) =>
 		CamundaVerbos.FollowInstance(scenario ?? throw new ArgumentNullException(nameof(scenario)), processId, variable);
 
+	/// <inheritdoc cref="ICamundaScenario.FollowInstanceByInstanceVariable(string, string, string, string)" />
+	public static ICamundaScenario FollowInstanceByInstanceVariable(
+		this ITestScenario scenario, string processId, string variable, string sourceInstanceKey, string sourceVariable) =>
+		CamundaVerbos.FollowInstanceByInstanceVariable(
+			scenario ?? throw new ArgumentNullException(nameof(scenario)), processId, variable, sourceInstanceKey, sourceVariable);
+
 	/// <inheritdoc cref="ICamundaScenario.StartInstance" />
 	public static ICamundaScenario StartInstance(
 		this ITestScenario scenario, string processId, object? variables = null, int? version = null, string? versionTag = null) =>
@@ -149,6 +155,28 @@ internal static class CamundaVerbos
 			ProcessId = processId,
 			VariableName = variable.Name,
 			VariableValue = variable.Value
+		});
+		return CamundaScenario.De(scenario);
+	}
+
+	internal static ICamundaScenario FollowInstanceByInstanceVariable(
+		ITestScenario scenario, string processId, string variable, string sourceInstanceKey, string sourceVariable)
+	{
+		if (string.IsNullOrWhiteSpace(processId))
+			throw new ArgumentException("Process id is required: the id of the bpmn:process to follow.", nameof(processId));
+		if (string.IsNullOrWhiteSpace(variable))
+			throw new ArgumentException("Variable name is required: the variable that identifies the followed instance.", nameof(variable));
+		if (string.IsNullOrWhiteSpace(sourceInstanceKey))
+			throw new ArgumentException("Source instance key is required: the instance whose variable holds the value.", nameof(sourceInstanceKey));
+		if (string.IsNullOrWhiteSpace(sourceVariable))
+			throw new ArgumentException("Source variable name is required: the variable of the source instance that holds the value.", nameof(sourceVariable));
+
+		scenario.SetCurrentStep(new CamundaFollowInstanceStep
+		{
+			ProcessId = processId,
+			VariableName = variable,
+			SourceInstanceKey = sourceInstanceKey,
+			SourceVariableName = sourceVariable
 		});
 		return CamundaScenario.De(scenario);
 	}
