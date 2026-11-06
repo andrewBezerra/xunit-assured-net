@@ -5,6 +5,7 @@ using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Text;
+using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Threading;
 using System.Threading.Tasks;
@@ -400,6 +401,76 @@ public class CamundaApiClientTests
 		api.A("/v2/incidents/search")[0].Json["filter"]!["processInstanceKey"]!.ToJsonString().ShouldContain("2251799813690001");
 	}
 
+	[Fact(DisplayName = "The variables of the instance, by name, with the value read as JSON, at the scope of the instance")]
+	public async Task Instance_Variables()
+	{
+		var api = new ApiFalsa().Responder(HttpMethod.Post, "/v2/variables/search", $$"""
+			{ "items": [
+			  {{Variavel("nu", "\"20261106000001\"", "1")}},
+			  {{Variavel("valor", "1234.5", "2")}},
+			  {{Variavel("cliente", "{\"cpf\":\"123\",\"aceitou\":true}", "3")}} ],
+			  "page":{"totalItems":3,"hasMoreTotalItems":false} }
+			""");
+
+		var variaveis = await Cliente(api).SearchInstanceVariablesAsync("2251799813690001");
+
+		variaveis.Keys.ShouldBe(new[] { "cliente", "nu", "valor" }, ignoreOrder: true);
+		variaveis["nu"]!.GetValue<string>().ShouldBe("20261106000001");
+		variaveis["valor"]!.GetValue<decimal>().ShouldBe(1234.5m);
+		variaveis["cliente"]!["aceitou"]!.GetValue<bool>().ShouldBeTrue();
+
+		var pedido = api.A("/v2/variables/search").ShouldHaveSingleItem();
+		pedido.Query.ShouldContain("truncateValues=false");
+		pedido.Json["filter"]!["processInstanceKey"]!.ToJsonString().ShouldContain("2251799813690001");
+		pedido.Json["filter"]!["scopeKey"]!.ToJsonString().ShouldContain("2251799813690001");
+	}
+
+	[Fact(DisplayName = "The variables of the instance follow the pages until the last one")]
+	public async Task Instance_Variables_Pages()
+	{
+		var api = new ApiFalsa()
+			.Responder(HttpMethod.Post, "/v2/variables/search", $$"""
+				{ "items": [ {{Variavel("a", "1", "1")}} ], "page":{"totalItems":2,"endCursor":"WzFd","hasMoreTotalItems":false} }
+				""")
+			.Responder(HttpMethod.Post, "/v2/variables/search", $$"""
+				{ "items": [ {{Variavel("b", "2", "2")}} ], "page":{"totalItems":2,"endCursor":"WzJd","hasMoreTotalItems":false} }
+				""");
+
+		var variaveis = await Cliente(api).SearchInstanceVariablesAsync("2251799813690001");
+
+		(variaveis["a"]!.GetValue<int>(), variaveis["b"]!.GetValue<int>()).ShouldBe((1, 2));
+		var pedidos = api.A("/v2/variables/search");
+		pedidos.Count.ShouldBe(2);
+		pedidos[1].Json["page"]!["after"]!.GetValue<string>().ShouldBe("WzFd");
+	}
+
+	[Fact(DisplayName = "A variable that still comes truncated is read whole by its key")]
+	public async Task Instance_Variables_Truncated()
+	{
+		var api = new ApiFalsa()
+			.Responder(HttpMethod.Post, "/v2/variables/search", $$"""
+				{ "items": [ {{Variavel("arquivo", "\"ACTC10", "9", truncado: true)}} ], {{Pagina}} }
+				""")
+			.Responder(HttpMethod.Get, "/v2/variables/9", """
+				{ "name": "arquivo", "value": "\"ACTC104 completo\"", "variableKey": "9", "scopeKey": "2251799813690001",
+				  "processInstanceKey": "2251799813690001", "rootProcessInstanceKey": "2251799813690001", "tenantId": "<default>" }
+				""");
+
+		var variaveis = await Cliente(api).SearchInstanceVariablesAsync("2251799813690001");
+
+		variaveis["arquivo"]!.GetValue<string>().ShouldBe("ACTC104 completo");
+		api.A("/v2/variables/9").ShouldHaveSingleItem();
+	}
+
+	[Fact(DisplayName = "An instance without variables gives an empty map")]
+	public async Task Instance_Variables_None()
+	{
+		var api = new ApiFalsa().Responder(HttpMethod.Post, "/v2/variables/search",
+			"""{ "items": [], "page":{"totalItems":0,"hasMoreTotalItems":false} }""");
+
+		(await Cliente(api).SearchInstanceVariablesAsync("2251799813690001")).ShouldBeEmpty();
+	}
+
 	[Fact(DisplayName = "A refusal carries the status, the title, the detail and the path called")]
 	public async Task Refusal()
 	{
@@ -793,6 +864,14 @@ public class CamundaApiClientTests
 	}
 
 	// ---------- Apoio ----------
+
+	// Uma variável da busca, no escopo da instância 2251799813690001, com o valor em JSON (o texto que o Camunda guarda).
+	private static string Variavel(string nome, string valorJson, string chave, bool truncado = false) =>
+		$$"""
+		{ "name": "{{nome}}", "value": {{JsonSerializer.Serialize(valorJson)}}, "isTruncated": {{(truncado ? "true" : "false")}},
+		  "variableKey": "{{chave}}", "scopeKey": "2251799813690001", "processInstanceKey": "2251799813690001",
+		  "rootProcessInstanceKey": "2251799813690001", "tenantId": "<default>" }
+		""";
 
 	private static CamundaApiClient Cliente(ApiFalsa api, TimeProvider? tempo = null, CamundaAuthenticationSettings? configuracao = null) =>
 		new(new CamundaSettings
