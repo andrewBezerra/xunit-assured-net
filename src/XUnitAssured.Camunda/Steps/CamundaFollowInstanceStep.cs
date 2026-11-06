@@ -29,6 +29,11 @@ namespace XUnitAssured.Camunda.Steps;
 /// <c>Warnings</c>: use um valor só do teste.
 /// </para>
 /// <para>
+/// O valor também pode vir de uma variável de outra instância, que só o ganha enquanto roda (o NU que o
+/// processo do teste recebe no meio do caminho): o passo espera a variável aparecer nela, e só então
+/// procura a instância acompanhada pelo valor que ela tem. As duas esperas dividem o mesmo prazo.
+/// </para>
+/// <para>
 /// A instância seguida é tratada como a de um <c>StartInstance</c>: se ainda estiver ativa quando o
 /// processo de teste terminar, é cancelada.
 /// </para>
@@ -62,6 +67,15 @@ public class CamundaFollowInstanceStep : ITestStep
 	/// <summary>O valor dela, comparado como JSON.</summary>
 	public object? VariableValue { get; init; }
 
+	/// <summary>
+	/// A chave da instância de onde vem o valor, quando ele não é conhecido ao montar a cadeia; com
+	/// <see cref="SourceVariableName"/>, toma o lugar de <see cref="VariableValue"/>.
+	/// </summary>
+	public string? SourceInstanceKey { get; init; }
+
+	/// <summary>A variável da instância <see cref="SourceInstanceKey"/> cujo valor identifica a instância acompanhada.</summary>
+	public string? SourceVariableName { get; init; }
+
 	/// <inheritdoc />
 	public async Task<ITestStepResult> ExecuteAsync(ITestContext context, CancellationToken cancellationToken = default)
 	{
@@ -77,6 +91,8 @@ public class CamundaFollowInstanceStep : ITestStep
 			var intervalo = TimeSpan.FromMilliseconds(Math.Max(10, settings.PollIntervalMilliseconds));
 			var avisos = new List<string>();
 
+			// O valor que identifica a instância: o dado na cadeia, ou o que a variável da outra instância ganhou.
+			var valorJson = SourceInstanceKey is null ? JsonSerializer.Serialize(VariableValue) : null;
 			InstanciaVista? instancia = null;
 			while (true)
 			{
@@ -86,14 +102,18 @@ public class CamundaFollowInstanceStep : ITestStep
 				}
 				else
 				{
-					var achadas = await gateway.SearchInstancesByVariableAsync(
-						ProcessId!, VariableName!, JsonSerializer.Serialize(VariableValue), cancellationToken).ConfigureAwait(false);
-					instancia = achadas.FirstOrDefault();
+					valorJson ??= await ValorDaOrigem(gateway, cancellationToken).ConfigureAwait(false);
+					if (valorJson is not null)
+					{
+						var achadas = await gateway.SearchInstancesByVariableAsync(
+							ProcessId!, VariableName!, valorJson, cancellationToken).ConfigureAwait(false);
+						instancia = achadas.FirstOrDefault();
 
-					if (achadas.Count > 1)
-						avisos.Add(
-							$"{achadas.Count} instances of '{ProcessId}' have {VariableName} = {JsonSerializer.Serialize(VariableValue)}; " +
-							$"following the newest, {instancia!.ProcessInstanceKey}. Use a value unique to the test.");
+						if (achadas.Count > 1)
+							avisos.Add(
+								$"{achadas.Count} instances of '{ProcessId}' have {VariableName} = {valorJson}; " +
+								$"following the newest, {instancia!.ProcessInstanceKey}. Use a value unique to the test.");
+					}
 				}
 
 				if (instancia is not null || cronometro.Elapsed >= prazo)
@@ -101,6 +121,20 @@ public class CamundaFollowInstanceStep : ITestStep
 
 				await Task.Delay(intervalo, cancellationToken).ConfigureAwait(false);
 			}
+
+			if (instancia is null && SourceInstanceKey is not null && valorJson is null)
+			{
+				Result = CamundaStepResult.CreateFailure(
+					$"The variable '{SourceVariableName}' never showed up on process instance {SourceInstanceKey} within " +
+					$"{prazo.TotalSeconds:0.#}s, so no instance of '{ProcessId}' could be followed by its value. Check that the " +
+					"process sets it before the step that waits for the other instance.",
+					null, diagnostico, cronometro.Elapsed);
+				IsValid = false;
+				return Result;
+			}
+
+			procurada = Descrever(valorJson);
+			diagnostico["Following"] = procurada;
 
 			if (instancia is null)
 			{
@@ -151,7 +185,20 @@ public class CamundaFollowInstanceStep : ITestStep
 		IsValid = true;
 	}
 
-	private string Descrever() => ProcessInstanceKey is not null
-		? $"process instance {ProcessInstanceKey}"
-		: $"instance of '{ProcessId}' with {VariableName} = {JsonSerializer.Serialize(VariableValue)}";
+	// O valor da variável na instância de origem, como JSON; nulo enquanto ela não o tem.
+	private async Task<string?> ValorDaOrigem(ICamundaGateway gateway, CancellationToken cancellationToken)
+	{
+		var variaveis = await gateway.SearchVariablesAsync(SourceInstanceKey!, SourceVariableName, cancellationToken).ConfigureAwait(false);
+		return variaveis.FirstOrDefault(v => v.Name == SourceVariableName && v.ScopeKey == SourceInstanceKey)?.ValueJson
+			?? variaveis.FirstOrDefault(v => v.Name == SourceVariableName)?.ValueJson;
+	}
+
+	private string Descrever(string? valorJson = null)
+	{
+		if (ProcessInstanceKey is not null)
+			return $"process instance {ProcessInstanceKey}";
+		if (SourceInstanceKey is not null && valorJson is null)
+			return $"instance of '{ProcessId}' with {VariableName} = the '{SourceVariableName}' of process instance {SourceInstanceKey}";
+		return $"instance of '{ProcessId}' with {VariableName} = {valorJson ?? JsonSerializer.Serialize(VariableValue)}";
+	}
 }

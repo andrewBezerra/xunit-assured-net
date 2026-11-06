@@ -171,6 +171,30 @@ public interface ICamundaScenario : ITestScenario
 	/// <param name="variable">O nome da variável e o valor que identifica a instância.</param>
 	ICamundaScenario FollowInstance(string processId, (string Name, object? Value) variable);
 
+	/// <summary>
+	/// Acompanha a instância do processo <paramref name="processId"/> cuja variável
+	/// <paramref name="variable"/> tem o valor que a variável <paramref name="sourceVariable"/> da
+	/// instância <paramref name="sourceInstanceKey"/> tem quando o passo roda.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// Para o valor que não existe quando a cadeia é montada: o processo do teste o recebe no meio do
+	/// caminho (o número que outro sistema gerou), e a outra instância é a que tem o mesmo número.
+	/// </para>
+	/// <para>
+	/// O passo espera a variável aparecer na instância de origem, e então a instância acompanhada aparecer
+	/// com o valor, as duas esperas dentro de <c>assertionTimeoutSeconds</c>. Se a variável nunca aparecer,
+	/// o passo falha dizendo qual variável e de qual instância; se o valor aparecer e nenhuma instância o
+	/// tiver, falha dizendo o valor. O valor é comparado como JSON, e com mais de uma instância vale o que
+	/// vale para <see cref="FollowInstance(string, ValueTuple{string, object})"/>.
+	/// </para>
+	/// </remarks>
+	/// <param name="processId">O id do processo da instância a acompanhar.</param>
+	/// <param name="variable">O nome da variável que identifica a instância acompanhada.</param>
+	/// <param name="sourceInstanceKey">A chave da instância de onde vem o valor, por exemplo a que o teste iniciou.</param>
+	/// <param name="sourceVariable">A variável dela que tem o valor.</param>
+	ICamundaScenario FollowInstanceByInstanceVariable(string processId, string variable, string sourceInstanceKey, string sourceVariable);
+
 	/// <summary>Registra uma verificação sobre o resultado do passo.</summary>
 	ICamundaScenario Validate(Action<CamundaStepResult> validation);
 

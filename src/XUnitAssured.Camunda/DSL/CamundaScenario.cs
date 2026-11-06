@@ -84,6 +84,10 @@ internal sealed class CamundaScenario : ICamundaScenario, IFronteiraDePasso
 	public ICamundaScenario FollowInstance(string processId, (string Name, object? Value) variable) =>
 		CamundaVerbos.FollowInstance(_cenario, processId, variable);
 
+	/// <inheritdoc />
+	public ICamundaScenario FollowInstanceByInstanceVariable(string processId, string variable, string sourceInstanceKey, string sourceVariable) =>
+		CamundaVerbos.FollowInstanceByInstanceVariable(_cenario, processId, variable, sourceInstanceKey, sourceVariable);
+
 	public ICamundaScenario StartInstance(string processId, object? variables = null, int? version = null, string? versionTag = null) =>
 		CamundaVerbos.StartInstance(_cenario, processId, variables, version, versionTag);
 
