@@ -34,4 +34,9 @@
 		<ProjectReference Include="..\XUnitAssured.Camunda\XUnitAssured.Camunda.csproj" />
 	</ItemGroup>
 
+	<ItemGroup>
+		<!-- Os testes do pacote trocam o Docker por um criador de containers falso. -->
+		<InternalsVisibleTo Include="XUnitAssured.Tests" />
+	</ItemGroup>
+
 </Project>

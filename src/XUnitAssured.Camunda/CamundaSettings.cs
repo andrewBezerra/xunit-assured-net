@@ -92,7 +92,7 @@ public class CamundaSettings
 	public static CamundaSettings LoadRequired() =>
 		LoadRequired(TestSettingsSection.Read<CamundaSettings>("camunda"), Environment.GetEnvironmentVariable);
 
-	internal static CamundaSettings LoadRequired(CamundaSettings? lida, Func<string, string?> ambiente)
+	internal static CamundaSettings LoadRequired(CamundaSettings? lida, Func<string, string?> ambiente, string? outroCaminho = null)
 	{
 		ArgumentNullException.ThrowIfNull(ambiente);
 
@@ -103,7 +103,7 @@ public class CamundaSettings
 				"This test runs on Camunda, but no cluster is configured: testsettings.json has no \"camunda\" section " +
 				"with a \"restAddress\", and CAMUNDA_REST_ADDRESS is not set. Add the cluster's address, for example " +
 				"{ \"camunda\": { \"restAddress\": \"http://localhost:8080\" } }, with its authentication: the test does not " +
-				"fall back to localhost on its own.");
+				"fall back to localhost on its own." + outroCaminho);
 
 		return lida ?? new CamundaSettings();
 	}

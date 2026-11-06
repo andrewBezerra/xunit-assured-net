@@ -94,6 +94,52 @@ carry `[Trait("Requires", "Docker")]`, so a filter can leave them out where ther
 Without a license key, Camunda shows a "Non-Production License" banner. Its license allows that
 for testing.
 
+## The customer's workers in Docker: `CamundaFixture`
+
+`CamundaContainerFixture` starts the Camunda alone, and the test mocks every job. To run the process with the
+customer's own workers, declare them, and what they depend on, in the `camunda` section of `testsettings.json`, and use
+`CamundaFixture`:
+
+```json
+{
+  "camunda": {
+    "containers": {
+      "authentication": "basic",
+      "services": [
+        { "name": "postgres", "image": "postgres:16", "environment": { "POSTGRES_PASSWORD": "test" },
+          "wait": { "port": 5432 } },
+        { "name": "order-worker", "image": "shop/order-worker:1.4", "dependsOn": ["postgres"],
+          "environment": {
+            "Camunda__Url": "${camunda.restAddress}",
+            "ConnectionStrings__Orders": "Host=${postgres.host};Port=${postgres.port:5432};Password=test"
+          },
+          "wait": { "log": "Worker started" } }
+      ]
+    }
+  }
+}
+```
+
+```csharp
+public class OrderTests(CamundaFixture camunda)
+    : CamundaTestBase<CamundaFixture>(camunda), IClassFixture<CamundaFixture>
+{
+    // The same chains: the jobs the list's workers serve are not mocked.
+}
+```
+
+- **One network,** with the Camunda on it as `camunda`, and the list started in `dependsOn` order, each ready before
+  the next. Testcontainers does not read `docker-compose`: write the list once, from the system's compose file.
+- **Every container gets the Camunda's address** as `CAMUNDA_REST_ADDRESS`, `ZEEBE_REST_ADDRESS` and
+  `ZEEBE_GRPC_ADDRESS`, and the mode as `CAMUNDA_AUTH_STRATEGY`. A worker that reads other names uses the placeholders
+  `${camunda.restAddress}`, `${camunda.grpcAddress}`, `${camunda.username}`, `${camunda.password}`, `${<name>.host}` and
+  `${<name>.port:<port>}`.
+- **`authentication`:** `basic` (the default) gives the workers and the test the same `xunit` user, with a new password
+  on every run, in `CAMUNDA_BASIC_AUTH_USERNAME` and `CAMUNDA_BASIC_AUTH_PASSWORD`; `none` opens the API. `oauth` comes
+  in 6.40.0.
+- **Without `containers`,** the fixture runs on the cluster in `camunda.restAddress`; with neither, it fails, saying
+  what to add.
+
 ## Supported Frameworks
 
 - .NET 8
