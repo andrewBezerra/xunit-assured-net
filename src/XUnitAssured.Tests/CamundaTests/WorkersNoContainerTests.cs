@@ -292,14 +292,6 @@ public class WorkersNoContainerTests
 		senhaUm.ShouldNotBe(segundo.Definicao("worker").Variaveis["CAMUNDA_BASIC_AUTH_PASSWORD"]);
 	}
 
-	[Fact(DisplayName = "Authentication oauth is not here yet: a clear error says it comes in 6.40.0")]
-	public void OAuth_Comes_In_A_Later_Version()
-	{
-		var erro = Should.Throw<NotSupportedException>(() => Fixture(new CriadorFalso(), autenticacao: "oauth", servicos: [Servico("worker")]));
-
-		erro.Message.ShouldContain("6.40.0");
-	}
-
 	[Fact(DisplayName = "An unknown authentication mode is an error that lists the modes")]
 	public void Unknown_Mode_Is_An_Error()
 	{
@@ -308,18 +300,19 @@ public class WorkersNoContainerTests
 		erro.Message.ShouldContain("kerberos");
 		erro.Message.ShouldContain("none");
 		erro.Message.ShouldContain("basic");
+		erro.Message.ShouldContain("oauth");
 	}
 
-	[Fact(DisplayName = "An OAuth placeholder is not here yet: a clear error says OAuth in the containers comes in 6.40.0")]
-	public void OAuth_Placeholder_Comes_In_A_Later_Version()
+	[Fact(DisplayName = "Outside OAuth, an OAuth placeholder is an error, since there is no token to point to")]
+	public void OAuth_Placeholder_Outside_OAuth_Is_An_Error()
 	{
 		var worker = Servico("worker");
 		worker.Environment["Camunda__ClientId"] = "${camunda.clientId}";
 
-		var erro = Should.Throw<NotSupportedException>(() => Fixture(new CriadorFalso(), worker));
+		var erro = Should.Throw<InvalidOperationException>(() => Fixture(new CriadorFalso(), worker));
 
 		erro.Message.ShouldContain("${camunda.clientId}");
-		erro.Message.ShouldContain("6.40.0");
+		erro.Message.ShouldContain("oauth");
 	}
 
 	[Fact(DisplayName = "UsesContainers says whether the test runs on the fixture's containers or on a cluster")]
@@ -410,7 +403,8 @@ public class WorkersNoContainerTests
 	/// <summary>O que o criador falso recebeu de um container.</summary>
 	internal sealed record DefinicaoNoFalso(
 		string Nome, string Rede, IReadOnlyDictionary<string, string> Variaveis, (string, string)? Basic,
-		IReadOnlyDictionary<string, byte[]> Arquivos, System.Security.Cryptography.X509Certificates.X509Certificate2? Autoridade);
+		IReadOnlyDictionary<string, byte[]> Arquivos, System.Security.Cryptography.X509Certificates.X509Certificate2? Autoridade,
+		DefinicaoDeContainer Original);
 
 	/// <summary>O Docker de mentira: guarda o que foi pedido, na ordem, e o que foi descartado.</summary>
 	internal sealed class CriadorFalso : ICriadorDeContainers
@@ -442,7 +436,8 @@ public class WorkersNoContainerTests
 			if (definicao.Nome == FalharEm)
 				throw new InvalidOperationException($"O container '{definicao.Nome}' não subiu.");
 
-			Subidos.Add(new DefinicaoNoFalso(definicao.Nome, rede.Nome, definicao.Variaveis, definicao.Basic, definicao.Arquivos, definicao.Autoridade));
+			Subidos.Add(new DefinicaoNoFalso(
+				definicao.Nome, rede.Nome, definicao.Variaveis, definicao.Basic, definicao.Arquivos, definicao.Autoridade, definicao));
 			return Task.FromResult<IContainerDoTeste>(new Container(this, definicao.Nome));
 		}
 
