@@ -135,13 +135,39 @@ public class OrderTests(CamundaFixture camunda)
   the next. Testcontainers does not read `docker-compose`: write the list once, from the system's compose file.
 - **Every container gets the Camunda's address** as `CAMUNDA_REST_ADDRESS`, `ZEEBE_REST_ADDRESS` and
   `ZEEBE_GRPC_ADDRESS`, and the mode as `CAMUNDA_AUTH_STRATEGY`. A worker that reads other names uses the placeholders
-  `${camunda.restAddress}`, `${camunda.grpcAddress}`, `${camunda.username}`, `${camunda.password}`, `${<name>.host}` and
-  `${<name>.port:<port>}`.
+  `${camunda.restAddress}`, `${camunda.grpcAddress}`, `${camunda.username}` and `${camunda.password}` (Basic),
+  `${camunda.tokenUrl}`, `${camunda.clientId}`, `${camunda.clientSecret}` and `${camunda.audience}` (OAuth),
+  `${<name>.host}` and `${<name>.port:<port>}`.
 - **`authentication`:** `basic` (the default) gives the workers and the test the same `xunit` user, with a new password
-  on every run, in `CAMUNDA_BASIC_AUTH_USERNAME` and `CAMUNDA_BASIC_AUTH_PASSWORD`; `none` opens the API. `oauth` comes
-  in 6.40.0.
+  on every run, in `CAMUNDA_BASIC_AUTH_USERNAME` and `CAMUNDA_BASIC_AUTH_PASSWORD`; `none` opens the API; `oauth` starts
+  a Keycloak, below.
 - **Without `containers`,** the fixture runs on the cluster in `camunda.restAddress`; with neither, it fails, saying
   what to add.
+
+### OAuth: a Keycloak the fixture starts and configures
+
+```json
+"containers": {
+  "authentication": "oauth",
+  "oauth": { "clientId": "order-worker", "clientSecret": "optional", "audience": "orchestration-api" },
+  "services": [ ... ]
+}
+```
+
+The fixture starts `camunda/keycloak:quay-26.6.4` on the network as `keycloak`, over https with the test authority,
+and imports a `camunda-platform` realm it writes: the Camunda's client, the worker's (`clientId`, with `clientSecret` or
+a new secret on every run) and the test's own, `xunitassured-test`, with client credentials, the audience (by default
+`orchestration-api`) and a `client_id` claim. The Camunda validates the token by that Keycloak, and the worker gets:
+
+| Family | Variables |
+| --- | --- |
+| Camunda SDK | `CAMUNDA_AUTH_STRATEGY=OAUTH`, `CAMUNDA_OAUTH_URL`, `CAMUNDA_CLIENT_ID`, `CAMUNDA_CLIENT_SECRET`, `CAMUNDA_TOKEN_AUDIENCE` |
+| Camunda Spring SDK | `CAMUNDA_CLIENT_AUTH_METHOD=oidc`, `CAMUNDA_CLIENT_AUTH_TOKENURL`, `CAMUNDA_CLIENT_AUTH_CLIENTID`, `CAMUNDA_CLIENT_AUTH_CLIENTSECRET`, `CAMUNDA_CLIENT_AUTH_AUDIENCE`, `CAMUNDA_CLIENT_RESTADDRESS`, `CAMUNDA_CLIENT_GRPCADDRESS` |
+| Zeebe Java client | `ZEEBE_CLIENT_ID`, `ZEEBE_CLIENT_SECRET`, `ZEEBE_AUTHORIZATION_SERVER_URL`, `ZEEBE_TOKEN_AUDIENCE` |
+
+The token endpoint on the network is `https://keycloak:8443/auth/realms/camunda-platform/protocol/openid-connect/token`.
+In this mode, `keycloak` is a reserved container name, and `camunda` and `xunitassured-test` are reserved client ids.
+The Keycloak adds about a minute to the start-up.
 
 ### What a worker has to accept: TLS from a test authority
 

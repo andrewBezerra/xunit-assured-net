@@ -47,8 +47,9 @@ public class CamundaFixture : CamundaClusterFixture, IAsyncLifetime, IAsyncDispo
 	private string? _pastaDoTls;
 
 	/// <summary>Lê a seção <c>camunda</c> do <c>testsettings.json</c> e decide onde o teste roda.</summary>
-	/// <exception cref="InvalidOperationException">Não há lista nem endereço, ou a lista está mal escrita.</exception>
-	/// <exception cref="NotSupportedException">O modo <c>oauth</c>, que vem na 6.40.0.</exception>
+	/// <exception cref="InvalidOperationException">
+	/// Não há lista nem endereço, a lista está mal escrita, ou o modo <c>oauth</c> não diz o client id do worker.
+	/// </exception>
 	public CamundaFixture()
 		: this(TestSettingsSection.Read<CamundaSectionWithContainers>("camunda"), Environment.GetEnvironmentVariable, new CriadorNoDocker())
 	{
@@ -61,8 +62,14 @@ public class CamundaFixture : CamundaClusterFixture, IAsyncLifetime, IAsyncDispo
 		_criador = criador ?? throw new ArgumentNullException(nameof(criador));
 		_lida = lida ?? new CamundaSettings();
 		if (lida?.Containers is { } containers)
-			_plano = PlanoDaSubida.Montar(containers, (gerarSenha ?? (() => Guid.NewGuid().ToString("N")))(), ambiente);
+		{
+			// A senha do Basic pode vir do teste; os segredos do OAuth são sempre novos, a cada execução.
+			var senha = (gerarSenha ?? NovoSegredo)();
+			_plano = PlanoDaSubida.Montar(containers, senha, NovoSegredo, ambiente);
+		}
 	}
+
+	private static string NovoSegredo() => Guid.NewGuid().ToString("N");
 
 	// A mensagem de quando não há cluster nenhum: este fixture também aceita a lista dos containers.
 	private const string ComContainers =
@@ -85,6 +92,13 @@ public class CamundaFixture : CamundaClusterFixture, IAsyncLifetime, IAsyncDispo
 
 			var rede = await _criador.CriarRedeAsync(CancellationToken.None).ConfigureAwait(false);
 			_deDescartar.Add(rede);
+			// No OAuth, o Keycloak antes do Camunda: o Camunda lê o emissor dele ao subir.
+			IContainerDoTeste? keycloak = null;
+			if (_plano.Keycloak is { } definicaoDoKeycloak)
+			{
+				keycloak = await _criador.SubirAsync(definicaoDoKeycloak, rede, CancellationToken.None).ConfigureAwait(false);
+				_deDescartar.Add(keycloak);
+			}
 			var camunda = await _criador.SubirAsync(_plano.Camunda, rede, CancellationToken.None).ConfigureAwait(false);
 			_deDescartar.Add(camunda);
 			foreach (var servico in _plano.Servicos)
@@ -95,9 +109,23 @@ public class CamundaFixture : CamundaClusterFixture, IAsyncLifetime, IAsyncDispo
 				RestAddress = MontagemDosContainers.Enderecos.RestNoHost(
 					camunda.Host, camunda.PortaNoHost(MontagemDosContainers.Enderecos.PortaRest)),
 				CaCertificatePath = Path.Combine(_pastaDoTls, CertificadosDoTeste.ArquivoDaAutoridade),
-				Authentication = _plano.Modo == ModoDeAutenticacao.Basic
-					? new CamundaAuthenticationSettings { Type = "Basic", Username = MontagemDosContainers.Usuario, Password = _plano.Senha }
-					: new CamundaAuthenticationSettings { Type = "None" },
+				Authentication = _plano.Modo switch
+				{
+					ModoDeAutenticacao.Basic => new CamundaAuthenticationSettings
+					{
+						Type = "Basic", Username = MontagemDosContainers.Usuario, Password = _plano.Senha
+					},
+					// O cliente do teste pede o token no mesmo Keycloak, pela porta mapeada no host, com o client dele.
+					ModoDeAutenticacao.OAuth => new CamundaAuthenticationSettings
+					{
+						Type = "OAuth",
+						ClientId = CredenciaisOAuth.ClientIdDoTeste,
+						ClientSecret = _plano.OAuth!.SegredoDoTeste,
+						OAuthUrl = KeycloakDoTeste.TokenNoHost(keycloak!.Host, keycloak.PortaNoHost(KeycloakDoTeste.Porta)),
+						Audience = _plano.OAuth.Audience
+					},
+					_ => new CamundaAuthenticationSettings { Type = "None" }
+				},
 				AssertionTimeoutSeconds = _lida.AssertionTimeoutSeconds,
 				PollIntervalMilliseconds = _lida.PollIntervalMilliseconds,
 				MockLifetimeSeconds = _lida.MockLifetimeSeconds,
@@ -142,28 +170,56 @@ public class CamundaFixture : CamundaClusterFixture, IAsyncLifetime, IAsyncDispo
 	/// O que sobe, já resolvido: os certificados, o Camunda e a lista na ordem, com as variáveis e os arquivos de cada um.
 	/// </summary>
 	private sealed record PlanoDaSubida(
-		ModoDeAutenticacao Modo, string Senha, CertificadosDoTeste Certificados, DefinicaoDeContainer Camunda,
-		IReadOnlyList<DefinicaoDeContainer> Servicos)
+		ModoDeAutenticacao Modo, string Senha, CredenciaisOAuth? OAuth, CertificadosDoTeste Certificados, DefinicaoDeContainer? Keycloak,
+		DefinicaoDeContainer Camunda, IReadOnlyList<DefinicaoDeContainer> Servicos)
 	{
-		internal static PlanoDaSubida Montar(CamundaContainersSettings containers, string senha, Func<string, string?> ambiente)
+		internal static PlanoDaSubida Montar(
+			CamundaContainersSettings containers, string senha, Func<string> gerarSegredo, Func<string, string?> ambiente)
 		{
 			var modo = MontagemDosContainers.Modo(containers.Authentication);
-			var ordem = MontagemDosContainers.Ordenar(containers.Services);
+			var oauth = modo == ModoDeAutenticacao.OAuth ? CredenciaisOAuth.Montar(containers.OAuth, gerarSegredo) : null;
+			var ordem = MontagemDosContainers.Ordenar(containers.Services, comKeycloak: oauth is not null);
 			var nomes = ordem.Select(s => s.Name!).ToList();
 			var basic = modo == ModoDeAutenticacao.Basic ? (MontagemDosContainers.Usuario, senha) : ((string, string)?)null;
 			var enderecos = MontagemDosContainers.Enderecos;
-			var certificados = CertificadosDoTeste.Gerar(enderecos.NomesDoCertificado(EnderecosDoCamunda.HostsDoDocker(ambiente)), DateTimeOffset.UtcNow);
+			// O Keycloak responde no mesmo certificado do servidor: o nome dele entra no certificado quando ele sobe.
+			var outrosNomes = EnderecosDoCamunda.HostsDoDocker(ambiente).ToList();
+			if (oauth is not null)
+				outrosNomes.Add(KeycloakDoTeste.NomeNaRede);
+			var certificados = CertificadosDoTeste.Gerar(enderecos.NomesDoCertificado(outrosNomes), DateTimeOffset.UtcNow);
 
-			// Pronto é quando a REST API responde em https, autenticada no Basic, e não quando o processo sobe.
+			// Pronto é quando a REST API responde em https, autenticada no Basic, e não quando o processo sobe. No OAuth, a
+			// espera não tem token: pronto é o /v2/topology respondendo 401, a API de pé e protegida.
 			var camunda = new DefinicaoDeContainer(
-				MontagemDosContainers.NomeDoCamunda, CamundaContainerFixture.ImagemPadrao, MontagemDosContainers.VariaveisDoCamunda(modo, senha),
+				MontagemDosContainers.NomeDoCamunda, CamundaContainerFixture.ImagemPadrao,
+				MontagemDosContainers.VariaveisDoCamunda(modo, senha, oauth, certificados.SenhaDoTruststore),
 				[enderecos.PortaRest, enderecos.PortaGrpc],
 				new CamundaContainerWait { Port = enderecos.PortaRest, Path = "/v2/topology" }, basic,
-				ArquivosDoTls(certificados, doCamunda: true), certificados.Autoridade);
+				ArquivosDoTls(certificados, doCamunda: true), certificados.Autoridade,
+				StatusDaEspera: oauth is null ? null : System.Net.HttpStatusCode.Unauthorized);
+			var keycloak = oauth is null ? null : DefinicaoDoKeycloak(oauth, certificados);
 			var servicos = ordem.Select(s => new DefinicaoDeContainer(
-				s.Name!, s.Image!, MontagemDosContainers.VariaveisDoServico(s, modo, senha, certificados.SenhaDoTruststore, nomes), s.Ports,
-				s.Wait, null, ArquivosDoTls(certificados, doCamunda: false), null)).ToList();
-			return new PlanoDaSubida(modo, senha, certificados, camunda, servicos);
+				s.Name!, s.Image!, MontagemDosContainers.VariaveisDoServico(s, modo, senha, certificados.SenhaDoTruststore, nomes, oauth),
+				s.Ports, s.Wait, null, ArquivosDoTls(certificados, doCamunda: false), null)).ToList();
+			return new PlanoDaSubida(modo, senha, oauth, certificados, keycloak, camunda, servicos);
+		}
+
+		// O Keycloak em https com o certificado do servidor, o realm importado do arquivo gerado, e pronto quando o realm
+		// publica a configuração do OpenID.
+		private static DefinicaoDeContainer DefinicaoDoKeycloak(CredenciaisOAuth oauth, CertificadosDoTeste certificados)
+		{
+			var arquivos = new Dictionary<string, byte[]>(ArquivosDoTls(certificados, doCamunda: true), StringComparer.Ordinal)
+			{
+				[KeycloakDoTeste.ArquivoDoRealm] = KeycloakDoTeste.RealmJson(oauth)
+			};
+			return new DefinicaoDeContainer(
+				KeycloakDoTeste.NomeNaRede, KeycloakDoTeste.Imagem, KeycloakDoTeste.Variaveis(), [KeycloakDoTeste.Porta],
+				new CamundaContainerWait
+				{
+					Port = KeycloakDoTeste.Porta,
+					Path = $"{KeycloakDoTeste.CaminhoRelativo}/realms/{KeycloakDoTeste.Realm}/.well-known/openid-configuration"
+				},
+				null, arquivos, certificados.Autoridade, KeycloakDoTeste.Comando);
 		}
 
 		// O Camunda recebe o certificado e a chave dele; os outros, só a autoridade e o truststore.

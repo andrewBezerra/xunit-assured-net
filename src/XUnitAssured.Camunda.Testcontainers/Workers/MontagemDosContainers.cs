@@ -10,7 +10,8 @@ namespace XUnitAssured.Camunda.Testcontainers;
 internal enum ModoDeAutenticacao
 {
 	None,
-	Basic
+	Basic,
+	OAuth
 }
 
 /// <summary>
@@ -32,18 +33,18 @@ internal static partial class MontagemDosContainers
 	{
 		null or "" or "basic" => ModoDeAutenticacao.Basic,
 		"none" => ModoDeAutenticacao.None,
-		"oauth" => throw new NotSupportedException(
-			"camunda.containers.authentication \"oauth\" comes in XUnitAssured.Camunda.Testcontainers 6.40.0, with a Keycloak the " +
-			"fixture starts and configures. Use \"basic\" (the default) or \"none\" for now."),
+		"oauth" => ModoDeAutenticacao.OAuth,
 		_ => throw new InvalidOperationException(
-			$"camunda.containers.authentication \"{pedido}\" is not a mode: use \"none\" or \"basic\" (the default).")
+			$"camunda.containers.authentication \"{pedido}\" is not a mode: use \"none\", \"basic\" (the default) or \"oauth\".")
 	};
 
 	/// <summary>
 	/// Os containers na ordem em que sobem: cada um depois dos de que depende, e, entre os livres, na ordem escrita.
 	/// </summary>
-	/// <exception cref="InvalidOperationException">Um nome falta, repete, é o do Camunda, ou o <c>dependsOn</c> tem um ciclo.</exception>
-	internal static IReadOnlyList<CamundaServiceContainer> Ordenar(IReadOnlyList<CamundaServiceContainer> servicos)
+	/// <param name="servicos">A lista, como foi escrita.</param>
+	/// <param name="comKeycloak">Se o fixture sobe o Keycloak, cujo nome na rede passa a ser reservado também.</param>
+	/// <exception cref="InvalidOperationException">Um nome falta, repete, é reservado, ou o <c>dependsOn</c> tem um ciclo.</exception>
+	internal static IReadOnlyList<CamundaServiceContainer> Ordenar(IReadOnlyList<CamundaServiceContainer> servicos, bool comKeycloak = false)
 	{
 		ArgumentNullException.ThrowIfNull(servicos);
 
@@ -55,6 +56,9 @@ internal static partial class MontagemDosContainers
 				throw Configuracao($"The container #{i + 1} in camunda.containers.services has no name.");
 			if (string.Equals(servico.Name, NomeDoCamunda, StringComparison.OrdinalIgnoreCase))
 				throw Configuracao($"'{NomeDoCamunda}' is the Camunda's own name on the network: give the container another name.");
+			if (comKeycloak && string.Equals(servico.Name, KeycloakDoTeste.NomeNaRede, StringComparison.OrdinalIgnoreCase))
+				throw Configuracao(
+					$"'{KeycloakDoTeste.NomeNaRede}' is the name of the Keycloak the fixture starts in the oauth mode: give the container another name.");
 			if (string.IsNullOrWhiteSpace(servico.Image))
 				throw Configuracao($"The container '{servico.Name}' has no image.");
 			if (!porNome.TryAdd(servico.Name, servico))
@@ -111,7 +115,12 @@ internal static partial class MontagemDosContainers
 	/// O REST é o servidor web do Spring Boot (<c>server.ssl.*</c>, com o certificado e a chave em PEM); o gRPC, o
 	/// <c>camunda.api.grpc.ssl.*</c> da referência de propriedades do Camunda 8.10.
 	/// </remarks>
-	internal static IReadOnlyDictionary<string, string> VariaveisDoCamunda(ModoDeAutenticacao modo, string senha)
+	/// <param name="modo">O modo de autenticação.</param>
+	/// <param name="senha">A senha do Basic.</param>
+	/// <param name="oauth">As credenciais do realm, no modo <c>oauth</c>.</param>
+	/// <param name="senhaDoTruststore">A senha do truststore, para o Camunda confiar no Keycloak, no modo <c>oauth</c>.</param>
+	internal static IReadOnlyDictionary<string, string> VariaveisDoCamunda(
+		ModoDeAutenticacao modo, string senha, CredenciaisOAuth? oauth = null, string? senhaDoTruststore = null)
 	{
 		var certificado = EnderecosDoCamunda.NoContainer(CertificadosDoTeste.ArquivoDoServidor);
 		var chave = EnderecosDoCamunda.NoContainer(CertificadosDoTeste.ArquivoDaChave);
@@ -137,6 +146,27 @@ internal static partial class MontagemDosContainers
 		}
 
 		variaveis["CAMUNDA_SECURITY_AUTHENTICATION_UNPROTECTEDAPI"] = "false";
+		if (modo == ModoDeAutenticacao.OAuth)
+		{
+			// O camunda.security.authentication.oidc.* da referência de propriedades do Camunda 8.10, o mesmo do camunda-sm da
+			// 115: o emissor, o token, as chaves e o login no Keycloak da rede, o audience, e o claim que diz quem chama.
+			ArgumentNullException.ThrowIfNull(oauth);
+			variaveis["CAMUNDA_SECURITY_AUTHENTICATION_METHOD"] = "oidc";
+			variaveis["CAMUNDA_SECURITY_AUTHENTICATION_OIDC_ISSUERURI"] = KeycloakDoTeste.EmissorNaRede;
+			variaveis["CAMUNDA_SECURITY_AUTHENTICATION_OIDC_TOKENURI"] = KeycloakDoTeste.TokenNaRede;
+			variaveis["CAMUNDA_SECURITY_AUTHENTICATION_OIDC_JWKSETURI"] = KeycloakDoTeste.ChavesNaRede;
+			variaveis["CAMUNDA_SECURITY_AUTHENTICATION_OIDC_AUTHORIZATIONURI"] = KeycloakDoTeste.AutorizacaoNaRede;
+			variaveis["CAMUNDA_SECURITY_AUTHENTICATION_OIDC_CLIENTID"] = CredenciaisOAuth.ClientIdDoCamunda;
+			variaveis["CAMUNDA_SECURITY_AUTHENTICATION_OIDC_CLIENTSECRET"] = oauth.SegredoDoCamunda;
+			variaveis["CAMUNDA_SECURITY_AUTHENTICATION_OIDC_AUDIENCES_0"] = oauth.Audience;
+			variaveis["CAMUNDA_SECURITY_AUTHENTICATION_OIDC_REDIRECTURI"] = $"{Enderecos.RestNaRede}/sso-callback";
+			variaveis["CAMUNDA_SECURITY_AUTHENTICATION_OIDC_USERNAMECLAIM"] = "preferred_username";
+			variaveis["CAMUNDA_SECURITY_AUTHENTICATION_OIDC_CLIENTIDCLAIM"] = "client_id";
+			// O Camunda busca as chaves no Keycloak em https: confia na autoridade de teste pelo truststore do Java.
+			variaveis["JAVA_TOOL_OPTIONS"] = Truststore(senhaDoTruststore ?? throw new ArgumentNullException(nameof(senhaDoTruststore)));
+			return variaveis;
+		}
+
 		variaveis["CAMUNDA_SECURITY_INITIALIZATION_USERS_0_USERNAME"] = Usuario;
 		variaveis["CAMUNDA_SECURITY_INITIALIZATION_USERS_0_PASSWORD"] = senha;
 		variaveis["CAMUNDA_SECURITY_INITIALIZATION_USERS_0_NAME"] = Usuario;
@@ -151,17 +181,22 @@ internal static partial class MontagemDosContainers
 	/// </summary>
 	/// <exception cref="InvalidOperationException">Um marcador que não existe, ou a credencial pedida no modo sem credencial.</exception>
 	internal static IReadOnlyDictionary<string, string> VariaveisDoServico(
-		CamundaServiceContainer servico, ModoDeAutenticacao modo, string senha, string senhaDoTruststore, IReadOnlyCollection<string> nomes)
+		CamundaServiceContainer servico, ModoDeAutenticacao modo, string senha, string senhaDoTruststore, IReadOnlyCollection<string> nomes,
+		CredenciaisOAuth? oauth = null)
 	{
 		var autoridade = EnderecosDoCamunda.NoContainer(CertificadosDoTeste.ArquivoDaAutoridade);
-		var truststore = EnderecosDoCamunda.NoContainer(CertificadosDoTeste.ArquivoDoTruststore);
-		var java = $"-Djavax.net.ssl.trustStore={truststore} -Djavax.net.ssl.trustStorePassword={senhaDoTruststore} -Djavax.net.ssl.trustStoreType=PKCS12";
+		var java = Truststore(senhaDoTruststore);
 		var variaveis = new Dictionary<string, string>(StringComparer.Ordinal)
 		{
 			["CAMUNDA_REST_ADDRESS"] = Enderecos.RestNaRede,
 			["ZEEBE_REST_ADDRESS"] = Enderecos.RestNaRede,
 			["ZEEBE_GRPC_ADDRESS"] = Enderecos.GrpcNaRede,
-			["CAMUNDA_AUTH_STRATEGY"] = modo == ModoDeAutenticacao.Basic ? "BASIC" : "NONE",
+			["CAMUNDA_AUTH_STRATEGY"] = modo switch
+			{
+				ModoDeAutenticacao.Basic => "BASIC",
+				ModoDeAutenticacao.OAuth => "OAUTH",
+				_ => "NONE"
+			},
 			// A autoridade de teste, pelo nome que cada família lê: o OpenSSL (Go, .NET no Linux, curl), o Node, o Python, o
 			// SDK .NET do Camunda, o cliente Java do Camunda e o Spring Zeebe; e o truststore do Java.
 			["SSL_CERT_FILE"] = autoridade,
@@ -177,20 +212,52 @@ internal static partial class MontagemDosContainers
 			variaveis["CAMUNDA_BASIC_AUTH_USERNAME"] = Usuario;
 			variaveis["CAMUNDA_BASIC_AUTH_PASSWORD"] = senha;
 		}
+		else if (modo == ModoDeAutenticacao.OAuth)
+			OAuthDoWorker(variaveis, oauth ?? throw new ArgumentNullException(nameof(oauth)));
 
 		foreach (var (chave, valor) in servico.Environment)
 		{
 			var resolvido = Marcador().Replace(
-				valor ?? "", m => Resolver(m.Value, m.Groups[1].Value, servico.Name!, modo, senha, senhaDoTruststore, nomes));
+				valor ?? "", m => Resolver(m.Value, m.Groups[1].Value, servico.Name!, modo, senha, senhaDoTruststore, nomes, oauth));
 			variaveis[chave] = chave == "JAVA_TOOL_OPTIONS" ? $"{java} {resolvido}" : resolvido;
 		}
 		return variaveis;
 	}
 
+	/// <summary>
+	/// O client credentials do worker, pelos nomes de cada família: o SDK do Camunda (o README do
+	/// <c>Camunda.Orchestration.Sdk</c>), o Spring do Camunda (o <c>camunda.client.auth.*</c> e o <c>camunda.client.*-address</c>
+	/// na forma de variável do Spring, sem os hífens) e o cliente Java antigo do Zeebe (<c>ZEEBE_*</c>).
+	/// </summary>
+	private static void OAuthDoWorker(Dictionary<string, string> variaveis, CredenciaisOAuth oauth)
+	{
+		var token = KeycloakDoTeste.TokenNaRede;
+		variaveis["CAMUNDA_OAUTH_URL"] = token;
+		variaveis["CAMUNDA_CLIENT_ID"] = oauth.ClientIdDoWorker;
+		variaveis["CAMUNDA_CLIENT_SECRET"] = oauth.SegredoDoWorker;
+		variaveis["CAMUNDA_TOKEN_AUDIENCE"] = oauth.Audience;
+		variaveis["CAMUNDA_CLIENT_AUTH_METHOD"] = "oidc";
+		variaveis["CAMUNDA_CLIENT_AUTH_TOKENURL"] = token;
+		variaveis["CAMUNDA_CLIENT_AUTH_CLIENTID"] = oauth.ClientIdDoWorker;
+		variaveis["CAMUNDA_CLIENT_AUTH_CLIENTSECRET"] = oauth.SegredoDoWorker;
+		variaveis["CAMUNDA_CLIENT_AUTH_AUDIENCE"] = oauth.Audience;
+		variaveis["CAMUNDA_CLIENT_RESTADDRESS"] = Enderecos.RestNaRede;
+		variaveis["CAMUNDA_CLIENT_GRPCADDRESS"] = Enderecos.GrpcNaRede;
+		variaveis["ZEEBE_CLIENT_ID"] = oauth.ClientIdDoWorker;
+		variaveis["ZEEBE_CLIENT_SECRET"] = oauth.SegredoDoWorker;
+		variaveis["ZEEBE_AUTHORIZATION_SERVER_URL"] = token;
+		variaveis["ZEEBE_TOKEN_AUDIENCE"] = oauth.Audience;
+	}
+
+	// O truststore do Java com a autoridade de teste, na forma do JAVA_TOOL_OPTIONS.
+	private static string Truststore(string senhaDoTruststore) =>
+		$"-Djavax.net.ssl.trustStore={EnderecosDoCamunda.NoContainer(CertificadosDoTeste.ArquivoDoTruststore)} " +
+		$"-Djavax.net.ssl.trustStorePassword={senhaDoTruststore} -Djavax.net.ssl.trustStoreType=PKCS12";
+
 	// O valor de um marcador: os do Camunda, e o host e a porta de outro container da lista.
 	private static string Resolver(
 		string marcador, string chave, string servico, ModoDeAutenticacao modo, string senha, string senhaDoTruststore,
-		IReadOnlyCollection<string> nomes)
+		IReadOnlyCollection<string> nomes, CredenciaisOAuth? oauth)
 	{
 		switch (chave)
 		{
@@ -204,16 +271,26 @@ internal static partial class MontagemDosContainers
 				return EnderecosDoCamunda.NoContainer(CertificadosDoTeste.ArquivoDoTruststore);
 			case "camunda.trustStorePassword":
 				return senhaDoTruststore;
-			case "camunda.username" or "camunda.password" when modo == ModoDeAutenticacao.None:
+			case "camunda.username" or "camunda.password" when modo != ModoDeAutenticacao.Basic:
 				throw Configuracao(
-					$"The container '{servico}' uses {marcador}, but camunda.containers.authentication is \"none\": there is no credential.");
+					$"The container '{servico}' uses {marcador}, a Basic value, but camunda.containers.authentication is " +
+					$"\"{modo.ToString().ToLowerInvariant()}\": there is no user and password.");
 			case "camunda.username":
 				return Usuario;
 			case "camunda.password":
 				return senha;
-			case "camunda.tokenUrl" or "camunda.clientId" or "camunda.clientSecret" or "camunda.audience":
-				throw new NotSupportedException(
-					$"The container '{servico}' uses {marcador}, an OAuth value: OAuth in the containers comes in 6.40.0.");
+			case "camunda.tokenUrl" or "camunda.clientId" or "camunda.clientSecret" or "camunda.audience" when oauth is null:
+				throw Configuracao(
+					$"The container '{servico}' uses {marcador}, an OAuth value, but camunda.containers.authentication is not " +
+					"\"oauth\": there is no token to point to.");
+			case "camunda.tokenUrl":
+				return KeycloakDoTeste.TokenNaRede;
+			case "camunda.clientId":
+				return oauth!.ClientIdDoWorker;
+			case "camunda.clientSecret":
+				return oauth!.SegredoDoWorker;
+			case "camunda.audience":
+				return oauth!.Audience;
 		}
 
 		var ponto = chave.IndexOf('.', StringComparison.Ordinal);
@@ -230,7 +307,8 @@ internal static partial class MontagemDosContainers
 
 		throw Configuracao(
 			$"The container '{servico}' uses {marcador}, which is not a placeholder: use ${{camunda.restAddress}}, " +
-			"${camunda.grpcAddress}, ${camunda.username}, ${camunda.password}, ${camunda.caCertificatePath}, " +
+			"${camunda.grpcAddress}, ${camunda.username}, ${camunda.password}, ${camunda.tokenUrl}, ${camunda.clientId}, " +
+			"${camunda.clientSecret}, ${camunda.audience}, ${camunda.caCertificatePath}, " +
 			"${camunda.trustStorePath}, ${camunda.trustStorePassword}, ${<name>.host} or ${<name>.port:<port>}, with the name of " +
 			"a container in the list.");
 	}

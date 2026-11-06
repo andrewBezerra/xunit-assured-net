@@ -27,16 +27,39 @@ public class CamundaSectionWithContainers : CamundaSettings
 public class CamundaContainersSettings
 {
 	/// <summary>
-	/// Como o Camunda do container autentica: <c>none</c> (a API aberta) ou <c>basic</c>, o padrão. O <c>oauth</c> vem na
-	/// 6.40.0.
+	/// Como o Camunda do container autentica: <c>none</c> (a API aberta), <c>basic</c>, o padrão, ou <c>oauth</c> (OIDC, com
+	/// um Keycloak que o fixture sobe e configura; o client do worker vem de <see cref="OAuth"/>).
 	/// </summary>
 	/// <remarks>O cliente do próprio teste fala com o Camunda no mesmo modo e com a mesma credencial que os workers recebem.</remarks>
 	[JsonPropertyName("authentication")]
 	public string? Authentication { get; set; }
 
+	/// <summary>O client que o worker usa no modo <c>oauth</c>; nos outros modos, ignorado.</summary>
+	[JsonPropertyName("oauth")]
+	public CamundaContainersOAuth? OAuth { get; set; }
+
 	/// <summary>Os containers, na ordem em que estão escritos; o <see cref="CamundaServiceContainer.DependsOn"/> muda a ordem.</summary>
 	[JsonPropertyName("services")]
 	public List<CamundaServiceContainer> Services { get; set; } = [];
+}
+
+/// <summary>
+/// O client do worker no Keycloak do modo <c>oauth</c>: o fixture monta o realm sozinho, e o cliente só diz o client id que o
+/// worker dele usa.
+/// </summary>
+public class CamundaContainersOAuth
+{
+	/// <summary>O client id que o worker usa no client credentials. Obrigatório no modo <c>oauth</c>.</summary>
+	[JsonPropertyName("clientId")]
+	public string? ClientId { get; set; }
+
+	/// <summary>O segredo desse client; sem ele, o fixture gera um a cada execução e o entrega ao worker.</summary>
+	[JsonPropertyName("clientSecret")]
+	public string? ClientSecret { get; set; }
+
+	/// <summary>O audience que o Camunda exige no token; sem ele, <c>orchestration-api</c>, o do Camunda self-managed.</summary>
+	[JsonPropertyName("audience")]
+	public string? Audience { get; set; }
 }
 
 /// <summary>
@@ -56,9 +79,12 @@ public class CamundaServiceContainer
 	/// As variáveis de ambiente, além das que o fixture entrega (o endereço e a autenticação do Camunda).
 	/// </summary>
 	/// <remarks>
-	/// Aceitam os marcadores <c>${camunda.restAddress}</c>, <c>${camunda.grpcAddress}</c>, <c>${camunda.username}</c>,
-	/// <c>${camunda.password}</c>, <c>${&lt;nome&gt;.host}</c> e <c>${&lt;nome&gt;.port:&lt;porta&gt;}</c>, para um worker que lê
-	/// outros nomes. Uma variável escrita aqui ganha da que o fixture entrega com o mesmo nome.
+	/// Aceitam os marcadores <c>${camunda.restAddress}</c>, <c>${camunda.grpcAddress}</c>, <c>${camunda.username}</c> e
+	/// <c>${camunda.password}</c> (no Basic), <c>${camunda.tokenUrl}</c>, <c>${camunda.clientId}</c>,
+	/// <c>${camunda.clientSecret}</c> e <c>${camunda.audience}</c> (no OAuth), <c>${camunda.caCertificatePath}</c>,
+	/// <c>${camunda.trustStorePath}</c>, <c>${camunda.trustStorePassword}</c>, <c>${&lt;nome&gt;.host}</c> e
+	/// <c>${&lt;nome&gt;.port:&lt;porta&gt;}</c>, para um worker que lê outros nomes. Uma variável escrita aqui ganha da que o
+	/// fixture entrega com o mesmo nome.
 	/// </remarks>
 	[JsonPropertyName("environment")]
 	public Dictionary<string, string> Environment { get; set; } = [];
