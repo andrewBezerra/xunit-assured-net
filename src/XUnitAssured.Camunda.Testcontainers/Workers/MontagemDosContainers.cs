@@ -19,13 +19,13 @@ internal enum ModoDeAutenticacao
 /// </summary>
 internal static partial class MontagemDosContainers
 {
-	internal const string NomeDoCamunda = "camunda";
-	internal const int PortaRest = 8080;
-	internal const int PortaGrpc = 26500;
 	internal const string Usuario = "xunit";
 
-	internal const string EnderecoRest = "http://camunda:8080";
-	internal const string EnderecoGrpc = "http://camunda:26500";
+	/// <summary>O nome do Camunda na rede, reservado para ele.</summary>
+	internal static string NomeDoCamunda => Enderecos.NomeNaRede;
+
+	/// <summary>Os endereços do Camunda do container, só com TLS.</summary>
+	internal static EnderecosDoCamunda Enderecos => EnderecosDoCamunda.Padrao;
 
 	/// <summary>O modo pedido; sem nada, o Basic.</summary>
 	internal static ModoDeAutenticacao Modo(string? pedido) => pedido?.Trim().ToLowerInvariant() switch
@@ -103,13 +103,26 @@ internal static partial class MontagemDosContainers
 	}
 
 	/// <summary>
-	/// As variáveis do Camunda no container, no modo pedido: o armazenamento em H2 na memória com a busca gravada na hora, e
-	/// o usuário do Basic, ou a API aberta.
+	/// As variáveis do Camunda no container, no modo pedido: o TLS no REST e no gateway gRPC, com o certificado do servidor
+	/// que o fixture copia para o container; o armazenamento em H2 na memória com a busca gravada na hora; e o usuário do
+	/// Basic, ou a API aberta.
 	/// </summary>
+	/// <remarks>
+	/// O REST é o servidor web do Spring Boot (<c>server.ssl.*</c>, com o certificado e a chave em PEM); o gRPC, o
+	/// <c>camunda.api.grpc.ssl.*</c> da referência de propriedades do Camunda 8.10.
+	/// </remarks>
 	internal static IReadOnlyDictionary<string, string> VariaveisDoCamunda(ModoDeAutenticacao modo, string senha)
 	{
+		var certificado = EnderecosDoCamunda.NoContainer(CertificadosDoTeste.ArquivoDoServidor);
+		var chave = EnderecosDoCamunda.NoContainer(CertificadosDoTeste.ArquivoDaChave);
 		var variaveis = new Dictionary<string, string>(StringComparer.Ordinal)
 		{
+			["SERVER_SSL_ENABLED"] = "true",
+			["SERVER_SSL_CERTIFICATE"] = certificado,
+			["SERVER_SSL_CERTIFICATE_PRIVATE_KEY"] = chave,
+			["CAMUNDA_API_GRPC_SSL_ENABLED"] = "true",
+			["CAMUNDA_API_GRPC_SSL_CERTIFICATE"] = certificado,
+			["CAMUNDA_API_GRPC_SSL_CERTIFICATEPRIVATEKEY"] = chave,
 			["CAMUNDA_DATA_SECONDARYSTORAGE_TYPE"] = "rdbms",
 			["CAMUNDA_DATA_SECONDARYSTORAGE_RDBMS_URL"] = "jdbc:h2:mem:xunit;DB_CLOSE_DELAY=-1;MODE=PostgreSQL",
 			["CAMUNDA_DATA_SECONDARYSTORAGE_RDBMS_USERNAME"] = "sa",
@@ -132,19 +145,32 @@ internal static partial class MontagemDosContainers
 	}
 
 	/// <summary>
-	/// As variáveis de um container da lista: as do SDK, com o endereço do Camunda na rede e a autenticação do modo, e as
-	/// que ele declarou, com os marcadores resolvidos. As declaradas ganham.
+	/// As variáveis de um container da lista: as do SDK, com o endereço do Camunda na rede e a autenticação do modo; as da
+	/// confiança na autoridade de teste, para as tecnologias comuns; e as que ele declarou, com os marcadores resolvidos. As
+	/// declaradas ganham, menos o <c>JAVA_TOOL_OPTIONS</c>, que junta o truststore ao que foi declarado.
 	/// </summary>
 	/// <exception cref="InvalidOperationException">Um marcador que não existe, ou a credencial pedida no modo sem credencial.</exception>
 	internal static IReadOnlyDictionary<string, string> VariaveisDoServico(
-		CamundaServiceContainer servico, ModoDeAutenticacao modo, string senha, IReadOnlyCollection<string> nomes)
+		CamundaServiceContainer servico, ModoDeAutenticacao modo, string senha, string senhaDoTruststore, IReadOnlyCollection<string> nomes)
 	{
+		var autoridade = EnderecosDoCamunda.NoContainer(CertificadosDoTeste.ArquivoDaAutoridade);
+		var truststore = EnderecosDoCamunda.NoContainer(CertificadosDoTeste.ArquivoDoTruststore);
+		var java = $"-Djavax.net.ssl.trustStore={truststore} -Djavax.net.ssl.trustStorePassword={senhaDoTruststore} -Djavax.net.ssl.trustStoreType=PKCS12";
 		var variaveis = new Dictionary<string, string>(StringComparer.Ordinal)
 		{
-			["CAMUNDA_REST_ADDRESS"] = EnderecoRest,
-			["ZEEBE_REST_ADDRESS"] = EnderecoRest,
-			["ZEEBE_GRPC_ADDRESS"] = EnderecoGrpc,
-			["CAMUNDA_AUTH_STRATEGY"] = modo == ModoDeAutenticacao.Basic ? "BASIC" : "NONE"
+			["CAMUNDA_REST_ADDRESS"] = Enderecos.RestNaRede,
+			["ZEEBE_REST_ADDRESS"] = Enderecos.RestNaRede,
+			["ZEEBE_GRPC_ADDRESS"] = Enderecos.GrpcNaRede,
+			["CAMUNDA_AUTH_STRATEGY"] = modo == ModoDeAutenticacao.Basic ? "BASIC" : "NONE",
+			// A autoridade de teste, pelo nome que cada família lê: o OpenSSL (Go, .NET no Linux, curl), o Node, o Python, o
+			// SDK .NET do Camunda, o cliente Java do Camunda e o Spring Zeebe; e o truststore do Java.
+			["SSL_CERT_FILE"] = autoridade,
+			["NODE_EXTRA_CA_CERTS"] = autoridade,
+			["REQUESTS_CA_BUNDLE"] = autoridade,
+			["CAMUNDA_MTLS_CA_PATH"] = autoridade,
+			["ZEEBE_CA_CERTIFICATE_PATH"] = autoridade,
+			["CAMUNDA_CLIENT_CACERTIFICATEPATH"] = autoridade,
+			["JAVA_TOOL_OPTIONS"] = java
 		};
 		if (modo == ModoDeAutenticacao.Basic)
 		{
@@ -153,20 +179,31 @@ internal static partial class MontagemDosContainers
 		}
 
 		foreach (var (chave, valor) in servico.Environment)
-			variaveis[chave] = Marcador().Replace(valor ?? "", m => Resolver(m.Value, m.Groups[1].Value, servico.Name!, modo, senha, nomes));
+		{
+			var resolvido = Marcador().Replace(
+				valor ?? "", m => Resolver(m.Value, m.Groups[1].Value, servico.Name!, modo, senha, senhaDoTruststore, nomes));
+			variaveis[chave] = chave == "JAVA_TOOL_OPTIONS" ? $"{java} {resolvido}" : resolvido;
+		}
 		return variaveis;
 	}
 
 	// O valor de um marcador: os do Camunda, e o host e a porta de outro container da lista.
 	private static string Resolver(
-		string marcador, string chave, string servico, ModoDeAutenticacao modo, string senha, IReadOnlyCollection<string> nomes)
+		string marcador, string chave, string servico, ModoDeAutenticacao modo, string senha, string senhaDoTruststore,
+		IReadOnlyCollection<string> nomes)
 	{
 		switch (chave)
 		{
 			case "camunda.restAddress":
-				return EnderecoRest;
+				return Enderecos.RestNaRede;
 			case "camunda.grpcAddress":
-				return EnderecoGrpc;
+				return Enderecos.GrpcNaRede;
+			case "camunda.caCertificatePath":
+				return EnderecosDoCamunda.NoContainer(CertificadosDoTeste.ArquivoDaAutoridade);
+			case "camunda.trustStorePath":
+				return EnderecosDoCamunda.NoContainer(CertificadosDoTeste.ArquivoDoTruststore);
+			case "camunda.trustStorePassword":
+				return senhaDoTruststore;
 			case "camunda.username" or "camunda.password" when modo == ModoDeAutenticacao.None:
 				throw Configuracao(
 					$"The container '{servico}' uses {marcador}, but camunda.containers.authentication is \"none\": there is no credential.");
@@ -193,8 +230,9 @@ internal static partial class MontagemDosContainers
 
 		throw Configuracao(
 			$"The container '{servico}' uses {marcador}, which is not a placeholder: use ${{camunda.restAddress}}, " +
-			"${camunda.grpcAddress}, ${camunda.username}, ${camunda.password}, ${<name>.host} or ${<name>.port:<port>}, with the " +
-			"name of a container in the list.");
+			"${camunda.grpcAddress}, ${camunda.username}, ${camunda.password}, ${camunda.caCertificatePath}, " +
+			"${camunda.trustStorePath}, ${camunda.trustStorePassword}, ${<name>.host} or ${<name>.port:<port>}, with the name of " +
+			"a container in the list.");
 	}
 
 	[GeneratedRegex(@"\$\{([^}]+)\}", RegexOptions.None, matchTimeoutMilliseconds: 1000)]

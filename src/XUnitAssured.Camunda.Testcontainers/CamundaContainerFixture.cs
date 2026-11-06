@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using System.Threading.Tasks;
 
 using DotNet.Testcontainers.Builders;
@@ -26,6 +27,10 @@ namespace XUnitAssured.Camunda.Testcontainers;
 /// <c>testsettings.json</c>, como sempre.
 /// </para>
 /// <para>
+/// Só com TLS, no REST e no gRPC: o fixture gera, a cada execução, uma autoridade de teste e o certificado do servidor, e
+/// as cadeias confiam só nessa autoridade (<see cref="CamundaSettings.CaCertificatePath"/>).
+/// </para>
+/// <para>
 /// Precisa de um Docker que o Testcontainers alcance (o do runner <c>ubuntu-latest</c> do GitHub
 /// serve). Sem Docker, o fixture falha ao iniciar, e com ele toda a classe.
 /// </para>
@@ -35,11 +40,10 @@ public class CamundaContainerFixture : CamundaClusterFixture, IAsyncLifetime
 	/// <summary>A imagem padrão: a versão do Camunda com que o pacote foi verificado.</summary>
 	public const string ImagemPadrao = "camunda/camunda:8.10.4";
 
-	private const int PortaRest = 8080;
-	private const string Usuario = "xunit";
-
 	private readonly string _senha = Guid.NewGuid().ToString("N");
 	private IContainer? _container;
+	private CertificadosDoTeste? _certificados;
+	private string? _pastaDoTls;
 
 	/// <summary>A imagem do Camunda. Troque para testar outra versão 8.10.x.</summary>
 	protected virtual string Image => ImagemPadrao;
@@ -62,24 +66,26 @@ public class CamundaContainerFixture : CamundaClusterFixture, IAsyncLifetime
 	/// <inheritdoc />
 	public virtual async Task InitializeAsync()
 	{
+		var enderecos = MontagemDosContainers.Enderecos;
+		_certificados = CertificadosDoTeste.Gerar(
+			enderecos.NomesDoCertificado(EnderecosDoCamunda.HostsDoDocker(Environment.GetEnvironmentVariable)), DateTimeOffset.UtcNow);
+		_pastaDoTls = Directory.CreateTempSubdirectory("xunitassured-tls-").FullName;
+		_certificados.Gravar(_pastaDoTls);
+
 		var builder = new ContainerBuilder(Image)
-			.WithPortBinding(PortaRest, assignRandomHostPort: true)
-			.WithEnvironment("CAMUNDA_DATA_SECONDARYSTORAGE_TYPE", "rdbms")
-			.WithEnvironment("CAMUNDA_DATA_SECONDARYSTORAGE_RDBMS_URL", "jdbc:h2:mem:xunit;DB_CLOSE_DELAY=-1;MODE=PostgreSQL")
-			.WithEnvironment("CAMUNDA_DATA_SECONDARYSTORAGE_RDBMS_USERNAME", "sa")
-			.WithEnvironment("CAMUNDA_DATA_SECONDARYSTORAGE_RDBMS_FLUSHINTERVAL", "PT0S")
-			.WithEnvironment("CAMUNDA_SECURITY_AUTHENTICATION_UNPROTECTEDAPI", "false")
-			// Sem isto, o usuário criado aqui não tem permissão nenhuma, e o primeiro deploy volta FORBIDDEN.
-			.WithEnvironment("CAMUNDA_SECURITY_AUTHORIZATIONS_ENABLED", "false")
-			.WithEnvironment("CAMUNDA_SECURITY_INITIALIZATION_USERS_0_USERNAME", Usuario)
-			.WithEnvironment("CAMUNDA_SECURITY_INITIALIZATION_USERS_0_PASSWORD", _senha)
-			.WithEnvironment("CAMUNDA_SECURITY_INITIALIZATION_USERS_0_NAME", Usuario)
-			.WithEnvironment("CAMUNDA_SECURITY_INITIALIZATION_USERS_0_EMAIL", "xunit@localhost")
-			// Pronto é quando a REST API responde autenticada, e não quando o processo sobe.
+			.WithPortBinding(enderecos.PortaRest, assignRandomHostPort: true)
+			.WithPortBinding(enderecos.PortaGrpc, assignRandomHostPort: true)
+			// O mesmo Camunda do CamundaFixture: o TLS, o H2 na memória e o usuário do Basic.
+			.WithEnvironment(MontagemDosContainers.VariaveisDoCamunda(ModoDeAutenticacao.Basic, _senha))
+			// Pronto é quando a REST API responde em https, autenticada, e não quando o processo sobe.
 			.WithWaitStrategy(Wait.ForUnixContainer().UntilHttpRequestIsSucceeded(pedido => pedido
-				.ForPort(PortaRest)
+				.ForPort((ushort)enderecos.PortaRest)
 				.ForPath("/v2/topology")
-				.WithBasicAuthentication(Usuario, _senha)));
+				.UsingTls()
+				.UsingHttpMessageHandler(CriadorNoDocker.ConfiandoNa(_certificados.Autoridade))
+				.WithBasicAuthentication(MontagemDosContainers.Usuario, _senha)));
+		foreach (var (nome, conteudo) in _certificados.Arquivos())
+			builder = builder.WithResourceMapping(conteudo, EnderecosDoCamunda.NoContainer(nome));
 
 		_container = Configure(builder).Build();
 		await _container.StartAsync().ConfigureAwait(false);
@@ -87,8 +93,9 @@ public class CamundaContainerFixture : CamundaClusterFixture, IAsyncLifetime
 		var arquivo = CamundaSettings.Load();
 		Settings = new CamundaSettings
 		{
-			RestAddress = $"http://{_container.Hostname}:{_container.GetMappedPublicPort(PortaRest)}",
-			Authentication = new CamundaAuthenticationSettings { Type = "Basic", Username = Usuario, Password = _senha },
+			RestAddress = enderecos.RestNoHost(_container.Hostname, _container.GetMappedPublicPort(enderecos.PortaRest)),
+			CaCertificatePath = Path.Combine(_pastaDoTls, CertificadosDoTeste.ArquivoDaAutoridade),
+			Authentication = new CamundaAuthenticationSettings { Type = "Basic", Username = MontagemDosContainers.Usuario, Password = _senha },
 			AssertionTimeoutSeconds = arquivo.AssertionTimeoutSeconds,
 			PollIntervalMilliseconds = arquivo.PollIntervalMilliseconds,
 			MockLifetimeSeconds = arquivo.MockLifetimeSeconds
@@ -100,5 +107,8 @@ public class CamundaContainerFixture : CamundaClusterFixture, IAsyncLifetime
 	{
 		if (_container is not null)
 			await _container.DisposeAsync().ConfigureAwait(false);
+		if (_pastaDoTls is not null && Directory.Exists(_pastaDoTls))
+			Directory.Delete(_pastaDoTls, recursive: true);
+		_certificados?.Dispose();
 	}
 }

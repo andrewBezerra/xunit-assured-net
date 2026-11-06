@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.Net.Http;
+using System.Security.Cryptography.X509Certificates;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
@@ -8,6 +10,8 @@ using DotNet.Testcontainers.Builders;
 using DotNet.Testcontainers.Configurations;
 using DotNet.Testcontainers.Containers;
 using DotNet.Testcontainers.Networks;
+
+using XUnitAssured.Camunda.Client;
 
 namespace XUnitAssured.Camunda.Testcontainers;
 
@@ -20,13 +24,19 @@ namespace XUnitAssured.Camunda.Testcontainers;
 /// <param name="Portas">As portas que o host alcança.</param>
 /// <param name="Espera">Quando ele está pronto; nulo, assim que sobe.</param>
 /// <param name="Basic">O usuário e a senha do pedido HTTP da espera, quando ele pede autenticação.</param>
+/// <param name="Arquivos">Os arquivos copiados para o container antes de ele subir, pelo caminho dentro dele.</param>
+/// <param name="Autoridade">
+/// A autoridade em que o pedido HTTP da espera confia, quando o container responde em https; nula, http.
+/// </param>
 internal sealed record DefinicaoDeContainer(
 	string Nome,
 	string Imagem,
 	IReadOnlyDictionary<string, string> Variaveis,
 	IReadOnlyList<int> Portas,
 	CamundaContainerWait? Espera,
-	(string Usuario, string Senha)? Basic);
+	(string Usuario, string Senha)? Basic,
+	IReadOnlyDictionary<string, byte[]> Arquivos,
+	X509Certificate2? Autoridade);
 
 /// <summary>A rede de uma execução, onde os containers se acham pelo nome.</summary>
 internal interface IRedeDoTeste : IAsyncDisposable
@@ -74,6 +84,9 @@ internal sealed class CriadorNoDocker : ICriadorDeContainers
 			.WithEnvironment(definicao.Variaveis);
 		foreach (var porta in definicao.Portas)
 			builder = builder.WithPortBinding(porta, assignRandomHostPort: true);
+		// Copiados, e não montados: valem também com um Docker remoto e com o Podman sem root.
+		foreach (var (caminho, conteudo) in definicao.Arquivos)
+			builder = builder.WithResourceMapping(conteudo, caminho);
 		if (Espera(definicao) is { } espera)
 			builder = builder.WithWaitStrategy(espera);
 
@@ -103,12 +116,20 @@ internal sealed class CriadorNoDocker : ICriadorDeContainers
 			return aguardar.UntilHttpRequestIsSucceeded(pedido =>
 			{
 				pedido = pedido.ForPort((ushort)(espera.Port ?? definicao.Portas[0])).ForPath(caminho);
+				if (definicao.Autoridade is { } autoridade)
+					pedido = pedido.UsingTls().UsingHttpMessageHandler(ConfiandoNa(autoridade));
 				return definicao.Basic is var (usuario, senha) ? pedido.WithBasicAuthentication(usuario, senha) : pedido;
 			});
 		if (espera.Log is { } log)
 			return aguardar.UntilMessageIsLogged(new Regex(Regex.Escape(log), RegexOptions.None, TimeSpan.FromSeconds(1)));
 		return espera.Port is { } porta ? aguardar.UntilInternalTcpPortIsAvailable(porta) : null;
 	}
+
+	/// <summary>O handler da espera em https: confia só na autoridade de teste, como o cliente do teste.</summary>
+	internal static HttpMessageHandler ConfiandoNa(X509Certificate2 autoridade) => new SocketsHttpHandler
+	{
+		SslOptions = { RemoteCertificateValidationCallback = ConfiancaNaAutoridade.Callback(autoridade) }
+	};
 
 	private sealed class Rede(INetwork docker) : IRedeDoTeste
 	{

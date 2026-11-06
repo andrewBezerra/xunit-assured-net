@@ -67,6 +67,14 @@ public class CamundaSettings
 	public string? TenantId { get; set; }
 
 	/// <summary>
+	/// O certificado PEM da autoridade que assina o do cluster, quando ele usa TLS com uma autoridade própria. Com ele, o
+	/// cliente confia só nessa autoridade: a cadeia do servidor tem de fechar nela, e o nome tem de conferir.
+	/// </summary>
+	/// <remarks>Nulo, e sem <c>CAMUNDA_MTLS_CA_PATH</c>: as autoridades do sistema, como sempre.</remarks>
+	[JsonPropertyName("caCertificatePath")]
+	public string? CaCertificatePath { get; set; }
+
+	/// <summary>
 	/// Carrega a seção <c>camunda</c> do <c>testsettings.json</c>, ou os padrões quando não há
 	/// arquivo nem seção.
 	/// </summary>

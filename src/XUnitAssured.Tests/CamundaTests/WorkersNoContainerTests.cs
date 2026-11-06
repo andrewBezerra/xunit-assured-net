@@ -117,9 +117,9 @@ public class WorkersNoContainerTests
 		await fixture.InitializeAsync();
 
 		var worker = criador.Definicao("worker");
-		worker.Variaveis["CAMUNDA_REST_ADDRESS"].ShouldBe("http://camunda:8080");
-		worker.Variaveis["ZEEBE_REST_ADDRESS"].ShouldBe("http://camunda:8080");
-		worker.Variaveis["ZEEBE_GRPC_ADDRESS"].ShouldBe("http://camunda:26500");
+		worker.Variaveis["CAMUNDA_REST_ADDRESS"].ShouldBe("https://camunda:8080");
+		worker.Variaveis["ZEEBE_REST_ADDRESS"].ShouldBe("https://camunda:8080");
+		worker.Variaveis["ZEEBE_GRPC_ADDRESS"].ShouldBe("https://camunda:26500");
 	}
 
 	[Fact(DisplayName = "Placeholders in a container's environment take the Camunda's and the other containers' values")]
@@ -137,8 +137,8 @@ public class WorkersNoContainerTests
 		await fixture.InitializeAsync();
 
 		var variaveis = criador.Definicao("worker").Variaveis;
-		variaveis["Camunda__Url"].ShouldBe("http://camunda:8080");
-		variaveis["Camunda__Grpc"].ShouldBe("http://camunda:26500");
+		variaveis["Camunda__Url"].ShouldBe("https://camunda:8080");
+		variaveis["Camunda__Grpc"].ShouldBe("https://camunda:26500");
 		variaveis["Camunda__User"].ShouldBe("xunit");
 		variaveis["Camunda__Password"].ShouldBe("senha-1");
 		variaveis["ConnectionStrings__Banco"].ShouldBe("Host=postgres;Port=5432");
@@ -169,7 +169,7 @@ public class WorkersNoContainerTests
 
 		await fixture.InitializeAsync();
 
-		fixture.Settings.RestAddress.ShouldBe($"http://{CriadorFalso.Host}:{CriadorFalso.PortaNoHost(8080)}");
+		fixture.Settings.RestAddress.ShouldBe($"https://{CriadorFalso.Host}:{CriadorFalso.PortaNoHost(8080)}");
 		fixture.Settings.AssertionTimeoutSeconds.ShouldBe(7);
 	}
 
@@ -365,7 +365,7 @@ public class WorkersNoContainerTests
 	}
 
 	private static DefinicaoDeContainer Definicao(CamundaContainerWait? espera, (string, string)? basic) =>
-		new("worker", "exemplo/worker:1", new Dictionary<string, string>(), [8080], espera, basic);
+		new("worker", "exemplo/worker:1", new Dictionary<string, string>(), [8080], espera, basic, new Dictionary<string, byte[]>(), null);
 
 	// ---------- Apoio ----------
 
@@ -407,8 +407,13 @@ public class WorkersNoContainerTests
 			? new CamundaFixture(Lida(autenticacao, servicos), _ => null, criador)
 			: new CamundaFixture(Lida(autenticacao, servicos), _ => null, criador, gerarSenha);
 
+	/// <summary>O que o criador falso recebeu de um container.</summary>
+	internal sealed record DefinicaoNoFalso(
+		string Nome, string Rede, IReadOnlyDictionary<string, string> Variaveis, (string, string)? Basic,
+		IReadOnlyDictionary<string, byte[]> Arquivos, System.Security.Cryptography.X509Certificates.X509Certificate2? Autoridade);
+
 	/// <summary>O Docker de mentira: guarda o que foi pedido, na ordem, e o que foi descartado.</summary>
-	private sealed class CriadorFalso : ICriadorDeContainers
+	internal sealed class CriadorFalso : ICriadorDeContainers
 	{
 		public const string Host = "127.0.0.1";
 
@@ -420,12 +425,11 @@ public class WorkersNoContainerTests
 
 		public string? FalharEm { get; init; }
 
-		public List<(string Nome, string Rede, IReadOnlyDictionary<string, string> Variaveis, (string, string)? Basic)> Subidos { get; } = [];
+		public List<DefinicaoNoFalso> Subidos { get; } = [];
 
 		public List<string> Descartados { get; } = [];
 
-		public (string Nome, string Rede, IReadOnlyDictionary<string, string> Variaveis, (string, string)? Basic) Definicao(string nome) =>
-			Subidos.Single(d => d.Nome == nome);
+		public DefinicaoNoFalso Definicao(string nome) => Subidos.Single(d => d.Nome == nome);
 
 		public Task<IRedeDoTeste> CriarRedeAsync(CancellationToken cancellationToken)
 		{
@@ -438,7 +442,7 @@ public class WorkersNoContainerTests
 			if (definicao.Nome == FalharEm)
 				throw new InvalidOperationException($"O container '{definicao.Nome}' não subiu.");
 
-			Subidos.Add((definicao.Nome, rede.Nome, definicao.Variaveis, definicao.Basic));
+			Subidos.Add(new DefinicaoNoFalso(definicao.Nome, rede.Nome, definicao.Variaveis, definicao.Basic, definicao.Arquivos, definicao.Autoridade));
 			return Task.FromResult<IContainerDoTeste>(new Container(this, definicao.Nome));
 		}
 

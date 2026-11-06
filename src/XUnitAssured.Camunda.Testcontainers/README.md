@@ -40,10 +40,13 @@ and assertion of XUnitAssured.Camunda works the same as against a remote cluster
   Elasticsearch and no Connectors. Without Connectors, no runtime competes for the jobs you mock.
 - **Secondary storage in H2, in memory, flushed at once** (`FLUSHINTERVAL=PT0S`), as the Camunda
   Process Test does: a search sees a change as soon as the engine makes it.
+- **Only TLS, on REST and gRPC.** On every run the fixture generates a test certificate authority and
+  a server certificate for `camunda`, `localhost` and `127.0.0.1`, and the chains trust only that
+  authority (`Settings.CaCertificatePath`). There is no `http` address.
 - **Basic authentication** with a `xunit` user and a new random password on every run. The fixture
   hands both to the chains, so the test never needs them. Authorizations are off, as in the package's
   CI: the container is the test's own.
-- **Ready means the REST API answered an authenticated request,** not that the process started.
+- **Ready means the REST API answered an authenticated https request,** not that the process started.
   That takes about 35 seconds.
 
 The timeouts (`assertionTimeoutSeconds`, `pollIntervalMilliseconds`, `mockLifetimeSeconds`) still
@@ -139,6 +142,28 @@ public class OrderTests(CamundaFixture camunda)
   in 6.40.0.
 - **Without `containers`,** the fixture runs on the cluster in `camunda.restAddress`; with neither, it fails, saying
   what to add.
+
+### What a worker has to accept: TLS from a test authority
+
+The Camunda answers only `https`, with a certificate from an authority generated on every run. The fixture copies the
+authority into every container at `/xunitassured/tls/ca.pem` and points the usual variables at it:
+
+| Technology | Variable the fixture sets |
+| --- | --- |
+| OpenSSL (Go, .NET on Linux, curl) | `SSL_CERT_FILE` |
+| Node | `NODE_EXTRA_CA_CERTS` |
+| Python (requests) | `REQUESTS_CA_BUNDLE` |
+| Camunda .NET SDK | `CAMUNDA_MTLS_CA_PATH` |
+| Camunda Java client | `ZEEBE_CA_CERTIFICATE_PATH` |
+| Spring Zeebe | `CAMUNDA_CLIENT_CACERTIFICATEPATH` (`camunda.client.ca-certificate-path`) |
+| Java (any) | `JAVA_TOOL_OPTIONS` with `-Djavax.net.ssl.trustStore=/xunitassured/tls/truststore.p12`, its password and `-Djavax.net.ssl.trustStoreType=PKCS12` |
+
+A worker that reads another name uses `${camunda.caCertificatePath}`, `${camunda.trustStorePath}` and
+`${camunda.trustStorePassword}`. A `JAVA_TOOL_OPTIONS` you declare keeps its options after the truststore's.
+
+`SSL_CERT_FILE`, `REQUESTS_CA_BUNDLE` and the Java truststore *replace* the system's authorities: a worker that also
+calls an external https service needs that service's authority added on its own (for example, a bundle of its own in
+the list's `environment`).
 
 ## Supported Frameworks
 
