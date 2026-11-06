@@ -2,7 +2,17 @@
 
 All notable changes to the XUnitAssured packages. Upgrading from 5.1.x? See [UPGRADING.md](UPGRADING.md).
 
-## v6.38.0 (Current — The verbs a generated test needs on Camunda)
+## v6.40.0 (Current — The variables of a process instance)
+
+New in XUnitAssured.Camunda: **`CamundaApiClient.SearchInstanceVariablesAsync`**, the variables of a process instance read from the Camunda. A tool that drives an instance itself, like a run of a scenario, can now offer the scenario the values the customer's workers wrote, and not only the ones it saw in the jobs it served. Upgrading from 6.39.0 requires no code changes.
+
+- **The variables of the instance, by name.** The search asks for the variables at the instance's own scope (`processInstanceKey` and `scopeKey` equal to the instance), so the local variables of an element do not mix in, and returns a map of name to value, each value read as the JSON the Camunda keeps (a string, a number, an object). An instance without variables, or one that has not reached the search yet, gives an empty map.
+- **Whole values.** The search is asked with `truncateValues=false`; a value that still comes truncated is read whole by its key (`GET /v2/variables/{variableKey}`).
+- **Every page.** The search follows the pages by the cursor until it has read the total, at a thousand variables a page.
+- **Like the other operations:** a deadline for the whole search (10 s by default), the `observe` callback for each request, and the same exceptions.
+- Comes after 6.39.0 (the customer's workers in Testcontainers); the OAuth for those workers moves to 6.41.0.
+
+## v6.38.0 (The verbs a generated test needs on Camunda)
 
 New in XUnitAssured.Camunda: a mock that computes its answer from the job, or from the message's subscription, and the instance's variables (`ThenCompleteWith`, `ThenCorrelateWith`); a required cluster (`CamundaSettings.LoadRequired()`, `RequiredCamundaClusterFixture`), which fails instead of falling back to localhost; and two assertions on the path the instance took (`AssertElementCompleted(id, times)`, `AssertEndedAt(id)`). Upgrading from 6.37.1 requires no code changes.
 
