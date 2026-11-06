@@ -25,7 +25,7 @@ public class CamundaNoContainerTests(CamundaContainerFixture camunda)
 	[Fact(DisplayName = "Testcontainers: the order runs end to end on a Camunda that dotnet test started")]
 	public async Task Order_Runs_On_The_Container()
 	{
-		Fixture.RestAddress.ShouldStartWith("http://");
+		Fixture.RestAddress.ShouldStartWith("https://");
 
 		await Given()
 			.Deploy("xa-pedido", "xa-envio")

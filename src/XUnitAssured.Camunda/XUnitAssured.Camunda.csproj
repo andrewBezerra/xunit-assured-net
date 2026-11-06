@@ -37,6 +37,8 @@
 
 	<ItemGroup>
 		<InternalsVisibleTo Include="XUnitAssured.Tests" />
+		<!-- O CamundaFixture do pacote do Testcontainers usa a mesma conferência do endereço do LoadRequired. -->
+		<InternalsVisibleTo Include="XUnitAssured.Camunda.Testcontainers" />
 	</ItemGroup>
 
 	<ItemGroup>
