@@ -92,7 +92,7 @@ internal sealed class CriadorNoDocker : ICriadorDeContainers
 	}
 
 	// A espera da definição na forma do Testcontainers: o caminho HTTP, a linha do log ou a porta, nessa ordem.
-	private static IWaitForContainerOS? Espera(DefinicaoDeContainer definicao)
+	internal static IWaitForContainerOS? Espera(DefinicaoDeContainer definicao)
 	{
 		var espera = definicao.Espera;
 		if (espera is null)

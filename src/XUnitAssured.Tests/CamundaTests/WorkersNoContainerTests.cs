@@ -310,15 +310,75 @@ public class WorkersNoContainerTests
 		erro.Message.ShouldContain("basic");
 	}
 
+	[Fact(DisplayName = "An OAuth placeholder is not here yet: a clear error says OAuth in the containers comes in 6.40.0")]
+	public void OAuth_Placeholder_Comes_In_A_Later_Version()
+	{
+		var worker = Servico("worker");
+		worker.Environment["Camunda__ClientId"] = "${camunda.clientId}";
+
+		var erro = Should.Throw<NotSupportedException>(() => Fixture(new CriadorFalso(), worker));
+
+		erro.Message.ShouldContain("${camunda.clientId}");
+		erro.Message.ShouldContain("6.40.0");
+	}
+
+	[Fact(DisplayName = "UsesContainers says whether the test runs on the fixture's containers or on a cluster")]
+	public void UsesContainers_Tells_Where_The_Test_Runs()
+	{
+		Fixture(new CriadorFalso(), Servico("worker")).UsesContainers.ShouldBeTrue();
+		new CamundaFixture(new CamundaSectionWithContainers { RestAddress = "http://cluster:8080" }, _ => null, new CriadorFalso())
+			.UsesContainers.ShouldBeFalse();
+	}
+
+	[Fact(DisplayName = "Disposing through IAsyncDisposable stops the containers too, and a second dispose does nothing")]
+	public async Task IAsyncDisposable_Stops_The_Containers_Once()
+	{
+		var criador = new CriadorFalso();
+		var fixture = Fixture(criador, Servico("worker"));
+		await fixture.InitializeAsync();
+
+		await ((IAsyncDisposable)fixture).DisposeAsync();
+		await fixture.DisposeAsync();
+
+		criador.Descartados.ShouldBe(["worker", "camunda", "rede"]);
+	}
+
+	// ---------- A espera no Docker ----------
+
+	[Fact(DisplayName = "In Docker, a path waits for the HTTP request, with Basic when the definition asks for it")]
+	public void Docker_Wait_For_A_Path()
+	{
+		var comBasic = Definicao(new CamundaContainerWait { Port = 8080, Path = "/v2/topology" }, ("xunit", "senha"));
+		var semBasic = Definicao(new CamundaContainerWait { Path = "/health" }, basic: null);
+
+		CriadorNoDocker.Espera(comBasic).ShouldNotBeNull();
+		CriadorNoDocker.Espera(semBasic).ShouldNotBeNull();
+	}
+
+	[Fact(DisplayName = "In Docker, a log line or a port is a wait too, and no wait is none")]
+	public void Docker_Wait_For_A_Log_Line_Or_A_Port()
+	{
+		CriadorNoDocker.Espera(Definicao(new CamundaContainerWait { Log = "pronto (v1.2)" }, basic: null)).ShouldNotBeNull();
+		CriadorNoDocker.Espera(Definicao(new CamundaContainerWait { Port = 5432 }, basic: null)).ShouldNotBeNull();
+		CriadorNoDocker.Espera(Definicao(new CamundaContainerWait(), basic: null)).ShouldBeNull();
+		CriadorNoDocker.Espera(Definicao(espera: null, basic: null)).ShouldBeNull();
+	}
+
+	private static DefinicaoDeContainer Definicao(CamundaContainerWait? espera, (string, string)? basic) =>
+		new("worker", "exemplo/worker:1", new Dictionary<string, string>(), [8080], espera, basic);
+
 	// ---------- Apoio ----------
 
+	// As mesmas opções com que o TestSettingsSection lê o arquivo.
+	private static readonly JsonSerializerOptions ComoOArquivo = new()
+	{
+		PropertyNameCaseInsensitive = true,
+		ReadCommentHandling = JsonCommentHandling.Skip,
+		AllowTrailingCommas = true
+	};
+
 	private static CamundaSectionWithContainers Secao(string json) =>
-		JsonSerializer.Deserialize<CamundaSectionWithContainers>(json, new JsonSerializerOptions
-		{
-			PropertyNameCaseInsensitive = true,
-			ReadCommentHandling = JsonCommentHandling.Skip,
-			AllowTrailingCommas = true
-		}).ShouldNotBeNull();
+		JsonSerializer.Deserialize<CamundaSectionWithContainers>(json, ComoOArquivo).ShouldNotBeNull();
 
 	private static CamundaServiceContainer Servico(string nome, string[]? dependeDe = null) => new()
 	{
