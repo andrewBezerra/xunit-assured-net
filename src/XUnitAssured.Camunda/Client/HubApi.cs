@@ -38,6 +38,14 @@ internal interface IHubApi
 	Task<CamundaHubContent> GetFolderContent(string chave, CancellationToken ct);
 
 	Task<CamundaHubFolder> CreateFolder(string projeto, string? pastaMae, string nome, CancellationToken ct);
+
+	Task<IReadOnlyList<CamundaHubFileMetadata>> SearchFiles(string projeto, string? nome, CamundaHubFileType? tipo, CancellationToken ct);
+
+	Task<CamundaHubFile?> GetFile(string chave, CancellationToken ct);
+
+	Task<CamundaHubFileMetadata> CreateFile(string projeto, string? pasta, string nome, CamundaHubFileType tipo, string conteudo, CancellationToken ct);
+
+	Task<CamundaHubFileMetadata> UpdateFile(string chave, string conteudo, int revisao, CancellationToken ct);
 }
 
 /// <summary>
@@ -140,6 +148,14 @@ internal static class Hub
 	{
 		"BPMN" => CamundaHubFileType.Bpmn,
 		"FORM" => CamundaHubFileType.Form,
+		_ => null
+	};
+
+	/// <summary>O tipo como as duas versões o pedem: em minúsculas.</summary>
+	public static string? Tipo(CamundaHubFileType? tipo) => tipo switch
+	{
+		CamundaHubFileType.Bpmn => "bpmn",
+		CamundaHubFileType.Form => "form",
 		_ => null
 	};
 

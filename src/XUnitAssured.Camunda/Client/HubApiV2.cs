@@ -60,6 +60,29 @@ internal sealed class HubApiV2 : IHubApi
 		return Pasta(await _hub.Pedir(HttpMethod.Post, "api/v2/folders", corpo, ct).ConfigureAwait(false));
 	}
 
+	public async Task<IReadOnlyList<CamundaHubFileMetadata>> SearchFiles(string projeto, string? nome, CamundaHubFileType? tipo, CancellationToken ct) =>
+		(await Buscar("api/v2/files/search", Hub.Filtro(("projectKey", projeto), ("name", nome), ("type", Hub.Tipo(tipo))), ct).ConfigureAwait(false))
+			.Select(Metadados).ToList();
+
+	// O arquivo da v2 traz os metadados e o conteúdo no mesmo objeto.
+	public async Task<CamundaHubFile?> GetFile(string chave, CancellationToken ct)
+	{
+		var arquivo = await _hub.Pedir(HttpMethod.Get, "api/v2/files/" + Hub.Chave(chave), null, ct, nuloNo404: true).ConfigureAwait(false);
+		return arquivo is null ? null : new CamundaHubFile(Metadados(arquivo), Hub.Texto(arquivo["content"]) ?? string.Empty);
+	}
+
+	public async Task<CamundaHubFileMetadata> CreateFile(string projeto, string? pasta, string nome, CamundaHubFileType tipo, string conteudo, CancellationToken ct)
+	{
+		var corpo = new JsonObject { ["name"] = nome, ["projectKey"] = projeto, ["type"] = Hub.Tipo(tipo), ["content"] = conteudo };
+		if (pasta is not null)
+			corpo["folderKey"] = pasta;
+		return Metadados(await _hub.Pedir(HttpMethod.Post, "api/v2/files", corpo, ct).ConfigureAwait(false));
+	}
+
+	public async Task<CamundaHubFileMetadata> UpdateFile(string chave, string conteudo, int revisao, CancellationToken ct) =>
+		Metadados(await _hub.Pedir(HttpMethod.Patch, "api/v2/files/" + Hub.Chave(chave), new JsonObject { ["content"] = conteudo, ["revision"] = revisao }, ct)
+			.ConfigureAwait(false));
+
 	// Todas as páginas: o from avança pelo que veio, até o totalItems (ou enquanto o Hub diz que há mais).
 	private async Task<List<JsonNode?>> Buscar(string caminho, JsonObject filtro, CancellationToken ct)
 	{

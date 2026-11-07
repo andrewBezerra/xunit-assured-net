@@ -428,7 +428,206 @@ public class CamundaHubClientTests
 		chamadas.Where(c => c.Kind == CamundaCallKind.Api).ShouldHaveSingleItem().Path.ShouldBe(caminho);
 	}
 
+	// ---------- 3. Os arquivos ----------
+
+	[Theory(DisplayName = "The file search is by project, follows three pages, and keeps only the exact name and type")]
+	[InlineData(CamundaHubApiVersion.V1)]
+	[InlineData(CamundaHubApiVersion.V2)]
+	public async Task Search_Files_Pages(CamundaHubApiVersion versao)
+	{
+		var caminho = versao == CamundaHubApiVersion.V1 ? "/api/v1/files/search" : "/api/v2/files/search";
+		var tipos = new Dictionary<string, string> { ["form-alvo"] = "form", ["certo"] = "bpmn" };
+		var api = Paginas(Api(), versao, caminho,
+			(k, nome) => Arquivo(versao, k, nome == "alvo" ? "Alvo" : nome, "p1", null, tipos.GetValueOrDefault(k, "bpmn"), 1),
+			("form-alvo", "alvo"), ("certo", "Alvo"));
+
+		var achados = await Cliente(api, versao).SearchFilesAsync("p1", "Alvo", CamundaHubFileType.Bpmn);
+
+		achados.ShouldHaveSingleItem().ShouldBe(new CamundaHubFileMetadata("certo", "Alvo", "p1", null, CamundaHubFileType.Bpmn, 1));
+		ConferirPaginas(api.A(caminho), versao);
+		var filtro = api.A(caminho)[0].Json["filter"]!;
+		filtro["name"]!.GetValue<string>().ShouldBe("Alvo");
+		if (versao == CamundaHubApiVersion.V1)
+		{
+			filtro["processApplicationId"]!.GetValue<string>().ShouldBe("p1");
+			// A v1 diz o tipo em maiúsculas e não documenta o filtro por ele: o cliente filtra o tipo do lado de cá.
+			filtro["type"].ShouldBeNull();
+		}
+		else
+		{
+			filtro["projectKey"]!.GetValue<string>().ShouldBe("p1");
+			filtro["type"]!.GetValue<string>().ShouldBe("bpmn");
+		}
+	}
+
+	[Theory(DisplayName = "A file comes with its metadata and its content, and is null when the Hub does not have it")]
+	[InlineData(CamundaHubApiVersion.V1)]
+	[InlineData(CamundaHubApiVersion.V2)]
+	public async Task Get_File(CamundaHubApiVersion versao)
+	{
+		const string xml = "<bpmn:definitions id=\"d\">ç</bpmn:definitions>";
+		var metadados = Arquivo(versao, "a1", "pedido", "p1", "f1", "bpmn", 7);
+		var api = Api().Responder(HttpMethod.Get, Caminho(versao, "files/a1"), versao == CamundaHubApiVersion.V1
+			? $$"""{ "metadata": {{metadados}}, "content": {{System.Text.Json.JsonSerializer.Serialize(xml)}} }"""
+			: metadados.Replace("\"content\": null", "\"content\": " + System.Text.Json.JsonSerializer.Serialize(xml)));
+		var cliente = Cliente(api, versao);
+
+		var arquivo = await cliente.GetFileAsync("a1");
+		var semArquivo = await cliente.GetFileAsync("nao-existe");
+
+		arquivo.ShouldBe(new CamundaHubFile(new CamundaHubFileMetadata("a1", "pedido", "p1", "f1", CamundaHubFileType.Bpmn, 7), xml));
+		semArquivo.ShouldBeNull();
+	}
+
+	[Theory(DisplayName = "Creating a file posts the name, the project or the folder, the type and the content")]
+	[InlineData(CamundaHubApiVersion.V1)]
+	[InlineData(CamundaHubApiVersion.V2)]
+	public async Task Create_File(CamundaHubApiVersion versao)
+	{
+		var caminho = Caminho(versao, "files");
+		var api = Api().Responder(HttpMethod.Post, caminho, Arquivo(versao, "a1", "pedido", "p1", null, "bpmn", 1))
+			.Responder(HttpMethod.Post, caminho, Arquivo(versao, "a2", "aprovar", "p1", "f1", "form", 1));
+		var cliente = Cliente(api, versao);
+
+		(await cliente.CreateFileAsync("p1", null, "pedido", CamundaHubFileType.Bpmn, "<definitions/>"))
+			.ShouldBe(new CamundaHubFileMetadata("a1", "pedido", "p1", null, CamundaHubFileType.Bpmn, 1));
+		(await cliente.CreateFileAsync("p1", "f1", "aprovar", CamundaHubFileType.Form, "{ \"id\": \"aprovar\" }"))
+			.ShouldBe(new CamundaHubFileMetadata("a2", "aprovar", "p1", "f1", CamundaHubFileType.Form, 1));
+
+		var (bpmn, form) = (api.A(caminho)[0].Json, api.A(caminho)[1].Json);
+		(bpmn["name"]!.GetValue<string>(), bpmn["content"]!.GetValue<string>()).ShouldBe(("pedido", "<definitions/>"));
+		(form["name"]!.GetValue<string>(), form["content"]!.GetValue<string>()).ShouldBe(("aprovar", "{ \"id\": \"aprovar\" }"));
+		if (versao == CamundaHubApiVersion.V1)
+		{
+			// Na v1, a process application e a pasta são exclusivas (o Swagger do Hub 8.10).
+			(bpmn["fileType"]!.GetValue<string>(), bpmn["processApplicationId"]!.GetValue<string>(), bpmn["folderId"]).ShouldBe(("bpmn", "p1", (System.Text.Json.Nodes.JsonNode?)null));
+			(form["fileType"]!.GetValue<string>(), form["folderId"]!.GetValue<string>(), form["processApplicationId"]).ShouldBe(("form", "f1", (System.Text.Json.Nodes.JsonNode?)null));
+		}
+		else
+		{
+			(bpmn["type"]!.GetValue<string>(), bpmn["projectKey"]!.GetValue<string>(), bpmn["folderKey"]).ShouldBe(("bpmn", "p1", (System.Text.Json.Nodes.JsonNode?)null));
+			(form["type"]!.GetValue<string>(), form["projectKey"]!.GetValue<string>(), form["folderKey"]!.GetValue<string>()).ShouldBe(("form", "p1", "f1"));
+		}
+	}
+
+	[Theory(DisplayName = "Updating a file patches the content with the revision, and reads the new revision")]
+	[InlineData(CamundaHubApiVersion.V1)]
+	[InlineData(CamundaHubApiVersion.V2)]
+	public async Task Update_File(CamundaHubApiVersion versao)
+	{
+		var caminho = Caminho(versao, "files/a1");
+		var api = Api().Responder(HttpMethod.Patch, caminho, Arquivo(versao, "a1", "pedido", "p1", null, "bpmn", 5));
+
+		var atualizado = await Cliente(api, versao).UpdateFileAsync("a1", "<definitions id=\"novo\"/>", 4);
+
+		atualizado.Revision.ShouldBe(5);
+		var corpo = api.A(caminho).ShouldHaveSingleItem().Json;
+		(corpo["content"]!.GetValue<string>(), corpo["revision"]!.GetValue<int>()).ShouldBe(("<definitions id=\"novo\"/>", 4));
+	}
+
+	[Theory(DisplayName = "A stale revision is a refusal 409 with the detail of the Hub")]
+	[InlineData(CamundaHubApiVersion.V1)]
+	[InlineData(CamundaHubApiVersion.V2)]
+	public async Task Update_File_Conflict(CamundaHubApiVersion versao)
+	{
+		var caminho = Caminho(versao, "files/a1");
+		var api = Api().Recusar(HttpMethod.Patch, caminho, HttpStatusCode.Conflict, "Conflict", "The file was changed: revision 4 is not the latest (5)");
+
+		var recusa = await Should.ThrowAsync<CamundaApiException>(() => Cliente(api, versao).UpdateFileAsync("a1", "<x/>", 4));
+
+		(recusa.Status, recusa.Title, recusa.Path).ShouldBe((409, "Conflict", caminho));
+		recusa.Detail.ShouldBe("The file was changed: revision 4 is not the latest (5)");
+	}
+
+	[Theory(DisplayName = "A 403 that stays after the new token is a credential refusal by the Hub")]
+	[InlineData(CamundaHubApiVersion.V1)]
+	[InlineData(CamundaHubApiVersion.V2)]
+	public async Task Forbidden(CamundaHubApiVersion versao)
+	{
+		var caminho = Caminho(versao, "files");
+		var api = Api().Responder(HttpMethod.Post, caminho, "{}", HttpStatusCode.Forbidden);
+
+		var recusa = await Should.ThrowAsync<CamundaCredentialException>(
+			() => Cliente(api, versao).CreateFileAsync("p1", null, "pedido", CamundaHubFileType.Bpmn, "<x/>"));
+
+		(recusa.Refusal, recusa.Status, recusa.Endpoint).ShouldBe((CamundaCredentialRefusal.Camunda, (int?)403, Hub + caminho));
+		api.A(caminho).Count.ShouldBe(2);
+	}
+
+	[Theory(DisplayName = "A token the Hub refuses (401) is renewed once, and the call goes again with the same body")]
+	[InlineData(CamundaHubApiVersion.V1)]
+	[InlineData(CamundaHubApiVersion.V2)]
+	public async Task Unauthorized_Renews_Token_Once(CamundaHubApiVersion versao)
+	{
+		var caminho = Caminho(versao, "files/a1");
+		var api = Api().Responder(HttpMethod.Patch, caminho, "{}", HttpStatusCode.Unauthorized)
+			.Responder(HttpMethod.Patch, caminho, Arquivo(versao, "a1", "pedido", "p1", null, "bpmn", 5));
+		var chamadas = new List<CamundaCall>();
+
+		(await Cliente(api, versao).UpdateFileAsync("a1", "<x/>", 4, observe: chamadas.Add)).Revision.ShouldBe(5);
+
+		var pedidos = api.A(caminho);
+		pedidos.Select(p => p.Autorizacao).ShouldBe(new[] { "Bearer t1", "Bearer t2" });
+		pedidos[1].Corpo.ShouldBe(pedidos[0].Corpo);
+		chamadas.Where(c => c.Kind == CamundaCallKind.Api).Select(c => (c.Status, c.WithRenewedToken)).ShouldBe(new[] { ((int?)401, false), (200, true) });
+	}
+
+	[Theory(DisplayName = "A call past its deadline is unavailable, saying the deadline, with no real wait")]
+	[InlineData(CamundaHubApiVersion.V1)]
+	[InlineData(CamundaHubApiVersion.V2)]
+	public async Task Deadline(CamundaHubApiVersion versao)
+	{
+		var tempo = new FakeTimeProvider();
+		var caminho = Caminho(versao, "files/a1");
+		var api = Api().Pendurar(HttpMethod.Get, caminho);
+
+		var chamada = Cliente(api, versao, tempo).GetFileAsync("a1");
+		await api.EsperarPedidos(2);
+		tempo.Advance(CamundaHubClient.DefaultTimeout);
+
+		var fora = await Should.ThrowAsync<CamundaUnavailableException>(() => chamada);
+		(fora.Target, fora.Endpoint, fora.Timeout).ShouldBe((CamundaEndpoint.Camunda, Hub + caminho, (TimeSpan?)CamundaHubClient.DefaultTimeout));
+		fora.Reason.ShouldContain("10 s");
+	}
+
+	[Theory(DisplayName = "A connection that fails is unavailable, with the reason")]
+	[InlineData(CamundaHubApiVersion.V1)]
+	[InlineData(CamundaHubApiVersion.V2)]
+	public async Task Connection_Fails(CamundaHubApiVersion versao)
+	{
+		var api = Api().SemResposta(HttpMethod.Get, Caminho(versao, "files/a1"));
+
+		var fora = await Should.ThrowAsync<CamundaUnavailableException>(() => Cliente(api, versao).GetFileAsync("a1"));
+
+		(fora.Target, fora.Timeout).ShouldBe((CamundaEndpoint.Camunda, (TimeSpan?)null));
+		fora.Reason.ShouldContain("Nenhuma conexão");
+	}
+
+	[Theory(DisplayName = "No failure message carries the secret, not even when the provider echoes it")]
+	[InlineData(CamundaHubApiVersion.V1)]
+	[InlineData(CamundaHubApiVersion.V2)]
+	public async Task No_Secret_In_Messages(CamundaHubApiVersion versao)
+	{
+		var arquivo = Caminho(versao, "files/a1");
+		var falhas = new List<Exception>
+		{
+			await Should.ThrowAsync<CamundaApiException>(() => Cliente(
+				Api().Recusar(HttpMethod.Patch, arquivo, HttpStatusCode.Conflict, "Conflict", "stale"), versao).UpdateFileAsync("a1", "<x/>", 1)),
+			await Should.ThrowAsync<CamundaCredentialException>(() => Cliente(
+				Api().Responder(HttpMethod.Get, arquivo, "{}", HttpStatusCode.Forbidden), versao).GetFileAsync("a1")),
+			await Should.ThrowAsync<CamundaUnavailableException>(() => Cliente(
+				Api().SemResposta(HttpMethod.Get, arquivo), versao).GetFileAsync("a1")),
+			await Should.ThrowAsync<CamundaCredentialException>(() => Cliente(
+				new ApiFalsa().Responder(HttpMethod.Post, Token, """{ "error": "unauthorized_client", "error_description": "Invalid secret s3cr3t-hub" }""",
+					HttpStatusCode.Unauthorized), versao).GetFileAsync("a1"))
+		};
+
+		falhas.ShouldAllBe(f => !f.Message.Contains("s3cr3t-hub") && !f.ToString().Contains("s3cr3t-hub"));
+	}
+
 	// ---------- Apoio ----------
+
+	private static string Caminho(CamundaHubApiVersion v, string resto) => (v == CamundaHubApiVersion.V1 ? "/api/v1/" : "/api/v2/") + resto;
 
 	internal static ApiFalsa Api() => new ApiFalsa()
 		.Responder(HttpMethod.Post, Token, TokenDe("t1", 300)).Responder(HttpMethod.Post, Token, TokenDe("t2", 300));

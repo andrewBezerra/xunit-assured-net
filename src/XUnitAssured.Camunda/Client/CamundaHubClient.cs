@@ -262,6 +262,82 @@ public sealed class CamundaHubClient
 		return Executar((api, ct) => api.CreateFolder(projectKey, parentFolderKey, name, ct), timeout, observe, cancellationToken);
 	}
 
+	/// <summary>
+	/// The files of a project, in any of its folders, every page of them, without their content; with
+	/// <paramref name="name"/> and <paramref name="type"/>, only those with exactly that name (ordinal comparison) and type.
+	/// </summary>
+	/// <param name="projectKey">The key of the project.</param>
+	/// <param name="name">The exact name, without the extension; <see langword="null"/> for any name.</param>
+	/// <param name="type">The type; <see langword="null"/> for any type, those the client does not handle included.</param>
+	/// <param name="timeout">The deadline of the whole search; <see cref="DefaultTimeout"/> when <see langword="null"/>.</param>
+	/// <param name="observe">Hears each HTTP request of the operation.</param>
+	/// <param name="cancellationToken">The caller's cancellation.</param>
+	/// <returns>The files.</returns>
+	public Task<IReadOnlyList<CamundaHubFileMetadata>> SearchFilesAsync(
+		string projectKey, string? name = null, CamundaHubFileType? type = null, TimeSpan? timeout = null, Action<CamundaCall>? observe = null,
+		CancellationToken cancellationToken = default)
+	{
+		ArgumentException.ThrowIfNullOrWhiteSpace(projectKey);
+		return Executar(async (api, ct) =>
+		{
+			var achados = Exatos(await api.SearchFiles(projectKey, name, type, ct).ConfigureAwait(false), f => f.Name, name);
+			return type is null ? achados : achados.Where(f => f.Type == type).ToList();
+		}, timeout, observe, cancellationToken);
+	}
+
+	/// <summary>A file, with its content and its revision.</summary>
+	/// <param name="key">The key of the file.</param>
+	/// <param name="timeout">The deadline; <see cref="DefaultTimeout"/> when <see langword="null"/>.</param>
+	/// <param name="observe">Hears each HTTP request of the operation.</param>
+	/// <param name="cancellationToken">The caller's cancellation.</param>
+	/// <returns>The file; <see langword="null"/> when the Hub does not have it (404).</returns>
+	public Task<CamundaHubFile?> GetFileAsync(
+		string key, TimeSpan? timeout = null, Action<CamundaCall>? observe = null, CancellationToken cancellationToken = default)
+	{
+		ArgumentException.ThrowIfNullOrWhiteSpace(key);
+		return Executar((api, ct) => api.GetFile(key, ct), timeout, observe, cancellationToken);
+	}
+
+	/// <summary>Creates a file at the root of a project, or in a folder of it.</summary>
+	/// <param name="projectKey">The key of the project.</param>
+	/// <param name="folderKey">The key of the folder; <see langword="null"/> for the root of the project.</param>
+	/// <param name="name">The name, without the extension.</param>
+	/// <param name="type">The type.</param>
+	/// <param name="content">The content: the XML of a BPMN, the JSON of a form.</param>
+	/// <param name="timeout">The deadline; <see cref="DefaultTimeout"/> when <see langword="null"/>.</param>
+	/// <param name="observe">Hears each HTTP request of the operation.</param>
+	/// <param name="cancellationToken">The caller's cancellation.</param>
+	/// <returns>The file created, with its key and its first revision.</returns>
+	public Task<CamundaHubFileMetadata> CreateFileAsync(
+		string projectKey, string? folderKey, string name, CamundaHubFileType type, string content, TimeSpan? timeout = null,
+		Action<CamundaCall>? observe = null, CancellationToken cancellationToken = default)
+	{
+		ArgumentException.ThrowIfNullOrWhiteSpace(projectKey);
+		ArgumentException.ThrowIfNullOrWhiteSpace(name);
+		ArgumentException.ThrowIfNullOrEmpty(content);
+		return Executar((api, ct) => api.CreateFile(projectKey, folderKey, name, type, content, ct), timeout, observe, cancellationToken);
+	}
+
+	/// <summary>
+	/// Replaces the content of a file. The revision is the one read: when the file changed in the Hub since then, the Hub
+	/// refuses with 409, a <see cref="CamundaApiException"/> whose <see cref="CamundaApiException.Status"/> is 409.
+	/// </summary>
+	/// <param name="key">The key of the file.</param>
+	/// <param name="content">The new content.</param>
+	/// <param name="revision">The revision the content was based on.</param>
+	/// <param name="timeout">The deadline; <see cref="DefaultTimeout"/> when <see langword="null"/>.</param>
+	/// <param name="observe">Hears each HTTP request of the operation.</param>
+	/// <param name="cancellationToken">The caller's cancellation.</param>
+	/// <returns>The file updated, with its new revision.</returns>
+	public Task<CamundaHubFileMetadata> UpdateFileAsync(
+		string key, string content, int revision, TimeSpan? timeout = null, Action<CamundaCall>? observe = null,
+		CancellationToken cancellationToken = default)
+	{
+		ArgumentException.ThrowIfNullOrWhiteSpace(key);
+		ArgumentException.ThrowIfNullOrEmpty(content);
+		return Executar((api, ct) => api.UpdateFile(key, content, revision, ct), timeout, observe, cancellationToken);
+	}
+
 	// A busca do Hub pelo nome não garante a comparação exata (a v1 nem o documenta): o filtro de novo, ordinal.
 	private static IReadOnlyList<T> Exatos<T>(IReadOnlyList<T> itens, Func<T, string> nome, string? exato) =>
 		exato is null ? itens : itens.Where(i => string.Equals(nome(i), exato, StringComparison.Ordinal)).ToList();

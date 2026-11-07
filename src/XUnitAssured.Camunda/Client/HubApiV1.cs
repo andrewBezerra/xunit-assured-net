@@ -69,6 +69,33 @@ internal sealed class HubApiV1 : IHubApi
 		return Pasta(await _hub.Pedir(HttpMethod.Post, "api/v1/folders", corpo, ct).ConfigureAwait(false));
 	}
 
+	// O tipo não vai no filtro: a v1 o devolve em maiúsculas e não documenta como o compara; o cliente filtra do lado de cá.
+	public async Task<IReadOnlyList<CamundaHubFileMetadata>> SearchFiles(string projeto, string? nome, CamundaHubFileType? tipo, CancellationToken ct) =>
+		(await Buscar("api/v1/files/search", Hub.Filtro(("processApplicationId", projeto), ("name", nome)), ct).ConfigureAwait(false))
+			.Select(Metadados).ToList();
+
+	public async Task<CamundaHubFile?> GetFile(string chave, CancellationToken ct)
+	{
+		var arquivo = await _hub.Pedir(HttpMethod.Get, "api/v1/files/" + Hub.Chave(chave), null, ct, nuloNo404: true).ConfigureAwait(false);
+		return arquivo is null ? null : new CamundaHubFile(Metadados(arquivo["metadata"]), Hub.Texto(arquivo["content"]) ?? string.Empty);
+	}
+
+	// Na raiz, a process application; numa pasta, só a pasta: as duas são exclusivas na v1. Só com o projectId (o
+	// workspace), o Hub criaria o arquivo numa process application "… - General" que ele mesmo cria.
+	public async Task<CamundaHubFileMetadata> CreateFile(string projeto, string? pasta, string nome, CamundaHubFileType tipo, string conteudo, CancellationToken ct)
+	{
+		var corpo = new JsonObject { ["name"] = nome, ["content"] = conteudo, ["fileType"] = Hub.Tipo(tipo) };
+		if (pasta is null)
+			corpo["processApplicationId"] = projeto;
+		else
+			corpo["folderId"] = pasta;
+		return Metadados(await _hub.Pedir(HttpMethod.Post, "api/v1/files", corpo, ct).ConfigureAwait(false));
+	}
+
+	public async Task<CamundaHubFileMetadata> UpdateFile(string chave, string conteudo, int revisao, CancellationToken ct) =>
+		Metadados(await _hub.Pedir(HttpMethod.Patch, "api/v1/files/" + Hub.Chave(chave), new JsonObject { ["content"] = conteudo, ["revision"] = revisao }, ct)
+			.ConfigureAwait(false));
+
 	// Todas as páginas: o número da página, desde 0, até o total.
 	private async Task<List<JsonNode?>> Buscar(string caminho, JsonObject filtro, CancellationToken ct)
 	{

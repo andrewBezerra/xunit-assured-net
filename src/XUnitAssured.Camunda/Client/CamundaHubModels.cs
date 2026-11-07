@@ -58,3 +58,8 @@ public sealed record CamundaHubFileMetadata(string Key, string Name, string? Pro
 /// <param name="Folders">The folders right inside it.</param>
 /// <param name="Files">The files right inside it.</param>
 public sealed record CamundaHubContent(IReadOnlyList<CamundaHubFolder> Folders, IReadOnlyList<CamundaHubFileMetadata> Files);
+
+/// <summary>A file of the Hub, with its content.</summary>
+/// <param name="Metadata">What the Hub says about the file: its key, name, project, folder, type and revision.</param>
+/// <param name="Content">The content, as the Hub keeps it: the XML of a BPMN, the JSON of a form.</param>
+public sealed record CamundaHubFile(CamundaHubFileMetadata Metadata, string Content);
