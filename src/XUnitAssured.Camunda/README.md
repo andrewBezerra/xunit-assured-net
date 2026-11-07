@@ -644,7 +644,9 @@ catch (CamundaApiException e) when (e.Status == 409)
   project; the keys are the same in both.
 - **The revision.** `UpdateFileAsync` sends the revision the content was based on. When the file
   changed in the Hub since then, the Hub answers 409: a `CamundaApiException` with
-  `Status == 409` and the `detail` of the Hub.
+  `Status == 409` and the `detail` of the Hub. On a Camunda 8.10.4 Hub, in both API versions,
+  creating a version leaves the revision as it was, and restoring one raises it: read the file
+  again after a restore.
 - **Every page.** The searches follow every page, and keep only the exact name.
 - **Like `CamundaApiClient`:** one client per configuration, a deadline per call (10 s by
   default), the token kept and renewed once on a 401 or 403, `observe`, and the same exceptions.
