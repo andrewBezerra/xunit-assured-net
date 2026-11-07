@@ -1,5 +1,7 @@
 using System;
+using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Text;
@@ -20,6 +22,22 @@ internal interface IHubApi
 	CamundaHubApiVersion Versao { get; }
 
 	Task<CamundaHubInfo> Info(CancellationToken ct);
+
+	Task<IReadOnlyList<CamundaHubWorkspace>> SearchWorkspaces(string? nome, CancellationToken ct);
+
+	Task<CamundaHubWorkspace> CreateWorkspace(string nome, CancellationToken ct);
+
+	Task<CamundaHubWorkspaceDetail> GetWorkspace(string chave, CancellationToken ct);
+
+	Task<IReadOnlyList<CamundaHubProject>> SearchProjects(string workspace, string? nome, CancellationToken ct);
+
+	Task<CamundaHubProject> CreateProject(string workspace, string nome, CancellationToken ct);
+
+	Task<CamundaHubContent> GetProjectContent(string chave, CancellationToken ct);
+
+	Task<CamundaHubContent> GetFolderContent(string chave, CancellationToken ct);
+
+	Task<CamundaHubFolder> CreateFolder(string projeto, string? pastaMae, string nome, CancellationToken ct);
 }
 
 /// <summary>
@@ -99,6 +117,31 @@ internal static class Hub
 		Texto(valor) is { } texto && DateTimeOffset.TryParse(texto, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal, out var data)
 			? data
 			: null;
+
+	/// <summary>O campo que a resposta tem de trazer; sem ele, a resposta não é a do Hub.</summary>
+	public static string Obrigatorio(JsonNode? json, string campo) =>
+		Texto(json?[campo]) ?? throw new InvalidOperationException($"The Hub answered without the {campo}.");
+
+	/// <summary>Os itens de uma lista do JSON; vazia quando ela não veio.</summary>
+	public static List<JsonNode?> Itens(JsonNode? lista) => lista is JsonArray itens ? itens.ToList() : new List<JsonNode?>();
+
+	/// <summary>O filtro de uma busca, só com os campos dados.</summary>
+	public static JsonObject Filtro(params (string Campo, string? Valor)[] campos)
+	{
+		var filtro = new JsonObject();
+		foreach (var (campo, valor) in campos)
+			if (valor is not null)
+				filtro[campo] = valor;
+		return filtro;
+	}
+
+	/// <summary>O tipo do arquivo, sem diferenciar maiúsculas (a v1 o diz em maiúsculas); nulo para um que o cliente não trata.</summary>
+	public static CamundaHubFileType? Tipo(JsonNode? valor) => Texto(valor)?.ToUpperInvariant() switch
+	{
+		"BPMN" => CamundaHubFileType.Bpmn,
+		"FORM" => CamundaHubFileType.Form,
+		_ => null
+	};
 
 	/// <summary>A chave no caminho, escapada.</summary>
 	public static string Chave(string chave)

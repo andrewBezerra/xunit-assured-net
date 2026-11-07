@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Linq;
 using System.Net.Http;
 using System.Text.Json;
 using System.Threading;
@@ -143,6 +145,126 @@ public sealed class CamundaHubClient
 	/// <returns>The API version the client speaks, the organization and, on the v1, the permissions.</returns>
 	public Task<CamundaHubInfo> GetInfoAsync(TimeSpan? timeout = null, Action<CamundaCall>? observe = null, CancellationToken cancellationToken = default) =>
 		Executar((api, ct) => api.Info(ct), timeout, observe, cancellationToken);
+
+	/// <summary>
+	/// The workspaces the client sees, every page of them; with <paramref name="name"/>, only those with exactly that name
+	/// (ordinal comparison).
+	/// </summary>
+	/// <param name="name">The exact name; <see langword="null"/> for every workspace.</param>
+	/// <param name="timeout">The deadline of the whole search; <see cref="DefaultTimeout"/> when <see langword="null"/>.</param>
+	/// <param name="observe">Hears each HTTP request of the operation.</param>
+	/// <param name="cancellationToken">The caller's cancellation.</param>
+	/// <returns>The workspaces.</returns>
+	public Task<IReadOnlyList<CamundaHubWorkspace>> SearchWorkspacesAsync(
+		string? name, TimeSpan? timeout = null, Action<CamundaCall>? observe = null, CancellationToken cancellationToken = default) =>
+		Executar(async (api, ct) => Exatos(await api.SearchWorkspaces(name, ct).ConfigureAwait(false), w => w.Name, name),
+			timeout, observe, cancellationToken);
+
+	/// <summary>Creates a workspace.</summary>
+	/// <param name="name">The name.</param>
+	/// <param name="timeout">The deadline; <see cref="DefaultTimeout"/> when <see langword="null"/>.</param>
+	/// <param name="observe">Hears each HTTP request of the operation.</param>
+	/// <param name="cancellationToken">The caller's cancellation.</param>
+	/// <returns>The workspace created.</returns>
+	public Task<CamundaHubWorkspace> CreateWorkspaceAsync(
+		string name, TimeSpan? timeout = null, Action<CamundaCall>? observe = null, CancellationToken cancellationToken = default)
+	{
+		ArgumentException.ThrowIfNullOrWhiteSpace(name);
+		return Executar((api, ct) => api.CreateWorkspace(name, ct), timeout, observe, cancellationToken);
+	}
+
+	/// <summary>A workspace, with its projects.</summary>
+	/// <param name="key">The key of the workspace.</param>
+	/// <param name="timeout">The deadline; <see cref="DefaultTimeout"/> when <see langword="null"/>.</param>
+	/// <param name="observe">Hears each HTTP request of the operation.</param>
+	/// <param name="cancellationToken">The caller's cancellation.</param>
+	/// <returns>The workspace and its projects.</returns>
+	public Task<CamundaHubWorkspaceDetail> GetWorkspaceAsync(
+		string key, TimeSpan? timeout = null, Action<CamundaCall>? observe = null, CancellationToken cancellationToken = default)
+	{
+		ArgumentException.ThrowIfNullOrWhiteSpace(key);
+		return Executar((api, ct) => api.GetWorkspace(key, ct), timeout, observe, cancellationToken);
+	}
+
+	/// <summary>
+	/// The projects of a workspace, every page of them; with <paramref name="name"/>, only those with exactly that name
+	/// (ordinal comparison).
+	/// </summary>
+	/// <param name="workspaceKey">The key of the workspace.</param>
+	/// <param name="name">The exact name; <see langword="null"/> for every project of the workspace.</param>
+	/// <param name="timeout">The deadline of the whole search; <see cref="DefaultTimeout"/> when <see langword="null"/>.</param>
+	/// <param name="observe">Hears each HTTP request of the operation.</param>
+	/// <param name="cancellationToken">The caller's cancellation.</param>
+	/// <returns>The projects.</returns>
+	public Task<IReadOnlyList<CamundaHubProject>> SearchProjectsAsync(
+		string workspaceKey, string? name, TimeSpan? timeout = null, Action<CamundaCall>? observe = null, CancellationToken cancellationToken = default)
+	{
+		ArgumentException.ThrowIfNullOrWhiteSpace(workspaceKey);
+		return Executar(async (api, ct) => Exatos(await api.SearchProjects(workspaceKey, name, ct).ConfigureAwait(false), p => p.Name, name),
+			timeout, observe, cancellationToken);
+	}
+
+	/// <summary>Creates a project in a workspace.</summary>
+	/// <param name="workspaceKey">The key of the workspace.</param>
+	/// <param name="name">The name.</param>
+	/// <param name="timeout">The deadline; <see cref="DefaultTimeout"/> when <see langword="null"/>.</param>
+	/// <param name="observe">Hears each HTTP request of the operation.</param>
+	/// <param name="cancellationToken">The caller's cancellation.</param>
+	/// <returns>The project created.</returns>
+	public Task<CamundaHubProject> CreateProjectAsync(
+		string workspaceKey, string name, TimeSpan? timeout = null, Action<CamundaCall>? observe = null, CancellationToken cancellationToken = default)
+	{
+		ArgumentException.ThrowIfNullOrWhiteSpace(workspaceKey);
+		ArgumentException.ThrowIfNullOrWhiteSpace(name);
+		return Executar((api, ct) => api.CreateProject(workspaceKey, name, ct), timeout, observe, cancellationToken);
+	}
+
+	/// <summary>The folders and the files at the root of a project, without the content of the files.</summary>
+	/// <param name="key">The key of the project.</param>
+	/// <param name="timeout">The deadline; <see cref="DefaultTimeout"/> when <see langword="null"/>.</param>
+	/// <param name="observe">Hears each HTTP request of the operation.</param>
+	/// <param name="cancellationToken">The caller's cancellation.</param>
+	/// <returns>The folders and the files.</returns>
+	public Task<CamundaHubContent> GetProjectContentAsync(
+		string key, TimeSpan? timeout = null, Action<CamundaCall>? observe = null, CancellationToken cancellationToken = default)
+	{
+		ArgumentException.ThrowIfNullOrWhiteSpace(key);
+		return Executar((api, ct) => api.GetProjectContent(key, ct), timeout, observe, cancellationToken);
+	}
+
+	/// <summary>The folders and the files right inside a folder, without the content of the files.</summary>
+	/// <param name="key">The key of the folder.</param>
+	/// <param name="timeout">The deadline; <see cref="DefaultTimeout"/> when <see langword="null"/>.</param>
+	/// <param name="observe">Hears each HTTP request of the operation.</param>
+	/// <param name="cancellationToken">The caller's cancellation.</param>
+	/// <returns>The folders and the files.</returns>
+	public Task<CamundaHubContent> GetFolderContentAsync(
+		string key, TimeSpan? timeout = null, Action<CamundaCall>? observe = null, CancellationToken cancellationToken = default)
+	{
+		ArgumentException.ThrowIfNullOrWhiteSpace(key);
+		return Executar((api, ct) => api.GetFolderContent(key, ct), timeout, observe, cancellationToken);
+	}
+
+	/// <summary>Creates a folder at the root of a project, or inside another folder of it.</summary>
+	/// <param name="projectKey">The key of the project.</param>
+	/// <param name="parentFolderKey">The key of the folder to create it in; <see langword="null"/> for the root of the project.</param>
+	/// <param name="name">The name.</param>
+	/// <param name="timeout">The deadline; <see cref="DefaultTimeout"/> when <see langword="null"/>.</param>
+	/// <param name="observe">Hears each HTTP request of the operation.</param>
+	/// <param name="cancellationToken">The caller's cancellation.</param>
+	/// <returns>The folder created.</returns>
+	public Task<CamundaHubFolder> CreateFolderAsync(
+		string projectKey, string? parentFolderKey, string name, TimeSpan? timeout = null, Action<CamundaCall>? observe = null,
+		CancellationToken cancellationToken = default)
+	{
+		ArgumentException.ThrowIfNullOrWhiteSpace(projectKey);
+		ArgumentException.ThrowIfNullOrWhiteSpace(name);
+		return Executar((api, ct) => api.CreateFolder(projectKey, parentFolderKey, name, ct), timeout, observe, cancellationToken);
+	}
+
+	// A busca do Hub pelo nome não garante a comparação exata (a v1 nem o documenta): o filtro de novo, ordinal.
+	private static IReadOnlyList<T> Exatos<T>(IReadOnlyList<T> itens, Func<T, string> nome, string? exato) =>
+		exato is null ? itens : itens.Where(i => string.Equals(nome(i), exato, StringComparison.Ordinal)).ToList();
 
 	// A versão da API: a dada, ou a escolhida pela primeira operação, uma vez só para chamadas concorrentes. A escolha que
 	// falhou não fica guardada; a que foi cancelada pelo prazo de outra chamada é refeita por esta.

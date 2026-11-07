@@ -223,6 +223,211 @@ public class CamundaHubClientTests
 		(await cliente.GetInfoAsync()).ApiVersion.ShouldBe(CamundaHubApiVersion.V2);
 	}
 
+	// ---------- 2. A navegação ----------
+
+	[Theory(DisplayName = "The workspace search follows three pages and keeps only the exact name")]
+	[InlineData(CamundaHubApiVersion.V1)]
+	[InlineData(CamundaHubApiVersion.V2)]
+	public async Task Search_Workspaces_Pages(CamundaHubApiVersion versao)
+	{
+		var caminho = versao == CamundaHubApiVersion.V1 ? "/api/v1/projects/search" : "/api/v2/workspaces/search";
+		var api = Paginas(Api(), versao, caminho, (k, nome) => Workspace(versao, k, nome), ("minusc", "alvo"), ("certo", "Alvo"));
+
+		var achados = await Cliente(api, versao).SearchWorkspacesAsync("Alvo");
+
+		achados.ShouldHaveSingleItem().ShouldBe(new CamundaHubWorkspace("certo", "Alvo"));
+		ConferirPaginas(api.A(caminho), versao);
+		api.A(caminho).ShouldAllBe(p => p.Json["filter"]!["name"]!.GetValue<string>() == "Alvo");
+	}
+
+	[Theory(DisplayName = "The workspace search without a name returns every workspace of every page")]
+	[InlineData(CamundaHubApiVersion.V1)]
+	[InlineData(CamundaHubApiVersion.V2)]
+	public async Task Search_Workspaces_All(CamundaHubApiVersion versao)
+	{
+		var caminho = versao == CamundaHubApiVersion.V1 ? "/api/v1/projects/search" : "/api/v2/workspaces/search";
+		var api = Paginas(Api(), versao, caminho, (k, nome) => Workspace(versao, k, nome), ("minusc", "alvo"), ("certo", "Alvo"));
+
+		var todos = await Cliente(api, versao).SearchWorkspacesAsync(null);
+
+		todos.Count.ShouldBe(2 * Tamanho(versao) + 20);
+		api.A(caminho)[0].Json["filter"]?["name"].ShouldBeNull();
+	}
+
+	[Theory(DisplayName = "Creating a workspace posts its name")]
+	[InlineData(CamundaHubApiVersion.V1, "/api/v1/projects")]
+	[InlineData(CamundaHubApiVersion.V2, "/api/v2/workspaces")]
+	public async Task Create_Workspace(CamundaHubApiVersion versao, string caminho)
+	{
+		var api = Api().Responder(HttpMethod.Post, caminho, Workspace(versao, "w1", "Solução"));
+
+		var criado = await Cliente(api, versao).CreateWorkspaceAsync("Solução");
+
+		criado.ShouldBe(new CamundaHubWorkspace("w1", "Solução"));
+		api.A(caminho).ShouldHaveSingleItem().Json["name"]!.GetValue<string>().ShouldBe("Solução");
+	}
+
+	[Theory(DisplayName = "A workspace comes with its projects")]
+	[InlineData(CamundaHubApiVersion.V1)]
+	[InlineData(CamundaHubApiVersion.V2)]
+	public async Task Get_Workspace(CamundaHubApiVersion versao)
+	{
+		var api = Api();
+		if (versao == CamundaHubApiVersion.V1)
+			api.Responder(HttpMethod.Get, "/api/v1/projects/w1", $$"""
+				{ "metadata": {{Workspace(versao, "w1", "Solução")}},
+				  "content": { "folders": [], "files": [], "processApplications": [ {{Projeto(versao, "p1", "Pedidos", "w1")}}, {{Projeto(versao, "p2", "Outro", "w1")}} ] } }
+				""");
+		else
+			api.Responder(HttpMethod.Get, "/api/v2/workspaces/w1", $$"""
+				{ "workspace": {{Workspace(versao, "w1", "Solução")}},
+				  "content": { "projects": [ {{Projeto(versao, "p1", "Pedidos", "w1")}}, {{Projeto(versao, "p2", "Outro", "w1")}} ] } }
+				""");
+
+		var detalhe = await Cliente(api, versao).GetWorkspaceAsync("w1");
+
+		detalhe.Workspace.ShouldBe(new CamundaHubWorkspace("w1", "Solução"));
+		detalhe.Projects.ShouldBe(new[] { new CamundaHubProject("p1", "Pedidos", "w1"), new CamundaHubProject("p2", "Outro", "w1") });
+	}
+
+	[Theory(DisplayName = "The project search is by workspace, and keeps only the exact name")]
+	[InlineData(CamundaHubApiVersion.V1)]
+	[InlineData(CamundaHubApiVersion.V2)]
+	public async Task Search_Projects(CamundaHubApiVersion versao)
+	{
+		var api = Api();
+		var itens = $"{Projeto(versao, "p1", "pedidos", "w1")}, {Projeto(versao, "p2", "Pedidos", "w1")}";
+		if (versao == CamundaHubApiVersion.V1)
+			api.Responder(HttpMethod.Get, "/api/v1/projects/w1", $$"""
+				{ "metadata": {{Workspace(versao, "w1", "S")}}, "content": { "folders": [], "files": [], "processApplications": [ {{itens}} ] } }
+				""");
+		else
+			api.Responder(HttpMethod.Post, "/api/v2/projects/search", Pagina(versao, 2, itens));
+		var cliente = Cliente(api, versao);
+
+		var achados = await cliente.SearchProjectsAsync("w1", "Pedidos");
+		var todos = await cliente.SearchProjectsAsync("w1", null);
+
+		achados.ShouldHaveSingleItem().ShouldBe(new CamundaHubProject("p2", "Pedidos", "w1"));
+		todos.Count.ShouldBe(2);
+		if (versao == CamundaHubApiVersion.V2)
+		{
+			var filtro = api.A("/api/v2/projects/search")[0].Json["filter"]!;
+			(filtro["workspaceKey"]!.GetValue<string>(), filtro["name"]!.GetValue<string>()).ShouldBe(("w1", "Pedidos"));
+		}
+	}
+
+	[Fact(DisplayName = "The project search of the v2 follows three pages")]
+	public async Task Search_Projects_Pages_V2()
+	{
+		const CamundaHubApiVersion versao = CamundaHubApiVersion.V2;
+		var api = Paginas(Api(), versao, "/api/v2/projects/search", (k, nome) => Projeto(versao, k, nome, "w1"), ("minusc", "alvo"), ("certo", "Alvo"));
+
+		var achados = await Cliente(api, versao).SearchProjectsAsync("w1", "Alvo");
+
+		achados.ShouldHaveSingleItem().Key.ShouldBe("certo");
+		ConferirPaginas(api.A("/api/v2/projects/search"), versao);
+	}
+
+	[Theory(DisplayName = "Creating a project posts its name and its workspace")]
+	[InlineData(CamundaHubApiVersion.V1, "/api/v1/process-applications", "projectId")]
+	[InlineData(CamundaHubApiVersion.V2, "/api/v2/projects", "workspaceKey")]
+	public async Task Create_Project(CamundaHubApiVersion versao, string caminho, string campoDoWorkspace)
+	{
+		var api = Api().Responder(HttpMethod.Post, caminho, Projeto(versao, "p1", "Pedidos", "w1"));
+
+		var criado = await Cliente(api, versao).CreateProjectAsync("w1", "Pedidos");
+
+		criado.ShouldBe(new CamundaHubProject("p1", "Pedidos", "w1"));
+		var corpo = api.A(caminho).ShouldHaveSingleItem().Json;
+		(corpo["name"]!.GetValue<string>(), corpo[campoDoWorkspace]!.GetValue<string>()).ShouldBe(("Pedidos", "w1"));
+	}
+
+	[Theory(DisplayName = "The content of a project is its folders and files, with the type read in any case and an unknown type null")]
+	[InlineData(CamundaHubApiVersion.V1, "/api/v1/process-applications/p1", "metadata")]
+	[InlineData(CamundaHubApiVersion.V2, "/api/v2/projects/p1", "project")]
+	public async Task Get_Project_Content(CamundaHubApiVersion versao, string caminho, string campo)
+	{
+		var api = Api().Responder(HttpMethod.Get, caminho, $$"""
+			{ "{{campo}}": {{Projeto(versao, "p1", "Pedidos", "w1")}}, "content": {
+			  "folders": [ {{Pasta(versao, "f1", "Sub", "p1", null)}} ],
+			  "files": [ {{Arquivo(versao, "a1", "pedido", "p1", null, "bpmn", 4)}}, {{Arquivo(versao, "a2", "aprovar", "p1", null, "form", 1)}},
+			             {{Arquivo(versao, "a3", "tabela", "p1", null, "dmn", 2)}} ] } }
+			""");
+
+		var conteudo = await Cliente(api, versao).GetProjectContentAsync("p1");
+
+		conteudo.Folders.ShouldBe(new[] { new CamundaHubFolder("f1", "Sub", "p1", null) });
+		conteudo.Files.ShouldBe(new[]
+		{
+			new CamundaHubFileMetadata("a1", "pedido", "p1", null, CamundaHubFileType.Bpmn, 4),
+			new CamundaHubFileMetadata("a2", "aprovar", "p1", null, CamundaHubFileType.Form, 1),
+			new CamundaHubFileMetadata("a3", "tabela", "p1", null, null, 2)
+		});
+	}
+
+	[Theory(DisplayName = "The content of a folder is its folders and files")]
+	[InlineData(CamundaHubApiVersion.V1, "/api/v1/folders/f1", "metadata")]
+	[InlineData(CamundaHubApiVersion.V2, "/api/v2/folders/f1", "folder")]
+	public async Task Get_Folder_Content(CamundaHubApiVersion versao, string caminho, string campo)
+	{
+		var api = Api().Responder(HttpMethod.Get, caminho, $$"""
+			{ "{{campo}}": {{Pasta(versao, "f1", "Sub", "p1", null)}}, "content": {
+			  "folders": [ {{Pasta(versao, "f2", "Neta", "p1", "f1")}} ], "files": [ {{Arquivo(versao, "a4", "x", "p1", "f1", "bpmn", 1)}} ] } }
+			""");
+
+		var conteudo = await Cliente(api, versao).GetFolderContentAsync("f1");
+
+		conteudo.Folders.ShouldBe(new[] { new CamundaHubFolder("f2", "Neta", "p1", "f1") });
+		conteudo.Files.ShouldBe(new[] { new CamundaHubFileMetadata("a4", "x", "p1", "f1", CamundaHubFileType.Bpmn, 1) });
+	}
+
+	[Theory(DisplayName = "A folder is created at the root of the project, or inside another folder")]
+	[InlineData(CamundaHubApiVersion.V1, "/api/v1/folders")]
+	[InlineData(CamundaHubApiVersion.V2, "/api/v2/folders")]
+	public async Task Create_Folder(CamundaHubApiVersion versao, string caminho)
+	{
+		var api = Api().Responder(HttpMethod.Post, caminho, Pasta(versao, "f1", "Sub", "p1", null))
+			.Responder(HttpMethod.Post, caminho, Pasta(versao, "f2", "Neta", "p1", "f1"));
+		var cliente = Cliente(api, versao);
+
+		(await cliente.CreateFolderAsync("p1", null, "Sub")).ShouldBe(new CamundaHubFolder("f1", "Sub", "p1", null));
+		(await cliente.CreateFolderAsync("p1", "f1", "Neta")).ShouldBe(new CamundaHubFolder("f2", "Neta", "p1", "f1"));
+
+		var (naRaiz, naPasta) = (api.A(caminho)[0].Json, api.A(caminho)[1].Json);
+		naRaiz["name"]!.GetValue<string>().ShouldBe("Sub");
+		naPasta["name"]!.GetValue<string>().ShouldBe("Neta");
+		if (versao == CamundaHubApiVersion.V1)
+		{
+			// Na v1, a process application e a pasta mãe são exclusivas (o Swagger do Hub 8.10).
+			(naRaiz["processApplicationId"]!.GetValue<string>(), naRaiz["parentId"]).ShouldBe(("p1", (System.Text.Json.Nodes.JsonNode?)null));
+			(naPasta["parentId"]!.GetValue<string>(), naPasta["processApplicationId"]).ShouldBe(("f1", (System.Text.Json.Nodes.JsonNode?)null));
+		}
+		else
+		{
+			(naRaiz["projectKey"]!.GetValue<string>(), naRaiz["parentFolderKey"]).ShouldBe(("p1", (System.Text.Json.Nodes.JsonNode?)null));
+			(naPasta["projectKey"]!.GetValue<string>(), naPasta["parentFolderKey"]!.GetValue<string>()).ShouldBe(("p1", "f1"));
+		}
+	}
+
+	[Theory(DisplayName = "The paths go after the address of the Hub, with a final slash or a path of its own, and the call is told without it")]
+	[InlineData(CamundaHubApiVersion.V1, "http://hub.falso:8070/", "/api/v1/projects/w1", "")]
+	[InlineData(CamundaHubApiVersion.V2, "http://hub.falso:8070/", "/api/v2/workspaces/w1", "")]
+	[InlineData(CamundaHubApiVersion.V1, "http://hub.falso/modeler", "/api/v1/projects/w1", "/modeler")]
+	[InlineData(CamundaHubApiVersion.V2, "http://hub.falso/modeler/", "/api/v2/workspaces/w1", "/modeler")]
+	public async Task Paths_After_Address(CamundaHubApiVersion versao, string endereco, string caminho, string prefixo)
+	{
+		var campo = versao == CamundaHubApiVersion.V1 ? "metadata" : "workspace";
+		var conteudo = versao == CamundaHubApiVersion.V1 ? "\"processApplications\": []" : "\"projects\": []";
+		var api = Api().Responder(HttpMethod.Get, prefixo + caminho, $$"""{ "{{campo}}": {{Workspace(versao, "w1", "S")}}, "content": { {{conteudo}} } }""");
+		var chamadas = new List<CamundaCall>();
+
+		await Cliente(api, versao, endereco: endereco).GetWorkspaceAsync("w1", observe: chamadas.Add);
+
+		api.A(prefixo + caminho).ShouldHaveSingleItem().Host.ShouldBe("hub.falso");
+		chamadas.Where(c => c.Kind == CamundaCallKind.Api).ShouldHaveSingleItem().Path.ShouldBe(caminho);
+	}
+
 	// ---------- Apoio ----------
 
 	internal static ApiFalsa Api() => new ApiFalsa()
@@ -239,6 +444,61 @@ public class CamundaHubClientTests
 	{
 		Type = "OAuth", ClientId = "qa-hub", ClientSecret = "s3cr3t-hub", OAuthUrl = "http://idp.falso" + Token
 	};
+
+	// O JSON de cada coisa do Hub, como a versão o devolve (a v1 com os nomes de antes do 8.10, e o tipo em maiúsculas).
+	internal static string Workspace(CamundaHubApiVersion v, string chave, string nome) => v == CamundaHubApiVersion.V1
+		? $$"""{ "id": "{{chave}}", "name": "{{nome}}", "created": "2026-11-07T10:00:00Z" }"""
+		: $$"""{ "workspaceKey": "{{chave}}", "name": "{{nome}}", "description": null, "created": "2026-11-07T10:00:00Z" }""";
+
+	internal static string Projeto(CamundaHubApiVersion v, string chave, string nome, string workspace) => v == CamundaHubApiVersion.V1
+		? $$"""{ "id": "{{chave}}", "name": "{{nome}}", "projectId": "{{workspace}}" }"""
+		: $$"""{ "projectKey": "{{chave}}", "name": "{{nome}}", "workspaceKey": "{{workspace}}" }""";
+
+	internal static string Pasta(CamundaHubApiVersion v, string chave, string nome, string projeto, string? mae) => v == CamundaHubApiVersion.V1
+		? $$"""{ "id": "{{chave}}", "name": "{{nome}}", "projectId": "w1", "processApplicationId": "{{projeto}}", "parentId": {{Json(mae)}} }"""
+		: $$"""{ "folderKey": "{{chave}}", "name": "{{nome}}", "projectKey": "{{projeto}}", "parentFolderKey": {{Json(mae)}} }""";
+
+	internal static string Arquivo(CamundaHubApiVersion v, string chave, string nome, string projeto, string? pasta, string tipo, int revisao) =>
+		v == CamundaHubApiVersion.V1
+			? $$"""{ "id": "{{chave}}", "name": "{{nome}}", "projectId": "w1", "processApplicationId": "{{projeto}}", "folderId": {{Json(pasta)}}, "revision": {{revisao}}, "type": "{{tipo.ToUpperInvariant()}}", "simplePath": "x" }"""
+			: $$"""{ "fileKey": "{{chave}}", "name": "{{nome}}", "projectKey": "{{projeto}}", "folderKey": {{Json(pasta)}}, "revision": {{revisao}}, "type": "{{tipo}}", "simplePath": "x", "content": null }""";
+
+	private static string Json(string? texto) => texto is null ? "null" : $"\"{texto}\"";
+
+	internal static int Tamanho(CamundaHubApiVersion v) => v == CamundaHubApiVersion.V1 ? 50 : 100;
+
+	internal static string Pagina(CamundaHubApiVersion v, int total, string itens) => v == CamundaHubApiVersion.V1
+		? $$"""{ "items": [ {{itens}} ], "total": {{total}} }"""
+		: $$"""{ "items": [ {{itens}} ], "page": { "totalItems": {{total}}, "hasMoreTotalItems": false } }""";
+
+	// Três páginas cheias até a última: a primeira com o item "primeiro", a última com o "ultimo" (chave e nome).
+	internal static ApiFalsa Paginas(ApiFalsa api, CamundaHubApiVersion v, string caminho, Func<string, string, string> item,
+		(string Chave, string Nome) primeiro, (string Chave, string Nome) ultimo)
+	{
+		var tamanho = Tamanho(v);
+		var total = 2 * tamanho + 20;
+		string Enchimento(int pagina, int quantos) => string.Join(", ", Enumerable.Range(0, quantos).Select(i => item($"k{pagina}-{i}", $"Outro {pagina}-{i}")));
+		return api
+			.Responder(HttpMethod.Post, caminho, Pagina(v, total, Enchimento(1, tamanho - 1) + ", " + item(primeiro.Chave, primeiro.Nome)))
+			.Responder(HttpMethod.Post, caminho, Pagina(v, total, Enchimento(2, tamanho)))
+			.Responder(HttpMethod.Post, caminho, Pagina(v, total, Enchimento(3, 19) + ", " + item(ultimo.Chave, ultimo.Nome)));
+	}
+
+	// As três páginas pedidas: a v1 pelo número (desde 0) e o tamanho 50; a v2 pelo from e o limit 100.
+	internal static void ConferirPaginas(IReadOnlyList<PedidoVisto> pedidos, CamundaHubApiVersion v)
+	{
+		pedidos.Count.ShouldBe(3);
+		if (v == CamundaHubApiVersion.V1)
+		{
+			pedidos.Select(p => p.Json["page"]!.GetValue<int>()).ShouldBe(new[] { 0, 1, 2 });
+			pedidos.ShouldAllBe(p => p.Json["size"]!.GetValue<int>() == 50);
+		}
+		else
+		{
+			pedidos.Select(p => p.Json["page"]!["from"]!.GetValue<int>()).ShouldBe(new[] { 0, 100, 200 });
+			pedidos.ShouldAllBe(p => p.Json["page"]!["limit"]!.GetValue<int>() == 100);
+		}
+	}
 
 	private static string TokenDe(string token, int segundos) =>
 		$$"""{ "access_token": "{{token}}", "token_type": "Bearer", "expires_in": {{segundos}} }""";
