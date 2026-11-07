@@ -96,6 +96,21 @@ internal sealed class HubApiV1 : IHubApi
 		Metadados(await _hub.Pedir(HttpMethod.Patch, "api/v1/files/" + Hub.Chave(chave), new JsonObject { ["content"] = conteudo, ["revision"] = revisao }, ct)
 			.ConfigureAwait(false));
 
+	public async Task<CamundaHubVersion> CreateVersion(string arquivo, string nome, string? descricao, CancellationToken ct)
+	{
+		var corpo = new JsonObject { ["fileId"] = arquivo, ["name"] = nome };
+		if (descricao is not null)
+			corpo["description"] = descricao;
+		return VersaoLida(await _hub.Pedir(HttpMethod.Post, "api/v1/versions", corpo, ct).ConfigureAwait(false));
+	}
+
+	public async Task<IReadOnlyList<CamundaHubVersion>> SearchVersions(string arquivo, CancellationToken ct) =>
+		(await Buscar("api/v1/versions/search", Hub.Filtro(("fileId", arquivo)), ct).ConfigureAwait(false)).Select(VersaoLida).ToList();
+
+	// O corpo é {}: o "version" só vale para os connector templates.
+	public async Task<CamundaHubVersion> RestoreVersion(string versao, CancellationToken ct) =>
+		VersaoLida(await _hub.Pedir(HttpMethod.Post, "api/v1/versions/" + Hub.Chave(versao) + "/restore", new JsonObject(), ct).ConfigureAwait(false));
+
 	// Todas as páginas: o número da página, desde 0, até o total.
 	private async Task<List<JsonNode?>> Buscar(string caminho, JsonObject filtro, CancellationToken ct)
 	{
@@ -125,4 +140,9 @@ internal sealed class HubApiV1 : IHubApi
 
 	private static CamundaHubContent Conteudo(JsonNode? conteudo) =>
 		new(Hub.Itens(conteudo?["folders"]).Select(Pasta).ToList(), Hub.Itens(conteudo?["files"]).Select(Metadados).ToList());
+
+	// Uma versão do arquivo, como o Hub a devolve.
+	private static CamundaHubVersion VersaoLida(JsonNode? json) => new(
+		Hub.Obrigatorio(json, "id"), Hub.Texto(json?["name"]) ?? string.Empty, Hub.Texto(json?["description"]), Hub.Texto(json?["fileId"]),
+		Hub.Data(json?["created"]));
 }

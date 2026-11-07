@@ -625,7 +625,78 @@ public class CamundaHubClientTests
 		falhas.ShouldAllBe(f => !f.Message.Contains("s3cr3t-hub") && !f.ToString().Contains("s3cr3t-hub"));
 	}
 
+	// ---------- 4. As versões ----------
+
+	[Theory(DisplayName = "Creating a version posts the file, the name and the description, and reads the version")]
+	[InlineData(CamundaHubApiVersion.V1, "fileId")]
+	[InlineData(CamundaHubApiVersion.V2, "fileKey")]
+	public async Task Create_Version(CamundaHubApiVersion versao, string campoDoArquivo)
+	{
+		var caminho = Caminho(versao, "versions");
+		var api = Api().Responder(HttpMethod.Post, caminho, Versao(versao, "v1-a", "QualityAssured: antes de salvar", "Projeto \\\"X\\\"", "a1"))
+			.Responder(HttpMethod.Post, caminho, Versao(versao, "v1-b", "QualityAssured: salvo", null, "a1"));
+		var cliente = Cliente(api, versao);
+
+		var antes = await cliente.CreateVersionAsync("a1", "QualityAssured: antes de salvar", "Projeto \"X\"");
+		var depois = await cliente.CreateVersionAsync("a1", "QualityAssured: salvo");
+
+		antes.ShouldBe(new CamundaHubVersion("v1-a", "QualityAssured: antes de salvar", "Projeto \"X\"", "a1", new DateTimeOffset(2026, 11, 7, 14, 32, 5, TimeSpan.Zero)));
+		depois.Description.ShouldBeNull();
+		var (comDescricao, semDescricao) = (api.A(caminho)[0].Json, api.A(caminho)[1].Json);
+		(comDescricao[campoDoArquivo]!.GetValue<string>(), comDescricao["name"]!.GetValue<string>(), comDescricao["description"]!.GetValue<string>())
+			.ShouldBe(("a1", "QualityAssured: antes de salvar", "Projeto \"X\""));
+		semDescricao["description"].ShouldBeNull();
+	}
+
+	[Theory(DisplayName = "The version search is by file and follows three pages")]
+	[InlineData(CamundaHubApiVersion.V1, "fileId")]
+	[InlineData(CamundaHubApiVersion.V2, "fileKey")]
+	public async Task Search_Versions_Pages(CamundaHubApiVersion versao, string campoDoArquivo)
+	{
+		var caminho = Caminho(versao, "versions/search");
+		var api = Paginas(Api(), versao, caminho, (k, nome) => Versao(versao, k, nome, null, "a1"), ("primeira", "Primeira"), ("ultima", "Última"));
+
+		var versoes = await Cliente(api, versao).SearchVersionsAsync("a1");
+
+		versoes.Count.ShouldBe(2 * Tamanho(versao) + 20);
+		versoes.Select(v => v.Key).ShouldContain("primeira");
+		versoes[^1].ShouldBe(new CamundaHubVersion("ultima", "Última", null, "a1", new DateTimeOffset(2026, 11, 7, 14, 32, 5, TimeSpan.Zero)));
+		ConferirPaginas(api.A(caminho), versao);
+		api.A(caminho).ShouldAllBe(p => p.Json["filter"]![campoDoArquivo]!.GetValue<string>() == "a1");
+	}
+
+	[Theory(DisplayName = "Restoring a version posts an empty object to the path of the version")]
+	[InlineData(CamundaHubApiVersion.V1, "/api/v1/versions/v1-a/restore")]
+	[InlineData(CamundaHubApiVersion.V2, "/api/v2/versions/v1-a/restoration")]
+	public async Task Restore_Version(CamundaHubApiVersion versao, string caminho)
+	{
+		var api = Api().Responder(HttpMethod.Post, caminho, Versao(versao, "v1-c", "Restored", null, "a1"));
+
+		var restaurada = await Cliente(api, versao).RestoreVersionAsync("v1-a");
+
+		restaurada.Key.ShouldBe("v1-c");
+		var pedido = api.A(caminho).ShouldHaveSingleItem();
+		pedido.Json.ToJsonString().ShouldBe("{}");
+		pedido.TipoDoConteudo.ShouldBe("application/json");
+	}
+
+	[Theory(DisplayName = "A restore the Hub refuses is a refusal with its status and detail")]
+	[InlineData(CamundaHubApiVersion.V1, "/api/v1/versions/v1-a/restore")]
+	[InlineData(CamundaHubApiVersion.V2, "/api/v2/versions/v1-a/restoration")]
+	public async Task Restore_Version_Conflict(CamundaHubApiVersion versao, string caminho)
+	{
+		var api = Api().Recusar(HttpMethod.Post, caminho, HttpStatusCode.Conflict, "Conflict", "The version cannot be restored");
+
+		var recusa = await Should.ThrowAsync<CamundaApiException>(() => Cliente(api, versao).RestoreVersionAsync("v1-a"));
+
+		(recusa.Status, recusa.Detail, recusa.Path).ShouldBe((409, "The version cannot be restored", caminho));
+	}
+
 	// ---------- Apoio ----------
+
+	private static string Versao(CamundaHubApiVersion v, string chave, string nome, string? descricao, string arquivo) => v == CamundaHubApiVersion.V1
+		? $$"""{ "id": "{{chave}}", "name": "{{nome}}", "description": {{Json(descricao)}}, "fileId": "{{arquivo}}", "created": "2026-11-07T14:32:05Z" }"""
+		: $$"""{ "versionKey": "{{chave}}", "name": "{{nome}}", "description": {{Json(descricao)}}, "fileKey": "{{arquivo}}", "organizationPublic": false, "linkedToProcessApplication": false, "created": "2026-11-07T14:32:05Z" }""";
 
 	private static string Caminho(CamundaHubApiVersion v, string resto) => (v == CamundaHubApiVersion.V1 ? "/api/v1/" : "/api/v2/") + resto;
 

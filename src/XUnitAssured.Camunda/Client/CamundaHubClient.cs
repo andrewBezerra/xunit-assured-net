@@ -338,6 +338,55 @@ public sealed class CamundaHubClient
 		return Executar((api, ct) => api.UpdateFile(key, content, revision, ct), timeout, observe, cancellationToken);
 	}
 
+	/// <summary>
+	/// Creates a version of a file: a snapshot of its current content in the Hub, which the Hub lists in the Versions menu
+	/// of the file and can restore.
+	/// </summary>
+	/// <param name="fileKey">The key of the file.</param>
+	/// <param name="name">The name of the version.</param>
+	/// <param name="description">The description; <see langword="null"/> for none.</param>
+	/// <param name="timeout">The deadline; <see cref="DefaultTimeout"/> when <see langword="null"/>.</param>
+	/// <param name="observe">Hears each HTTP request of the operation.</param>
+	/// <param name="cancellationToken">The caller's cancellation.</param>
+	/// <returns>The version created.</returns>
+	public Task<CamundaHubVersion> CreateVersionAsync(
+		string fileKey, string name, string? description = null, TimeSpan? timeout = null, Action<CamundaCall>? observe = null,
+		CancellationToken cancellationToken = default)
+	{
+		ArgumentException.ThrowIfNullOrWhiteSpace(fileKey);
+		ArgumentException.ThrowIfNullOrWhiteSpace(name);
+		return Executar((api, ct) => api.CreateVersion(fileKey, name, description, ct), timeout, observe, cancellationToken);
+	}
+
+	/// <summary>The versions of a file, every page of them.</summary>
+	/// <param name="fileKey">The key of the file.</param>
+	/// <param name="timeout">The deadline of the whole search; <see cref="DefaultTimeout"/> when <see langword="null"/>.</param>
+	/// <param name="observe">Hears each HTTP request of the operation.</param>
+	/// <param name="cancellationToken">The caller's cancellation.</param>
+	/// <returns>The versions.</returns>
+	public Task<IReadOnlyList<CamundaHubVersion>> SearchVersionsAsync(
+		string fileKey, TimeSpan? timeout = null, Action<CamundaCall>? observe = null, CancellationToken cancellationToken = default)
+	{
+		ArgumentException.ThrowIfNullOrWhiteSpace(fileKey);
+		return Executar((api, ct) => api.SearchVersions(fileKey, ct), timeout, observe, cancellationToken);
+	}
+
+	/// <summary>
+	/// Restores a version: the file gets the content the version captured. The Hub itself records the restored state as a
+	/// new version, unless the file and its latest version already have that content.
+	/// </summary>
+	/// <param name="versionKey">The key of the version.</param>
+	/// <param name="timeout">The deadline; <see cref="DefaultTimeout"/> when <see langword="null"/>.</param>
+	/// <param name="observe">Hears each HTTP request of the operation.</param>
+	/// <param name="cancellationToken">The caller's cancellation.</param>
+	/// <returns>The version the Hub answers with.</returns>
+	public Task<CamundaHubVersion> RestoreVersionAsync(
+		string versionKey, TimeSpan? timeout = null, Action<CamundaCall>? observe = null, CancellationToken cancellationToken = default)
+	{
+		ArgumentException.ThrowIfNullOrWhiteSpace(versionKey);
+		return Executar((api, ct) => api.RestoreVersion(versionKey, ct), timeout, observe, cancellationToken);
+	}
+
 	// A busca do Hub pelo nome não garante a comparação exata (a v1 nem o documenta): o filtro de novo, ordinal.
 	private static IReadOnlyList<T> Exatos<T>(IReadOnlyList<T> itens, Func<T, string> nome, string? exato) =>
 		exato is null ? itens : itens.Where(i => string.Equals(nome(i), exato, StringComparison.Ordinal)).ToList();

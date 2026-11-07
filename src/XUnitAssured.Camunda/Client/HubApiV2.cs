@@ -83,6 +83,23 @@ internal sealed class HubApiV2 : IHubApi
 		Metadados(await _hub.Pedir(HttpMethod.Patch, "api/v2/files/" + Hub.Chave(chave), new JsonObject { ["content"] = conteudo, ["revision"] = revisao }, ct)
 			.ConfigureAwait(false));
 
+	// A versão é um snapshot do conteúdo atual do arquivo (o Swagger da v2).
+	public async Task<CamundaHubVersion> CreateVersion(string arquivo, string nome, string? descricao, CancellationToken ct)
+	{
+		var corpo = new JsonObject { ["fileKey"] = arquivo, ["name"] = nome };
+		if (descricao is not null)
+			corpo["description"] = descricao;
+		return VersaoLida(await _hub.Pedir(HttpMethod.Post, "api/v2/versions", corpo, ct).ConfigureAwait(false));
+	}
+
+	// A v2 exige o filter.fileKey.
+	public async Task<IReadOnlyList<CamundaHubVersion>> SearchVersions(string arquivo, CancellationToken ct) =>
+		(await Buscar("api/v2/versions/search", Hub.Filtro(("fileKey", arquivo)), ct).ConfigureAwait(false)).Select(VersaoLida).ToList();
+
+	// O corpo é {}: o "version" só vale para os element templates.
+	public async Task<CamundaHubVersion> RestoreVersion(string versao, CancellationToken ct) =>
+		VersaoLida(await _hub.Pedir(HttpMethod.Post, "api/v2/versions/" + Hub.Chave(versao) + "/restoration", new JsonObject(), ct).ConfigureAwait(false));
+
 	// Todas as páginas: o from avança pelo que veio, até o totalItems (ou enquanto o Hub diz que há mais).
 	private async Task<List<JsonNode?>> Buscar(string caminho, JsonObject filtro, CancellationToken ct)
 	{
@@ -114,4 +131,9 @@ internal sealed class HubApiV2 : IHubApi
 
 	private static CamundaHubContent Conteudo(JsonNode? conteudo) =>
 		new(Hub.Itens(conteudo?["folders"]).Select(Pasta).ToList(), Hub.Itens(conteudo?["files"]).Select(Metadados).ToList());
+
+	// Uma versão do arquivo, como o Hub a devolve.
+	private static CamundaHubVersion VersaoLida(JsonNode? json) => new(
+		Hub.Obrigatorio(json, "versionKey"), Hub.Texto(json?["name"]) ?? string.Empty, Hub.Texto(json?["description"]), Hub.Texto(json?["fileKey"]),
+		Hub.Data(json?["created"]));
 }

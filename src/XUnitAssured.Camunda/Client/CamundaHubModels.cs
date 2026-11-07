@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 
 namespace XUnitAssured.Camunda.Client;
@@ -63,3 +64,11 @@ public sealed record CamundaHubContent(IReadOnlyList<CamundaHubFolder> Folders, 
 /// <param name="Metadata">What the Hub says about the file: its key, name, project, folder, type and revision.</param>
 /// <param name="Content">The content, as the Hub keeps it: the XML of a BPMN, the JSON of a form.</param>
 public sealed record CamundaHubFile(CamundaHubFileMetadata Metadata, string Content);
+
+/// <summary>A version of a file of the Hub: a snapshot of its content, which the Hub can restore.</summary>
+/// <param name="Key">The key of the version (the <c>id</c> in the API v1).</param>
+/// <param name="Name">The name.</param>
+/// <param name="Description">The description; <see langword="null"/> when it has none.</param>
+/// <param name="FileKey">The key of its file.</param>
+/// <param name="Created">When it was created; <see langword="null"/> when the Hub does not say.</param>
+public sealed record CamundaHubVersion(string Key, string Name, string? Description, string? FileKey, DateTimeOffset? Created);

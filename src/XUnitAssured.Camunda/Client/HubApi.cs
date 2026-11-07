@@ -46,6 +46,12 @@ internal interface IHubApi
 	Task<CamundaHubFileMetadata> CreateFile(string projeto, string? pasta, string nome, CamundaHubFileType tipo, string conteudo, CancellationToken ct);
 
 	Task<CamundaHubFileMetadata> UpdateFile(string chave, string conteudo, int revisao, CancellationToken ct);
+
+	Task<CamundaHubVersion> CreateVersion(string arquivo, string nome, string? descricao, CancellationToken ct);
+
+	Task<IReadOnlyList<CamundaHubVersion>> SearchVersions(string arquivo, CancellationToken ct);
+
+	Task<CamundaHubVersion> RestoreVersion(string versao, CancellationToken ct);
 }
 
 /// <summary>
