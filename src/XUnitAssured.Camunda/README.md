@@ -596,6 +596,62 @@ foreach (var job in jobs)
 - **`observe`** hears each HTTP request of the operation, the token request included, without
   the authorization header, the token or the secret.
 
+## The Hub client
+
+**`CamundaHubClient`** talks to the Camunda Hub (the Web Modeler): it browses workspaces,
+projects and folders, reads and writes BPMN and form files with their revision, and creates and
+restores their versions. It is for a tool that keeps diagrams in the Hub, not for the steps of a
+test.
+
+```csharp
+using XUnitAssured.Camunda.Client;
+
+var hub = CamundaHubClient.For(new CamundaHubSettings
+{
+    RestAddress = "http://localhost:8070",
+    Authentication = new CamundaAuthenticationSettings
+    {
+        ClientId = "my-hub-client",
+        ClientSecret = secret,
+        OAuthUrl = "http://localhost:18080/auth/realms/camunda-platform/protocol/openid-connect/token"
+    }
+});
+
+var file = await hub.GetFileAsync(fileKey);
+await hub.CreateVersionAsync(fileKey, "Before my change");
+try
+{
+    await hub.UpdateFileAsync(fileKey, newXml, file!.Metadata.Revision);
+}
+catch (CamundaApiException e) when (e.Status == 409)
+{
+    // Someone saved the file in the Hub after it was read: read it again.
+}
+```
+
+- **OAuth only.** The Hub takes only a JWT. `For` refuses any other `authentication.type`, and a
+  missing client id, client secret or `oauthUrl`, naming the field and never the secret. The
+  audience is `web-modeler-public-api` (`CamundaHubClient.DefaultAudience`) when empty, and the
+  scope is sent only when given.
+- **No `CAMUNDA_*` variables.** Unlike `CamundaApiClient`, nothing comes from the environment:
+  those are the credentials of the orchestration cluster, not of the Hub.
+- **The v1 and the v2.** The same methods speak the Camunda Hub API v2 (`/api/v2`) and the Web
+  Modeler API v1 (`/api/v1`), which Camunda 8.10 deprecates and **8.12 removes**. With no
+  `ApiVersion`, the first call chooses, once: the v2 when `GET /api/v2/info` answers, the v1 when
+  only `GET /api/v1/info` does. A 401 or 403 is the refusal of the credentials, not a reason to
+  switch. `GetInfoAsync` says which one it speaks and, on the v1, the permissions of the client.
+  The names are the v2's: the v1's "project" is the workspace, and its "process application" the
+  project; the keys are the same in both.
+- **The revision.** `UpdateFileAsync` sends the revision the content was based on. When the file
+  changed in the Hub since then, the Hub answers 409: a `CamundaApiException` with
+  `Status == 409` and the `detail` of the Hub. On a Camunda 8.10.4 Hub, in both API versions,
+  creating a version leaves the revision as it was, and restoring one raises it: read the file
+  again after a restore.
+- **Every page.** The searches follow every page, and keep only the exact name.
+- **Like `CamundaApiClient`:** one client per configuration, a deadline per call (10 s by
+  default), the token kept and renewed once on a 401 or 403, `observe`, and the same exceptions.
+  `GetFileAsync` is `null` when the Hub does not have the file.
+
 ## Running Camunda locally
 
 ```bash

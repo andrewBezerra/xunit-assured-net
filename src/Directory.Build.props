@@ -27,14 +27,14 @@
   </PropertyGroup>
 
   <PropertyGroup>
-    <Version>6.42.0</Version>
+    <Version>6.43.0</Version>
 
     <!--
       O que a página do pacote no nuget.org mostra. Sem isto ela fica muda, e quem atualiza
       por `dotnet add package` não recebe nenhum aviso de que a major quebra coisas.
       Trocar a cada versão, junto do número acima.
     -->
-    <PackageReleaseNotes>New package XUnitAssured.Jsonata: JSONata expressions over the JSON a step returns, with a time limit, a recursion limit and $jwt; ToJsonObject() on the HTTP, Kafka and RabbitMQ results. No breaking changes. Release notes: https://github.com/andrewBezerra/xunit-assured-net/blob/main/docs/releases/6.36.0.md</PackageReleaseNotes>
+    <PackageReleaseNotes>New in XUnitAssured.Camunda: CamundaHubClient, a client of the Camunda Hub (the Web Modeler) REST API, v1 and v2, with OAuth only: workspaces, projects, folders, files with their revision, and versions. No breaking changes. Release notes: https://github.com/andrewBezerra/xunit-assured-net/blob/main/docs/releases/6.43.0.md</PackageReleaseNotes>
     <Authors>Carlos Andrew Costa Bezerra</Authors>
     <Company>Carlos Andrew Costa Bezerra</Company>
     <Copyright>Copyright (c) Carlos Andrew Costa Bezerra</Copyright>
