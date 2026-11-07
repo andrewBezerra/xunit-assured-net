@@ -2,7 +2,16 @@
 
 All notable changes to the XUnitAssured packages. Upgrading from 5.1.x? See [UPGRADING.md](UPGRADING.md).
 
-## v6.42.0 (Current — Following an instance by a value the test instance gets while it runs)
+## v6.43.0 (Current — A client of the Camunda Hub)
+
+New in XUnitAssured.Camunda: **`CamundaHubClient`**, a client of the Camunda Hub (the Web Modeler) REST API, for a tool that saves diagrams and forms in the Hub and reads them back. It speaks the Hub API v2 and the Web Modeler API v1 (removed in Camunda 8.12) behind the same methods, choosing by `GET /info`, and takes only OAuth, with the audience `web-modeler-public-api` by default. Upgrading from 6.42.0 requires no code changes.
+
+- **Navigation:** workspaces, the projects of a workspace, the folders and files of a project or folder, and creating each of them.
+- **Files:** the search, the content with the revision, the creation, and the update with the revision, whose 409 is a `CamundaApiException` with `Status == 409`.
+- **Versions:** create, search and restore.
+- **Like `CamundaApiClient`:** one client per configuration, a deadline per call, the token kept and renewed once on a 401, the `observe` callback, and the same exceptions.
+
+## v6.42.0 (Following an instance by a value the test instance gets while it runs)
 
 New in XUnitAssured.Camunda: `FollowInstanceByInstanceVariable(processId, variable, sourceInstanceKey, sourceVariable)` reads a variable from a running instance when the step runs and follows the instance of another process that has the same value, waiting for both within `assertionTimeoutSeconds`. Upgrading from 6.41.0 requires no code changes.
 
